@@ -36,26 +36,7 @@ const actionShortcuts = [
 export default function SystemOperations() {
   return (
     <div className="system-page">
-      <div className="system-topbar">
-        <div className="system-topbar-title">ParkFlow Admin</div>
-        <div className="system-topbar-actions">
-          <button type="button" className="icon-button" aria-label="Thông báo">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <button type="button" className="icon-button" aria-label="Cài đặt">
-            <span className="material-symbols-outlined">settings</span>
-          </button>
-          <button type="button" className="icon-button" aria-label="Trợ giúp">
-            <span className="material-symbols-outlined">help</span>
-          </button>
-          <div className="system-avatar">
-            <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMweqr2L9L664Yl6KdzSleuBwG9RcTNviULu0Q6s4IQNHwVBVLZ1TdSNx87oAZdsZJTL58qYxRKW6JGbx-m7wDb2DMRFAgE4vKZZCFgXLklh2sg-dTOpspfaarJvZmpo7Ew61vIb_IFIiG8HBuZBa0bySAcMxFXE6UkmKX3K0pk0vY6kh7sYsesImTHe2nlf7GkKu6HHl5bqv4yiyvIfGxRe3hvGV1eN0uUNeo8311u7BzViZHDKSyQA7it32g0v06Sn_2ZYAea4w"
-              alt="Staff avatar"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Topbar is provided by the shell - avoid rendering a second header here to prevent duplication */}
 
       <main className="system-content">
         <section className="stats-grid">

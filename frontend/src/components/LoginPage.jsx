@@ -1,15 +1,18 @@
 /**
- * LoginPage hiển thị form đăng nhập đơn giản cho ứng dụng.
- * Người dùng có thể nhập bất kỳ giá trị nào và chuyển đến dashboard.
+ * LoginPage hiển thị form đăng nhập đơn giản.
+ * Mục đích: học React và điều hướng route.
+ * Bất kỳ email / password nào cũng được chấp nhận.
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
+  // Lưu giá trị input email và password trong state
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const navigate = useNavigate()
 
+  // Khi form submit, đi tới route /login/dashboard
   const handleSubmit = (event) => {
     event.preventDefault()
     navigate('/login/dashboard')
@@ -17,6 +20,8 @@ export default function LoginPage() {
 
   return (
     <div className="login-layout">
+      <div className="page-background-circle top" />
+      <div className="page-background-circle bottom" />
       <header className="login-header">
         <div className="login-brand">Parking Building</div>
         <button type="button" className="login-menu-button" aria-label="Open menu">

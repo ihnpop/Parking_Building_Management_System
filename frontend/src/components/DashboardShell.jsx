@@ -4,6 +4,12 @@ import Topbar from './Topbar'
 import DashboardView from './DashboardView'
 import SystemOperations from './SystemOperations'
 
+/**
+ * DashboardShell là shell chính của ứng dụng sau khi đã đăng nhập.
+ * Nó giữ nguyên sidebar và topbar, sau đó chuyển giữa hai nội dung:
+ * - Dashboard chính
+ * - Nghiệp vụ hệ thống
+ */
 export default function DashboardShell() {
   const [activeTab, setActiveTab] = useState('dashboard')
 
