@@ -3,27 +3,114 @@
  * Mục đích: học React và điều hướng route.
  * Bất kỳ email / password nào cũng được chấp nhận.
  */
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+// import { useState } from 'react'
+// import { useNavigate } from 'react-router-dom'
 
-export default function LoginPage() {
-  // Lưu giá trị input email và password trong state
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+// export default function LoginPage() {
+//   // Lưu giá trị input email và password trong state
+//   const [email, setEmail] = useState('')
+//   const [password, setPassword] = useState('')
+//   const navigate = useNavigate()
+
+//   // Khi form submit, đi tới route /login/dashboard
+//   const handleSubmit = (event) => {
+//     event.preventDefault()
+//     navigate('/login/dashboard')
+//   }
+
+import { useState } from "react";
+
+import { useNavigate } from "react-router-dom";
+
+import axios from "axios";
+
+export default function Login() {
+
   const navigate = useNavigate()
 
-  // Khi form submit, đi tới route /login/dashboard
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    navigate('/login/dashboard')
-  }
+  const [email, setEmail] = useState("")
+
+  const [password, setPassword] = useState("")
+
+  const [loading, setLoading] = useState(false)
+
+  const [error, setError] = useState("")
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault()
+
+    setError("")
+
+    if (!email || !password) {
+
+      setError(
+        "Please fill all fields"
+      )
+
+      return
+    }
+
+    try {
+
+      setLoading(true)
+
+      const response = await axios.post(
+
+        "http://localhost:5000/api/login",
+
+        {
+
+          email,
+
+          password
+
+        }
+
+      );
+
+      console.log(response.data);
+
+      localStorage.setItem(
+
+        "token",
+
+        response.data.session.access_token
+
+      );
+
+      navigate('/login/dashboard');
+
+    }
+    catch (err) {
+
+      setError(
+
+        err.response?.data?.message ||
+
+        "Login Failed"
+
+      );
+
+    }
+    finally {
+
+      setLoading(false);
+
+    }
+
+  };
+
+
 
   return (
     <div className="login-layout">
       <div className="page-background-circle top" />
       <div className="page-background-circle bottom" />
       <header className="login-header">
-        <div className="login-brand">Parking Building</div>
+        <div className="login-brand">Parking Building
+
+        </div>
         <button type="button" className="login-menu-button" aria-label="Open menu">
           <span className="material-symbols-outlined">menu</span>
         </button>
@@ -70,10 +157,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="login-signup">
-            <span>Don't have an account?</span>
-            <a href="#">Sign Up</a>
-          </div>
         </div>
       </main>
 
