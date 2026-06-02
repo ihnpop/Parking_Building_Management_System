@@ -1,24 +1,14 @@
-import { useState } from 'react'
-import Sidebar from './components/Sidebar'
-import Topbar from './components/Topbar'
-import DashboardView from './components/DashboardView'
-import SystemOperations from './components/SystemOperations'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import LoginPage from './components/LoginPage'
+import DashboardShell from './components/DashboardShell'
 import './App.css'
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
-
   return (
-    <div className="layout">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      <div className="main">
-        <Topbar title={activeTab === 'system' ? 'ParkFlow Admin' : 'Bảng điều khiển'} showExtras={activeTab === 'system'} />
-
-        <main className="content">
-          {activeTab === 'system' ? <SystemOperations /> : <DashboardView />}
-        </main>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login/dashboard/*" element={<DashboardShell />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   )
 }
