@@ -2,17 +2,13 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './components/LoginPage'
 import DashboardShell from './components/DashboardShell'
 import './App.css'
-import CardPage from './components/CardPage'
 
 export default function App() {
   return (
-    // <Routes>
-    //   <Route path="/login" element={<LoginPage />} />
-    //   <Route path="/login/dashboard/*" element={<DashboardShell />} />
-    //   <Route path="*" element={<Navigate to="/login" replace />} />
-    // </Routes>
-    <>
-      <CardPage />
-    </>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login/dashboard/*" element={<DashboardShell />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   )
 }
