@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './components/LoginPage'
 import DashboardShell from './components/DashboardShell'
 import './App.css'
-
 export default function App() {
   return (
     <Routes>
