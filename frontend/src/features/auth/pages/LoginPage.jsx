@@ -1,128 +1,44 @@
-/**
- * LoginPage hiển thị form đăng nhập đơn giản.
- * Mục đích: học React và điều hướng route.
- * Bất kỳ email / password nào cũng được chấp nhận.
- */
-// import { useState } from 'react'
-// import { useNavigate } from 'react-router-dom'
-
-// export default function LoginPage() {
-//   // Lưu giá trị input email và password trong state
-//   const [email, setEmail] = useState('')
-//   const [password, setPassword] = useState('')
-//   const navigate = useNavigate()
-
-//   // Khi form submit, đi tới route /login/dashboard
-//   const handleSubmit = (event) => {
-//     event.preventDefault()
-//     navigate('/login/dashboard')
-//   }
-
 import { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
 
-import axios from "axios";
-
-export default function Login() {
-
-    const navigate = useNavigate()
-
-    const [email, setEmail] = useState("")
-
-    const [password, setPassword] = useState("")
-
-    const [loading, setLoading] = useState(false)
-
-    const [error, setError] = useState("")
-
-    // const handleSubmit = async (e) => {
-
-    //     e.preventDefault()
-
-    //     setError("")
-
-    //     if (!email || !password) {
-
-    //         setError(
-    //             "Please fill all fields"
-    //         )
-
-    //         return
-    //     }
-
-    //     try {
-
-    //         setLoading(true)
-
-    //         const response = await axios.post(
-
-    //             "http://localhost:5000/api/login",
-
-    //             {
-
-    //                 email,
-
-    //                 password
-
-    //             }
-
-    //         );
-
-    //         console.log(response.data);
-
-    //         localStorage.setItem(
-
-    //             "token",
-
-    //             response.data.session.access_token
-
-    //         );
-
-    //         navigate('/login/dashboard');
-
-    //     }
-    //     catch (err) {
-
-    //         setError(
-
-    //             err.response?.data?.message ||
-
-    //             "Login Failed"
-
-    //         );
-
-    //     }
-    //     finally {
-
-    //         setLoading(false);
-
-    //     }
-
-    // };
+export default function LoginPage() {
+    const navigate = useNavigate();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        setError("");
 
         if (!email || !password) {
-            alert("Vui lòng nhập bừa email và password để vào!");
+            setError("Please fill all fields");
             return;
         }
 
-        // Chuyển thẳng sang Dashboard không cần gọi API
-        navigate('/login/dashboard');
+        console.log("Đang đăng nhập lụi với:", { email, password });
+
+        try {
+            // Lưu mọi kiểu biến token để các thành phần bảo mật check kiểu gì cũng trúng
+            localStorage.setItem("token", "mock-fake-token-123456");
+            localStorage.setItem("accessToken", "mock-fake-token-123456");
+            localStorage.setItem("access_token", "mock-fake-token-123456");
+
+            // Chuyển hướng thẳng vào dashboard
+            navigate('/login/dashboard');
+        } catch (err) {
+            console.error("Lỗi điều hướng:", err);
+            setError("Something went wrong!");
+        }
     };
-
-
 
     return (
         <div className="login-layout">
             <div className="page-background-circle top" />
             <div className="page-background-circle bottom" />
-            <header className="login-header">
-                <div className="login-brand">Parking Building
 
-                </div>
+            <header className="login-header">
+                <div className="login-brand">Parking Building</div>
                 <button type="button" className="login-menu-button" aria-label="Open menu">
                     <span className="material-symbols-outlined">menu</span>
                 </button>
@@ -134,6 +50,13 @@ export default function Login() {
                         <h1>Welcome Back</h1>
                         <p>Please enter your details to sign in.</p>
                     </div>
+
+                    {error && (
+                        <div style={{ color: '#ff4d4d', textAlign: 'center', marginBottom: '15px', fontWeight: 'bold' }}>
+                            {error}
+                        </div>
+                    )}
+
                     <form className="login-form" onSubmit={handleSubmit}>
                         <label className="login-label" htmlFor="email">
                             Email
@@ -144,15 +67,14 @@ export default function Login() {
                                 onChange={(event) => setEmail(event.target.value)}
                                 className="login-input"
                                 placeholder="name@example.com"
+                                required
                             />
                         </label>
 
                         <label className="login-label" htmlFor="password">
                             <div className="login-label-row">
                                 <span>Password</span>
-                                <a href="#" className="login-forgot">
-                                    Forgot password?
-                                </a>
+                                <a href="#" className="login-forgot">Forgot password?</a>
                             </div>
                             <input
                                 id="password"
@@ -161,6 +83,7 @@ export default function Login() {
                                 onChange={(event) => setPassword(event.target.value)}
                                 className="login-input"
                                 placeholder="••••••••"
+                                required
                             />
                         </label>
 
@@ -168,7 +91,6 @@ export default function Login() {
                             Sign In
                         </button>
                     </form>
-
                 </div>
             </main>
 
@@ -181,5 +103,5 @@ export default function Login() {
                 </div>
             </footer>
         </div>
-    )
+    );
 }

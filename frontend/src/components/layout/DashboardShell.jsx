@@ -1,16 +1,10 @@
-import { useState } from 'react'
+import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import DashboardView from '../../features/dashboard/pages/DashboardView';
+import SystemOperations from '../../features/dashboard/components/SystemOperations';
 
-/**
- * DashboardShell là shell chính của ứng dụng sau khi đã đăng nhập.
- * Nó giữ nguyên sidebar và topbar, sau đó chuyển giữa hai nội dung:
- * - Dashboard chính
- * - Nghiệp vụ hệ thống
- */
-export default function DashboardShell() {
-    const [activeTab, setActiveTab] = useState('dashboard')
+export default function DashboardShell({ children }) {
+    const [activeTab, setActiveTab] = useState('dashboard');
 
     return (
         <div className="layout">
@@ -23,9 +17,10 @@ export default function DashboardShell() {
                 />
 
                 <main className="content">
-                    {activeTab === 'system' ? <SystemOperations /> : <DashboardView />}
+                    {/* Nếu chọn tab 'system' thì hiển thị khối vận hành, ngược lại hiển thị nội dung trang tương ứng */}
+                    {activeTab === 'system' ? <SystemOperations /> : children}
                 </main>
             </div>
         </div>
-    )
+    );
 }

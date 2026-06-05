@@ -1,7 +1,6 @@
 import React from 'react';
 import DashboardShell from '../../../components/layout/DashboardShell';
 import DashboardSection from '../components/DashboardSection';
-// Đã xóa chữ 's' thừa để khớp với tên file thật của bạn
 import Generalstatistictable from '../components/Generalstatistictable';
 import SystemOperations from '../components/SystemOperations';
 
@@ -50,18 +49,15 @@ const dashboardSections = [
 
 export default function DashboardView() {
     return (
-        // Sử dụng DashboardShell để bọc toàn bộ nội dung, tạo layout có sẵn Sidebar/Topbar
         <DashboardShell>
-
             {/* Render các khối quản lý từ mảng data */}
             {dashboardSections.map((section) => (
                 <DashboardSection key={section.title} {...section} />
             ))}
 
-            {/* Render thêm 2 bảng phía dưới cùng (nếu có) */}
+            {/* Render thêm 2 bảng phía dưới cùng */}
             <Generalstatistictable />
             <SystemOperations />
-
         </DashboardShell>
     );
 }
