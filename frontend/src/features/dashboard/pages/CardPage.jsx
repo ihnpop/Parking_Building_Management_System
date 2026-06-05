@@ -32,7 +32,6 @@ export default function CardPage() {
                     </button>
 
                     <div className="cardpage-page-title">
-                        <p className="cardpage-page-label">Hệ thống</p>
                         <h1>Quản lý Thẻ</h1>
                     </div>
                 </div>

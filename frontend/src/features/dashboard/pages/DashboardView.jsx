@@ -9,8 +9,8 @@ const dashboardSections = [
         title: 'QUẢN LÝ THẺ & VÉ',
         columns: 2, // Chỉnh xuống 2 cột để 2 card "Thẻ" và "Vé tháng" nằm vừa vặn, đẹp mắt
         cards: [
-            { title: 'Thẻ', description: 'Xem danh sách thẻ, đăng ký thẻ mới, cập nhật loại thẻ.', icon: 'credit_card' },
-            { title: 'Vé tháng', description: 'Thêm, xóa, sửa, đổi thẻ, gia hạn, tìm kiếm vé tháng.', icon: 'calendar_month' },
+            { title: 'Thẻ', description: 'Xem danh sách thẻ, đăng ký thẻ mới, cập nhật loại thẻ.', icon: 'credit_card', path: '/login/dashboard/card' },
+            { title: 'Vé tháng', description: 'Thêm, xóa, sửa, đổi thẻ, gia hạn, tìm kiếm vé tháng.', icon: 'calendar_month', path: '/login/dashboard/month-card' },
         ],
     },
     {
@@ -26,9 +26,9 @@ const dashboardSections = [
         title: 'NHẬT KÝ VẬN HÀNH',
         columns: 3, // Chỉnh từ 4 xuống 3 cột để 3 mục còn lại lấp đầy 1 hàng ngang
         cards: [
-            { title: 'Nhật ký xử lý mất thẻ', description: 'Xem nhật ký các xử lý mất thẻ: hủy thẻ xe, cho xe ra.', icon: 'find_in_page' },
+            { title: 'Nhật ký xử lý mất thẻ', description: 'Xem nhật ký các xử lý mất thẻ: hủy thẻ xe, cho xe ra.', icon: 'find_in_page', path: '/login/dashboard/lost-card-log' },
             { title: 'Nhật ký vé tháng', description: 'Xem nhật ký xử lý vé tháng: gia hạn, đổi thẻ, thêm, xóa, cập nhật.', icon: 'receipt_long' },
-            { title: 'Nhật ký đăng nhập', description: 'Xem nhật ký đăng nhập của nhân viên: thời gian vào ra.', icon: 'login' },
+            { title: 'Nhật ký đăng nhập', description: 'Xem nhật ký đăng nhập của nhân viên: thời gian vào ra.', icon: 'login', path: '/login/dashboard/login-log' },
         ],
     },
     {

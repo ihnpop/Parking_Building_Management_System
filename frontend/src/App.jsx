@@ -4,8 +4,12 @@ import DashboardView from './features/dashboard/pages/DashboardView';
 import CardPage from './features/dashboard/pages/CardPage';
 import MonthCardPage from './features/dashboard/pages/MonthCardPage';
 import SingleCardPage from './features/dashboard/pages/SingleCardPage';
+import LostCardLogPage from './features/dashboard/pages/LostCardLogPage';
+import LoginLogPage from './features/dashboard/pages/LoginLogPage';
 
 import "./styles/App.css";
+import SystemOperations from './features/dashboard/components/SystemOperations';
+import GeneralStatisticsTable from './features/dashboard/components/Generalstatistictable';
 
 export default function App() {
   return (
@@ -13,11 +17,13 @@ export default function App() {
       {/* 1. Trang Đăng nhập */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* 2. Các trang thuộc Bảng điều khiển (Đã có sẵn Shell bọc bên trong) */}
+      {/* 2. Các trang thuộc Bảng điều khiển */}
       <Route path="/login/dashboard" element={<DashboardView />} />
       <Route path="/login/dashboard/card" element={<CardPage />} />
       <Route path="/login/dashboard/month-card" element={<MonthCardPage />} />
       <Route path="/login/dashboard/single-card" element={<SingleCardPage />} />
+      <Route path="/login/dashboard/lost-card-log" element={<LostCardLogPage />} />
+      <Route path="/login/dashboard/login-log" element={<LoginLogPage />} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
