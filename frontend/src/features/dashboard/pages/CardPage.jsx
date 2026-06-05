@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import DashboardShell from '../../../components/layout/DashboardShell';
+import DashboardCard from '../components/DashboardCard';
 
 /**
  * CardPage displays a centralized card management workspace.

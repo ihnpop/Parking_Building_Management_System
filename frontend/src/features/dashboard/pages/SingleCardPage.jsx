@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-
+import DashboardShell from '../../../components/layout/DashboardShell';
+import DashboardCard from '../components/DashboardCard';
 /**
  * SingleCardPage displays pricing tiers and fee structure.
  */
