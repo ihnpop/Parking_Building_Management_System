@@ -6,6 +6,7 @@ import MonthCardPage from './features/dashboard/pages/MonthCardPage';
 import SingleCardPage from './features/dashboard/pages/SingleCardPage';
 import LostCardLogPage from './features/dashboard/pages/LostCardLogPage';
 import LoginLogPage from './features/dashboard/pages/LoginLogPage';
+import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
 
 import "./styles/App.css";
 import SystemOperations from './features/dashboard/components/SystemOperations';
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/login/dashboard/single-card" element={<SingleCardPage />} />
       <Route path="/login/dashboard/lost-card-log" element={<LostCardLogPage />} />
       <Route path="/login/dashboard/login-log" element={<LoginLogPage />} />
+      <Route path="/login/dashboard/month-card-log" element={<MonthCardLogPage />} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />

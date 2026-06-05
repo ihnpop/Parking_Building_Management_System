@@ -3029,7 +3029,8 @@ body {
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 9999px;
-  margin-left: auto; /* Push to right if header starts empty */
+  margin-left: auto;
+  /* Push to right if header starts empty */
 }
 
 .badge-stable {
@@ -3139,7 +3140,8 @@ body {
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
-  background-color: #ea580c; /* Bright Orange solid */
+  background-color: #ea580c;
+  /* Bright Orange solid */
   color: white;
   border: none;
   border-radius: 12px;
@@ -3173,7 +3175,8 @@ body {
 }
 
 .log-table th {
-  background-color: #eff6ff; /* light blue matches lost table header */
+  background-color: #eff6ff;
+  /* light blue matches lost table header */
   color: #1e3a8a;
   padding: 18px 24px;
   font-size: 12px;
@@ -3212,11 +3215,30 @@ body {
   font-size: 12px;
 }
 
-.initials-NL { background-color: #ffedd5; color: #b45309; }
-.initials-UK { background-color: #fee2e2; color: #b91c1c; }
-.initials-TH { background-color: #ecfdf5; color: #047857; }
-.initials-AD { background-color: #eff6ff; color: #1d4ed8; }
-.initials-LV { background-color: #f3e8ff; color: #6d28d9; }
+.initials-NL {
+  background-color: #ffedd5;
+  color: #b45309;
+}
+
+.initials-UK {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.initials-TH {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.initials-AD {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.initials-LV {
+  background-color: #f3e8ff;
+  color: #6d28d9;
+}
 
 .username-text {
   font-weight: 700;
@@ -3278,7 +3300,8 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #b45309; /* Warm brown/orange action eye icon */
+  color: #b45309;
+  /* Warm brown/orange action eye icon */
   transition: background-color 0.2s;
 }
 
@@ -3322,7 +3345,8 @@ body {
 }
 
 .log-pagination .page-btn.active {
-  background-color: #ea580c; /* Orange active */
+  background-color: #ea580c;
+  /* Orange active */
   color: white;
   border-color: #ea580c;
 }
@@ -3353,7 +3377,8 @@ body {
 }
 
 .widget-card.security-report {
-  background-color: #8c3c0b; /* Deep Brownish Orange */
+  background-color: #8c3c0b;
+  /* Deep Brownish Orange */
   color: #ffffff;
 }
 
@@ -3371,8 +3396,10 @@ body {
 }
 
 .widget-card.system-status {
-  background-color: #dbeafe; /* light blue */
-  color: #1e3a8a; /* dark blue */
+  background-color: #dbeafe;
+  /* light blue */
+  color: #1e3a8a;
+  /* dark blue */
   border: 1px solid #bfdbfe;
 }
 
@@ -3422,4 +3449,449 @@ body {
 
 .status-indicator-circle span {
   font-weight: bold;
+}
+
+/* ==========================================
+   MONTH CARD LOG PAGE (Nhật ký vé tháng)
+   ========================================== */
+.month-log-page {
+  padding: 38px 32px 60px;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.month-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.month-log-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.month-log-header-left h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #8c3c0b;
+  /* Deep Brownish Orange */
+}
+
+.month-log-back-btn {
+  background: #f5f2ed;
+  border: 1px solid #e5e7eb;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #4b5563;
+  transition: all 0.2s;
+}
+
+.month-log-back-btn:hover {
+  background: #fdebd1;
+}
+
+.month-log-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.month-log-bell-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #4b5563;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.2s;
+}
+
+.month-log-bell-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.month-log-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 20px;
+}
+
+.month-log-profile .profile-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.month-log-profile .profile-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.month-log-profile .profile-role {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.month-log-profile .profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  border: 2px solid #fdba74;
+}
+
+/* Stats grid */
+.month-log-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.month-log-stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+.month-log-stat-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.month-log-stat-card .stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-log-stat-card .stat-icon-wrapper.active-card {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+.month-log-stat-card .stat-icon-wrapper.renew-card {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.month-log-stat-card .stat-icon-wrapper.new-card {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.month-log-stat-card .stat-icon-wrapper.alert-card {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.month-log-stat-card .badge-percent {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+.month-log-stat-card .badge-text-alert {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.month-log-stat-card .card-body {
+  margin-top: 16px;
+}
+
+.month-log-stat-card .stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.month-log-stat-card .stat-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+/* Toolbar filters */
+.month-log-toolbar {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+.month-log-toolbar h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.month-log-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.month-log-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-log-filters .filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.month-log-filters .search-group {
+  flex: 2;
+  min-width: 280px;
+}
+
+.month-log-filters .select-group {
+  flex: 1;
+  min-width: 160px;
+}
+
+.month-log-filters .search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.month-log-filters .search-wrapper span {
+  position: absolute;
+  left: 14px;
+  color: #9ca3af;
+}
+
+.month-log-filters .search-wrapper input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.2s;
+}
+
+.month-log-filters .search-wrapper input:focus {
+  border-color: #8c3c0b;
+}
+
+.month-log-select {
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #1f2937;
+  background-color: #ffffff;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.month-log-select:focus {
+  border-color: #8c3c0b;
+}
+
+.month-log-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background-color: #8c3c0b;
+  /* Deep Brownish Orange */
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 46px;
+  justify-content: center;
+  min-width: 140px;
+}
+
+.month-log-filter-btn:hover {
+  background-color: #723007;
+}
+
+/* Table Section */
+.month-log-table-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+}
+
+.month-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.month-log-table th {
+  background-color: #eff6ff;
+  /* light blue header */
+  color: #1e3a8a;
+  padding: 18px 24px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+  text-transform: uppercase;
+}
+
+.month-log-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.month-log-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.month-log-table td.log-time {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.month-log-table td.log-card-no {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.month-log-table td.log-amount {
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Status Badges */
+.status-badge-month {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+}
+
+.status-badge-month.status-success {
+  background-color: #dbeafe;
+  /* light blue background */
+  color: #1d4ed8;
+  /* blue text */
+}
+
+.status-badge-month.status-processing {
+  background-color: #ffedd5;
+  /* light orange */
+  color: #c2410c;
+  /* dark orange */
+}
+
+.status-badge-month.status-failed {
+  background-color: #fee2e2;
+  /* light red */
+  color: #b91c1c;
+  /* red */
+}
+
+/* Footer / Pagination */
+.month-log-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+}
+
+.month-log-footer .footer-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.month-log-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.month-log-pagination .page-btn {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #334155;
+  transition: all 0.2s;
+}
+
+.month-log-pagination .page-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.month-log-pagination .page-btn.active {
+  background-color: #8c3c0b;
+  /* Deep Brownish Orange */
+  color: white;
+  border-color: #8c3c0b;
 }

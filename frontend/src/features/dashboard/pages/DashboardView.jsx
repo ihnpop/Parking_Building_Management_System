@@ -27,7 +27,7 @@ const dashboardSections = [
         columns: 3, // Chỉnh từ 4 xuống 3 cột để 3 mục còn lại lấp đầy 1 hàng ngang
         cards: [
             { title: 'Nhật ký xử lý mất thẻ', description: 'Xem nhật ký các xử lý mất thẻ: hủy thẻ xe, cho xe ra.', icon: 'find_in_page', path: '/login/dashboard/lost-card-log' },
-            { title: 'Nhật ký vé tháng', description: 'Xem nhật ký xử lý vé tháng: gia hạn, đổi thẻ, thêm, xóa, cập nhật.', icon: 'receipt_long' },
+            { title: 'Nhật ký vé tháng', description: 'Xem nhật ký xử lý vé tháng: gia hạn, đổi thẻ, thêm, xóa, cập nhật.', icon: 'receipt_long', path: '/login/dashboard/month-card-log' },
             { title: 'Nhật ký đăng nhập', description: 'Xem nhật ký đăng nhập của nhân viên: thời gian vào ra.', icon: 'login', path: '/login/dashboard/login-log' },
         ],
     },
