@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import DashboardShell from '../../../components/layout/DashboardShell';
+import DashboardCard from '../components/DashboardCard';
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -30,7 +32,6 @@ export default function CardPage() {
                     </button>
 
                     <div className="cardpage-page-title">
-                        <p className="cardpage-page-label">Hệ thống</p>
                         <h1>Quản lý Thẻ</h1>
                     </div>
                 </div>

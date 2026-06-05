@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-
+import DashboardShell from '../../../components/layout/DashboardShell';
+import DashboardCard from '../components/DashboardCard';
 /**
  * MonthCardPage displays monthly card management interface.
  * Features stats, search, filters, and a detailed data table.
