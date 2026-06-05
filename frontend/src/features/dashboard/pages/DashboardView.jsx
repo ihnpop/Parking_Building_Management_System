@@ -35,7 +35,7 @@ const dashboardSections = [
         title: 'CÀI ĐẶT HỆ THỐNG',
         columns: 3,
         cards: [
-            { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings' },
+            { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings', path: '/login/dashboard/settings' },
         ],
     },
 ];
