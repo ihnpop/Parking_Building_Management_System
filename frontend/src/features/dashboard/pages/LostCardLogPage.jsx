@@ -1,32 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const initialData = [
-    { id: 'LR-20231024-001', cardNo: 'CARD-99281', plate: '29A-123.45', owner: 'Nguyễn Văn An', date: '24/10/2023 08:30', status: 'Đang xử lý', handler: 'Admin_01' },
-    { id: 'LR-20231023-085', cardNo: 'CARD-44102', plate: '30H-882.11', owner: 'Trần Thị Bích', date: '23/10/2023 15:45', status: 'Đã hủy thẻ', handler: 'System_Log' },
-    { id: 'LR-20231022-112', cardNo: 'CARD-10293', plate: '51F-003.92', owner: 'Lê Hoàng Nam', date: '22/10/2023 10:20', status: 'Đã tìm lại', handler: 'Admin_02' },
-    { id: 'LR-20231021-045', cardNo: 'CARD-77382', plate: '29D-552.18', owner: 'Phạm Minh Đức', date: '21/10/2023 19:15', status: 'Đã hủy thẻ', handler: 'Admin_01' },
-];
+import { getLostCards } from '../../../service/cardApi';
 
 export default function LostCardLogPage() {
     const navigate = useNavigate();
+    const [lostCards, setLostCards] = useState([]);
+    const [filteredCards, setFilteredCards] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
-    const [tableData, setTableData] = useState(initialData);
+
+    const fetchLostCards = async () => {
+        try {
+            setLoading(true);
+            const data = await getLostCards();
+            setLostCards(data);
+            setFilteredCards(data);
+            setError(null);
+        } catch (err) {
+            console.error("Error fetching lost cards:", err);
+            setError("Không thể tải nhật ký mất thẻ. Vui lòng thử lại sau!");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchLostCards();
+    }, []);
 
     const handleFilter = () => {
-        let filtered = initialData.filter((row) => {
-            const matchesSearch = row.cardNo.toLowerCase().includes(search.toLowerCase()) || 
-                                  row.plate.toLowerCase().includes(search.toLowerCase()) || 
-                                  row.owner.toLowerCase().includes(search.toLowerCase()) || 
-                                  row.id.toLowerCase().includes(search.toLowerCase());
+        let filtered = lostCards.filter((row) => {
+            const matchesSearch = 
+                row.cardNo.toLowerCase().includes(search.toLowerCase()) || 
+                row.plate.toLowerCase().includes(search.toLowerCase()) || 
+                row.owner.toLowerCase().includes(search.toLowerCase()) || 
+                row.id.toLowerCase().includes(search.toLowerCase());
             
             const matchesStatus = statusFilter === 'Tất cả' || row.status === statusFilter;
             
             return matchesSearch && matchesStatus;
         });
-        setTableData(filtered);
+        setFilteredCards(filtered);
     };
+
+    // Trigger filter when statusFilter changes or search is cleared
+    useEffect(() => {
+        handleFilter();
+    }, [statusFilter, lostCards]);
 
     const renderPlate = (plateStr) => {
         const parts = plateStr.split('-');
@@ -54,6 +77,11 @@ export default function LostCardLogPage() {
         }
     };
 
+    // Dynamic stats
+    const totalLost = lostCards.length;
+    const resolved = lostCards.filter(c => c.status === 'Đã tìm lại' || c.status === 'Đã hủy thẻ').length;
+    const pending = lostCards.filter(c => c.status === 'Đang xử lý').length;
+
     return (
         <div className="lost-card-log-page">
             {/* Header */}
@@ -66,9 +94,8 @@ export default function LostCardLogPage() {
                 </div>
 
                 <div className="lost-header-right">
-                    <button type="button" className="lost-bell-button">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge"></span>
+                    <button type="button" className="lost-bell-button" onClick={fetchLostCards}>
+                        <span className="material-symbols-outlined">refresh</span>
                     </button>
                     <div className="lost-avatar">
                         <span className="material-symbols-outlined">person</span>
@@ -81,7 +108,7 @@ export default function LostCardLogPage() {
                 <article className="lost-stat-card">
                     <div className="lost-stat-content">
                         <p className="lost-stat-label">Tổng thẻ báo mất</p>
-                        <p className="lost-stat-value">1,284</p>
+                        <p className="lost-stat-value">{loading ? '...' : totalLost}</p>
                         <p className="lost-stat-note positive">
                             <span className="material-symbols-outlined">trending_up</span>
                             +12% so với tháng trước
@@ -95,9 +122,9 @@ export default function LostCardLogPage() {
                 <article className="lost-stat-card">
                     <div className="lost-stat-content">
                         <p className="lost-stat-label">Đã xử lý xong</p>
-                        <p className="lost-stat-value">1,102</p>
+                        <p className="lost-stat-value">{loading ? '...' : resolved}</p>
                         <div className="lost-stat-progress-bar">
-                            <div className="progress-fill" style={{ width: '85.8%' }}></div>
+                            <div className="progress-fill" style={{ width: totalLost > 0 ? `${(resolved / totalLost) * 100}%` : '0%' }}></div>
                         </div>
                     </div>
                     <div className="lost-stat-icon success">
@@ -108,7 +135,7 @@ export default function LostCardLogPage() {
                 <article className="lost-stat-card">
                     <div className="lost-stat-content">
                         <p className="lost-stat-label">Đang chờ xử lý</p>
-                        <p className="lost-stat-value">182</p>
+                        <p className="lost-stat-value">{loading ? '...' : pending}</p>
                         <p className="lost-stat-note warning-note">
                             Cần xử lý trong 24h tới
                         </p>
@@ -167,72 +194,85 @@ export default function LostCardLogPage() {
 
             {/* Table */}
             <section className="lost-table-card">
-                <table className="lost-table">
-                    <thead>
-                        <tr>
-                            <th>MÃ BÁO MẤT</th>
-                            <th>MÃ THẺ</th>
-                            <th>BIỂN SỐ XE</th>
-                            <th>CHỦ XE</th>
-                            <th>NGÀY BÁO MẤT</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>NGƯỜI XỬ LÝ</th>
-                            <th>THAO TÁC</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tableData.length > 0 ? (
-                            tableData.map((row) => (
-                                <tr key={row.id}>
-                                    <td className="lost-id-cell">{row.id}</td>
-                                    <td>{row.cardNo}</td>
-                                    <td>{renderPlate(row.plate)}</td>
-                                    <td>{row.owner}</td>
-                                    <td>{row.date}</td>
-                                    <td>
-                                        <span className={`status-badge-lost ${getStatusClass(row.status)}`}>
-                                            <span className="dot"></span>
-                                            {row.status}
-                                        </span>
-                                    </td>
-                                    <td>{row.handler}</td>
-                                    <td>
-                                        <button type="button" className="lost-action-btn">
-                                            <span className="material-symbols-outlined">edit</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                    Không tìm thấy dữ liệu phù hợp
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-
-                {/* Footer / Pagination */}
-                <div className="lost-table-footer">
-                    <span className="footer-info">Hiển thị 1 - {tableData.length} của 1,284 báo cáo</span>
-                    <div className="footer-right-actions">
-                        <div className="lost-pagination">
-                            <button type="button" className="page-btn">
-                                <span className="material-symbols-outlined">chevron_left</span>
-                            </button>
-                            <button type="button" className="page-btn active">1</button>
-                            <button type="button" className="page-btn">2</button>
-                            <button type="button" className="page-btn">
-                                <span className="material-symbols-outlined">chevron_right</span>
-                            </button>
-                        </div>
-                        <button type="button" className="lost-create-button">
-                            <span className="material-symbols-outlined">add</span>
-                            Tạo báo mất mới
-                        </button>
+                {error && (
+                    <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
+                        {error}
                     </div>
-                </div>
+                )}
+
+                {loading ? (
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                        Đang tải nhật ký mất thẻ...
+                    </div>
+                ) : (
+                    <>
+                        <table className="lost-table">
+                            <thead>
+                                <tr>
+                                    <th>MÃ BÁO MẤT</th>
+                                    <th>MÃ THẺ</th>
+                                    <th>BIỂN SỐ XE</th>
+                                    <th>CHỦ XE</th>
+                                    <th>NGÀY BÁO MẤT</th>
+                                    <th>TRẠNG THÁI</th>
+                                    <th>NGƯỜI XỬ LÝ</th>
+                                    <th>THAO TÁC</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredCards.length > 0 ? (
+                                    filteredCards.map((row) => (
+                                        <tr key={row.id}>
+                                            <td className="lost-id-cell">{row.id}</td>
+                                            <td>{row.cardNo}</td>
+                                            <td>{renderPlate(row.plate)}</td>
+                                            <td>{row.owner}</td>
+                                            <td>{row.date}</td>
+                                            <td>
+                                                <span className={`status-badge-lost ${getStatusClass(row.status)}`}>
+                                                    <span className="dot"></span>
+                                                    {row.status}
+                                                </span>
+                                            </td>
+                                            <td>{row.handler}</td>
+                                            <td>
+                                                <button type="button" className="lost-action-btn">
+                                                    <span className="material-symbols-outlined">edit</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                            Không tìm thấy dữ liệu phù hợp
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+                        {/* Footer / Pagination */}
+                        <div className="lost-table-footer">
+                            <span className="footer-info">Hiển thị {filteredCards.length} của {totalLost} báo cáo</span>
+                            <div className="footer-right-actions">
+                                <div className="lost-pagination">
+                                    <button type="button" className="page-btn" disabled>
+                                        <span className="material-symbols-outlined">chevron_left</span>
+                                    </button>
+                                    <button type="button" className="page-btn active">1</button>
+                                    <button type="button" className="page-btn" disabled>
+                                        <span className="material-symbols-outlined">chevron_right</span>
+                                    </button>
+                                </div>
+                                <button type="button" className="lost-create-button">
+                                    <span className="material-symbols-outlined">add</span>
+                                    Tạo báo mất mới
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </section>
         </div>
     );

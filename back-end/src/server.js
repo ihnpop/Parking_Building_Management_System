@@ -61,9 +61,9 @@ import express from "express";
 
 import cors from "cors";
 
-import supabase from "./src/config/supabaseClient.js"
+import supabase from "../config/supabaseClient.js"
 
-import cardRouter from "./src/routers/cardRouter.js"
+import cardRouter from "./routers/cardRouter.js"
 
 const app = express();
 
