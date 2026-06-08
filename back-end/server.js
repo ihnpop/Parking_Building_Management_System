@@ -61,13 +61,17 @@ import express from "express";
 
 import cors from "cors";
 
-import supabase from "./config/supabaseClient.js"
+import supabase from "./src/config/supabaseClient.js"
+
+import cardRouter from "./src/routers/cardRouter.js"
 
 const app = express();
 
 app.use(cors());
 
 app.use(express.json());
+
+app.use("/api/cards", cardRouter);
 
 app.post(
 
@@ -146,13 +150,13 @@ app.post(
 
 app.listen(
 
-    5000,
+    3636,
 
     () => {
 
         console.log(
 
-            "Server running at 5000"
+            "Server running at 3636"
 
         )
 

@@ -18,8 +18,6 @@ const dashboardSections = [
         columns: 3, // Giữ 3 cột vì còn đúng 3 mục, xếp ngang hàng rất cân đối
         cards: [
             { title: 'Thống kê tổng quát', description: 'Xem tổng quát doanh thu theo khoảng thời gian, tồn đầu kỳ, cuối kỳ.', icon: 'pie_chart' },
-            { title: 'Thống kê chi tiết', description: 'Xem chi tiết các loại xe: thời gian vào, ra, loại vé và tổng doanh thu.', icon: 'bar_chart' },
-            { title: 'Thống kê theo khoảng thời gian', description: 'Xem doanh thu theo ngày, tuần, tháng, năm và so sánh.', icon: 'schedule' },
         ],
     },
     {
@@ -35,7 +33,7 @@ const dashboardSections = [
         title: 'CÀI ĐẶT HỆ THỐNG',
         columns: 3,
         cards: [
-            { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings' },
+            { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings', path: '/login/dashboard/settings' },
         ],
     },
 ];

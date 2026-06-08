@@ -1,8 +1,23 @@
+import { useNavigate } from 'react-router-dom';
+
 /**
  * Sidebar layout for the parking management dashboard.
  * This component is styled to match the sample on the left side.
  */
 export default function Sidebar({ activeTab, onTabChange }) {
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        // Xóa toàn bộ thông tin xác thực khỏi localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('access_token');
+
+        // Dùng replace: true để xóa lịch sử điều hướng,
+        // người dùng nhấn Back sẽ không quay lại được dashboard
+        navigate('/login', { replace: true });
+    };
+
     return (
         <aside className="sidebar">
             <div className="brand">
@@ -36,10 +51,10 @@ export default function Sidebar({ activeTab, onTabChange }) {
                 </button>
             </nav>
 
-            <button type="button" className="logout">
+            <button type="button" className="logout" onClick={handleLogout}>
                 <span className="material-symbols-outlined">logout</span>
                 <span>Đăng xuất</span>
             </button>
         </aside>
     )
-}
+}
