@@ -1,37 +1,23 @@
+﻿import { useNavigate } from 'react-router-dom'
 
 const occupancyData = [
-  { hour: "00:00", value: 12 },
-  { hour: "01:00", value: 8 },
-  { hour: "02:00", value: 5 },
-  { hour: "03:00", value: 4 },
-  { hour: "04:00", value: 10 },
-  { hour: "05:00", value: 22 },
-  { hour: "06:00", value: 45 },
-  { hour: "07:00", value: 72 },
-  { hour: "08:00", value: 88 },
-  { hour: "09:00", value: 95 },
-  { hour: "10:00", value: 92 },
-  { hour: "11:00", value: 85 },
-  { hour: "12:00", value: 80 },
-  { hour: "13:00", value: 82 },
-  { hour: "14:00", value: 86 },
-  { hour: "15:00", value: 90 },
-  { hour: "16:00", value: 94 },
-  { hour: "17:00", value: 88 },
-  { hour: "18:00", value: 75 },
-  { hour: "19:00", value: 60 },
-  { hour: "20:00", value: 48 },
-  { hour: "21:00", value: 35 },
-  { hour: "22:00", value: 25 },
-  { hour: "23:00", value: 18 },
+  { label: 'Thứ 2', value: 65 },
+  { label: 'Thứ 3', value: 72 },
+  { label: 'Thứ 4', value: 78 },
+  { label: 'Thứ 5', value: 83 },
+  { label: 'Thứ 6', value: 90 },
+  { label: 'Thứ 7', value: 70 },
+  { label: 'Chủ nhật', value: 60 },
 ];
 
-export default function OccupancyAnalytics() {
+export default function GeneralStatisticsTableWeek() {
+  const navigate = useNavigate()
+
   return (
-    <div className="occupancy-page">
+    <section className="occupancy-page">
       <div className="analytics-container">
-        <button className="back-button">
-          ← Quay lại menu
+        <button className="back-button" onClick={() => navigate('/login/dashboard')}>
+          ← Quay về menu
         </button>
 
         <div className="page-header">
@@ -41,18 +27,15 @@ export default function OccupancyAnalytics() {
 
         <div className="chart-card">
           <div className="chart-header">
-            <h2>Tỷ lệ lấp đầy bãi xe trong 24 giờ</h2>
-            <p>Parking Occupancy % over 24 Hours</p>
+            <h2>Tỷ lệ lấp đầy bãi xe trong tuần</h2>
+            <p>Parking Occupancy % over 7 Days</p>
           </div>
 
           <div className="chart-container">
             <div className="y-axis">
-              <span>100%</span>
-              <span>80%</span>
-              <span>60%</span>
-              <span>40%</span>
-              <span>20%</span>
-              <span>0%</span>
+              {[100, 80, 60, 40, 20, 0].map((label) => (
+                <span key={label}>{label}%</span>
+              ))}
             </div>
 
             <div className="grid-lines">
@@ -63,23 +46,20 @@ export default function OccupancyAnalytics() {
 
             <div className="bars-wrapper">
               {occupancyData.map((item) => (
-                <div key={item.hour} className="bar-group">
+                <div key={item.label} className="bar-group">
                   <div className="bar-inner">
                     <div className="tooltip">{item.value}%</div>
-                    <div
-                      className="bar"
-                      style={{ height: `${item.value}%` }}
-                    />
+                    <div className="bar" style={{ height: `${item.value}%` }} />
                   </div>
-                  <span className="bar-label">{item.hour}</span>
+                  <span className="bar-label">{item.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="period-selector">
-            <button className="active">Ngày</button>
-            <button>Tuần</button>
+            <button>Ngày</button>
+            <button className="active">Tuần</button>
             <button>Tháng</button>
           </div>
 
@@ -115,6 +95,6 @@ export default function OccupancyAnalytics() {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </section>
+  )
 }
