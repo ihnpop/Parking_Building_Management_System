@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Chặn pnpm store ở mọi thư mục con
+**/.pnpm-store/
+**/.pnpm-store
+.pnpm-store/
+
+# Chặn node_modules ở mọi nơi
+**/node_modules/
+node_modules/
