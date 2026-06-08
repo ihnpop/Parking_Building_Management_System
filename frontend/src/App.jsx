@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './features/auth/pages/LoginPage';
 import DashboardView from './features/dashboard/pages/DashboardView';
@@ -33,3 +34,18 @@ export default function App() {
     </Routes>
   );
 }
+=======
+import { Routes, Route, Navigate } from 'react-router-dom'
+import LoginPage from './components/LoginPage'
+import DashboardShell from './components/DashboardShell'
+import './App.css'
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login/dashboard/*" element={<DashboardShell />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  )
+}
+>>>>>>> origin/hamster
