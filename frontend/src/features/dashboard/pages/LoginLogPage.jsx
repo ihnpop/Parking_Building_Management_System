@@ -17,10 +17,10 @@ export default function LoginLogPage() {
 
     const handleFilter = () => {
         let filtered = initialLogs.filter((log) => {
-            const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) || 
-                                  log.ip.toLowerCase().includes(search.toLowerCase()) ||
-                                  log.location.toLowerCase().includes(search.toLowerCase());
-            
+            const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) ||
+                log.ip.toLowerCase().includes(search.toLowerCase()) ||
+                log.location.toLowerCase().includes(search.toLowerCase());
+
             // Just basic filter as we don't have roles in mock data
             return matchesSearch;
         });
@@ -49,7 +49,7 @@ export default function LoginLogPage() {
                     <button type="button" className="log-icon-btn">
                         <span className="material-symbols-outlined">settings</span>
                     </button>
-                    
+
                     <div className="log-user-profile">
                         <div className="profile-text">
                             <span className="profile-name">Admin User</span>
@@ -108,9 +108,9 @@ export default function LoginLogPage() {
                         <label>Username / IP Address</label>
                         <div className="search-input-wrapper">
                             <span className="material-symbols-outlined">person</span>
-                            <input 
-                                type="text" 
-                                placeholder="Nhập tên hoặc IP..." 
+                            <input
+                                type="text"
+                                placeholder="Nhập tên hoặc IP..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
@@ -128,7 +128,7 @@ export default function LoginLogPage() {
 
                     <div className="log-filter-group dropdown-group">
                         <label>Vai trò (Role)</label>
-                        <select 
+                        <select
                             className="log-select"
                             value={roleFilter}
                             onChange={(e) => setRoleFilter(e.target.value)}
@@ -227,7 +227,7 @@ export default function LoginLogPage() {
             </section>
 
             {/* Bottom Section widgets */}
-            <section className="log-bottom-widgets">
+            {/* <section className="log-bottom-widgets">
                 <article className="widget-card security-report">
                     <div className="widget-content">
                         <h3>Báo cáo bảo mật hàng tuần</h3>
@@ -247,7 +247,7 @@ export default function LoginLogPage() {
                         <span className="material-symbols-outlined">check</span>
                     </div>
                 </article>
-            </section>
+            </section> */}
         </div>
     );
 }
