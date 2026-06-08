@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './features/auth/pages/LoginPage';
 import DashboardView from './features/dashboard/pages/DashboardView';
@@ -9,10 +8,10 @@ import LoginLogPage from './features/dashboard/pages/LoginLogPage';
 import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
 import SystemSettingsPage from './features/dashboard/pages/SystemSettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 
 import "./styles/App.css";
-import SystemOperations from './features/dashboard/components/SystemOperations';
-import GeneralStatisticsTable from './features/dashboard/components/Generalstatistictable';
+
 
 export default function App() {
   return (
@@ -28,24 +27,11 @@ export default function App() {
       <Route path="/login/dashboard/login-log" element={<ProtectedRoute><LoginLogPage /></ProtectedRoute>} />
       <Route path="/login/dashboard/month-card-log" element={<ProtectedRoute><MonthCardLogPage /></ProtectedRoute>} />
       <Route path="/login/dashboard/settings" element={<ProtectedRoute><SystemSettingsPage /></ProtectedRoute>} />
+      <Route path="/login/dashboard/OccupancyChart" element={<ProtectedRoute><OccupancyChart /></ProtectedRoute>} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+
   );
 }
-=======
-import { Routes, Route, Navigate } from 'react-router-dom'
-import LoginPage from './components/LoginPage'
-import DashboardShell from './components/DashboardShell'
-import './App.css'
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/login/dashboard/*" element={<DashboardShell />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
-  )
-}
->>>>>>> origin/hamster

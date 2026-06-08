@@ -12,7 +12,7 @@ export default function DashboardShell({ children }) {
 
             <div className="main">
                 <Topbar
-                    title={activeTab === 'system' ? 'ParkFlow Admin' : 'Bảng điều khiển'}
+                    title={activeTab === 'system' ? 'Parking System' : 'Bảng điều khiển'}
                     showExtras={activeTab === 'system'}
                 />
 
