@@ -123,7 +123,7 @@ export default function SystemOperations() {
             </main>
 
             <footer className="system-footer">
-                <p>© 2024 ParkFlow Systems. All rights reserved.</p>
+                <p>© 2024 Parking Building Management Systems. All rights reserved.</p>
                 <div className="footer-links">
                     <a href="#">Privacy Policy</a>
                     <a href="#">Support</a>

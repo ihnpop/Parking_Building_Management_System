@@ -1,8 +1,8 @@
 import React from 'react';
 import DashboardShell from '../../../components/layout/DashboardShell';
 import DashboardSection from '../components/DashboardSection';
-import Generalstatistictable from '../components/Generalstatistictable';
-import SystemOperations from '../components/SystemOperations';
+
+// import SystemOperations from '../components/SystemOperations';
 
 const dashboardSections = [
     {
@@ -17,9 +17,7 @@ const dashboardSections = [
         title: 'THỐNG KÊ',
         columns: 3, // Giữ 3 cột vì còn đúng 3 mục, xếp ngang hàng rất cân đối
         cards: [
-            { title: 'Thống kê tổng quát', description: 'Xem tổng quát doanh thu theo khoảng thời gian, tồn đầu kỳ, cuối kỳ.', icon: 'pie_chart' },
-            { title: 'Thống kê chi tiết', description: 'Xem chi tiết các loại xe: thời gian vào, ra, loại vé và tổng doanh thu.', icon: 'bar_chart' },
-            { title: 'Thống kê theo khoảng thời gian', description: 'Xem doanh thu theo ngày, tuần, tháng, năm và so sánh.', icon: 'schedule' },
+            { title: 'Thống kê tổng quát', description: 'Xem tổng quát doanh thu theo khoảng thời gian, tồn đầu kỳ, cuối kỳ.', icon: 'pie_chart', path: '/login/dashboard/OccupancyChart' },
         ],
     },
     {
@@ -49,8 +47,7 @@ export default function DashboardView() {
             ))}
 
             {/* Render thêm 2 bảng phía dưới cùng */}
-            <Generalstatistictable />
-            <SystemOperations />
+            {/* <SystemOperations /> */}
         </DashboardShell>
     );
 }
