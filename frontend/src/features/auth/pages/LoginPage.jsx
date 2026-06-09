@@ -156,7 +156,7 @@ export default function LoginPage() {
         }
         try {
             setLoading(true);
-            const response = await axios.post("http://localhost:3636/api/login", {
+            const response = await axios.post("http://localhost:3639/api/login", {
                 email,
                 password,
             });
