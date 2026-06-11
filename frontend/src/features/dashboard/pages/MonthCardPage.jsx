@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMonthCards } from '../../../service/cardApi';
-
-/**
- * MonthCardPage displays monthly card management interface.
- * Features stats, search, filters, and a detailed data table connected to Supabase.
- */
+import { useAuth } from '../../../context/AuthContext';
 
 export default function MonthCardPage() {
     const navigate = useNavigate();
+    const { user, userRole } = useAuth();
     const [monthCards, setMonthCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'SUPER ADMINISTRATOR';
+            case 'MANAGER': return 'MANAGER';
+            case 'STAFF': return 'STAFF';
+            default: return r;
+        }
+    };
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -69,12 +76,14 @@ export default function MonthCardPage() {
         { label: 'Đã hết hạn', value: expired, icon: 'schedule', change: total > 0 ? `${Math.round((expired / total) * 100)}%` : '0%', changeType: 'neutral' },
     ];
 
+    const userEmail = user?.email || 'admin@parkflow.com';
+
     return (
         <div className="month-card-page">
-            {/* 1. Header chuẩn hóa bám đỉnh, căn giữa tiêu đề hoàn toàn */}
+            {/* Header đồng nhất chuẩn 100% hình ảnh */}
             <header className="stats-top-bar">
                 <div className="top-bar-left">
-                    <button type="button" className="month-back-button" onClick={() => navigate('/login/dashboard')}>
+                    <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
                         <span className="material-symbols-outlined">arrow_back</span>
                         Trở về Dashboard
                     </button>
@@ -96,8 +105,8 @@ export default function MonthCardPage() {
 
                     <div className="header-user-profile">
                         <div className="profile-info-text">
-                            <span className="profile-user-name">Admin User</span>
-                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
+                            <span className="profile-user-name">{user?.user_metadata?.full_name || userEmail.split('@')[0]}</span>
+                            <span className="profile-user-role">{getRoleLabel(role)}</span>
                         </div>
                         <div className="profile-avatar-circle">
                             <span className="material-symbols-outlined">person</span>
@@ -106,7 +115,7 @@ export default function MonthCardPage() {
                 </div>
             </header>
 
-            {/* 2. Hàng Thống kê kết hợp 3 nút bấm (Chuyển thành Grid 5 cột như CSS mới) */}
+            {/* Hàng Thống kê kết hợp gom 3 nút hành động xuống Grid 5 cột */}
             <div className="month-stats-grid-custom">
                 {statCards.map((stat) => (
                     <div key={stat.label} className="month-stat-card">
@@ -123,7 +132,6 @@ export default function MonthCardPage() {
                     </div>
                 ))}
 
-                {/* Ô thứ 5: Chứa cụm 3 nút bấm chuyển đổi vị trí từ Header xuống */}
                 <div className="month-inline-actions-card">
                     <button type="button" className="month-btn-inline" onClick={fetchMonthCards}>
                         <span className="material-symbols-outlined">refresh</span>
@@ -140,7 +148,6 @@ export default function MonthCardPage() {
                 </div>
             </div>
 
-            {/* 3. Khu vực tìm kiếm và bộ lọc dữ liệu */}
             <div className="month-search-bar">
                 <div className="search-input-wrapper">
                     <span className="material-symbols-outlined">search</span>
@@ -187,7 +194,6 @@ export default function MonthCardPage() {
                 </button>
             </div>
 
-            {/* 4. Bảng danh sách dữ liệu */}
             <div className="month-table-container">
                 {error && (
                     <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>

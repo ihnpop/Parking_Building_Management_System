@@ -20,8 +20,6 @@ export default function LoginLogPage() {
             const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) ||
                 log.ip.toLowerCase().includes(search.toLowerCase()) ||
                 log.location.toLowerCase().includes(search.toLowerCase());
-
-            // Just basic filter as we don't have roles in mock data
             return matchesSearch;
         });
         setLogs(filtered);
@@ -29,8 +27,7 @@ export default function LoginLogPage() {
 
     return (
         <div className="login-log-page">
-            {/* Header */}
-            {/* Header chuẩn giống hình ảnh */}
+            {/* Header dính đỉnh tràn viền đồng nhất hệ thống */}
             <header className="stats-top-bar">
                 <div className="top-bar-left">
                     <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
@@ -42,9 +39,6 @@ export default function LoginLogPage() {
                 <h1 className="stats-page-title">Nhật ký đăng nhập</h1>
 
                 <div className="top-bar-right">
-                    <button type="button" className="header-action-btn" onClick={handleFilter}>
-                        <span className="material-symbols-outlined">refresh</span>
-                    </button>
                     <button type="button" className="header-action-btn">
                         <span className="material-symbols-outlined">notifications</span>
                         <span className="bell-badge-dot"></span>
@@ -68,7 +62,7 @@ export default function LoginLogPage() {
                 </div>
             </header>
 
-            {/* Stats Cards */}
+            {/* Stats Cards (Tự động nhận padding lề hai bên từ CSS mới) */}
             <section className="log-stats-grid">
                 <article className="log-stat-card border-none">
                     <div className="log-stat-header">
@@ -231,29 +225,6 @@ export default function LoginLogPage() {
                     </div>
                 </div>
             </section>
-
-            {/* Bottom Section widgets */}
-            {/* <section className="log-bottom-widgets">
-                <article className="widget-card security-report">
-                    <div className="widget-content">
-                        <h3>Báo cáo bảo mật hàng tuần</h3>
-                        <p>Tóm tắt các nỗ lực truy cập bất hợp pháp và phân tích rủi ro hệ thống.</p>
-                    </div>
-                    <button type="button" className="widget-action-btn">
-                        <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                </article>
-
-                <article className="widget-card system-status">
-                    <div className="widget-content">
-                        <h3>Tình trạng hệ thống</h3>
-                        <p>Tất cả các dịch vụ xác thực đang hoạt động bình thường ở mức hiệu năng tối ưu.</p>
-                    </div>
-                    <div className="status-indicator-circle">
-                        <span className="material-symbols-outlined">check</span>
-                    </div>
-                </article>
-            </section> */}
         </div>
     );
 }

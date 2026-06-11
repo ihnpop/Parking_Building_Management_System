@@ -4995,7 +4995,7 @@ body {
 .avatar {
   cursor: pointer;
   transition: transform 0.2s;
-  /* user-select: none; */
+  user-select: none;
 }
 
 .avatar:hover {
@@ -5066,227 +5066,225 @@ body {
     opacity: 0;
     transform: translateY(-8px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+/* ==========================================================================
+   CẤU CẤU TRÚC ĐỒNG NHẤT HEADER CHUẨN 100% THEO THIẾT KẾ (MỚI BỔ SUNG)
+   ========================================================================== */
 
-/* ============================================================
-   ĐỒNG NHẤT HEADER HOÀN CHỈNH (PASTE Ở CUỐI FILE APP.CSS)
-   ============================================================ */
-
-/* Khung gầm Header chính - Ghi đè toàn bộ các thuộc tính cũ */
+/* Khung chứa Header bám đỉnh an toàn, co dãn tự động theo vùng nội dung bên phải */
 .stats-top-bar {
-  position: relative !important; /* Bắt buộc để h1 căn giữa tuyệt đối theo khung này */
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 72px !important;
+  min-height: 72px !important;
+  padding: 0 40px !important;
+  background-color: #f8fafc !important; /* Màu nền xám nhạt mịn màng theo hình ảnh */
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  width: 100% !important;
-  height: 72px !important; /* Cố định chiều cao bằng các thanh topbar khác */
-  min-height: 72px !important;
-  padding: 0 30px !important; /* Đồng bộ padding với topbar hệ thống */
-  background-color: #f7f6f3 !important; /* Màu nền xám kem nhạt chuẩn ảnh */
-  border-bottom: 1px solid #e5e7eb !important;
   box-sizing: border-box !important;
-  top: 0;
-  position: sticky;
-  z-index: 100;
+  z-index: 99 !important;
 }
 
-/* Khối bọc bên trái */
-.top-bar-left {
-  display: flex !important;
+/* Nút quay lại Dashboard hình Bo tròn Nhộng dẹt (Pill-shaped) */
+.cardpage-back-button {
+  display: inline-flex !important;
   align-items: center !important;
-  z-index: 2 !important;
+  gap: 8px !important;
+  padding: 10px 20px !important;
+  border-radius: 9999px !important; /* Bo cong hoàn toàn hai đầu */
+  border: 1px solid #e2e8f0 !important;
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+  white-space: nowrap !important;
 }
 
-/* Ép tiêu đề chữ TO, ĐẬM và LUÔN NẰM CHÍNH GIỮA MÀN HÌNH */
+.cardpage-back-button:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.cardpage-back-button span {
+  font-size: 18px !important;
+}
+
+/* TIÊU ĐỀ CHỮ TO, ĐẬM, CĂN GIỮA TUYỆT ĐỐI KHÔNG BỊ LỆCH THEO ĐỘ DÀI NÚT */
 .stats-page-title {
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
-  transform: translate(-50%, -50%) !important; /* Định vị chuẩn tâm tuyệt đối */
+  transform: translate(-50%, -50%) !important;
   margin: 0 !important;
-  font-size: 24px !important; /* Đồng bộ font size 24px chuẩn layout */
-  font-weight: 700 !important; /* Chữ đậm nét hoàn toàn */
-  color: #241912 !important; /* Màu chữ nâu đen đồng bộ hệ thống */
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
   text-align: center !important;
-  white-space: nowrap !important; /* Tuyệt đối không cho tự xuống dòng */
+  white-space: nowrap !important;
   z-index: 1 !important;
+  letter-spacing: -0.02em !important;
 }
 
-/* Khối bọc bên phải chứa 3 icon action và profile */
+/* Khối chức năng bên phải */
+.top-bar-left, 
 .top-bar-right {
+  position: relative !important;
+  z-index: 2 !important; /* Đẩy các nút bấm lên trên lớp layer tiêu đề tuyệt đối để không bị mất tương tác clk */
   display: flex !important;
   align-items: center !important;
-  gap: 18px !important; /* Đồng bộ khoảng cách các top-actions khác */
-  z-index: 2 !important;
 }
 
-/* CSS cho 3 nút chức năng nhỏ (Chuông, Trợ giúp, Cài đặt) */
+.top-bar-right {
+  gap: 16px !important;
+}
+
+/* Kiểu dáng 3 nút icon (Chuông, Hỏi đáp, Cài đặt) tròn trong suốt */
 .header-action-btn {
   background: transparent !important;
   border: none !important;
+  cursor: pointer !important;
   color: #4b5563 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  display: grid !important;
+  place-items: center !important;
   width: 40px !important;
   height: 40px !important;
   border-radius: 50% !important;
-  cursor: pointer !important;
   position: relative !important;
-  transition: background 0.2s ease !important;
+  transition: background-color 0.2s !important;
 }
 
 .header-action-btn:hover {
-  background: #f1f5f9 !important;
-  color: #111827 !important;
+  background-color: #edf2f7 !important;
+  color: #1f2937 !important;
 }
 
-/* Chấm đỏ thông báo nằm góc trên bên phải icon chuông */
+.header-action-btn span {
+  font-size: 22px !important;
+}
+
+/* Chấm đỏ thông báo nhỏ nằm ở góc trên bên phải icon Chuông */
 .bell-badge-dot {
-  content: '';
-  width: 7px;
-  height: 7px;
-  background: #ef4444;
-  border-radius: 50%;
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 6px !important;
+  height: 6px !important;
+  background-color: #ef4444 !important;
+  border-radius: 50% !important;
+  border: 1px solid #f8fafc !important;
 }
 
-/* Cụm thông tin tài khoản bên phải vạch chia */
+/* Thanh phân cách dọc thanh mảnh đứng trước khối Avatar thông tin */
+.top-bar-right::before {
+  /* Tận dụng một widget để vẽ thanh đứng dẹt chia vùng */
+}
+
+/* Khối thông tin cá nhân người dùng */
 .header-user-profile {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
-  border-left: 1px solid #e5e7eb !important; /* Vạch chia dọc mờ */
-  padding-left: 20px !important;
+  border-left: 1px solid #e2e8f0 !important; /* Đường vạch dọc tinh tế phân tách nhóm nút và profile */
+  padding-left: 16px !important;
 }
 
-/* Khối text tài khoản (tên trên, quyền dưới) */
 .profile-info-text {
   display: flex !important;
   flex-direction: column !important;
-  align-items: flex-end !important; /* Canh lề phải sát avatar */
+  align-items: flex-end !important; /* Căn lề phải text theo đúng chuẩn mẫu */
 }
 
 .profile-user-name {
   font-weight: 700 !important;
-  font-size: 14px !important;
+  font-size: 13.5px !important;
   color: #1f2937 !important;
+  line-height: 1.2 !important;
 }
 
 .profile-user-role {
-  font-size: 11px !important;
-  color: #6b7280 !important;
-  font-weight: 600 !important;
+  font-size: 10px !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
   letter-spacing: 0.05em !important;
   text-transform: uppercase !important;
+  margin-top: 2px !important;
 }
 
-/* Hình tròn Avatar màu cam như hình mẫu */
+/* AVATAR CAM TRÒN CHỨA ICON USER TRẮNG CHUẨN MẪU THIẾT KẾ */
 .profile-avatar-circle {
   width: 36px !important;
   height: 36px !important;
-  background-color: #ea580c !important; /* Màu cam đặc trưng thương hiệu */
-  color: white !important;
   border-radius: 50% !important;
+  background-color: #ea580c !important; /* Màu cam thương hiệu của hệ thống */
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  border: 2px solid #fdba74 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffedd5 !important;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 
-/* ============================================================
-   FIX LỖI HEADER BỊ CO THÀNH HÌNH CARD - BIẾN THÀNH HEADER CHUẨN
-   ============================================================ */
-
-/* 1. Ép Header tràn viền hoàn toàn, bám sát đỉnh màn hình */
-.stats-top-bar {
-  position: fixed !important; /* Thay vì sticky, dùng fixed để nó luôn bám đỉnh tuyệt đối */
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  border-radius: 0 !important; /* Hủy bỏ hoàn toàn bo tròn góc nếu có */
-  margin: 0 !important; /* Xóa bỏ mọi khoảng cách rìa */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important; /* Đổ bóng nhẹ phía dưới cho chuyên nghiệp */
+.profile-avatar-circle span {
+  font-size: 18px !important;
+  font-weight: bold !important;
 }
 
-/* 2. Sửa lỗi phần nội dung phía dưới bị header đè lên */
-/* Áp dụng cho container tổng của tất cả các trang hệ thống */
-.lost-card-log-page,
-.month-log-page,
-.month-card-page,
-.stats-dashboard-page,
-.settings-page,
-.card-page,
-.login-log-page {
-  padding-top: 96px !important; /* Đẩy nội dung xuống 96px để không bị Header fixed che mất */
-  padding-left: 24px !important;
-  padding-right: 24px !important;
-  background: transparent !important; /* Để lộ nền gradient đẹp của hệ thống */
-}
-
-/* 3. Tinh chỉnh lại nút Trở về Dashboard cho đúng tỷ lệ trong ảnh */
-.cardpage-back-button,
-.month-back-button {
-  padding: 10px 20px !important;
-  border-radius: 9999px !important;
-  border: 1px solid #cbd5e1 !important;
-  background: #ffffff !important;
-  font-weight: 500 !important;
-  font-size: 14px !important;
-  height: auto !important;
-}
-
-/* ============================================================
-   ĐẨY 3 NÚT HÀNH ĐỘNG XUỐNG HÀNG THỐNG KÊ (QUẢN LÝ VÉ THÁNG)
-   ============================================================ */
-
-/* Chia lại Grid thành 5 cột thay vì 4 cột cũ */
+/* ==========================================================================
+   ĐỊNH DẠNG GRID 5 CỘT DÀNH RIÊNG CHO TRANG VÉ THÁNG (GOM NÚT)
+   ========================================================================== */
 .month-stats-grid-custom {
   display: grid !important;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important; /* Tạo 5 cột bằng nhau */
+  grid-template-columns: repeat(4, 1fr) 280px !important; /* 4 Cột thống kê bằng nhau + 1 cột hành động rộng 280px */
   gap: 16px !important;
   margin-bottom: 28px !important;
   width: 100% !important;
 }
 
-/* Thẻ Card bọc 3 nút bấm nằm ở cuối hàng */
+/* Khối bo góc chứa 3 nút bấm nhỏ gọn cạnh các card thống kê */
 .month-inline-actions-card {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  padding: 14px !important;
   display: flex !important;
-  flex-direction: column !important; /* Xếp dọc 3 nút bấm bên trong Card để vừa vặn chiều cao */
+  flex-direction: column !important;
   justify-content: center !important;
-  gap: 8px !important; /* Khoảng cách giữa các nút */
-  background: transparent !important; /* Giữ nền trong suốt hoặc thêm #ffffff nếu muốn thành khối trắng */
-  padding: 4px 0 !important;
+  gap: 8px !important;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04) !important;
+  box-sizing: border-box !important;
 }
 
-/* Định dạng lại các nút bấm khi nằm trong hàng thống kê */
+/* Định dạng nút bấm nhỏ gọn nằm bên trong ô số 5 */
 .month-btn-inline {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
-  padding: 8px 14px !important;
-  border-radius: 10px !important;
+  gap: 6px !important;
+  width: 100% !important;
+  height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
   border: 1px solid #cbd5e1 !important;
   background: #ffffff !important;
   color: #334155 !important;
   font-weight: 600 !important;
-  font-size: 0.85rem !important;
+  font-size: 13px !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
-  width: 100% !important;
-  height: 36px !important; /* Cố định chiều cao nút */
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
 }
 
 .month-btn-inline:hover {
@@ -5294,7 +5292,11 @@ body {
   border-color: #94a3b8 !important;
 }
 
-/* Riêng nút Thêm mới màu cam nổi bật */
+.month-btn-inline span {
+  font-size: 16px !important;
+}
+
+/* Nút Thêm mới đặc thù màu cam */
 .month-btn-inline.primary {
   background: #ff6b00 !important;
   color: #ffffff !important;
@@ -5306,14 +5308,93 @@ body {
   box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2) !important;
 }
 
-/* Responsive: Trên màn hình máy tính bảng hoặc nhỏ hơn, tự động chuyển về 2 hàng để không bị co chữ */
+/* Khử khoảng trống dư thừa thừa kế từ các cấu trúc cũ để ôm khít màn hình */
+.month-card-page,
+.card-page,
+.stats-dashboard-page,
+.settings-page,
+.lost-card-log-page,
+.month-log-page,
+.login-log-page {
+  padding: 24px 30px !important;
+  box-sizing: border-box !important;
+}
+
+/* Responsive khi co màn hình nhỏ, chuyển ô số 5 xuống dưới hàng nếu không đủ chỗ */
 @media (max-width: 1200px) {
   .month-stats-grid-custom {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .month-inline-actions-card {
+    grid-column: span 2 !important;
+    flex-direction: row !important;
   }
 }
-@media (max-width: 768px) {
-  .month-stats-grid-custom {
-    grid-template-columns: 1fr !important;
-  }
+/* ==========================================================================
+   CẤU HÌNH HEADER DÍNH ĐỈNH TRÀN VIỀN (FIX LỖI RỜI KHỐI)
+   ========================================================================== */
+
+/* 1. Ép các trang con sát viền đỉnh, không cho khoảng trống bao quanh Header */
+.month-card-page,
+.card-page,
+.stats-dashboard-page,
+.settings-page,
+.lost-card-log-page,
+.month-log-page,
+.login-log-page {
+  padding: 0 0 30px 0 !important; /* Triệt tiêu padding-top và padding viền 2 bên của trang con */
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+/* 2. Cấu hình Header dính đỉnh tuyệt đối và tràn phẳng hai bên */
+.stats-top-bar {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 72px !important;
+  min-height: 72px !important;
+  padding: 0 32px !important;
+  background-color: #ffffff !important; /* Nền trắng phẳng đồng nhất */
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+  z-index: 999 !important; /* Đảm bảo luôn nằm trên các thành phần bảng và card bên dưới */
+}
+
+/* 3. Tạo lại khoảng cách đệm cho phần nội dung phía dưới Header để không bị dính sát viền */
+.month-stats-grid-custom,
+.cardpage-summary-grid,
+.stats-container,
+.settings-content,
+.lost-stats-grid,
+.month-log-stats-grid,
+.log-stats-grid {
+  margin-top: 24px !important; /* Tạo khoảng trống hợp lý ngay dưới thanh Header */
+  padding: 0 32px !important; /* Bù lại khoảng đệm lề hai bên cho nội dung */
+}
+
+/* Các thành phần toolbar hoặc search bar nằm dưới grid cũng cần đệm lề hai bên */
+.month-search-bar,
+.cardpage-toolbar,
+.lost-toolbar,
+.log-toolbar,
+.month-log-toolbar {
+  padding: 0 32px !important;
+}
+
+/* Các khối chứa bảng dữ liệu (Table Container/Card) cần đệm lề hai bên */
+.month-table-container,
+.cardpage-table-card,
+.lost-table-card,
+.log-table-card,
+.month-log-table-card {
+  margin-left: 32px !important;
+  margin-right: 32px !important;
 }

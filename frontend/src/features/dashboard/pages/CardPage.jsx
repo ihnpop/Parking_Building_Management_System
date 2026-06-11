@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCards } from '../../../service/cardApi';
-
-/**
- * CardPage displays a centralized card management workspace.
- * Fetching data dynamically from Supabase via backend API.
- */
+import { useAuth } from '../../../context/AuthContext';
 
 export default function CardPage() {
     const navigate = useNavigate();
+    const { user, userRole } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Filters
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'SUPER ADMINISTRATOR';
+            case 'MANAGER': return 'MANAGER';
+            case 'STAFF': return 'STAFF';
+            default: return r;
+        }
+    };
+
     const [typeFilter, setTypeFilter] = useState('Tất cả loại thẻ');
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
 
@@ -35,20 +41,17 @@ export default function CardPage() {
         fetchCards();
     }, []);
 
-    // Reset filters
     const handleResetFilters = () => {
         setTypeFilter('Tất cả loại thẻ');
         setStatusFilter('Tất cả trạng thái');
     };
 
-    // Filter logic
     const filteredCards = cards.filter(card => {
         const matchesType = typeFilter === 'Tất cả loại thẻ' || card.type === typeFilter;
         const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
         return matchesType && matchesStatus;
     });
 
-    // Stats
     const totalCards = cards.length;
     const activeCards = cards.filter(c => c.status === 'Hoạt động').length;
     const lockedCards = cards.filter(c => c.status === 'Đã khóa').length;
@@ -59,9 +62,10 @@ export default function CardPage() {
         { label: 'ĐÃ KHÓA', value: lockedCards, note: 'Thẻ bị chặn hoặc vô hiệu' },
     ];
 
+    const userEmail = user?.email || 'admin@parkflow.com';
+
     return (
         <main className="card-page">
-            {/* Header chuẩn giống hình ảnh */}
             <header className="stats-top-bar">
                 <div className="top-bar-left">
                     <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
@@ -89,8 +93,8 @@ export default function CardPage() {
 
                     <div className="header-user-profile">
                         <div className="profile-info-text">
-                            <span className="profile-user-name">Admin User</span>
-                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
+                            <span className="profile-user-name">{user?.user_metadata?.full_name || userEmail.split('@')[0]}</span>
+                            <span className="profile-user-role">{getRoleLabel(role)}</span>
                         </div>
                         <div className="profile-avatar-circle">
                             <span className="material-symbols-outlined">person</span>
