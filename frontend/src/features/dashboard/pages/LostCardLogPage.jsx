@@ -33,14 +33,14 @@ export default function LostCardLogPage() {
 
     const handleFilter = () => {
         let filtered = lostCards.filter((row) => {
-            const matchesSearch = 
-                row.cardNo.toLowerCase().includes(search.toLowerCase()) || 
-                row.plate.toLowerCase().includes(search.toLowerCase()) || 
-                row.owner.toLowerCase().includes(search.toLowerCase()) || 
+            const matchesSearch =
+                row.cardNo.toLowerCase().includes(search.toLowerCase()) ||
+                row.plate.toLowerCase().includes(search.toLowerCase()) ||
+                row.owner.toLowerCase().includes(search.toLowerCase()) ||
                 row.id.toLowerCase().includes(search.toLowerCase());
-            
+
             const matchesStatus = statusFilter === 'Tất cả' || row.status === statusFilter;
-            
+
             return matchesSearch && matchesStatus;
         });
         setFilteredCards(filtered);
@@ -84,21 +84,41 @@ export default function LostCardLogPage() {
 
     return (
         <div className="lost-card-log-page">
-            {/* Header */}
-            <header className="lost-header">
-                <div className="lost-header-left">
-                    <button type="button" className="lost-back-button" onClick={() => navigate('/login/dashboard')}>
+            {/* Header đã đồng nhất */}
+            {/* Header chuẩn giống hình ảnh */}
+            <header className="stats-top-bar">
+                <div className="top-bar-left">
+                    <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
                         <span className="material-symbols-outlined">arrow_back</span>
+                        Trở về Dashboard
                     </button>
-                    <h1>Nhật ký xử lý mất thẻ</h1>
                 </div>
 
-                <div className="lost-header-right">
-                    <button type="button" className="lost-bell-button" onClick={fetchLostCards}>
+                <h1 className="stats-page-title">Nhật ký xử lý mất thẻ</h1>
+
+                <div className="top-bar-right">
+                    <button type="button" className="header-action-btn" onClick={fetchLostCards}>
                         <span className="material-symbols-outlined">refresh</span>
                     </button>
-                    <div className="lost-avatar">
-                        <span className="material-symbols-outlined">person</span>
+                    <button type="button" className="header-action-btn">
+                        <span className="material-symbols-outlined">notifications</span>
+                        <span className="bell-badge-dot"></span>
+                    </button>
+                    <button type="button" className="header-action-btn">
+                        <span className="material-symbols-outlined">help</span>
+                    </button>
+                    <button type="button" className="header-action-btn">
+                        <span className="material-symbols-outlined">settings</span>
+                    </button>
+
+                    <div className="header-user-profile">
+                        <div className="profile-info-text">
+                            <span className="profile-user-name">Admin User</span>
+                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
+                        </div>
+                        <div className="profile-avatar-circle">
+                            <span className="material-symbols-outlined">person</span>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -153,9 +173,9 @@ export default function LostCardLogPage() {
                         <label>Tìm kiếm</label>
                         <div className="search-input-wrapper">
                             <span className="material-symbols-outlined">search</span>
-                            <input 
-                                type="text" 
-                                placeholder="Tìm theo Mã thẻ hoặc Biển số..." 
+                            <input
+                                type="text"
+                                placeholder="Tìm theo Mã thẻ hoặc Biển số..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
@@ -165,7 +185,7 @@ export default function LostCardLogPage() {
 
                     <div className="lost-filter-group dropdown-group">
                         <label>Trạng thái</label>
-                        <select 
+                        <select
                             className="lost-select"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}

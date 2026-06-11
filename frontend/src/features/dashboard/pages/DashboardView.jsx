@@ -36,13 +36,6 @@ const dashboardSections = [
             { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings', path: '/login/dashboard/settings' },
         ],
     },
-    {
-        title: 'QUẢN TRỊ NGƯỜI DÙNG',
-        columns: 3,
-        cards: [
-            { title: 'Phân quyền người dùng', description: 'Xem danh sách tài khoản, thay đổi vai trò Admin / Manager / Staff cho từng người dùng.', icon: 'manage_accounts', path: '/login/dashboard/user-management' },
-        ],
-    },
 ];
 
 export default function DashboardView() {

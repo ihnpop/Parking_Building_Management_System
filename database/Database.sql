@@ -1,0 +1,416 @@
+﻿CREATE DATABASE ParkingBuildingManagementSystem;
+GO
+
+USE ParkingBuildingManagementSystem;
+GO
+
+-- =========================
+-- 1. ROLE & ACCOUNT
+-- =========================
+
+CREATE TABLE ROLE (
+    role_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    role_name NVARCHAR(100) NOT NULL UNIQUE,
+    description NVARCHAR(500)
+);
+
+CREATE TABLE ACCOUNT (
+    account_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    role_id UNIQUEIDENTIFIER NOT NULL,
+    username NVARCHAR(100) NOT NULL UNIQUE,
+    password_hash NVARCHAR(255) NOT NULL,
+    full_name NVARCHAR(255),
+    email NVARCHAR(255),
+    phone NVARCHAR(50),
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_ACCOUNT_ROLE FOREIGN KEY (role_id)
+        REFERENCES ROLE(role_id)
+);
+
+-- =========================
+-- 2. CUSTOMER & VEHICLE
+-- =========================
+
+CREATE TABLE CUSTOMER (
+    customer_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    account_id UNIQUEIDENTIFIER NULL,
+    full_name NVARCHAR(255),
+    phone NVARCHAR(50),
+    email NVARCHAR(255),
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_CUSTOMER_ACCOUNT FOREIGN KEY (account_id)
+        REFERENCES ACCOUNT(account_id)
+);
+
+CREATE TABLE VEHICLE_TYPE (
+    vehicle_type_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    name NVARCHAR(255) NOT NULL,
+    description NVARCHAR(500),
+    status NVARCHAR(50) DEFAULT 'ACTIVE'
+);
+
+CREATE TABLE VEHICLE (
+    vehicle_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    customer_id UNIQUEIDENTIFIER NULL,
+    vehicle_type_id UNIQUEIDENTIFIER NOT NULL,
+    plate_number NVARCHAR(50) NOT NULL,
+    brand NVARCHAR(100),
+    color NVARCHAR(50),
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_VEHICLE_CUSTOMER FOREIGN KEY (customer_id)
+        REFERENCES CUSTOMER(customer_id),
+
+    CONSTRAINT FK_VEHICLE_VEHICLE_TYPE FOREIGN KEY (vehicle_type_id)
+        REFERENCES VEHICLE_TYPE(vehicle_type_id),
+
+    CONSTRAINT UQ_VEHICLE_PLATE UNIQUE (plate_number)
+);
+
+-- =========================
+-- 3. BUILDING / PARKING / FLOOR / AREA / SLOT
+-- =========================
+
+CREATE TABLE BUILDING (
+    building_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    name NVARCHAR(255) NOT NULL,
+    address NVARCHAR(500),
+    status NVARCHAR(50) DEFAULT 'ACTIVE'
+);
+
+CREATE TABLE PARKING (
+    parking_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    building_id UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    total_capacity INT DEFAULT 0,
+    open_time TIME NULL,
+    close_time TIME NULL,
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_PARKING_BUILDING FOREIGN KEY (building_id)
+        REFERENCES BUILDING(building_id)
+);
+
+CREATE TABLE FLOOR (
+    floor_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    parking_id UNIQUEIDENTIFIER NOT NULL,
+    floor_number INT NOT NULL,
+    name NVARCHAR(255),
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_FLOOR_PARKING FOREIGN KEY (parking_id)
+        REFERENCES PARKING(parking_id),
+
+    CONSTRAINT UQ_FLOOR UNIQUE (parking_id, floor_number)
+);
+
+CREATE TABLE AREA (
+    area_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    floor_id UNIQUEIDENTIFIER NOT NULL,
+    vehicle_type_id UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    capacity INT DEFAULT 0,
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_AREA_FLOOR FOREIGN KEY (floor_id)
+        REFERENCES FLOOR(floor_id),
+
+    CONSTRAINT FK_AREA_VEHICLE_TYPE FOREIGN KEY (vehicle_type_id)
+        REFERENCES VEHICLE_TYPE(vehicle_type_id)
+);
+
+CREATE TABLE SLOT (
+    slot_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    area_id UNIQUEIDENTIFIER NOT NULL,
+    slot_code NVARCHAR(100) NOT NULL,
+    status NVARCHAR(50) DEFAULT 'AVAILABLE',
+
+    -- phục vụ gợi ý slot / AI
+    distance_to_gate INT NULL,
+    priority_score DECIMAL(10,2) DEFAULT 0,
+
+    CONSTRAINT FK_SLOT_AREA FOREIGN KEY (area_id)
+        REFERENCES AREA(area_id),
+
+    CONSTRAINT UQ_SLOT_CODE UNIQUE (area_id, slot_code)
+);
+
+-- =========================
+-- 4. GATE & CARD
+-- =========================
+
+CREATE TABLE GATE (
+    gate_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    parking_id UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    gate_type NVARCHAR(50) NOT NULL, -- IN, OUT, BOTH
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_GATE_PARKING FOREIGN KEY (parking_id)
+        REFERENCES PARKING(parking_id)
+);
+
+CREATE TABLE CARD (
+    card_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    code NVARCHAR(100) NOT NULL UNIQUE,
+    status NVARCHAR(50) DEFAULT 'AVAILABLE',
+    created_at DATETIME2 DEFAULT SYSDATETIME()
+);
+
+-- =========================
+-- 5. PRICE
+-- =========================
+
+CREATE TABLE PRICE_TABLE (
+    price_table_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    parking_id UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    description NVARCHAR(500),
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_PRICE_TABLE_PARKING FOREIGN KEY (parking_id)
+        REFERENCES PARKING(parking_id)
+);
+
+CREATE TABLE PRICE_ITEM (
+    price_item_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    price_table_id UNIQUEIDENTIFIER NOT NULL,
+    vehicle_type_id UNIQUEIDENTIFIER NOT NULL,
+    min_hour INT NOT NULL,
+    max_hour INT NULL,
+    price DECIMAL(18,2) NOT NULL,
+
+    CONSTRAINT FK_PRICE_ITEM_PRICE_TABLE FOREIGN KEY (price_table_id)
+        REFERENCES PRICE_TABLE(price_table_id),
+
+    CONSTRAINT FK_PRICE_ITEM_VEHICLE_TYPE FOREIGN KEY (vehicle_type_id)
+        REFERENCES VEHICLE_TYPE(vehicle_type_id)
+);
+
+-- =========================
+-- 6. PACKAGE MONTHLY PARKING
+-- =========================
+
+CREATE TABLE PACKAGE (
+    package_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    vehicle_type_id UNIQUEIDENTIFIER NOT NULL,
+    name NVARCHAR(255) NOT NULL,
+    duration_month INT NOT NULL,
+    price DECIMAL(18,2) NOT NULL,
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_PACKAGE_VEHICLE_TYPE FOREIGN KEY (vehicle_type_id)
+        REFERENCES VEHICLE_TYPE(vehicle_type_id)
+);
+
+CREATE TABLE VEHICLE_PACKAGE (
+    vehicle_package_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    vehicle_id UNIQUEIDENTIFIER NOT NULL,
+    package_id UNIQUEIDENTIFIER NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    status NVARCHAR(50) DEFAULT 'ACTIVE',
+
+    CONSTRAINT FK_VEHICLE_PACKAGE_VEHICLE FOREIGN KEY (vehicle_id)
+        REFERENCES VEHICLE(vehicle_id),
+
+    CONSTRAINT FK_VEHICLE_PACKAGE_PACKAGE FOREIGN KEY (package_id)
+        REFERENCES PACKAGE(package_id)
+);
+
+-- =========================
+-- 7. PARKING SESSION / ORDER
+-- =========================
+
+CREATE TABLE PARKING_ORDER (
+    parking_order_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    vehicle_id UNIQUEIDENTIFIER NOT NULL,
+    card_id UNIQUEIDENTIFIER NULL,
+    slot_id UNIQUEIDENTIFIER NULL,
+
+    gate_in_id UNIQUEIDENTIFIER NOT NULL,
+    gate_out_id UNIQUEIDENTIFIER NULL,
+
+    staff_in_id UNIQUEIDENTIFIER NULL,
+    staff_out_id UNIQUEIDENTIFIER NULL,
+
+    time_in DATETIME2 DEFAULT SYSDATETIME(),
+    time_out DATETIME2 NULL,
+
+    estimated_fee DECIMAL(18,2) DEFAULT 0,
+    final_fee DECIMAL(18,2) DEFAULT 0,
+
+    status NVARCHAR(50) DEFAULT 'PARKING',
+
+    CONSTRAINT FK_PARKING_ORDER_VEHICLE FOREIGN KEY (vehicle_id)
+        REFERENCES VEHICLE(vehicle_id),
+
+    CONSTRAINT FK_PARKING_ORDER_CARD FOREIGN KEY (card_id)
+        REFERENCES CARD(card_id),
+
+    CONSTRAINT FK_PARKING_ORDER_SLOT FOREIGN KEY (slot_id)
+        REFERENCES SLOT(slot_id),
+
+    CONSTRAINT FK_PARKING_ORDER_GATE_IN FOREIGN KEY (gate_in_id)
+        REFERENCES GATE(gate_id),
+
+    CONSTRAINT FK_PARKING_ORDER_GATE_OUT FOREIGN KEY (gate_out_id)
+        REFERENCES GATE(gate_id),
+
+    CONSTRAINT FK_PARKING_ORDER_STAFF_IN FOREIGN KEY (staff_in_id)
+        REFERENCES ACCOUNT(account_id),
+
+    CONSTRAINT FK_PARKING_ORDER_STAFF_OUT FOREIGN KEY (staff_out_id)
+        REFERENCES ACCOUNT(account_id)
+);
+
+-- =========================
+-- 8. PAYMENT
+-- =========================
+
+CREATE TABLE PAYMENT (
+    payment_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    parking_order_id UNIQUEIDENTIFIER NOT NULL,
+    amount DECIMAL(18,2) NOT NULL,
+    payment_method NVARCHAR(50),
+    payment_time DATETIME2 DEFAULT SYSDATETIME(),
+    status NVARCHAR(50) DEFAULT 'PAID',
+
+    CONSTRAINT FK_PAYMENT_PARKING_ORDER FOREIGN KEY (parking_order_id)
+        REFERENCES PARKING_ORDER(parking_order_id)
+);
+
+-- =========================
+-- 9. RESERVATION
+-- =========================
+
+CREATE TABLE RESERVATION (
+    reservation_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    vehicle_id UNIQUEIDENTIFIER NOT NULL,
+    slot_id UNIQUEIDENTIFIER NOT NULL,
+    start_time DATETIME2 NOT NULL,
+    end_time DATETIME2 NOT NULL,
+    status NVARCHAR(50) DEFAULT 'RESERVED',
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_RESERVATION_VEHICLE FOREIGN KEY (vehicle_id)
+        REFERENCES VEHICLE(vehicle_id),
+
+    CONSTRAINT FK_RESERVATION_SLOT FOREIGN KEY (slot_id)
+        REFERENCES SLOT(slot_id)
+);
+
+-- =========================
+-- 10. INCIDENT REPORT
+-- =========================
+
+CREATE TABLE INCIDENT_REPORT (
+    incident_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    parking_order_id UNIQUEIDENTIFIER NOT NULL,
+    incident_type NVARCHAR(100) NOT NULL,
+    description NVARCHAR(1000),
+    penalty_fee DECIMAL(18,2) DEFAULT 0,
+    handled_by UNIQUEIDENTIFIER NULL,
+    status NVARCHAR(50) DEFAULT 'OPEN',
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+    resolved_at DATETIME2 NULL,
+
+    CONSTRAINT FK_INCIDENT_PARKING_ORDER FOREIGN KEY (parking_order_id)
+        REFERENCES PARKING_ORDER(parking_order_id),
+
+    CONSTRAINT FK_INCIDENT_ACCOUNT FOREIGN KEY (handled_by)
+        REFERENCES ACCOUNT(account_id)
+);
+
+-- =========================
+-- 11. AI SLOT ALLOCATION LOG
+-- =========================
+
+CREATE TABLE SLOT_ALLOCATION_LOG (
+    allocation_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    parking_order_id UNIQUEIDENTIFIER NOT NULL,
+    suggested_slot_id UNIQUEIDENTIFIER NOT NULL,
+    actual_slot_id UNIQUEIDENTIFIER NULL,
+
+    vehicle_type_id UNIQUEIDENTIFIER NOT NULL,
+    algorithm_name NVARCHAR(255),
+    reason NVARCHAR(1000),
+
+    distance_score DECIMAL(10,2) DEFAULT 0,
+    occupancy_score DECIMAL(10,2) DEFAULT 0,
+    priority_score DECIMAL(10,2) DEFAULT 0,
+
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_ALLOCATION_ORDER FOREIGN KEY (parking_order_id)
+        REFERENCES PARKING_ORDER(parking_order_id),
+
+    CONSTRAINT FK_ALLOCATION_SUGGESTED_SLOT FOREIGN KEY (suggested_slot_id)
+        REFERENCES SLOT(slot_id),
+
+    CONSTRAINT FK_ALLOCATION_ACTUAL_SLOT FOREIGN KEY (actual_slot_id)
+        REFERENCES SLOT(slot_id),
+
+    CONSTRAINT FK_ALLOCATION_VEHICLE_TYPE FOREIGN KEY (vehicle_type_id)
+        REFERENCES VEHICLE_TYPE(vehicle_type_id)
+);
+
+-- =========================
+-- 12. FEEDBACK
+-- =========================
+
+CREATE TABLE FEEDBACK (
+    feedback_id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    customer_id UNIQUEIDENTIFIER NULL,
+    parking_order_id UNIQUEIDENTIFIER NULL,
+    content NVARCHAR(1000),
+    rating INT NULL,
+    status NVARCHAR(50) DEFAULT 'NEW',
+    created_at DATETIME2 DEFAULT SYSDATETIME(),
+
+    CONSTRAINT FK_FEEDBACK_CUSTOMER FOREIGN KEY (customer_id)
+        REFERENCES CUSTOMER(customer_id),
+
+    CONSTRAINT FK_FEEDBACK_PARKING_ORDER FOREIGN KEY (parking_order_id)
+        REFERENCES PARKING_ORDER(parking_order_id)
+);
+
+-- =========================
+-- 13. INDEXES
+-- =========================
+
+CREATE INDEX IX_ACCOUNT_ROLE ON ACCOUNT(role_id);
+CREATE INDEX IX_CUSTOMER_ACCOUNT ON CUSTOMER(account_id);
+CREATE INDEX IX_VEHICLE_CUSTOMER ON VEHICLE(customer_id);
+CREATE INDEX IX_VEHICLE_TYPE ON VEHICLE(vehicle_type_id);
+CREATE INDEX IX_PARKING_BUILDING ON PARKING(building_id);
+CREATE INDEX IX_FLOOR_PARKING ON FLOOR(parking_id);
+CREATE INDEX IX_AREA_FLOOR ON AREA(floor_id);
+CREATE INDEX IX_AREA_VEHICLE_TYPE ON AREA(vehicle_type_id);
+CREATE INDEX IX_SLOT_AREA ON SLOT(area_id);
+CREATE INDEX IX_SLOT_STATUS ON SLOT(status);
+CREATE INDEX IX_GATE_PARKING ON GATE(parking_id);
+CREATE INDEX IX_PARKING_ORDER_VEHICLE ON PARKING_ORDER(vehicle_id);
+CREATE INDEX IX_PARKING_ORDER_SLOT ON PARKING_ORDER(slot_id);
+CREATE INDEX IX_PARKING_ORDER_STATUS ON PARKING_ORDER(status);
+CREATE INDEX IX_PARKING_ORDER_TIME_IN ON PARKING_ORDER(time_in);
+CREATE INDEX IX_PAYMENT_ORDER ON PAYMENT(parking_order_id);
+CREATE INDEX IX_RESERVATION_SLOT ON RESERVATION(slot_id);
+CREATE INDEX IX_INCIDENT_ORDER ON INCIDENT_REPORT(parking_order_id);
+CREATE INDEX IX_ALLOCATION_ORDER ON SLOT_ALLOCATION_LOG(parking_order_id);
+
+-- =========================
+-- 14. SAMPLE ROLES
+-- =========================
+
+INSERT INTO ROLE(role_name, description)
+VALUES
+('SYSTEM_ADMIN', 'Quản trị hệ thống'),
+('PARKING_MANAGER', 'Quản lý bãi xe'),
+('PARKING_STAFF', 'Nhân viên bãi xe'),
+('DRIVER', 'Người gửi xe');
+
+GO

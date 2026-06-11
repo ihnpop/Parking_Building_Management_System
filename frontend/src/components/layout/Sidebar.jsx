@@ -49,18 +49,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
                     <span className="material-symbols-outlined">business_center</span>
                     <span>Nghiệp vụ hệ thống</span>
                 </button>
-
-                <button
-                    type="button"
-                    className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
-                    onClick={() => {
-                        onTabChange('user-management');
-                        navigate('/login/dashboard/user-management');
-                    }}
-                >
-                    <span className="material-symbols-outlined">manage_accounts</span>
-                    <span>Phân quyền</span>
-                </button>
             </nav>
 
             <button type="button" className="logout" onClick={handleLogout}>

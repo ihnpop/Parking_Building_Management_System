@@ -30,32 +30,38 @@ export default function LoginLogPage() {
     return (
         <div className="login-log-page">
             {/* Header */}
-            <header className="log-header">
-                <div className="log-header-left">
-                    <button type="button" className="log-back-button" onClick={() => navigate('/login/dashboard')}>
+            {/* Header chuẩn giống hình ảnh */}
+            <header className="stats-top-bar">
+                <div className="top-bar-left">
+                    <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
                         <span className="material-symbols-outlined">arrow_back</span>
+                        Trở về Dashboard
                     </button>
-                    <h1>Nhật ký đăng nhập</h1>
                 </div>
 
-                <div className="log-header-right">
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge"></span>
+                <h1 className="stats-page-title">Nhật ký đăng nhập</h1>
+
+                <div className="top-bar-right">
+                    <button type="button" className="header-action-btn" onClick={handleFilter}>
+                        <span className="material-symbols-outlined">refresh</span>
                     </button>
-                    <button type="button" className="log-icon-btn">
+                    <button type="button" className="header-action-btn">
+                        <span className="material-symbols-outlined">notifications</span>
+                        <span className="bell-badge-dot"></span>
+                    </button>
+                    <button type="button" className="header-action-btn">
                         <span className="material-symbols-outlined">help</span>
                     </button>
-                    <button type="button" className="log-icon-btn">
+                    <button type="button" className="header-action-btn">
                         <span className="material-symbols-outlined">settings</span>
                     </button>
 
-                    <div className="log-user-profile">
-                        <div className="profile-text">
-                            <span className="profile-name">Admin User</span>
-                            <span className="profile-role">SUPER ADMINISTRATOR</span>
+                    <div className="header-user-profile">
+                        <div className="profile-info-text">
+                            <span className="profile-user-name">Admin User</span>
+                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
                         </div>
-                        <div className="profile-avatar">
+                        <div className="profile-avatar-circle">
                             <span className="material-symbols-outlined">person</span>
                         </div>
                     </div>
