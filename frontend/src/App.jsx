@@ -9,6 +9,7 @@ import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
 import SystemSettingsPage from './features/dashboard/pages/SystemSettingsPage';
 import UserManagementPage from './features/dashboard/pages/UserManagementPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import RoleProtectedRoute from './components/auth/RoleProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 
 import "./styles/App.css";
@@ -20,16 +21,72 @@ export default function App() {
       {/* 1. Trang Đăng nhập */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập */}
+      {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập và phân quyền */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
-      <Route path="/login/dashboard/card" element={<ProtectedRoute><CardPage /></ProtectedRoute>} />
-      <Route path="/login/dashboard/month-card" element={<ProtectedRoute><MonthCardPage /></ProtectedRoute>} />
-      <Route path="/login/dashboard/lost-card-log" element={<ProtectedRoute><LostCardLogPage /></ProtectedRoute>} />
-      <Route path="/login/dashboard/login-log" element={<ProtectedRoute><LoginLogPage /></ProtectedRoute>} />
-      <Route path="/login/dashboard/month-card-log" element={<ProtectedRoute><MonthCardLogPage /></ProtectedRoute>} />
-      <Route path="/login/dashboard/settings" element={<ProtectedRoute><SystemSettingsPage /></ProtectedRoute>} />
-      <Route path="/login/dashboard/OccupancyChart" element={<ProtectedRoute><OccupancyChart /></ProtectedRoute>} />
-      <Route path="/login/dashboard/user-management" element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
+      
+      <Route path="/login/dashboard/card" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <CardPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/month-card" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <MonthCardPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/lost-card-log" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <LostCardLogPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/login-log" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <LoginLogPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/month-card-log" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <MonthCardLogPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/settings" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <SystemSettingsPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/OccupancyChart" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <OccupancyChart />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/login/dashboard/user-management" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN']}>
+            <UserManagementPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />

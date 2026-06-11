@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMonthCards } from '../../../service/cardApi';
+import { useAuth } from '../../../context/AuthContext';
 
 /**
  * MonthCardPage displays monthly card management interface.
@@ -9,9 +10,20 @@ import { getMonthCards } from '../../../service/cardApi';
 
 export default function MonthCardPage() {
     const navigate = useNavigate();
+    const { userRole } = useAuth();
     const [monthCards, setMonthCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'Admin';
+            case 'MANAGER': return 'Manager';
+            case 'STAFF': return 'Staff';
+            default: return r;
+        }
+    };
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -82,7 +94,7 @@ export default function MonthCardPage() {
                 </div>
 
                 <div className="month-header-right">
-                    <div className="month-user-badge">Admin</div>
+                    <div className="month-user-badge">{getRoleLabel(role)}</div>
                     <div className="month-actions">
                         <button type="button" className="month-btn month-btn-outline" onClick={fetchMonthCards}>
                             <span className="material-symbols-outlined">refresh</span>

@@ -138,6 +138,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext";
+import supabase from "../../../config/supabaseClient";
 import "./LoginPage.css";
 
 export default function LoginPage() {
@@ -166,9 +167,18 @@ export default function LoginPage() {
                 response.data?.session?.access_token ||
                 response.data?.access_token ||
                 response.data?.token;
+            const refreshToken = response.data?.session?.refresh_token;
+
             if (!token) {
                 throw new Error("Token not found in response");
             }
+
+            // Set session on the client Supabase instance
+            await supabase.auth.setSession({
+                access_token: token,
+                refresh_token: refreshToken || ""
+            });
+
             localStorage.setItem("token", token);
             localStorage.setItem("accessToken", token);
             localStorage.setItem("access_token", token);

@@ -103,11 +103,21 @@ const statsData = {
 };
 
 export default function OccupancyChart() {
-    const { user, logout } = useAuth();
+    const { user, userRole, logout } = useAuth();
     const [selectedPeriod, setSelectedPeriod] = useState('month');
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
+
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
+        }
+    };
 
     const currentData = statsData[selectedPeriod];
 
@@ -165,7 +175,7 @@ export default function OccupancyChart() {
                             <div className="user-dropdown" style={{ top: '50px' }}>
                                 <div className="user-dropdown-info">
                                     <div className="user-dropdown-email">{userEmail}</div>
-                                    <div className="user-dropdown-role">Quản trị viên</div>
+                                    <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
                                 </div>
                                 <button 
                                     type="button" 

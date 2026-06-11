@@ -1,6 +1,7 @@
 import React from 'react';
 import DashboardShell from '../../../components/layout/DashboardShell';
 import DashboardSection from '../components/DashboardSection';
+import { useAuth } from '../../../context/AuthContext';
 
 // import SystemOperations from '../components/SystemOperations';
 
@@ -46,10 +47,20 @@ const dashboardSections = [
 ];
 
 export default function DashboardView() {
+    const { userRole } = useAuth();
+    const role = userRole ? userRole.toUpperCase() : null;
+
+    const filteredSections = dashboardSections.filter(section => {
+        if (section.title === 'QUẢN TRỊ NGƯỜI DÙNG') {
+            return role === 'ADMIN';
+        }
+        return true;
+    });
+
     return (
         <DashboardShell>
             {/* Render các khối quản lý từ mảng data */}
-            {dashboardSections.map((section) => (
+            {filteredSections.map((section) => (
                 <DashboardSection key={section.title} {...section} />
             ))}
 

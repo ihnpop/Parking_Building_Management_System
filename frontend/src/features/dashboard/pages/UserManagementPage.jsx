@@ -109,7 +109,7 @@ export default function UserManagementPage() {
             ));
             setTimeout(() => setSuccessMsg(prev => ({ ...prev, [userId]: '' })), 2000);
         } catch (err) {
-            setSuccessMsg(prev => ({ ...prev, [userId]: '❌ Lỗi: ' + (err.message || '') }));
+            setSuccessMsg(prev => ({ ...prev, [userId]: 'Lỗi: ' + (err.message || '') }));
         } finally {
             setSaving(prev => ({ ...prev, [userId]: false }));
         }
