@@ -1,10 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import SystemOperations from '../../features/dashboard/components/SystemOperations';
 
 export default function DashboardShell({ children }) {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const location = useLocation();
+    const [activeTab, setActiveTab] = useState(() => {
+        if (location.pathname.includes('/user-management')) {
+            return 'user-management';
+        }
+        return 'dashboard';
+    });
+
+    useEffect(() => {
+        if (location.pathname.includes('/user-management')) {
+            setActiveTab('user-management');
+        } else if (activeTab !== 'system') {
+            setActiveTab('dashboard');
+        }
+    }, [location.pathname]);
 
     return (
         <div className="layout">
@@ -12,7 +27,7 @@ export default function DashboardShell({ children }) {
 
             <div className="main">
                 <Topbar
-                    title={activeTab === 'system' ? 'Parking System' : 'Bảng điều khiển'}
+                    title={activeTab === 'system' ? 'Parking System' : activeTab === 'user-management' ? 'Quản lý Phân quyền' : 'Bảng điều khiển'}
                     showExtras={activeTab === 'system'}
                 />
 

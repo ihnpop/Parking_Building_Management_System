@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 /**
@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
  */
 export default function Sidebar({ activeTab, onTabChange }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const { logout } = useAuth();
 
     const handleLogout = async () => {
@@ -14,6 +15,17 @@ export default function Sidebar({ activeTab, onTabChange }) {
         await logout();
         navigate('/login', { replace: true });
     };
+
+    // Determine the active tab based on pathname and activeTab state
+    const pathname = location.pathname;
+    let effectiveActiveTab = activeTab;
+    if (activeTab !== 'system') {
+        if (pathname.includes('/user-management')) {
+            effectiveActiveTab = 'user-management';
+        } else {
+            effectiveActiveTab = 'dashboard';
+        }
+    }
 
     return (
         <aside className="sidebar">
@@ -31,7 +43,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
             <nav className="menu">
                 <button
                     type="button"
-                    className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                    className={`menu-item ${effectiveActiveTab === 'dashboard' ? 'active' : ''}`}
                     onClick={() => {
                         onTabChange('dashboard');
                         navigate('/login/dashboard');
@@ -43,7 +55,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
 
                 <button
                     type="button"
-                    className={`menu-item ${activeTab === 'system' ? 'active' : ''}`}
+                    className={`menu-item ${effectiveActiveTab === 'system' ? 'active' : ''}`}
                     onClick={() => onTabChange('system')}
                 >
                     <span className="material-symbols-outlined">business_center</span>
@@ -52,7 +64,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
 
                 <button
                     type="button"
-                    className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
+                    className={`menu-item ${effectiveActiveTab === 'user-management' ? 'active' : ''}`}
                     onClick={() => {
                         onTabChange('user-management');
                         navigate('/login/dashboard/user-management');
