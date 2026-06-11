@@ -5,7 +5,7 @@ services:
     build:
       context: ./back-end # Chỉ thẳng vào thư mục code back-end trên máy bạn
     ports:
-      - "3637:3636"
+      - "3639:3636"
     volumes:
       - ./back-end:/app # Giúp bạn sửa code đến đâu, Docker cập nhật đến đó
       - /app/node_modules
