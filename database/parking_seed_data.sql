@@ -36,68 +36,129 @@ DELETE FROM VEHICLE_TYPE;
 GO
 
 -- 1. ROLE
-INSERT INTO ROLE(role_name, description) VALUES (N'SYSTEM_ADMIN', N'Quản trị hệ thống');
-INSERT INTO ROLE(role_name, description) VALUES (N'PARKING_MANAGER', N'Quản lý bãi xe');
-INSERT INTO ROLE(role_name, description) VALUES (N'PARKING_STAFF', N'Nhân viên bãi xe');
-INSERT INTO ROLE(role_name, description) VALUES (N'DRIVER', N'Người gửi xe');
-GO
+INSERT INTO role(role_name, description)
+VALUES
+('ADMIN', 'System Administrator'),
+('MANAGER', 'Parking Manager'),
+('STAFF', 'Parking Staff'),
+('CUSTOMER', 'Vehicle Owner');
 
 -- 2. VEHICLE_TYPE
-INSERT INTO VEHICLE_TYPE(name, description, status) VALUES (N'Motorbike', N'Xe máy', N'ACTIVE');
-INSERT INTO VEHICLE_TYPE(name, description, status) VALUES (N'Car', N'Ô tô', N'ACTIVE');
-INSERT INTO VEHICLE_TYPE(name, description, status) VALUES (N'Electric Motorbike', N'Xe máy điện', N'ACTIVE');
-INSERT INTO VEHICLE_TYPE(name, description, status) VALUES (N'Electric Car', N'Ô tô điện', N'ACTIVE');
-INSERT INTO VEHICLE_TYPE(name, description, status) VALUES (N'Bicycle', N'Xe đạp', N'ACTIVE');
-GO
-
--- 3. ACCOUNT
-
-DECLARE @adminRole UNIQUEIDENTIFIER = (SELECT role_id FROM ROLE WHERE role_name = 'SYSTEM_ADMIN');
-DECLARE @managerRole UNIQUEIDENTIFIER = (SELECT role_id FROM ROLE WHERE role_name = 'PARKING_MANAGER');
-DECLARE @staffRole UNIQUEIDENTIFIER = (SELECT role_id FROM ROLE WHERE role_name = 'PARKING_STAFF');
-DECLARE @driverRole UNIQUEIDENTIFIER = (SELECT role_id FROM ROLE WHERE role_name = 'DRIVER');
-
-INSERT INTO ACCOUNT(role_id, username, password_hash, full_name, email, phone, status)
+INSERT INTO vehicle_type(name, description, status)
 VALUES
-(@adminRole, 'admin01', '123456', N'System Administrator', 'admin@parking.com', '0901000001', 'ACTIVE'),
-(@managerRole, 'manager01', '123456', N'Parking Manager 01', 'manager01@parking.com', '0901000002', 'ACTIVE'),
-(@managerRole, 'manager02', '123456', N'Parking Manager 02', 'manager02@parking.com', '0901000003', 'ACTIVE'),
-(@staffRole, 'staff01', '123456', N'Parking Staff 01', 'staff01@parking.com', '0901000011', 'ACTIVE'),
-(@staffRole, 'staff02', '123456', N'Parking Staff 02', 'staff02@parking.com', '0901000012', 'ACTIVE'),
-(@staffRole, 'staff03', '123456', N'Parking Staff 03', 'staff03@parking.com', '0901000013', 'ACTIVE'),
-(@staffRole, 'staff04', '123456', N'Parking Staff 04', 'staff04@parking.com', '0901000014', 'ACTIVE'),
-(@staffRole, 'staff05', '123456', N'Parking Staff 05', 'staff05@parking.com', '0901000015', 'ACTIVE'),
-(@staffRole, 'staff06', '123456', N'Parking Staff 06', 'staff06@parking.com', '0901000016', 'ACTIVE');
-GO
+('Motorbike','Motorbike parking','ACTIVE'),
+('Car','Car parking','ACTIVE'),
+('Electric Motorbike','Electric motorbike parking','ACTIVE'),
+('Electric Car','Electric car parking','ACTIVE'),
+('Bicycle','Bicycle parking','ACTIVE');
+
+INSERT INTO profiles (
+    id,
+    role_id,
+    username,
+    full_name,
+    email,
+    phone,
+    status,
+    created_at
+)
+SELECT
+    gen_random_uuid(),
+
+    (
+        SELECT role_id
+        FROM role
+        WHERE role_name =
+        CASE
+            WHEN gs = 1 THEN 'ADMIN'
+            WHEN gs <= 5 THEN 'MANAGER'
+            ELSE 'STAFF'
+        END
+    ),
+
+    CASE
+        WHEN gs = 1 THEN 'admin'
+        WHEN gs = 2 THEN 'manager01'
+        WHEN gs = 3 THEN 'manager02'
+        WHEN gs = 4 THEN 'manager03'
+        WHEN gs = 5 THEN 'manager04'
+        ELSE 'staff' || LPAD((gs-5)::text,3,'0')
+    END,
+
+    CASE
+        WHEN gs = 1 THEN 'System Administrator'
+        WHEN gs = 2 THEN 'Nguyen Van A'
+        WHEN gs = 3 THEN 'Tran Van B'
+        WHEN gs = 4 THEN 'Le Van C'
+        WHEN gs = 5 THEN 'Pham Van D'
+        ELSE 'Staff ' || (gs-5)
+    END,
+
+    CASE
+        WHEN gs = 1 THEN 'admin@parking.com'
+        ELSE 'user' || gs || '@parking.com'
+    END,
+
+    '09' || LPAD((10000000 + gs)::text,8,'0'),
+
+    CASE
+        WHEN gs % 15 = 0 THEN 'Đã khóa'
+        ELSE 'Hoạt động'
+    END,
+
+    NOW() - (random() * INTERVAL '365 days')
+
+FROM generate_series(1,30) gs;
 
 -- 4. BUILDING & PARKING
 
-INSERT INTO BUILDING(name, address, status)
-VALUES
-(N'Central Parking Building', N'Quận 1, TP. Hồ Chí Minh', 'ACTIVE'),
-(N'West Lake Parking Tower', N'Quận Tây Hồ, Hà Nội', 'ACTIVE');
+INSERT INTO parking(
+    building_id,
+    name,
+    total_capacity,
+    open_time,
+    close_time,
+    status
+)
+SELECT
+    building_id,
+    'VinHome Grand Park Main Parking',
+    600,
+    '05:00',
+    '23:59',
+    'ACTIVE'
+FROM building
+WHERE name='VinHome Grand Park Parking Building';
 
-DECLARE @building1 UNIQUEIDENTIFIER = (SELECT building_id FROM BUILDING WHERE name = N'Central Parking Building');
-DECLARE @building2 UNIQUEIDENTIFIER = (SELECT building_id FROM BUILDING WHERE name = N'West Lake Parking Tower');
-
-INSERT INTO PARKING(building_id, name, total_capacity, open_time, close_time, status)
-VALUES
-(@building1, N'Central Main Parking', 600, '05:00', '23:59', 'ACTIVE'),
-(@building2, N'West Lake Main Parking', 400, '06:00', '23:00', 'ACTIVE');
-GO
-
+INSERT INTO parking(
+    building_id,
+    name,
+    total_capacity,
+    open_time,
+    close_time,
+    status
+)
+SELECT
+    building_id,
+    'West Lake Main Parking',
+    400,
+    '05:00',
+    '23:59',
+    'ACTIVE'
+FROM building
+WHERE name='West Lake Parking Tower';
 -- 5. FLOOR
 
-DECLARE @p1 UNIQUEIDENTIFIER = (SELECT parking_id FROM PARKING WHERE name = N'Central Main Parking');
+DECLARE @p1 UNIQUEIDENTIFIER = (SELECT parking_id FROM PARKING WHERE name = N'VinHome Grand Park Main Parking');
 DECLARE @p2 UNIQUEIDENTIFIER = (SELECT parking_id FROM PARKING WHERE name = N'West Lake Main Parking');
 
 INSERT INTO FLOOR(parking_id, floor_number, name, status)
 VALUES
-(@p1, 1, N'Central Floor 1', 'ACTIVE'),
-(@p1, 2, N'Central Floor 2', 'ACTIVE'),
-(@p1, 3, N'Central Floor 3', 'ACTIVE'),
-(@p1, 4, N'Central Floor 4', 'ACTIVE'),
-(@p1, 5, N'Central Floor 5', 'ACTIVE'),
+(@p1, 1, N'VinHome Grand Park Floor 1', 'ACTIVE'),
+(@p1, 2, N'VinHome Grand Park Floor 2', 'ACTIVE'),
+(@p1, 3, N'VinHome Grand Park Floor 3', 'ACTIVE'),
+(@p1, 4, N'VinHome Grand Park Floor 4', 'ACTIVE'),
+(@p1, 5, N'VinHome Grand Park Floor 5', 'ACTIVE'),
 (@p2, 1, N'West Lake Floor 1', 'ACTIVE'),
 (@p2, 2, N'West Lake Floor 2', 'ACTIVE'),
 (@p2, 3, N'West Lake Floor 3', 'ACTIVE');
@@ -105,88 +166,166 @@ GO
 
 -- 6. AREA
 
-DECLARE @motor UNIQUEIDENTIFIER = (SELECT vehicle_type_id FROM VEHICLE_TYPE WHERE name = 'Motorbike');
-DECLARE @car UNIQUEIDENTIFIER = (SELECT vehicle_type_id FROM VEHICLE_TYPE WHERE name = 'Car');
-DECLARE @emotor UNIQUEIDENTIFIER = (SELECT vehicle_type_id FROM VEHICLE_TYPE WHERE name = 'Electric Motorbike');
-DECLARE @ecar UNIQUEIDENTIFIER = (SELECT vehicle_type_id FROM VEHICLE_TYPE WHERE name = 'Electric Car');
-DECLARE @bike UNIQUEIDENTIFIER = (SELECT vehicle_type_id FROM VEHICLE_TYPE WHERE name = 'Bicycle');
+INSERT INTO area(
+    floor_id,
+    vehicle_type_id,
+    name,
+    capacity,
+    status
+)
+SELECT
+    f.floor_id,
+    vt.vehicle_type_id,
+    f.name || ' - Motorbike Area',
+    60,
+    'ACTIVE'
+FROM floor f
+JOIN vehicle_type vt
+ON vt.name='Motorbike'
+WHERE f.floor_number IN (1,2,3);
 
-INSERT INTO AREA(floor_id, vehicle_type_id, name, capacity, status)
-SELECT floor_id, @motor, CONCAT(name, N' - Motorbike Area'), 60, 'ACTIVE' FROM FLOOR WHERE floor_number IN (1,2,3);
+INSERT INTO area(
+    floor_id,
+    vehicle_type_id,
+    name,
+    capacity,
+    status
+)
+SELECT
+    f.floor_id,
+    vt.vehicle_type_id,
+    f.name || ' - Car Area',
+    40,
+    'ACTIVE'
+FROM floor f
+JOIN vehicle_type vt
+ON vt.name='Car'
+WHERE f.floor_number IN (2,3,4,5);
 
-INSERT INTO AREA(floor_id, vehicle_type_id, name, capacity, status)
-SELECT floor_id, @car, CONCAT(name, N' - Car Area'), 40, 'ACTIVE' FROM FLOOR WHERE floor_number IN (2,3,4,5);
+INSERT INTO area(
+    floor_id,
+    vehicle_type_id,
+    name,
+    capacity,
+    status
+)
+SELECT
+    f.floor_id,
+    vt.vehicle_type_id,
+    f.name || ' - Electric Motorbike Area',
+    30,
+    'ACTIVE'
+FROM floor f
+JOIN vehicle_type vt
+ON vt.name='Electric Motorbike'
+WHERE f.floor_number IN (1,2);
 
-INSERT INTO AREA(floor_id, vehicle_type_id, name, capacity, status)
-SELECT floor_id, @emotor, CONCAT(name, N' - Electric Motorbike Area'), 30, 'ACTIVE' FROM FLOOR WHERE floor_number IN (1,2);
+INSERT INTO area(
+    floor_id,
+    vehicle_type_id,
+    name,
+    capacity,
+    status
+)
+SELECT
+    f.floor_id,
+    vt.vehicle_type_id,
+    f.name || ' - Electric Car Area',
+    20,
+    'ACTIVE'
+FROM floor f
+JOIN vehicle_type vt
+ON vt.name='Electric Car'
+WHERE f.floor_number IN (1,4,5);
 
-INSERT INTO AREA(floor_id, vehicle_type_id, name, capacity, status)
-SELECT floor_id, @ecar, CONCAT(name, N' - Electric Car Area'), 20, 'ACTIVE' FROM FLOOR WHERE floor_number IN (1,4,5);
-
-INSERT INTO AREA(floor_id, vehicle_type_id, name, capacity, status)
-SELECT floor_id, @bike, CONCAT(name, N' - Bicycle Area'), 25, 'ACTIVE' FROM FLOOR WHERE floor_number = 1;
-GO
-
+INSERT INTO area(
+    floor_id,
+    vehicle_type_id,
+    name,
+    capacity,
+    status
+)
+SELECT
+    f.floor_id,
+    vt.vehicle_type_id,
+    f.name || ' - Bicycle Area',
+    25,
+    'ACTIVE'
+FROM floor f
+JOIN vehicle_type vt
+ON vt.name='Bicycle'
+WHERE f.floor_number=1;
 -- 7. SLOT - tạo nhiều slot theo từng area
 
-DECLARE @areaId UNIQUEIDENTIFIER, @areaName NVARCHAR(255), @i INT, @prefix NVARCHAR(20);
+INSERT INTO slot(
+    area_id,
+    slot_code,
+    status,
+    distance_to_gate,
+    priority_score
+)
+SELECT
+    a.area_id,
 
-DECLARE area_cursor CURSOR FOR
-SELECT area_id, name FROM AREA;
+    CASE
+        WHEN a.name ILIKE '%Motorbike%' AND a.name NOT ILIKE '%Electric%'
+            THEN 'MB-' || LPAD(gs::text,3,'0')
 
-OPEN area_cursor;
-FETCH NEXT FROM area_cursor INTO @areaId, @areaName;
+        WHEN a.name ILIKE '%Car%' AND a.name NOT ILIKE '%Electric%'
+            THEN 'CAR-' || LPAD(gs::text,3,'0')
 
-WHILE @@FETCH_STATUS = 0
-BEGIN
-    SET @i = 1;
-    SET @prefix =
-        CASE
-            WHEN @areaName LIKE '%Motorbike%' AND @areaName NOT LIKE '%Electric%' THEN 'MB'
-            WHEN @areaName LIKE '%Car%' AND @areaName NOT LIKE '%Electric%' THEN 'CAR'
-            WHEN @areaName LIKE '%Electric Motorbike%' THEN 'EMB'
-            WHEN @areaName LIKE '%Electric Car%' THEN 'ECAR'
-            WHEN @areaName LIKE '%Bicycle%' THEN 'BI'
-            ELSE 'S'
-        END;
+        WHEN a.name ILIKE '%Electric Motorbike%'
+            THEN 'EMB-' || LPAD(gs::text,3,'0')
 
-    WHILE @i <= 25
-    BEGIN
-        INSERT INTO SLOT(area_id, slot_code, status, distance_to_gate, priority_score)
-        VALUES (
-            @areaId,
-            CONCAT(@prefix, '-', RIGHT('000' + CAST(@i AS NVARCHAR(3)), 3)),
-            CASE WHEN @i % 17 = 0 THEN 'MAINTENANCE' ELSE 'AVAILABLE' END,
-            10 + (@i * 3),
-            CAST(100.0 - (@i * 1.5) AS DECIMAL(10,2))
-        );
-        SET @i = @i + 1;
-    END;
+        WHEN a.name ILIKE '%Electric Car%'
+            THEN 'ECAR-' || LPAD(gs::text,3,'0')
 
-    FETCH NEXT FROM area_cursor INTO @areaId, @areaName;
-END
+        WHEN a.name ILIKE '%Bicycle%'
+            THEN 'BI-' || LPAD(gs::text,3,'0')
 
-CLOSE area_cursor;
-DEALLOCATE area_cursor;
-GO
+        ELSE 'S-' || LPAD(gs::text,3,'0')
+    END,
+
+    CASE
+        WHEN gs % 17 = 0
+        THEN 'MAINTENANCE'
+        ELSE 'AVAILABLE'
+    END,
+
+    10 + (gs * 3),
+
+    ROUND((100 - (gs * 1.5))::numeric,2)
+
+FROM area a
+CROSS JOIN generate_series(1,25) gs;
 
 -- 8. GATE
 
-DECLARE @central UNIQUEIDENTIFIER = (SELECT parking_id FROM PARKING WHERE name = N'Central Main Parking');
-DECLARE @west UNIQUEIDENTIFIER = (SELECT parking_id FROM PARKING WHERE name = N'West Lake Main Parking');
-
-INSERT INTO GATE(parking_id, name, gate_type, status)
+INSERT INTO gate(
+    parking_id,
+    name,
+    gate_type,
+    status
+)
+SELECT
+    p.parking_id,
+    g.name,
+    g.gate_type,
+    'ACTIVE'
+FROM (
 VALUES
-(@central, N'Central Gate A - IN', 'IN', 'ACTIVE'),
-(@central, N'Central Gate A - OUT', 'OUT', 'ACTIVE'),
-(@central, N'Central Gate B - IN', 'IN', 'ACTIVE'),
-(@central, N'Central Gate B - OUT', 'OUT', 'ACTIVE'),
-(@central, N'Central Gate C - BOTH', 'BOTH', 'ACTIVE'),
-(@west, N'West Lake Gate A - IN', 'IN', 'ACTIVE'),
-(@west, N'West Lake Gate A - OUT', 'OUT', 'ACTIVE'),
-(@west, N'West Lake Gate B - BOTH', 'BOTH', 'ACTIVE');
-GO
+('VinHome Grand Park Main Parking','VinHome Grand Park Gate A - IN','IN'),
+('VinHome Grand Park Main Parking','VinHome Grand Park Gate A - OUT','OUT'),
+('VinHome Grand Park Main Parking','VinHome Grand Park Gate B - IN','IN'),
+('VinHome Grand Park Main Parking','VinHome Grand Park Gate B - OUT','OUT'),
+('VinHome Grand Park Main Parking','VinHome Grand Park Gate C - BOTH','BOTH'),
 
+('West Lake Main Parking','West Lake Gate A - IN','IN'),
+('West Lake Main Parking','West Lake Gate A - OUT','OUT'),
+('West Lake Main Parking','West Lake Gate B - BOTH','BOTH')
+) g(parking_name,name,gate_type)
+JOIN parking p
+ON p.name=g.parking_name;
 -- 9. CARD
 
 DECLARE @cardIndex INT = 1;
