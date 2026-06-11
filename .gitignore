@@ -1,4 +1,29 @@
-# Logs
+# ==========================================
+# 1. Thư mục thư viện & Cache (Chặn ở mọi cấp thư mục)
+# ==========================================
+node_modules/
+**/node_modules/
+.vite/
+**/.vite/
+.pnpm-store/
+**/.pnpm-store/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# ==========================================
+# 2. File cấu hình bảo mật (Tuyệt đối không push)
+# ==========================================
+.env
+*.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# ==========================================
+# 3. Logs & File tạm khi chạy ứng dụng
+# ==========================================
 logs
 *.log
 npm-debug.log*
@@ -7,27 +32,23 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# ==========================================
+# 4. Thư mục Build / Output sản phẩm
+# ==========================================
+dist/
+dist-ssr/
+build/
 
-# Editor directories and files
+# ==========================================
+# 5. Cấu hình của Editor & Hệ điều hành
+# ==========================================
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Chặn pnpm store ở mọi thư mục con
-**/.pnpm-store/
-**/.pnpm-store
-.pnpm-store/
-
-# Chặn node_modules ở mọi nơi
-**/node_modules/
-node_modules/
