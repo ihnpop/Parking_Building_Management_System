@@ -30,21 +30,26 @@ export function AuthProvider({ children }) {
             setLoading(false);
         });
 
-        // 2. onAuthStateChange chỉ cập nhật user SAU KHI loading đã xong
+        // 2. onAuthStateChange cập nhật user dựa trên các event cụ thể
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             // Bỏ qua sự kiện INITIAL_SESSION — đã được xử lý bởi getSession ở trên
             if (!initialCheckDone.current && event === 'INITIAL_SESSION') return;
 
-            if (session) {
+            if (event === 'SIGNED_IN' && session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
                 localStorage.setItem("accessToken", session.access_token);
                 localStorage.setItem("access_token", session.access_token);
-            } else {
+            } else if (event === 'SIGNED_OUT' || !session) {
                 setUser(null);
                 localStorage.removeItem("token");
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem("access_token");
+            } else if (session) {
+                setUser(session.user);
+                localStorage.setItem("token", session.access_token);
+                localStorage.setItem("accessToken", session.access_token);
+                localStorage.setItem("access_token", session.access_token);
             }
         });
 

@@ -11,7 +11,7 @@ export default function ProtectedRoute({ children }) {
 
     // Không render component sớm khi đang khởi tạo session
     if (loading) {
-        return null; 
+        return null;
     }
 
     if (!user || !token) {

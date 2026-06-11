@@ -134,13 +134,8 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    // Đồng bộ hóa trạng thái đăng xuất nếu token bị xóa khỏi localStorage
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            logout().catch((err) => console.error("Error signing out from Supabase client:", err));
-        }
-    }, [logout]);
+    // AuthContext.getSession() đã xử lý cleanup khi không có session hợp lệ.
+    // Không gọi logout() ở đây để tránh race condition khi cold-start.
 
     const handleSubmit = async (e) => {
         e.preventDefault();
