@@ -135,52 +135,43 @@ export default function OccupancyChart() {
 
     // Calculate user initials
     const userEmail = user?.email || 'admin@parkflow.com';
-    const userInitials = user?.user_metadata?.full_name
+    const userInitials = user?.user_metadata?.full_name 
         ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
         : userEmail.substring(0, 2).toUpperCase();
 
     return (
         <section className="stats-dashboard-page">
             {/* Top Navigation Header */}
-            {/* Header chuẩn giống hình ảnh */}
             <header className="stats-top-bar">
-                <div className="top-bar-left">
-                    <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                        Trở về Dashboard
-                    </button>
-                </div>
-
+                <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
+                    <span className="material-symbols-outlined">arrow_back</span>
+                    Thoát
+                </button>
                 <h1 className="stats-page-title">Thống kê tổng quát</h1>
-
-                <div className="top-bar-right">
-                    <button type="button" className="header-action-btn">
+                <div className="stats-header-right">
+                    <button className="stats-bell-btn">
                         <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge-dot"></span>
                     </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">help</span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">settings</span>
-                    </button>
-
+                    
                     <div className="avatar-wrapper" ref={dropdownRef}>
-                        <div className="header-user-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
-                            <div className="profile-info-text">
-                                <span className="profile-user-name">{userEmail.split('@')[0]}</span>
-                                <span className="profile-user-role">SUPER ADMINISTRATOR</span>
+                        <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
+                            <div className="profile-text">
+                                <span className="profile-name">{userEmail}</span>
                             </div>
-                            <div className="profile-avatar-circle">{userInitials[0]}</div>
+                            <div className="profile-avatar">{userInitials[0]}</div>
                         </div>
 
                         {showDropdown && (
-                            <div className="user-dropdown" style={{ top: '55px', right: '0px' }}>
+                            <div className="user-dropdown" style={{ top: '50px' }}>
                                 <div className="user-dropdown-info">
                                     <div className="user-dropdown-email">{userEmail}</div>
                                     <div className="user-dropdown-role">Quản trị viên</div>
                                 </div>
-                                <button type="button" className="user-dropdown-item" onClick={handleLogout}>
+                                <button 
+                                    type="button" 
+                                    className="user-dropdown-item" 
+                                    onClick={handleLogout}
+                                >
                                     <span className="material-symbols-outlined">logout</span>
                                     Đăng xuất
                                 </button>

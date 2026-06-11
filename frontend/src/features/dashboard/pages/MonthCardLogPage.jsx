@@ -34,14 +34,14 @@ export default function MonthCardLogPage() {
 
     const handleFilter = () => {
         let filtered = allLogs.filter((log) => {
-            const matchesSearch =
-                log.cardNo.toLowerCase().includes(search.toLowerCase()) ||
-                log.plate.toLowerCase().includes(search.toLowerCase()) ||
+            const matchesSearch = 
+                log.cardNo.toLowerCase().includes(search.toLowerCase()) || 
+                log.plate.toLowerCase().includes(search.toLowerCase()) || 
                 log.owner.toLowerCase().includes(search.toLowerCase());
-
+            
             const matchesType = typeFilter === 'Tất cả' || log.type === typeFilter;
             const matchesStatus = statusFilter === 'Tất cả' || log.status === statusFilter;
-
+            
             return matchesSearch && matchesType && matchesStatus;
         });
         setLogs(filtered);
@@ -73,40 +73,24 @@ export default function MonthCardLogPage() {
     return (
         <div className="month-log-page">
             {/* Header */}
-            {/* Header chuẩn giống hình ảnh */}
-            <header className="stats-top-bar">
-                <div className="top-bar-left">
-                    <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
+            <header className="month-log-header">
+                <div className="month-log-header-left">
+                    <button type="button" className="month-log-back-btn" onClick={() => navigate('/login/dashboard')}>
                         <span className="material-symbols-outlined">arrow_back</span>
-                        Trở về Dashboard
                     </button>
+                    <h1>Nhật ký vé tháng</h1>
                 </div>
 
-                <h1 className="stats-page-title">Nhật ký vé tháng</h1>
-
-                <div className="top-bar-right">
-                    <button type="button" className="header-action-btn" onClick={fetchLogs}>
+                <div className="month-log-header-right">
+                    <button type="button" className="month-log-bell-btn" onClick={fetchLogs}>
                         <span className="material-symbols-outlined">refresh</span>
                     </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge-dot"></span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">help</span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">settings</span>
-                    </button>
-
-                    <div className="header-user-profile">
-                        <div className="profile-info-text">
-                            <span className="profile-user-name">Admin User</span>
-                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
+                    <div className="month-log-profile">
+                        <div className="profile-text">
+                            <span className="profile-name">Admin User</span>
+                            <span className="profile-role">Quản trị viên</span>
                         </div>
-                        <div className="profile-avatar-circle">
-                            <span className="material-symbols-outlined">person</span>
-                        </div>
+                        <div className="profile-avatar">AD</div>
                     </div>
                 </div>
             </header>
@@ -173,9 +157,9 @@ export default function MonthCardLogPage() {
                         <label>Tìm kiếm</label>
                         <div className="search-wrapper">
                             <span className="material-symbols-outlined">search</span>
-                            <input
-                                type="text"
-                                placeholder="Mã thẻ, Biển số, Chủ xe..."
+                            <input 
+                                type="text" 
+                                placeholder="Mã thẻ, Biển số, Chủ xe..." 
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
@@ -185,8 +169,8 @@ export default function MonthCardLogPage() {
 
                     <div className="filter-group select-group">
                         <label>Loại giao dịch</label>
-                        <select
-                            value={typeFilter}
+                        <select 
+                            value={typeFilter} 
                             onChange={(e) => setTypeFilter(e.target.value)}
                             className="month-log-select"
                         >
@@ -199,8 +183,8 @@ export default function MonthCardLogPage() {
 
                     <div className="filter-group select-group">
                         <label>Trạng thái</label>
-                        <select
-                            value={statusFilter}
+                        <select 
+                            value={statusFilter} 
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="month-log-select"
                         >

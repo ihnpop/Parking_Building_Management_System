@@ -61,42 +61,19 @@ export default function CardPage() {
 
     return (
         <main className="card-page">
-            {/* Header chuẩn giống hình ảnh */}
-            <header className="stats-top-bar">
-                <div className="top-bar-left">
+            <header className="cardpage-header">
+                <div className="cardpage-header-left">
                     <button type="button" className="cardpage-back-button" onClick={() => navigate('/login/dashboard')}>
                         <span className="material-symbols-outlined">arrow_back</span>
                         Trở về Dashboard
                     </button>
-                </div>
 
-                <h1 className="stats-page-title">Quản lý Thẻ</h1>
-
-                <div className="top-bar-right">
-                    <button type="button" className="header-action-btn" onClick={fetchCards}>
-                        <span className="material-symbols-outlined">refresh</span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge-dot"></span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">help</span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">settings</span>
-                    </button>
-
-                    <div className="header-user-profile">
-                        <div className="profile-info-text">
-                            <span className="profile-user-name">Admin User</span>
-                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
-                        </div>
-                        <div className="profile-avatar-circle">
-                            <span className="material-symbols-outlined">person</span>
-                        </div>
+                    <div className="cardpage-page-title">
+                        <h1>Quản lý Thẻ</h1>
                     </div>
                 </div>
+
+                <div className="cardpage-user-badge">Admin</div>
             </header>
 
             <section className="cardpage-summary-grid">
@@ -113,7 +90,7 @@ export default function CardPage() {
                 <div className="cardpage-filters">
                     <div className="cardpage-filter-group">
                         <label>Loại thẻ</label>
-                        <select
+                        <select 
                             className="cardpage-select"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
@@ -126,7 +103,7 @@ export default function CardPage() {
 
                     <div className="cardpage-filter-group">
                         <label>Trạng thái</label>
-                        <select
+                        <select 
                             className="cardpage-select"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
@@ -137,8 +114,8 @@ export default function CardPage() {
                         </select>
                     </div>
 
-                    <button
-                        type="button"
+                    <button 
+                        type="button" 
                         className="cardpage-button secondary"
                         onClick={handleResetFilters}
                     >

@@ -71,43 +71,36 @@ export default function MonthCardPage() {
 
     return (
         <div className="month-card-page">
-            {/* 1. Header chuẩn hóa bám đỉnh, căn giữa tiêu đề hoàn toàn */}
-            <header className="stats-top-bar">
-                <div className="top-bar-left">
-                    <button type="button" className="month-back-button" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                        Trở về Dashboard
-                    </button>
+            <div className="month-header">
+                <button type="button" className="month-back-button" onClick={() => navigate('/login/dashboard')}>
+                    <span className="material-symbols-outlined">arrow_back</span>
+                    Trở về Dashboard
+                </button>
+
+                <div className="month-title-section">
+                    <h1>Quản lý Vé tháng</h1>
                 </div>
 
-                <h1 className="stats-page-title">Quản lý Vé tháng</h1>
-
-                <div className="top-bar-right">
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge-dot"></span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">help</span>
-                    </button>
-                    <button type="button" className="header-action-btn">
-                        <span className="material-symbols-outlined">settings</span>
-                    </button>
-
-                    <div className="header-user-profile">
-                        <div className="profile-info-text">
-                            <span className="profile-user-name">Admin User</span>
-                            <span className="profile-user-role">SUPER ADMINISTRATOR</span>
-                        </div>
-                        <div className="profile-avatar-circle">
-                            <span className="material-symbols-outlined">person</span>
-                        </div>
+                <div className="month-header-right">
+                    <div className="month-user-badge">Admin</div>
+                    <div className="month-actions">
+                        <button type="button" className="month-btn month-btn-outline" onClick={fetchMonthCards}>
+                            <span className="material-symbols-outlined">refresh</span>
+                            Làm mới
+                        </button>
+                        <button type="button" className="month-btn month-btn-outline">
+                            <span className="material-symbols-outlined">calendar_today</span>
+                            Gia hạn
+                        </button>
+                        <button type="button" className="month-btn month-btn-primary">
+                            <span className="material-symbols-outlined">add</span>
+                            Thêm mới
+                        </button>
                     </div>
                 </div>
-            </header>
+            </div>
 
-            {/* 2. Hàng Thống kê kết hợp 3 nút bấm (Chuyển thành Grid 5 cột như CSS mới) */}
-            <div className="month-stats-grid-custom">
+            <div className="month-stats-grid">
                 {statCards.map((stat) => (
                     <div key={stat.label} className="month-stat-card">
                         <div className="stat-icon">
@@ -122,25 +115,8 @@ export default function MonthCardPage() {
                         </div>
                     </div>
                 ))}
-
-                {/* Ô thứ 5: Chứa cụm 3 nút bấm chuyển đổi vị trí từ Header xuống */}
-                <div className="month-inline-actions-card">
-                    <button type="button" className="month-btn-inline" onClick={fetchMonthCards}>
-                        <span className="material-symbols-outlined">refresh</span>
-                        Làm mới
-                    </button>
-                    <button type="button" className="month-btn-inline">
-                        <span className="material-symbols-outlined">calendar_today</span>
-                        Gia hạn
-                    </button>
-                    <button type="button" className="month-btn-inline primary">
-                        <span className="material-symbols-outlined">add</span>
-                        Thêm mới
-                    </button>
-                </div>
             </div>
 
-            {/* 3. Khu vực tìm kiếm và bộ lọc dữ liệu */}
             <div className="month-search-bar">
                 <div className="search-input-wrapper">
                     <span className="material-symbols-outlined">search</span>
@@ -187,7 +163,6 @@ export default function MonthCardPage() {
                 </button>
             </div>
 
-            {/* 4. Bảng danh sách dữ liệu */}
             <div className="month-table-container">
                 {error && (
                     <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
