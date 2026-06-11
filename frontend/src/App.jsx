@@ -7,6 +7,7 @@ import LostCardLogPage from './features/dashboard/pages/LostCardLogPage';
 import LoginLogPage from './features/dashboard/pages/LoginLogPage';
 import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
 import SystemSettingsPage from './features/dashboard/pages/SystemSettingsPage';
+import UserManagementPage from './features/dashboard/pages/UserManagementPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 
@@ -28,6 +29,7 @@ export default function App() {
       <Route path="/login/dashboard/month-card-log" element={<ProtectedRoute><MonthCardLogPage /></ProtectedRoute>} />
       <Route path="/login/dashboard/settings" element={<ProtectedRoute><SystemSettingsPage /></ProtectedRoute>} />
       <Route path="/login/dashboard/OccupancyChart" element={<ProtectedRoute><OccupancyChart /></ProtectedRoute>} />
+      <Route path="/login/dashboard/user-management" element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
