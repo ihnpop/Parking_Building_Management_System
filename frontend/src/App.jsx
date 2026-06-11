@@ -9,6 +9,9 @@ import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
 import SystemSettingsPage from './features/dashboard/pages/SystemSettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
+import ForgotPassword from "./features/auth/pages/ForgotPassword";
+import ResetPassword from "./features/auth/pages/ResetPassword";
+
 
 import "./styles/App.css";
 
@@ -18,6 +21,8 @@ export default function App() {
     <Routes>
       {/* 1. Trang Đăng nhập */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />

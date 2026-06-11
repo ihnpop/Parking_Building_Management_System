@@ -138,6 +138,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
+import { Link } from "react-router-dom";
+import supabase from "../../../config/supabaseClient";
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -168,6 +170,12 @@ export default function LoginPage() {
             if (!token) {
                 throw new Error("Token not found in response");
             }
+
+            if (response.data?.session) {
+                const { error: setSessionError } = await supabase.auth.setSession(response.data.session);
+                if (setSessionError) throw setSessionError;
+            }
+
             localStorage.setItem("token", token);
             localStorage.setItem("accessToken", token);
             localStorage.setItem("access_token", token);
@@ -179,22 +187,6 @@ export default function LoginPage() {
             );
         } finally {
             setLoading(false);
-        }
-
-
-        console.log("Đang đăng nhập lụi với:", { email, password });
-
-        try {
-            // Lưu mọi kiểu biến token để các thành phần bảo mật check kiểu gì cũng trúng
-            localStorage.setItem("token", "mock-fake-token-123456");
-            localStorage.setItem("accessToken", "mock-fake-token-123456");
-            localStorage.setItem("access_token", "mock-fake-token-123456");
-
-            // Chuyển hướng thẳng vào dashboard
-            navigate('/login/dashboard');
-        } catch (err) {
-            console.error("Lỗi điều hướng:", err);
-            setError("Something went wrong!");
         }
     };
 
@@ -251,9 +243,15 @@ export default function LoginPage() {
                         <label className="login-label" htmlFor="password">
                             <div className="login-label-row">
                                 <span>Password</span>
-                                <a href="#" className="login-forgot">
+                                {/* <a href="#" className="login-forgot">
                                     Forgot password?
-                                </a>
+                                </a> */}
+                                <Link
+                                    to="/forgot-password"
+                                    className="login-forgot"
+                                >
+                                    Forgot password?
+                                </Link>
                             </div>
                             <input
                                 id="password"
