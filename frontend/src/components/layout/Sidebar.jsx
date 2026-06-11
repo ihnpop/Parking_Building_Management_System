@@ -32,7 +32,10 @@ export default function Sidebar({ activeTab, onTabChange }) {
                 <button
                     type="button"
                     className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                    onClick={() => onTabChange('dashboard')}
+                    onClick={() => {
+                        onTabChange('dashboard');
+                        navigate('/login/dashboard');
+                    }}
                 >
                     <span className="material-symbols-outlined">dashboard</span>
                     <span>Bảng điều khiển</span>

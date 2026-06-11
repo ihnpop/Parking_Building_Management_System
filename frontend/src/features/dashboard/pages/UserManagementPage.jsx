@@ -129,35 +129,35 @@ export default function UserManagementPage() {
             <div style={{ padding: '0 0 40px 0' }}>
                 {/* Header */}
                 <div style={{
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(168,85,247,0.12) 100%)',
-                    border: '1px solid rgba(99,102,241,0.25)',
+                    background: 'linear-gradient(135deg, rgba(255,107,0,0.10) 0%, rgba(255,180,100,0.08) 100%)',
+                    border: '1px solid rgba(255,107,0,0.20)',
                     borderRadius: '18px', padding: '28px 32px',
-                    marginBottom: '28px', backdropFilter: 'blur(12px)',
+                    marginBottom: '28px',
                     display: 'flex', alignItems: 'center', gap: '16px'
                 }}>
                     <div style={{
                         width: '52px', height: '52px', borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                        background: 'linear-gradient(135deg, #ff6b00, #ff9a3c)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 15px rgba(99,102,241,0.4)'
+                        boxShadow: '0 4px 15px rgba(255,107,0,0.35)'
                     }}>
                         <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '28px' }}>
                             manage_accounts
                         </span>
                     </div>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#e2e8f0' }}>
+                        <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800, color: '#1f2937' }}>
                             Quản lý Phân quyền
                         </h2>
-                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#94a3b8' }}>
+                        <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#6b7280' }}>
                             Xem và thay đổi vai trò của từng người dùng trong hệ thống
                         </p>
                     </div>
                     <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#6366f1' }}>
+                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#ff6b00' }}>
                             {users.length}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>Tổng người dùng</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>Tổng người dùng</div>
                     </div>
                 </div>
 
@@ -179,8 +179,8 @@ export default function UserManagementPage() {
                             onChange={e => setSearch(e.target.value)}
                             style={{
                                 width: '100%', padding: '10px 16px 10px 42px',
-                                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '10px', color: '#e2e8f0', fontSize: '14px',
+                                background: '#ffffff', border: '1px solid #e5e7eb',
+                                borderRadius: '10px', color: '#1f2937', fontSize: '14px',
                                 outline: 'none', boxSizing: 'border-box'
                             }}
                         />
@@ -196,9 +196,9 @@ export default function UserManagementPage() {
                                     onClick={() => setFilterRole(r)}
                                     style={{
                                         padding: '8px 16px', borderRadius: '10px', cursor: 'pointer',
-                                        border: active ? `1px solid ${cfg?.color || '#6366f1'}` : '1px solid rgba(255,255,255,0.1)',
-                                        background: active ? (cfg?.bg || 'rgba(99,102,241,0.15)') : 'rgba(255,255,255,0.04)',
-                                        color: active ? (cfg?.color || '#6366f1') : '#94a3b8',
+                                        border: active ? `1px solid ${cfg?.color || '#ff6b00'}` : '1px solid #e5e7eb',
+                                        background: active ? (cfg?.bg || 'rgba(255,107,0,0.12)') : '#ffffff',
+                                        color: active ? (cfg?.color || '#ff6b00') : '#6b7280',
                                         fontSize: '13px', fontWeight: active ? 700 : 400,
                                         transition: 'all 0.2s'
                                     }}
@@ -211,13 +211,13 @@ export default function UserManagementPage() {
                     <button
                         id="refresh-users-btn"
                         onClick={fetchUsers}
-                        style={{
-                            display: 'flex', alignItems: 'center', gap: '6px',
-                            padding: '8px 14px', borderRadius: '10px', cursor: 'pointer',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
-                            fontSize: '13px', transition: 'all 0.2s'
-                        }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '8px 14px', borderRadius: '10px', cursor: 'pointer',
+                                border: '1px solid #ffdecc',
+                                background: '#ffffff', color: '#6b7280',
+                                fontSize: '13px', transition: 'all 0.2s'
+                            }}
                     >
                         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>refresh</span>
                         Làm mới
@@ -251,19 +251,19 @@ export default function UserManagementPage() {
                 ) : (
                     /* Table */
                     <div style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: '#ffffff',
+                        border: '1px solid #e5e7eb',
                         borderRadius: '18px', overflow: 'hidden',
-                        backdropFilter: 'blur(10px)'
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
                     }}>
                         {/* Table Header */}
                         <div style={{
                             display: 'grid',
                             gridTemplateColumns: '2fr 1.8fr 1fr 1fr 1.4fr 1fr',
                             padding: '14px 24px',
-                            background: 'rgba(99,102,241,0.08)',
-                            borderBottom: '1px solid rgba(255,255,255,0.06)',
-                            fontSize: '12px', fontWeight: 700, color: '#64748b',
+                            background: '#faf7f2',
+                            borderBottom: '1px solid #e5e7eb',
+                            fontSize: '12px', fontWeight: 700, color: '#6b7280',
                             letterSpacing: '0.08em', textTransform: 'uppercase'
                         }}>
                             <div>Người dùng</div>
@@ -298,19 +298,19 @@ export default function UserManagementPage() {
                                             gridTemplateColumns: '2fr 1.8fr 1fr 1fr 1.4fr 1fr',
                                             padding: '16px 24px',
                                             borderBottom: idx < filteredUsers.length - 1
-                                                ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                                                ? '1px solid #f3f4f6' : 'none',
                                             alignItems: 'center',
                                             transition: 'background 0.2s',
-                                            background: hasChanged ? 'rgba(99,102,241,0.05)' : 'transparent'
+                                            background: hasChanged ? 'rgba(255,107,0,0.04)' : 'transparent'
                                         }}
-                                        onMouseEnter={e => e.currentTarget.style.background = hasChanged ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)'}
-                                        onMouseLeave={e => e.currentTarget.style.background = hasChanged ? 'rgba(99,102,241,0.05)' : 'transparent'}
+                                        onMouseEnter={e => e.currentTarget.style.background = hasChanged ? 'rgba(255,107,0,0.07)' : '#fafafa'}
+                                        onMouseLeave={e => e.currentTarget.style.background = hasChanged ? 'rgba(255,107,0,0.04)' : 'transparent'}
                                     >
                                         {/* User info */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <UserAvatar name={user.full_name || user.username} />
                                             <div>
-                                                <div style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '14px' }}>
+                                                <div style={{ fontWeight: 600, color: '#1f2937', fontSize: '14px' }}>
                                                     {user.full_name || user.username || 'Chưa đặt tên'}
                                                 </div>
                                                 {user.username && user.full_name && (
@@ -322,7 +322,7 @@ export default function UserManagementPage() {
                                         </div>
 
                                         {/* Email */}
-                                        <div style={{ fontSize: '13px', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <div style={{ fontSize: '13px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {user.email || '—'}
                                         </div>
 
@@ -340,18 +340,18 @@ export default function UserManagementPage() {
                                                 onChange={e => handleRoleChange(user.id, e.target.value)}
                                                 style={{
                                                     padding: '7px 12px', borderRadius: '8px',
-                                                    background: 'rgba(255,255,255,0.06)',
+                                                    background: '#ffffff',
                                                     border: hasChanged
-                                                        ? '1px solid rgba(99,102,241,0.6)'
-                                                        : '1px solid rgba(255,255,255,0.1)',
-                                                    color: '#e2e8f0', fontSize: '13px', cursor: 'pointer',
+                                                        ? '1px solid #ff6b00'
+                                                        : '1px solid #d1d5db',
+                                                    color: '#1f2937', fontSize: '13px', cursor: 'pointer',
                                                     outline: 'none', width: '130px',
                                                     transition: 'border 0.2s'
                                                 }}
                                             >
                                                 {ROLES.map(r => (
                                                     <option key={r} value={r}
-                                                        style={{ background: '#1e293b' }}>
+                                                        style={{ background: '#ffffff', color: '#1f2937' }}>
                                                         {ROLE_CONFIG[r].label}
                                                     </option>
                                                 ))}
@@ -367,14 +367,14 @@ export default function UserManagementPage() {
                                                 style={{
                                                     padding: '7px 14px', borderRadius: '8px',
                                                     background: hasChanged && !isSaving
-                                                        ? 'linear-gradient(135deg, #6366f1, #a855f7)'
-                                                        : 'rgba(255,255,255,0.05)',
-                                                    border: 'none', color: hasChanged ? '#fff' : '#475569',
+                                                        ? 'linear-gradient(135deg, #ff6b00, #ff9a3c)'
+                                                        : '#f3f4f6',
+                                                    border: 'none', color: hasChanged ? '#fff' : '#9ca3af',
                                                     fontSize: '13px', fontWeight: 600, cursor: hasChanged ? 'pointer' : 'default',
                                                     transition: 'all 0.2s',
                                                     opacity: isSaving ? 0.7 : 1,
                                                     display: 'flex', alignItems: 'center', gap: '4px',
-                                                    boxShadow: hasChanged ? '0 2px 10px rgba(99,102,241,0.3)' : 'none'
+                                                    boxShadow: hasChanged ? '0 2px 10px rgba(255,107,0,0.30)' : 'none'
                                                 }}
                                             >
                                                 {isSaving ? (
