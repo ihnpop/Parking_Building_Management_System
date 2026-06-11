@@ -154,6 +154,33 @@ export default function LoginPage() {
             setError("Please fill all fields");
             return;
         }
+        try {
+            setLoading(true);
+            const response = await axios.post("http://localhost:3639/api/login", {
+                email,
+                password,
+            });
+            console.log("Login Success:", response.data);
+            const token =
+                response.data?.session?.access_token ||
+                response.data?.access_token ||
+                response.data?.token;
+            if (!token) {
+                throw new Error("Token not found in response");
+            }
+            localStorage.setItem("token", token);
+            localStorage.setItem("accessToken", token);
+            localStorage.setItem("access_token", token);
+            navigate("/login/dashboard");
+        } catch (err) {
+            console.error(err);
+            setError(
+                err.response?.data?.message || err.message || "Login Failed"
+            );
+        } finally {
+            setLoading(false);
+        }
+
 
         console.log("Đang đăng nhập lụi với:", { email, password });
 
