@@ -119,34 +119,28 @@
 //                         </button>
 //                     </form>
 //                 </div>
-//             </main>
-
-//             <footer className="login-footer">
-//                 <span>© 2024 WarmAuth. All rights reserved.</span>
-//                 <div className="login-footer-links">
-//                     <a href="#">Privacy Policy</a>
-//                     <a href="#">Terms of Service</a>
-//                     <a href="#">Contact Support</a>
-//                 </div>
-//             </footer>
-//         </div>
-//     );
-// }
-
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext";
+import supabase from "../../../config/supabaseClient";
 import "./LoginPage.css";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const { loginWithGoogle } = useAuth();
+    const { loginWithGoogle, logout } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    // Đồng bộ hóa trạng thái đăng xuất nếu token bị xóa khỏi localStorage
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            logout().catch((err) => console.error("Error signing out from Supabase client:", err));
+        }
+    }, [logout]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -166,13 +160,25 @@ export default function LoginPage() {
                 response.data?.session?.access_token ||
                 response.data?.access_token ||
                 response.data?.token;
+            const refreshToken = response.data?.session?.refresh_token;
+
             if (!token) {
                 throw new Error("Token not found in response");
             }
+            
             localStorage.setItem("token", token);
             localStorage.setItem("accessToken", token);
             localStorage.setItem("access_token", token);
-            navigate("/login/dashboard");
+
+            // Đồng bộ phiên đăng nhập với client Supabase trên frontend
+            if (refreshToken) {
+                await supabase.auth.setSession({
+                    access_token: token,
+                    refresh_token: refreshToken,
+                });
+            }
+
+            navigate("/login/dashboard", { replace: true });
         } catch (err) {
             console.error(err);
             setError(

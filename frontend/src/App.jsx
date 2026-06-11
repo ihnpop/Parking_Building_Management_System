@@ -19,6 +19,7 @@ export default function App() {
     <Routes>
       {/* 1. Trang Đăng nhập */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<Navigate to="/login/dashboard" replace />} />
 
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
