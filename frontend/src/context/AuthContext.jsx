@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import supabase from '../config/supabaseClient';
 
 const AuthContext = createContext({});
@@ -6,24 +6,35 @@ const AuthContext = createContext({});
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    // Ref để đánh dấu getSession đã hoàn tất — tránh onAuthStateChange ghi đè sớm
+    const initialCheckDone = useRef(false);
 
     useEffect(() => {
-        // Check active session on mount
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        // 1. getSession là nguồn duy nhất kiểm soát trạng thái loading ban đầu
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
                 localStorage.setItem("accessToken", session.access_token);
                 localStorage.setItem("access_token", session.access_token);
             } else {
+                // Không có session hợp lệ — xóa hết token và session Supabase nội bộ
                 setUser(null);
+                localStorage.removeItem("token");
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("access_token");
+                // signOut() xóa key nội bộ Supabase (sb-*-auth-token) trong localStorage
+                await supabase.auth.signOut().catch(() => {});
             }
+            initialCheckDone.current = true;
             setLoading(false);
         });
 
-        // Listen for auth state changes
+        // 2. onAuthStateChange chỉ cập nhật user SAU KHI loading đã xong
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            console.log("Supabase Auth Event:", event);
+            // Bỏ qua sự kiện INITIAL_SESSION — đã được xử lý bởi getSession ở trên
+            if (!initialCheckDone.current && event === 'INITIAL_SESSION') return;
+
             if (session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
@@ -35,7 +46,6 @@ export function AuthProvider({ children }) {
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem("access_token");
             }
-            setLoading(false);
         });
 
         return () => {
@@ -54,13 +64,22 @@ export function AuthProvider({ children }) {
     };
 
     const logout = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
+        // Luôn clear user và localStorage, dù signOut có lỗi hay không
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error("Supabase signOut error:", err);
+        } finally {
+            setUser(null);
+            localStorage.removeItem("token");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("access_token");
+        }
     };
 
     return (
         <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 }

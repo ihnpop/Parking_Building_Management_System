@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Sidebar layout for the parking management dashboard.
@@ -6,15 +7,11 @@ import { useNavigate } from 'react-router-dom';
  */
 export default function Sidebar({ activeTab, onTabChange }) {
     const navigate = useNavigate();
+    const { logout } = useAuth();
 
-    const handleLogout = () => {
-        // Xóa toàn bộ thông tin xác thực khỏi localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('access_token');
-
-        // Dùng replace: true để xóa lịch sử điều hướng,
-        // người dùng nhấn Back sẽ không quay lại được dashboard
+    const handleLogout = async () => {
+        // Gọi logout từ AuthContext: xóa Supabase session + localStorage
+        await logout();
         navigate('/login', { replace: true });
     };
 
