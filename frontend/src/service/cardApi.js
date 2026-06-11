@@ -1,7 +1,7 @@
 import axios from "axios"
 
 const API = axios.create({
-    baseURL: "http://localhost:3639/api"
+    baseURL: "http://localhost:3636/api"
 })
 
 export const getCards = async () => {

@@ -13,13 +13,14 @@ export const getMonthCards = async () => {
   const { data, error } = await supabase
     .from('card')
     .select('*')
-    .like("type", "Thẻ Tháng")
+    .like("type", "Thẻ tháng");
 
   if (error) throw new Error(error.message);
 
   const { data: cards, error: cardError } = await supabase
     .from("card")
-    .select("*");
+    .select("*")
+    .like("type", "Thẻ tháng");
 
   if (cardError) throw new Error(cardError.message);
 
