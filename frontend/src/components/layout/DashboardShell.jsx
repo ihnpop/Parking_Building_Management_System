@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import SystemOperations from '../../features/dashboard/components/SystemOperations';
@@ -7,16 +8,32 @@ import { useAuth } from '../../context/AuthContext';
 export default function DashboardShell({ children }) {
     const { userRole } = useAuth();
     const role = userRole ? userRole.toUpperCase() : null;
+    const location = useLocation();
 
-    const defaultTab = role === 'STAFF' ? 'system' : 'dashboard';
-    const [activeTab, setActiveTab] = useState(defaultTab);
+    const getInitialTab = () => {
+        if (role === 'STAFF') {
+            return 'system';
+        }
+        if (location.pathname.includes('/user-management')) {
+            return 'user-management';
+        }
+        return 'dashboard';
+    };
 
-    // Sync active tab when role loads
+    const [activeTab, setActiveTab] = useState(getInitialTab);
+
+    // Sync active tab when location or role changes
     useEffect(() => {
         if (role === 'STAFF') {
             setActiveTab('system');
+        } else if (location.pathname.includes('/user-management')) {
+            setActiveTab('user-management');
+        } else if (location.pathname.includes('/settings')) {
+            setActiveTab('settings');
+        } else if (activeTab !== 'system') {
+            setActiveTab('dashboard');
         }
-    }, [role]);
+    }, [location.pathname, role]);
 
     const handleTabChange = (tab) => {
         if (role === 'STAFF' && tab !== 'system') {
@@ -34,7 +51,7 @@ export default function DashboardShell({ children }) {
 
             <div className="main">
                 <Topbar
-                    title={activeTab === 'system' ? 'Parking System' : 'Bảng điều khiển'}
+                    title={activeTab === 'system' ? 'Parking System' : activeTab === 'user-management' ? 'Quản lý Phân quyền' : 'Bảng điều khiển'}
                     showExtras={activeTab === 'system'}
                 />
 

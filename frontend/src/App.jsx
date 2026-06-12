@@ -25,6 +25,8 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/dashboard" element={<Navigate to="/login/dashboard" replace />} />
+      <Route path="/dashboard/*" element={<Navigate to="/login/dashboard" replace />} />
 
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập và phân quyền */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />

@@ -136,18 +136,21 @@
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../../context/AuthContext";
 import axios from "axios";
+import { useAuth } from "../../../context/AuthContext";
 import supabase from "../../../config/supabaseClient";
 import "./LoginPage.css";
 
 export default function LoginPage() {
     const navigate = useNavigate();
-    const { loginWithGoogle } = useAuth();
+    const { loginWithGoogle, logout } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    // AuthContext.getSession() đã xử lý cleanup khi không có session hợp lệ.
+    // Không gọi logout() ở đây để tránh race condition khi cold-start.
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -172,7 +175,6 @@ export default function LoginPage() {
             if (!token) {
                 throw new Error("Token not found in response");
             }
-
             if (response.data?.session) {
                 const { error: setSessionError } = await supabase.auth.setSession(response.data.session);
                 if (setSessionError) throw setSessionError;
@@ -182,11 +184,19 @@ export default function LoginPage() {
                     refresh_token: refreshToken || ""
                 });
             }
-
             localStorage.setItem("token", token);
             localStorage.setItem("accessToken", token);
             localStorage.setItem("access_token", token);
-            navigate("/login/dashboard");
+
+            // Đồng bộ phiên đăng nhập với client Supabase trên frontend
+            if (refreshToken) {
+                await supabase.auth.setSession({
+                    access_token: token,
+                    refresh_token: refreshToken,
+                });
+            }
+
+            navigate("/login/dashboard", { replace: true });
         } catch (err) {
             console.error(err);
             setError(

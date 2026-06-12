@@ -1,46 +1,21 @@
-// import { Navigate } from 'react-router-dom';
-
-// /**
-//  * ProtectedRoute - Bảo vệ các route yêu cầu đăng nhập.
-//  * Nếu chưa có token trong localStorage, tự động redirect về /login.
-//  * Dùng `replace` để xóa history entry, người dùng không thể nhấn Back để quay lại dashboard.
-//  */
-// export default function ProtectedRoute({ children }) {
-//     const token = localStorage.getItem('token');
-
-//     if (!token) {
-//         return <Navigate to="/login" replace />;
-//     }
-
-//     return children;
-// }
-
-
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-export default function ProtectedRoute({
-    children
-}) {
+/**
+ * ProtectedRoute - Bảo vệ các route yêu cầu đăng nhập.
+ * Yêu cầu cả trạng thái user của Supabase hoạt động và sự tồn tại của token.
+ */
+export default function ProtectedRoute({ children }) {
+    const { user, loading } = useAuth();
+    const token = localStorage.getItem("token");
 
-    const { user, loading } =
-        useAuth();
-
+    // Không render component sớm khi đang khởi tạo session
     if (loading) {
-
-        return <div>Loading...</div>;
-
+        return null;
     }
 
-    if (!user) {
-
-        return (
-            <Navigate
-                to="/login"
-                replace
-            />
-        );
-
+    if (!user || !token) {
+        return <Navigate to="/login" replace />;
     }
 
     return children;

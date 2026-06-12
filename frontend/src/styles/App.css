@@ -361,10 +361,11 @@ body {
 }
 
 .content {
+  /* Fill toàn bộ phần còn lại sau sidebar, không giới hạn max-width cứng */
   width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
+  min-width: 0;
   padding: 38px 32px 60px;
+  box-sizing: border-box;
 }
 
 .section {
@@ -381,27 +382,35 @@ body {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  /* auto-fit: tự chia cột dựa theo không gian thực tế */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: clamp(14px, 2vw, 22px);
+  width: 100%;
 }
 
+/* Không còn cần .four vì auto-fit đã xử lý, giữ lại để tương thích */
 .card-grid.four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .card {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
+  /* min-height đủ để icon + text không bị cắt */
   min-height: 104px;
+  height: auto; /* Không bao giờ kéo dài cứng */
+  width: 100%;
+  min-width: 0; /* Ngăn overflow trong grid */
   padding: 22px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
   transition: all 0.2s ease;
-  overflow: hidden;
+  overflow: visible; /* Cho phép text hiện đầy đủ */
   text-decoration: none;
   color: inherit;
+  box-sizing: border-box;
 }
 
 .card.clickable {
@@ -5071,4 +5080,47 @@ body {
     transform: translateY(0);
   }
 }
-
+
+/* =============================================
+   RESPONSIVE — Dashboard Layout
+   ============================================= */
+
+/* Tablet: ≤ 900px — thu về 2 cột card */
+@media (max-width: 900px) {
+  .content {
+    padding: 24px 20px 48px;
+  }
+
+  .card-grid,
+  .card-grid.four {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+/* Mobile: ≤ 600px — 1 cột, sidebar không làm vỡ content */
+@media (max-width: 600px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .content {
+    padding: 16px 14px 40px;
+  }
+
+  .card-grid,
+  .card-grid.four {
+    /* 1 cột trên điện thoại */
+    grid-template-columns: 1fr;
+  }
+}
