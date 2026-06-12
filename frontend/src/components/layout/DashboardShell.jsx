@@ -1,10 +1,24 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import SystemOperations from '../../features/dashboard/components/SystemOperations';
+import { useAuth } from '../../context/AuthContext';
 
 export default function DashboardShell({ children }) {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const { userRole } = useAuth();
+    const location = useLocation();
+    const isStaff = userRole === 'STAFF';
+
+    // STAFF mặc định vào tab nghiệp vụ, các role khác vào bảng điều khiển
+    const [activeTab, setActiveTab] = useState(isStaff ? 'system' : 'dashboard');
+
+    // Xác định tiêu đề topbar theo URL + tab
+    const getTitle = () => {
+        if (activeTab === 'system') return 'Parking System';
+        if (location.pathname === '/login/dashboard/user-management') return 'Phân quyền người dùng';
+        return 'Bảng điều khiển';
+    };
 
     return (
         <div className="layout">
@@ -12,7 +26,7 @@ export default function DashboardShell({ children }) {
 
             <div className="main">
                 <Topbar
-                    title={activeTab === 'system' ? 'Parking System' : 'Bảng điều khiển'}
+                    title={getTitle()}
                     showExtras={activeTab === 'system'}
                 />
 
@@ -24,3 +38,4 @@ export default function DashboardShell({ children }) {
         </div>
     );
 }
+

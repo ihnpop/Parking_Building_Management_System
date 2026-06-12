@@ -1,10 +1,11 @@
 import React from 'react';
 import DashboardShell from '../../../components/layout/DashboardShell';
 import DashboardSection from '../components/DashboardSection';
+import { useAuth } from '../../../context/AuthContext';
 
 // import SystemOperations from '../components/SystemOperations';
 
-const dashboardSections = [
+const baseSections = [
     {
         title: 'QUẢN LÝ THẺ & VÉ',
         columns: 2, // Chỉnh xuống 2 cột để 2 card "Thẻ" và "Vé tháng" nằm vừa vặn, đẹp mắt
@@ -36,6 +37,9 @@ const dashboardSections = [
             { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings', path: '/login/dashboard/settings' },
         ],
     },
+];
+
+const adminOnlySections = [
     {
         title: 'QUẢN TRỊ NGƯỜI DÙNG',
         columns: 3,
@@ -46,6 +50,13 @@ const dashboardSections = [
 ];
 
 export default function DashboardView() {
+    const { userRole } = useAuth();
+    const isAdmin = userRole === 'ADMIN';
+
+    const dashboardSections = isAdmin
+        ? [...baseSections, ...adminOnlySections]
+        : baseSections;
+
     return (
         <DashboardShell>
             {/* Render các khối quản lý từ mảng data */}
@@ -57,4 +68,4 @@ export default function DashboardView() {
             {/* <SystemOperations /> */}
         </DashboardShell>
     );
-}
+}
