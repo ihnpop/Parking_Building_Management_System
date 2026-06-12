@@ -135,9 +135,9 @@
 
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import axios from "axios";
 import supabase from "../../../config/supabaseClient";
 import "./LoginPage.css";
 
@@ -173,11 +173,15 @@ export default function LoginPage() {
                 throw new Error("Token not found in response");
             }
 
-            // Set session on the client Supabase instance
-            await supabase.auth.setSession({
-                access_token: token,
-                refresh_token: refreshToken || ""
-            });
+            if (response.data?.session) {
+                const { error: setSessionError } = await supabase.auth.setSession(response.data.session);
+                if (setSessionError) throw setSessionError;
+            } else {
+                await supabase.auth.setSession({
+                    access_token: token,
+                    refresh_token: refreshToken || ""
+                });
+            }
 
             localStorage.setItem("token", token);
             localStorage.setItem("accessToken", token);
@@ -189,18 +193,6 @@ export default function LoginPage() {
                 err.response?.data?.message || err.message || "Login Failed"
             );
         } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleGoogleLogin = async () => {
-        try {
-            setError("");
-            setLoading(true);
-            await loginWithGoogle();
-        } catch (err) {
-            console.error(err);
-            setError(err.message || "Google Sign-In failed.");
             setLoading(false);
         }
     };
@@ -269,7 +261,7 @@ export default function LoginPage() {
                             <div className="new-login-form-group">
                                 <div className="new-login-label-row">
                                     <label className="new-login-label" htmlFor="password">Password</label>
-                                    <a className="new-login-forgot-link" href="#">Forgot password?</a>
+                                    <Link className="new-login-forgot-link" to="/forgot-password">Forgot password?</Link>
                                 </div>
                                 <input 
                                     className="new-login-input" 
@@ -303,7 +295,7 @@ export default function LoginPage() {
                         <button 
                             className="new-login-google-btn" 
                             type="button"
-                            onClick={handleGoogleLogin}
+                            onClick={loginWithGoogle}
                             disabled={loading}
                         >
                             <svg className="new-login-google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

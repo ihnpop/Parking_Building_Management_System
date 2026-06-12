@@ -7,5 +7,8 @@
     "build": "cd frontend && npm run build",
     "install": "cd frontend && npm install",
     "test": "echo \"No tests\""
+  },
+  "dependencies": {
+    "nodemailer": "^8.0.11"
   }
 }
