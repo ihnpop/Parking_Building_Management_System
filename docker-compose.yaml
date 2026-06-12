@@ -1,0 +1,35 @@
+# services:
+#   back-end:
+#     build:
+#       context: ./back-end
+#     ports:
+#       - "3000:3000"
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#     ports:
+#       - "5173:3000"
+#     depends_on:
+#       - back-end
+
+services:
+  back-end:
+    build:
+      context: ./back-end
+    ports:
+      - "3639:3636"
+    volumes:
+      - ./back-end:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - back-end
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules

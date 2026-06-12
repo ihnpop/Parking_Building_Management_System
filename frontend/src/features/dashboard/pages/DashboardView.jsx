@@ -1,8 +1,9 @@
 import React from 'react';
 import DashboardShell from '../../../components/layout/DashboardShell';
 import DashboardSection from '../components/DashboardSection';
-import Generalstatistictable from '../components/Generalstatistictable';
-import SystemOperations from '../components/SystemOperations';
+import { useAuth } from '../../../context/AuthContext';
+
+// import SystemOperations from '../components/SystemOperations';
 
 const dashboardSections = [
     {
@@ -17,9 +18,7 @@ const dashboardSections = [
         title: 'THỐNG KÊ',
         columns: 3, // Giữ 3 cột vì còn đúng 3 mục, xếp ngang hàng rất cân đối
         cards: [
-            { title: 'Thống kê tổng quát', description: 'Xem tổng quát doanh thu theo khoảng thời gian, tồn đầu kỳ, cuối kỳ.', icon: 'pie_chart' },
-            { title: 'Thống kê chi tiết', description: 'Xem chi tiết các loại xe: thời gian vào, ra, loại vé và tổng doanh thu.', icon: 'bar_chart' },
-            { title: 'Thống kê theo khoảng thời gian', description: 'Xem doanh thu theo ngày, tuần, tháng, năm và so sánh.', icon: 'schedule' },
+            { title: 'Thống kê tổng quát', description: 'Xem tổng quát doanh thu theo khoảng thời gian, tồn đầu kỳ, cuối kỳ.', icon: 'pie_chart', path: '/login/dashboard/OccupancyChart' },
         ],
     },
     {
@@ -38,19 +37,35 @@ const dashboardSections = [
             { title: 'Hệ thống', description: 'Thiết lập thông tin hệ thống, thiết bị đọc thẻ và cấu hình chung.', icon: 'settings', path: '/login/dashboard/settings' },
         ],
     },
+    {
+        title: 'QUẢN TRỊ NGƯỜI DÙNG',
+        columns: 3,
+        cards: [
+            { title: 'Phân quyền người dùng', description: 'Xem danh sách tài khoản, thay đổi vai trò Admin / Manager / Staff cho từng người dùng.', icon: 'manage_accounts', path: '/login/dashboard/user-management' },
+        ],
+    },
 ];
 
 export default function DashboardView() {
+    const { userRole } = useAuth();
+    const role = userRole ? userRole.toUpperCase() : null;
+
+    const filteredSections = dashboardSections.filter(section => {
+        if (section.title === 'QUẢN TRỊ NGƯỜI DÙNG') {
+            return role === 'ADMIN';
+        }
+        return true;
+    });
+
     return (
         <DashboardShell>
             {/* Render các khối quản lý từ mảng data */}
-            {dashboardSections.map((section) => (
+            {filteredSections.map((section) => (
                 <DashboardSection key={section.title} {...section} />
             ))}
 
             {/* Render thêm 2 bảng phía dưới cùng */}
-            <Generalstatistictable />
-            <SystemOperations />
+            {/* <SystemOperations /> */}
         </DashboardShell>
     );
 }
