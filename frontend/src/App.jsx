@@ -30,7 +30,7 @@ export default function App() {
 
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập và phân quyền */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
-      
+
       <Route path="/login/dashboard/card" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -38,7 +38,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/month-card" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -46,7 +46,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -54,7 +54,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/login-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -62,7 +62,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/month-card-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -70,7 +70,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/settings" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -78,7 +78,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -86,7 +86,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/user-management" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN']}>
