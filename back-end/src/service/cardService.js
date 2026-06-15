@@ -3,10 +3,39 @@ import supabase from "../config/supabaseClient.js";
 export const getCards = async () => {
   const { data, error } = await supabase
     .from('card')
-    .select('*');
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        status,
+        vehicle (
+          plate_number,
+          customer (
+            full_name
+          )
+        )
+      )
+    `);
 
   if (error) throw new Error(error.message);
-  return data;
+
+  return data.map(item => {
+    const activeReg = item.card_registrations?.find(r => r.status === 'ACTIVE') || item.card_registrations?.[0];
+    return {
+      card_id: item.card_id,
+      code: item.code,
+      type: item.type,
+      expired_date: item.expired_date,
+      status: item.status,
+      created_at: item.created_at,
+      plate: activeReg?.vehicle?.plate_number || "Chưa đăng ký",
+      customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký"
+    };
+  });
 };
 
 export const getMonthCards = async () => {
@@ -179,29 +208,111 @@ export const getMonthCardLogs = async () => {
   });
 }
 
-// Create a new card
-// card table columns: card_id, code, type, start_date, expired_date, status, created_at
-export const createCard = async ({ type, startDate }) => {
+export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
   // Generate a random unique code
   const generateCode = async () => {
-    const random = `CARD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const { data: existing } = await supabase.from('card').select('code').eq('code', random).single();
+    const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
+    const { data: existing } = await supabase.from('card').select('code').eq('code', random).maybeSingle();
     if (existing) return generateCode();
     return random;
   };
   const code = await generateCode();
 
-  const { data, error } = await supabase
+  // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
+  let expiredDate = null;
+  if (type === 'Thẻ tháng') {
+    const months = parseInt(durationMonths) || 1;
+    const start = new Date(startDate);
+    start.setMonth(start.getMonth() + months);
+    expiredDate = start.toISOString().split('T')[0];
+  }
+
+  const { data: newCard, error: cardError } = await supabase
     .from('card')
     .insert({
       code,
       type,
-      start_date: startDate,
-      status: 'AVAILABLE',
+      created_at: startDate,
+      expired_date: expiredDate,
+      status: 'Hoạt động',
     })
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
-  return data;
+  if (cardError) throw new Error(cardError.message);
+
+  // Link to vehicle if plate is provided
+  if (plate) {
+    // Check if vehicle with plate exists
+    let { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', plate)
+      .maybeSingle();
+
+    if (vehicleErr) throw new Error(vehicleErr.message);
+
+    if (!vehicle) {
+      let customerId = null;
+
+      // If it's a monthly card, create/use customer
+      if (type === 'Thẻ tháng') {
+        const { data: customer, error: custErr } = await supabase
+          .from('customer')
+          .insert({
+            full_name: fullName || `Chủ xe ${plate}`,
+            phone: phone || null,
+            email: email || null,
+            status: 'Hoạt động'
+          })
+          .select()
+          .single();
+
+        if (custErr) throw new Error(custErr.message);
+        customerId = customer ? customer.customer_id : null;
+      }
+
+      // Fetch first active vehicle type
+      const { data: vtList, error: vtErr } = await supabase
+        .from('vehicle_type')
+        .select('vehicle_type_id')
+        .limit(1);
+
+      if (vtErr) throw new Error(vtErr.message);
+      const vehicleTypeId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
+
+      if (!vehicleTypeId) {
+        throw new Error("Không tìm thấy loại xe nào trong hệ thống. Vui lòng cấu hình loại xe trước.");
+      }
+
+      // Insert new vehicle
+      const { data: newVehicle, error: insertVehErr } = await supabase
+        .from('vehicle')
+        .insert({
+          customer_id: customerId,
+          vehicle_type_id: vehicleTypeId,
+          plate_number: plate,
+          status: 'Hoạt động'
+        })
+        .select()
+        .single();
+
+      if (insertVehErr) throw new Error(insertVehErr.message);
+      vehicle = newVehicle;
+    }
+
+    // Link card to vehicle via card_registrations
+    const { error: regErr } = await supabase
+      .from('card_registrations')
+      .insert({
+        card_id: newCard.card_id,
+        vehicle_id: vehicle.vehicle_id,
+        status: 'ACTIVE',
+        created_at: startDate
+      });
+
+    if (regErr) throw new Error(regErr.message);
+  }
+
+  return newCard;
 };
