@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 
-// ─── Mock Data ───────────────────────────────────────────────
+// ─── Mock Data Giữ Nguyên Từ Bạn Của Bạn ───────────────────────────
 const barChartData = [
     { label: '00-04', revenue: 20, traffic: 15 },
     { label: '04-08', revenue: 35, traffic: 45 },
@@ -56,101 +55,21 @@ const transactions = [
 ];
 
 export default function RevenueTrafficPage() {
-    const { user, userRole, logout } = useAuth();
     const [selectedPeriod, setSelectedPeriod] = useState('Hôm nay');
     const [selectedVehicleType, setSelectedVehicleType] = useState('Tất cả phương tiện');
-    const [showDropdown, setShowDropdown] = useState(false);
     const [selectedRow, setSelectedRow] = useState(null);
     const [isFiltering, setIsFiltering] = useState(false);
-    const dropdownRef = useRef(null);
-    const navigate = useNavigate();
-
-    const getRoleLabel = (r) => {
-        if (!r) return 'Nhân viên';
-        switch (r.toUpperCase()) {
-            case 'ADMIN': return 'Quản trị viên';
-            case 'MANAGER': return 'Quản lý';
-            case 'STAFF': return 'Nhân viên';
-            default: return r;
-        }
-    };
-
-    // Close dropdown on click outside
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setShowDropdown(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-            navigate('/login');
-        } catch (err) {
-            console.error('Logout error:', err);
-        }
-    };
 
     const handleFilter = () => {
         setIsFiltering(true);
         setTimeout(() => setIsFiltering(false), 800);
     };
 
-    // Calculate user initials
-    const userEmail = user?.email || 'admin@parkflow.com';
-    const userInitials = user?.user_metadata?.full_name
-        ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
-        : userEmail.substring(0, 2).toUpperCase();
-
     return (
-        <section className="stats-dashboard-page">
-            {/* Top Navigation Header */}
-            <header className="stats-top-bar">
-                <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
-                    <span className="material-symbols-outlined">arrow_back</span>
-                    Thoát
-                </button>
-                <h1 className="stats-page-title">Chi tiết Doanh thu &amp; Lưu lượng</h1>
-                <div className="stats-header-right">
-                    <button className="stats-bell-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                    </button>
+        <section className="stats-dashboard-page" style={{ width: '100%' }}>
+            {/* ĐÃ XOÁ: Bỏ hoàn toàn <header className="stats-top-bar"> lặp lại để nhúng khít vào Tab */}
 
-                    <div className="avatar-wrapper" ref={dropdownRef}>
-                        <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
-                            <div className="profile-text">
-                                <span className="profile-name">{userEmail}</span>
-                            </div>
-                            <div className="profile-avatar">{userInitials[0]}</div>
-                        </div>
-
-                        {showDropdown && (
-                            <div className="user-dropdown" style={{ top: '50px' }}>
-                                <div className="user-dropdown-info">
-                                    <div className="user-dropdown-email">{userEmail}</div>
-                                    <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="user-dropdown-item"
-                                    onClick={handleLogout}
-                                >
-                                    <span className="material-symbols-outlined">logout</span>
-                                    Đăng xuất
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
-
-            <div className={`stats-container ${isFiltering ? 'rtp-content--fading' : ''}`}>
+            <div className={`stats-container ${isFiltering ? 'rtp-content--fading' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {/* Time Range Filter Card */}
                 <div className="filter-card">
                     <div className="filter-group">
@@ -201,7 +120,7 @@ export default function RevenueTrafficPage() {
                 </div>
 
                 {/* 2 Stats Cards Grid */}
-                <div className="stats-cards-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                <div className="stats-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                     {/* Xe 4 bánh */}
                     <div className="stat-overview-card">
                         <div className="stat-card-main">
@@ -214,9 +133,7 @@ export default function RevenueTrafficPage() {
                             </div>
                         </div>
                         <div className="stat-card-footer">
-                            <span className="trend-tag trend-up">
-                                ▲ +9%
-                            </span>
+                            <span className="trend-tag trend-up">▲ +9%</span>
                             <span className="trend-lbl">vs tháng trước</span>
                             <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#64748b' }}>
                                 <strong style={{ color: '#0f172a' }}>2,510</strong> lượt xe
@@ -236,9 +153,7 @@ export default function RevenueTrafficPage() {
                             </div>
                         </div>
                         <div className="stat-card-footer">
-                            <span className="trend-tag trend-down">
-                                ▼ -2%
-                            </span>
+                            <span className="trend-tag trend-down">▼ -2%</span>
                             <span className="trend-lbl">vs tháng trước</span>
                             <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#64748b' }}>
                                 <strong style={{ color: '#0f172a' }}>3,420</strong> lượt xe
@@ -247,19 +162,16 @@ export default function RevenueTrafficPage() {
                     </div>
                 </div>
 
-                {/* SVG/HTML Chart Panel */}
+                {/* Biểu đồ Doanh thu & Lưu lượng */}
                 <div className="chart-panel-card">
                     <div className="chart-panel-header">
                         <div>
                             <h3>Biểu đồ Doanh thu &amp; Lưu lượng</h3>
                             <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', margin: 0 }}>Phân tích mật độ và nguồn thu theo thời gian thực</p>
                         </div>
-                        <a href="#details" className="details-link" onClick={(e) => e.preventDefault()}>Xem chi tiết</a>
                     </div>
 
-                    {/* Styled Bar Chart Area */}
                     <div className="rtp-chart-area">
-                        {/* Y-axis labels */}
                         <div className="rtp-chart-yaxis">
                             <span>100M</span>
                             <span>75M</span>
@@ -268,7 +180,6 @@ export default function RevenueTrafficPage() {
                             <span>0</span>
                         </div>
 
-                        {/* Bars */}
                         <div className="rtp-chart-bars">
                             {barChartData.map((d) => (
                                 <div key={d.label} className="rtp-bar-group">
@@ -302,19 +213,10 @@ export default function RevenueTrafficPage() {
                     </div>
                 </div>
 
-                {/* Transactions Table Panel */}
+                {/* Giao dịch gần nhất */}
                 <div className="table-panel-card">
-                    <div className="table-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="table-panel-header">
                         <h3>Giao dịch gần nhất</h3>
-                        <a
-                            href="#view-all"
-                            className="details-link"
-                            onClick={(e) => e.preventDefault()}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
-                            Xem toàn bộ
-                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
-                        </a>
                     </div>
 
                     <div className="stats-table-wrapper">
@@ -347,9 +249,7 @@ export default function RevenueTrafficPage() {
                                         <td>{txn.duration}</td>
                                         <td className="font-semibold" style={{ fontWeight: 700 }}>{txn.amount}</td>
                                         <td>
-                                            <span className="status-tag success">
-                                                {txn.status}
-                                            </span>
+                                            <span className="status-tag success">{txn.status}</span>
                                         </td>
                                     </tr>
                                 ))}
