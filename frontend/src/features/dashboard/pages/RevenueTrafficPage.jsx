@@ -104,7 +104,7 @@ export default function RevenueTrafficPage() {
 
     // Calculate user initials
     const userEmail = user?.email || 'admin@parkflow.com';
-    const userInitials = user?.user_metadata?.full_name 
+    const userInitials = user?.user_metadata?.full_name
         ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
         : userEmail.substring(0, 2).toUpperCase();
 
@@ -121,7 +121,7 @@ export default function RevenueTrafficPage() {
                     <button className="stats-bell-btn">
                         <span className="material-symbols-outlined">notifications</span>
                     </button>
-                    
+
                     <div className="avatar-wrapper" ref={dropdownRef}>
                         <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
                             <div className="profile-text">
@@ -136,9 +136,9 @@ export default function RevenueTrafficPage() {
                                     <div className="user-dropdown-email">{userEmail}</div>
                                     <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
                                 </div>
-                                <button 
-                                    type="button" 
-                                    className="user-dropdown-item" 
+                                <button
+                                    type="button"
+                                    className="user-dropdown-item"
                                     onClick={handleLogout}
                                 >
                                     <span className="material-symbols-outlined">logout</span>
@@ -187,7 +187,7 @@ export default function RevenueTrafficPage() {
                         </div>
                     </div>
 
-                    <button 
+                    <button
                         className={`filter-btn ${isFiltering ? 'rtp-filter-btn--loading' : ''}`}
                         onClick={handleFilter}
                         disabled={isFiltering}
@@ -306,10 +306,10 @@ export default function RevenueTrafficPage() {
                 <div className="table-panel-card">
                     <div className="table-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h3>Giao dịch gần nhất</h3>
-                        <a 
-                            href="#view-all" 
-                            className="details-link" 
-                            onClick={(e) => e.preventDefault()} 
+                        <a
+                            href="#view-all"
+                            className="details-link"
+                            onClick={(e) => e.preventDefault()}
                             style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
                             Xem toàn bộ
@@ -332,7 +332,7 @@ export default function RevenueTrafficPage() {
                             </thead>
                             <tbody>
                                 {transactions.map((txn) => (
-                                    <tr 
+                                    <tr
                                         key={txn.id}
                                         className={selectedRow === txn.id ? 'rtp-row--selected' : ''}
                                         onClick={() => setSelectedRow(selectedRow === txn.id ? null : txn.id)}
