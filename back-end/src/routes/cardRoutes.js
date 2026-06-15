@@ -8,4 +8,5 @@ router.get("/month-card", controller.getMonthCards);
 router.get("/lost-card", controller.getLostCards);
 router.get("/month-card-logs", controller.getMonthCardLogs);
 
+router.post("/card", controller.createCard);
 export default router;

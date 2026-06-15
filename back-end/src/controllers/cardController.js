@@ -35,3 +35,13 @@ export const getMonthCardLogs = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// Create a new card
+export const createCard = async (req, res) => {
+  try {
+    const { type, startDate } = req.body;
+    const newCard = await cardService.createCard({ type, startDate });
+    res.status(201).json(newCard);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

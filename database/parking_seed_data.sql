@@ -40,17 +40,13 @@ INSERT INTO role(role_name, description)
 VALUES
 ('ADMIN', 'System Administrator'),
 ('MANAGER', 'Parking Manager'),
-('STAFF', 'Parking Staff'),
-('CUSTOMER', 'Vehicle Owner');
+('STAFF', 'Parking Staff');
 
 -- 2. VEHICLE_TYPE
 INSERT INTO vehicle_type(name, description, status)
 VALUES
 ('Motorbike','Motorbike parking','ACTIVE'),
-('Car','Car parking','ACTIVE'),
-('Electric Motorbike','Electric motorbike parking','ACTIVE'),
-('Electric Car','Electric car parking','ACTIVE'),
-('Bicycle','Bicycle parking','ACTIVE');
+('Car','Car parking','ACTIVE');
 
 INSERT INTO profiles (
     id,

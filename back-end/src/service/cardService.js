@@ -10,17 +10,78 @@ export const getCards = async () => {
 };
 
 export const getMonthCards = async () => {
+  // const { data, error } = await supabase
+  //   .from('card')
+  //   .select('*')
+  //   .like("type", "Thẻ tháng");
+
+  // export const getMonthCards = async () => {
   const { data, error } = await supabase
-    .from('card')
-    .select('*')
-    .like("type", "Thẻ tháng");
+    .from("card_registrations")
+    .select(`
+      registration_id,
+      status,
+      created_at,
+
+      card!inner (
+        card_id,
+        code,
+        type,
+        expired_date,
+        status,
+        created_at
+      ),
+
+      vehicle (
+        plate_number,
+
+        customer (
+          full_name
+        ),
+
+        vehicle_type (
+          name
+        )
+      )
+    `)
+    .eq("card.type", "Thẻ tháng");
 
   if (error) throw new Error(error.message);
 
+  // const { data: cards, error: cardError } = await supabase
+  //   .from("card")
+  //   .select("*")
+  //   .like("type", "Thẻ tháng");
+
   const { data: cards, error: cardError } = await supabase
-    .from("card")
-    .select("*")
-    .like("type", "Thẻ tháng");
+    .from("card_registrations")
+    .select(`
+      registration_id,
+      status,
+      created_at,
+
+      card!inner (
+        card_id,
+        code,
+        type,
+        expired_date,
+        status,
+        created_at
+      ),
+
+      vehicle (
+        plate_number,
+
+        customer (
+          full_name
+        ),
+
+        vehicle_type (
+          name
+        )
+      )
+    `)
+    .eq("card.type", "Thẻ tháng");
 
   if (cardError) throw new Error(cardError.message);
 
@@ -38,12 +99,15 @@ export const getMonthCards = async () => {
 
     return {
       id: String(i + 1).padStart(2, '0'),
-      cardNo: cardCode,
+      // cardNo: cardCode,
+      cardNo: vp.card?.code,
       plate: vp.vehicle?.plate_number || "Chưa có",
       customer: vp.vehicle?.customer?.full_name || "Khách vãng lai",
       type: vp.vehicle?.vehicle_type?.name || "Xe máy",
-      startDate: new Date(vp.start_date).toLocaleDateString('vi-VN'),
-      endDate: new Date(vp.end_date).toLocaleDateString('vi-VN'),
+      // startDate: new Date(vp.start_date).toLocaleDateString('vi-VN'),
+      // endDate: new Date(vp.end_date).toLocaleDateString('vi-VN'),
+      startDate: new Date(vp.card?.created_at).toLocaleDateString('vi-VN'),
+      endDate: new Date(vp.card?.expired_date).toLocaleDateString('vi-VN'),
       status: statusText
     };
   });
@@ -113,4 +177,31 @@ export const getMonthCardLogs = async () => {
       status
     };
   });
+}
+
+// Create a new card
+// card table columns: card_id, code, type, start_date, expired_date, status, created_at
+export const createCard = async ({ type, startDate }) => {
+  // Generate a random unique code
+  const generateCode = async () => {
+    const random = `CARD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const { data: existing } = await supabase.from('card').select('code').eq('code', random).single();
+    if (existing) return generateCode();
+    return random;
+  };
+  const code = await generateCode();
+
+  const { data, error } = await supabase
+    .from('card')
+    .insert({
+      code,
+      type,
+      start_date: startDate,
+      status: 'AVAILABLE',
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
 };
