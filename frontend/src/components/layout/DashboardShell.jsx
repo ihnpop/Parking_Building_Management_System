@@ -8,25 +8,31 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
     const { userRole } = useAuth();
     const role = userRole ? userRole.toUpperCase() : null;
 
-    // Quản lý tab mặc định dựa trên quyền hạn người dùng
+    // Thiết lập Tab mặc định khi vừa đăng nhập vào dựa trên quyền:
+    // STAFF mặc định vào thẳng 'system', các quyền khác vào 'dashboard'
     const [activeTab, setActiveTab] = useState(role === 'STAFF' ? 'system' : 'dashboard');
 
-    // ĐỒNG BỘ CHUẨN: Sửa lỗi dùng sai tên biến currentView thành currentTab ở đây
+    // Đồng bộ và kiểm soát tab cưỡng ép theo Role hệ thống
     useEffect(() => {
-        if (currentTab) {
+        if (role === 'STAFF') {
+            setActiveTab('system');
+        } else if (role === 'MANAGER' && currentTab === 'user-management') {
+            setActiveTab('dashboard'); // MANAGER không được xem phân quyền, đá về trang chủ
+        } else if (currentTab) {
             setActiveTab(currentTab);
         }
-    }, [currentTab]);
+    }, [currentTab, role]);
 
     const handleTabChange = (tab) => {
-        if (role === 'STAFF' && tab !== 'system') return;
-        if (role === 'MANAGER' && tab === 'user-management') return;
+        // Lớp bảo mật chặn click trái phép:
+        if (role === 'STAFF' && tab !== 'system') return; // STAFF chỉ được ở tab system
+        if (role === 'MANAGER' && tab === 'user-management') return; // MANAGER không được động vào phân quyền
 
         setActiveTab(tab);
         if (onTabSelect) onTabSelect(tab);
     };
 
-    // Tự động đổi chữ trên Topbar đồng bộ theo đúng Tab đang chọn ở Sidebar
+    // Hàm tự động cập nhật tiêu đề Header đồng bộ
     const getTopbarTitle = () => {
         switch (activeTab) {
             case 'system': return 'Parking System';
@@ -45,6 +51,7 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
                 <Topbar title={getTopbarTitle()} showExtras={activeTab === 'system'} />
 
                 <main className="content">
+                    {/* Nếu là tab nghiệp vụ thì render khối camera/vận hành, ngược lại render trang con */}
                     {activeTab === 'system' ? <SystemOperations /> : children}
                 </main>
             </div>

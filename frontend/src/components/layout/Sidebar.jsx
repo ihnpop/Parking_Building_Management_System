@@ -4,7 +4,11 @@ export default function Sidebar({ activeTab, onTabChange }) {
     const { userRole, logout } = useAuth();
     const role = userRole ? userRole.toUpperCase() : null;
 
+    // Phân quyền hiển thị Menu:
+    // - ADMIN và MANAGER được xem Bảng điều khiển, Quản lý Thẻ, Nhật ký vận hành
     const canSeeDashboard = role === 'ADMIN' || role === 'MANAGER';
+
+    // - CHỈ DUY NHẤT ADMIN được xem mục Phân quyền người dùng
     const canSeeUserMgmt = role === 'ADMIN';
 
     const handleLogout = async () => {
@@ -28,6 +32,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
             </div>
 
             <nav className="menu">
+                {/* Khối menu dành cho Admin và Manager */}
                 {canSeeDashboard && (
                     <button
                         type="button"
@@ -39,7 +44,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
                     </button>
                 )}
 
-                {/* NÚT QUẢN LÝ THÈ & VÉ PHẲNG - KHÔNG SỔ XUỐNG */}
                 {canSeeDashboard && (
                     <button
                         type="button"
@@ -50,15 +54,19 @@ export default function Sidebar({ activeTab, onTabChange }) {
                         <span>Quản lý Thẻ</span>
                     </button>
                 )}
-                <button
-                    type="button"
-                    className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}
-                    onClick={() => onTabChange('log-management')}
-                >
-                    <span className="material-symbols-outlined">history</span>
-                    <span>Nhật ký vận hành</span>
-                </button>
 
+                {canSeeDashboard && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('log-management')}
+                    >
+                        <span className="material-symbols-outlined">history</span>
+                        <span>Nhật ký vận hành</span>
+                    </button>
+                )}
+
+                {/* Mục nghiệp vụ hệ thống - Tất cả các role (bao gồm cả STAFF) đều nhìn thấy */}
                 <button
                     type="button"
                     className={`menu-item ${activeTab === 'system' ? 'active' : ''}`}
@@ -68,6 +76,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
                     <span>Nghiệp vụ hệ thống</span>
                 </button>
 
+                {/* Mục phân quyền - Chỉ duy nhất ADMIN nhìn thấy */}
                 {canSeeUserMgmt && (
                     <button
                         type="button"
