@@ -399,15 +399,18 @@ body {
   border-radius: 10px;
   /* min-height đủ để icon + text không bị cắt */
   min-height: 104px;
-  height: auto; /* Không bao giờ kéo dài cứng */
+  height: auto;
+  /* Không bao giờ kéo dài cứng */
   width: 100%;
-  min-width: 0; /* Ngăn overflow trong grid */
+  min-width: 0;
+  /* Ngăn overflow trong grid */
   padding: 22px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
   transition: all 0.2s ease;
-  overflow: visible; /* Cho phép text hiện đầy đủ */
+  overflow: visible;
+  /* Cho phép text hiện đầy đủ */
   text-decoration: none;
   color: inherit;
   box-sizing: border-box;
@@ -5075,6 +5078,7 @@ body {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -5123,4 +5127,18 @@ body {
     /* 1 cột trên điện thoại */
     grid-template-columns: 1fr;
   }
+}
+
+/* Màu cho trạng thái Đang xử lý (Xanh dương thanh lịch) */
+.status-badge-lost.status-processing {
+  background-color: #e3f2fd;
+  /* Nền xanh dương nhạt */
+  color: #1e88e5;
+  /* Chữ xanh dương đậm */
+  border: 1px solid #bbdefb;
+}
+
+.status-badge-lost.status-processing .dot {
+  background-color: #1e88e5;
+  /* Chấm tròn màu xanh dương */
 }

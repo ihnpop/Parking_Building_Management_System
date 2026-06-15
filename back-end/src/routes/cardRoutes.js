@@ -7,5 +7,7 @@ router.get("/card", controller.getCards);
 router.get("/month-card", controller.getMonthCards);
 router.get("/lost-card", controller.getLostCards);
 router.get("/month-card-logs", controller.getMonthCardLogs);
+router.get('/lost-logs', controller.getLostLogs);
+
 
 export default router;
