@@ -16,9 +16,10 @@ const dashboardSections = [
     },
     {
         title: 'THỐNG KÊ',
-        columns: 3, // Giữ 3 cột vì còn đúng 3 mục, xếp ngang hàng rất cân đối
+        columns: 3,
         cards: [
             { title: 'Thống kê tổng quát', description: 'Xem tổng quát doanh thu theo khoảng thời gian, tồn đầu kỳ, cuối kỳ.', icon: 'pie_chart', path: '/login/dashboard/OccupancyChart' },
+            { title: 'Doanh thu & Lưu lượng', description: 'Phân tích chi tiết doanh thu và lưu lượng xe ra vào theo thời gian.', icon: 'bar_chart', path: '/login/dashboard/revenue-traffic' },
         ],
     },
     {

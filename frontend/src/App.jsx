@@ -13,6 +13,7 @@ import RoleProtectedRoute from './components/auth/RoleProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import ResetPassword from "./features/auth/pages/ResetPassword";
+import RevenueTrafficPage from './features/dashboard/pages/RevenueTrafficPage';
 
 
 import "./styles/App.css";
@@ -83,6 +84,14 @@ export default function App() {
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
             <OccupancyChart />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/login/dashboard/revenue-traffic" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <RevenueTrafficPage />
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
