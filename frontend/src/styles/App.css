@@ -399,15 +399,18 @@ body {
   border-radius: 10px;
   /* min-height đủ để icon + text không bị cắt */
   min-height: 104px;
-  height: auto; /* Không bao giờ kéo dài cứng */
+  height: auto;
+  /* Không bao giờ kéo dài cứng */
   width: 100%;
-  min-width: 0; /* Ngăn overflow trong grid */
+  min-width: 0;
+  /* Ngăn overflow trong grid */
   padding: 22px;
   display: flex;
   gap: 16px;
   align-items: flex-start;
   transition: all 0.2s ease;
-  overflow: visible; /* Cho phép text hiện đầy đủ */
+  overflow: visible;
+  /* Cho phép text hiện đầy đủ */
   text-decoration: none;
   color: inherit;
   box-sizing: border-box;
@@ -3299,6 +3302,24 @@ body {
   color: #991b1b;
 }
 
+/* Role badge */
+.role-badge {
+  display: inline-block !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+.role-badge.admin {
+  background: #2563eb !important;
+}
+
+.role-badge.staff {
+  background: #16a34a !important;
+}
+
 .log-action-btn {
   background-color: transparent;
   border: none;
@@ -5075,6 +5096,7 @@ body {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -5429,8 +5451,13 @@ body {
 }
 
 @keyframes rtp-spin-animation {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Vehicle card grid */
@@ -5819,7 +5846,7 @@ body {
   .rtp-page {
     flex-direction: column;
   }
-  
+
   .rtp-sidebar {
     width: 100%;
     height: auto;
@@ -5827,4 +5854,4 @@ body {
     border-right: none;
     border-bottom: 1px solid #e2e2e5;
   }
-}
+}
