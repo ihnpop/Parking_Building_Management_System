@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getCards } from '../../../service/cardApi';
+import { useAuth } from '../../../context/AuthContext';
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -9,9 +10,20 @@ import { getCards } from '../../../service/cardApi';
 
 export default function CardPage() {
     const navigate = useNavigate();
+    const { userRole } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'Admin';
+            case 'MANAGER': return 'Manager';
+            case 'STAFF': return 'Staff';
+            default: return r;
+        }
+    };
 
     // Filters
     const [typeFilter, setTypeFilter] = useState('Tất cả loại thẻ');
@@ -73,7 +85,7 @@ export default function CardPage() {
                     </div>
                 </div>
 
-                <div className="cardpage-user-badge">Admin</div>
+                <div className="cardpage-user-badge">{getRoleLabel(role)}</div>
             </header>
 
             <section className="cardpage-summary-grid">

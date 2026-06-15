@@ -129,6 +129,7 @@ import {
     createContext,
     useContext,
     useEffect,
+    useRef,
     useState
 } from "react";
 
@@ -139,91 +140,101 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
 
     const [user, setUser] = useState(null);
+    const [userRole, setUserRole] = useState(() => localStorage.getItem("userRole") || null);
     const [loading, setLoading] = useState(true);
+    // Ref để đánh dấu getSession đã hoàn tất — tránh onAuthStateChange ghi đè sớm
+    const initialCheckDone = useRef(false);
+
+    const fetchUserProfile = async (sessionUser) => {
+        if (!sessionUser) return;
+        try {
+            const { data, error } = await supabase
+                .from("profiles")
+                .select("role:role_id (role_name)")
+                .eq("id", sessionUser.id)
+                .single();
+
+            if (data && data.role) {
+                const roleName = data.role.role_name;
+                setUserRole(roleName);
+                localStorage.setItem("userRole", roleName);
+            } else {
+                setUserRole("STAFF");
+                localStorage.setItem("userRole", "STAFF");
+            }
+        } catch (err) {
+            console.error("Error fetching user profile:", err);
+            setUserRole("STAFF");
+            localStorage.setItem("userRole", "STAFF");
+        }
+    };
 
     useEffect(() => {
-
-        const getCurrentSession = async () => {
-
-            const {
-                data: { session }
-            } = await supabase.auth.getSession();
-
+        // 1. getSession là nguồn duy nhất kiểm soát trạng thái loading ban đầu
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session) {
-
                 setUser(session.user);
-
-                localStorage.setItem(
-                    "token",
-                    session.access_token
-                );
-
+                localStorage.setItem("token", session.access_token);
+                localStorage.setItem("accessToken", session.access_token);
+                localStorage.setItem("access_token", session.access_token);
+                await fetchUserProfile(session.user);
             } else {
-
+                // Không có session hợp lệ — xóa hết token và session Supabase nội bộ
                 setUser(null);
-
-                localStorage.removeItem(
-                    "token"
-                );
+                setUserRole(null);
+                localStorage.removeItem("token");
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("userRole");
+                // signOut() xóa key nội bộ Supabase (sb-*-auth-token) trong localStorage
+                await supabase.auth.signOut().catch(() => {});
             }
-
+            initialCheckDone.current = true;
             setLoading(false);
-        };
+        });
 
-        getCurrentSession();
+        // 2. onAuthStateChange cập nhật user dựa trên các event cụ thể
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Supabase Auth Event:", event);
 
-        const {
-            data: { subscription }
-        } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
+            // Bỏ qua sự kiện INITIAL_SESSION — đã được xử lý bởi getSession ở trên
+            if (!initialCheckDone.current && event === 'INITIAL_SESSION') return;
 
-                console.log(
-                    "Supabase Auth Event:",
-                    event
-                );
-
-                /*
-                 * QUAN TRỌNG
-                 * Khi click link reset password
-                 * Supabase sẽ phát event này
-                 */
-                if (
-                    event === "PASSWORD_RECOVERY"
-                ) {
-
-                    window.location.replace(
-                        "/reset-password"
-                    );
-
-                    return;
-                }
-
-                if (session) {
-
-                    setUser(session.user);
-
-                    localStorage.setItem(
-                        "token",
-                        session.access_token
-                    );
-
-                } else {
-
-                    setUser(null);
-
-                    localStorage.removeItem(
-                        "token"
-                    );
-                }
-
-                setLoading(false);
+            /*
+             * QUAN TRỌNG
+             * Khi click link reset password
+             * Supabase sẽ phát event này
+             */
+            if (event === "PASSWORD_RECOVERY") {
+                window.location.replace("/reset-password");
+                return;
             }
-        );
+
+            if (event === 'SIGNED_IN' && session) {
+                setUser(session.user);
+                localStorage.setItem("token", session.access_token);
+                localStorage.setItem("accessToken", session.access_token);
+                localStorage.setItem("access_token", session.access_token);
+                await fetchUserProfile(session.user);
+            } else if (event === 'SIGNED_OUT' || !session) {
+                setUser(null);
+                setUserRole(null);
+                localStorage.removeItem("token");
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("access_token");
+                localStorage.removeItem("userRole");
+            } else if (session) {
+                setUser(session.user);
+                localStorage.setItem("token", session.access_token);
+                localStorage.setItem("accessToken", session.access_token);
+                localStorage.setItem("access_token", session.access_token);
+                await fetchUserProfile(session.user);
+            }
+        });
 
         return () => {
             subscription.unsubscribe();
         };
-
     }, []);
 
     /**
@@ -286,44 +297,34 @@ export function AuthProvider({ children }) {
      * LOGOUT
      */
     const logout = async () => {
-
-        const { error } =
+        // Luôn clear user và localStorage, dù signOut có lỗi hay không
+        try {
             await supabase.auth.signOut();
-
-        if (error) throw error;
-
-        localStorage.removeItem(
-            "token"
-        );
-
-        setUser(null);
+        } catch (err) {
+            console.error("Supabase signOut error:", err);
+        } finally {
+            setUser(null);
+            setUserRole(null);
+            localStorage.removeItem("token");
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("userRole");
+        }
     };
 
     const value = {
-
         user,
-
+        userRole,
         loading,
-
         loginWithGoogle,
-
         forgotPassword,
-
         updatePassword,
-
         logout
-
     };
 
     return (
-
         <AuthContext.Provider value={value}>
-
-            {
-                !loading &&
-                children
-            }
-
+            {!loading && children}
         </AuthContext.Provider>
 
     );

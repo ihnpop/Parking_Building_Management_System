@@ -7,10 +7,20 @@ import { useAuth } from '../../context/AuthContext';
  * Displays the page title and user actions on the right.
  */
 export default function Topbar({ title, showExtras = false }) {
-    const { user, logout } = useAuth();
+    const { user, userRole, logout } = useAuth();
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
+
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
+        }
+    };
 
     // Close dropdown on click outside
     useEffect(() => {
@@ -71,7 +81,7 @@ export default function Topbar({ title, showExtras = false }) {
                         <div className="user-dropdown">
                             <div className="user-dropdown-info">
                                 <div className="user-dropdown-email">{userEmail}</div>
-                                <div className="user-dropdown-role">Quản trị viên</div>
+                                <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
                             </div>
                             <button 
                                 type="button" 

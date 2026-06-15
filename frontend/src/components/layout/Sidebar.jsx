@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Sidebar layout for the parking management dashboard.
@@ -6,17 +7,32 @@ import { useNavigate } from 'react-router-dom';
  */
 export default function Sidebar({ activeTab, onTabChange }) {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { userRole, logout } = useAuth();
+    const role = userRole ? userRole.toUpperCase() : null;
 
-    const handleLogout = () => {
-        // Xóa toàn bộ thông tin xác thực khỏi localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('access_token');
+    const canSeeDashboard = role === 'ADMIN' || role === 'MANAGER';
+    const canSeeUserMgmt = role === 'ADMIN';
 
-        // Dùng replace: true để xóa lịch sử điều hướng,
-        // người dùng nhấn Back sẽ không quay lại được dashboard
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch (err) {
+            console.error("Error during logout:", err);
+        }
         navigate('/login', { replace: true });
     };
+
+    // Determine the active tab based on pathname and activeTab state
+    const pathname = location.pathname;
+    let effectiveActiveTab = activeTab;
+    if (activeTab !== 'system') {
+        if (pathname.includes('/user-management')) {
+            effectiveActiveTab = 'user-management';
+        } else {
+            effectiveActiveTab = 'dashboard';
+        }
+    }
 
     return (
         <aside className="sidebar">
@@ -32,23 +48,42 @@ export default function Sidebar({ activeTab, onTabChange }) {
             </div>
 
             <nav className="menu">
-                <button
-                    type="button"
-                    className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                    onClick={() => onTabChange('dashboard')}
-                >
-                    <span className="material-symbols-outlined">dashboard</span>
-                    <span>Bảng điều khiển</span>
-                </button>
+                {canSeeDashboard && (
+                    <button
+                        type="button"
+                        className={`menu-item ${effectiveActiveTab === 'dashboard' ? 'active' : ''}`}
+                        onClick={() => {
+                            onTabChange('dashboard');
+                            navigate('/login/dashboard');
+                        }}
+                    >
+                        <span className="material-symbols-outlined">dashboard</span>
+                        <span>Bảng điều khiển</span>
+                    </button>
+                )}
 
                 <button
                     type="button"
-                    className={`menu-item ${activeTab === 'system' ? 'active' : ''}`}
+                    className={`menu-item ${effectiveActiveTab === 'system' ? 'active' : ''}`}
                     onClick={() => onTabChange('system')}
                 >
                     <span className="material-symbols-outlined">business_center</span>
                     <span>Nghiệp vụ hệ thống</span>
                 </button>
+
+                {canSeeUserMgmt && (
+                    <button
+                        type="button"
+                        className={`menu-item ${effectiveActiveTab === 'user-management' ? 'active' : ''}`}
+                        onClick={() => {
+                            onTabChange('user-management');
+                            navigate('/login/dashboard/user-management');
+                        }}
+                    >
+                        <span className="material-symbols-outlined">manage_accounts</span>
+                        <span>Phân quyền</span>
+                    </button>
+                )}
             </nav>
 
             <button type="button" className="logout" onClick={handleLogout}>
