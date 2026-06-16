@@ -295,6 +295,26 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
 };
 
 
+export const deleteCard = async (cardId) => {
+  // First, remove all card_registrations linked to this card
+  const { error: regErr } = await supabase
+    .from('card_registrations')
+    .delete()
+    .eq('card_id', cardId);
+
+  if (regErr) throw new Error(`Lỗi xóa đăng ký thẻ: ${regErr.message}`);
+
+  // Then delete the card itself
+  const { error: cardErr } = await supabase
+    .from('card')
+    .delete()
+    .eq('card_id', cardId);
+
+  if (cardErr) throw new Error(`Lỗi xóa thẻ: ${cardErr.message}`);
+
+  return { success: true };
+};
+
 export const getLostCards = async () => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log
   const { data, error } = await supabase
