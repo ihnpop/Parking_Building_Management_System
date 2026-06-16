@@ -67,6 +67,8 @@ import cardRouter from "./src/routes/cardRoutes.js"
 
 import userRouter from "./src/routes/userRoutes.js"
 
+import parkingRouter from "./src/routes/parkingRoutes.js"
+
 const app = express();
 
 app.use(cors());
@@ -76,6 +78,8 @@ app.use(express.json());
 app.use("/api/cards", cardRouter);
 
 app.use("/api/users", userRouter);
+
+app.use("/api/parking", parkingRouter);
 
 app.post(
 

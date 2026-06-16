@@ -11,4 +11,5 @@ router.get('/lost-logs', controller.getLostLogs);
 
 
 router.post("/card", controller.createCard);
+router.delete("/:id", controller.deleteCard);
 export default router;

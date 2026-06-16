@@ -1,4 +1,5 @@
 import supabase from "../config/supabaseClient.js";
+import * as cardRepository from "../repositories/cardRepository.js";
 
 export const getCards = async () => {
   const { data, error } = await supabase
@@ -19,7 +20,8 @@ export const getCards = async () => {
           )
         )
       )
-    `);
+    `)
+    .not('status', 'eq', 'Đã xóa');
 
   if (error) throw new Error(error.message);
 
@@ -294,6 +296,36 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
   return newCard;
 };
 
+export const deleteCard = async (cardId, currentUserId) => {
+  // 1. Kiểm tra card tồn tại
+  const card = await cardRepository.findById(cardId);
+  if (!card) {
+    throw new Error("Card not found");
+  }
+
+  // 2. Kiểm tra status của card
+  const statusUpper = (card.status || '').toUpperCase();
+
+  if (statusUpper === 'ACTIVE' || card.status === 'Hoạt động') {
+    throw new Error("Active card cannot be deleted");
+  }
+
+  if (statusUpper === 'DELETED' || card.status === 'Đã xóa') {
+    throw new Error("Card is already deleted");
+  }
+
+  // Chỉ cho phép xóa AVAILABLE (Chưa sử dụng) và EXPIRED (Đã hết hạn)
+  // và hỗ trợ cả mặc định hệ thống là 'Đã khóa'
+  const allowedStatuses = ['AVAILABLE', 'EXPIRED', 'CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
+  if (!allowedStatuses.includes(statusUpper) && !allowedStatuses.includes(card.status.toUpperCase())) {
+    throw new Error("Only AVAILABLE or EXPIRED cards can be deleted");
+  }
+
+  // 3. Thực hiện Soft Delete thông qua Repository
+  await cardRepository.softDelete(cardId, currentUserId);
+  return { success: true };
+};
+
 export const getLostCards = async () => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log
   const { data, error } = await supabase
@@ -364,5 +396,3 @@ export const getLostCards = async () => {
     };
   });
 };
-
-export const getLostCardLogs = getLostCards;

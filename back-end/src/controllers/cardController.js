@@ -56,6 +56,26 @@ export const getLostLogs = async (req, res) => {
     });
   }
 };
+// Delete a card by id
+export const deleteCard = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { deleted_by } = req.body;
+    if (!id) return res.status(400).json({ success: false, message: 'Thiếu card_id.' });
+    
+    await cardService.deleteCard(id, deleted_by);
+    res.status(200).json({
+      success: true,
+      message: "Card deleted successfully"
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
 // Create a new card
 export const createCard = async (req, res) => {
   try {

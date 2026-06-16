@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCards, createCard } from '../../../service/cardApi';
+import { getCards, createCard, deleteCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
 
 /**
@@ -10,12 +10,17 @@ import { useAuth } from '../../../context/AuthContext';
 
 const INITIAL_FORM = {
     type: 'Thẻ tháng',
+    plate: '',
+    fullName: '',
+    phone: '',
+    email: '',
+    durationMonths: '1',
     startDate: new Date().toISOString().split('T')[0],
 };
 
 export default function CardPage() {
     const navigate = useNavigate();
-    const { userRole } = useAuth();
+    const { userRole, user } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -25,6 +30,35 @@ export default function CardPage() {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+
+    // Toast state
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => {
+            setToast({ show: false, message: '', type: 'success' });
+        }, 3000);
+    };
+
+    // Handle Delete Card
+    const handleDelete = async (row) => {
+        if (!window.confirm("Are you sure you want to delete this card?")) {
+            return;
+        }
+        try {
+            const res = await deleteCard(row.card_id, user?.id);
+            if (res.success) {
+                showToast(res.message || "Card deleted successfully", "success");
+                await fetchCards();
+            } else {
+                showToast(res.message || "Xóa thẻ thất bại", "error");
+            }
+        } catch (err) {
+            console.error("Error deleting card:", err);
+            const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
+            showToast(errMsg, "error");
+        }
+    };
 
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
     const getRoleLabel = (r) => {
@@ -110,11 +144,23 @@ export default function CardPage() {
             return;
         }
 
+        if (formData.type === 'Thẻ tháng') {
+            if (!formData.plate || !formData.fullName || !formData.phone || !formData.email) {
+                setFormError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe cho Thẻ tháng.');
+                return;
+            }
+        }
+
         try {
             setSubmitting(true);
             await createCard({
                 type: formData.type,
                 startDate: formData.startDate,
+                plate: formData.plate || undefined,
+                fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
+                phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
+                email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
+                durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
             });
             setShowModal(false);
             await fetchCards();
@@ -241,9 +287,18 @@ export default function CardPage() {
                                                     {row.status}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td style={{ display: 'flex', gap: '8px' }}>
                                                 <button type="button" className="cardpage-icon-button">
                                                     <span className="material-symbols-outlined">edit</span>
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    className="cardpage-icon-button"
+                                                    style={{ color: '#ef4444' }}
+                                                    onClick={() => handleDelete(row)}
+                                                    title="Xóa thẻ"
+                                                >
+                                                    <span className="material-symbols-outlined">delete</span>
                                                 </button>
                                             </td>
                                         </tr>
@@ -310,6 +365,22 @@ export default function CardPage() {
 
 
 
+                            {/* Biển số xe */}
+                            <div className="cardpage-form-group">
+                                <label htmlFor="plate">Biển số xe</label>
+                                <input
+                                    id="plate"
+                                    name="plate"
+                                    type="text"
+                                    placeholder="Ví dụ: 30K-12345"
+                                    className="cardpage-input"
+                                    value={formData.plate}
+                                    onChange={handleFormChange}
+                                    required={formData.type === 'Thẻ tháng'}
+                                />
+                            </div>
+
+                            {/* Ngày bắt đầu */}
                             <div className="cardpage-form-group">
                                 <label htmlFor="startDate">Ngày bắt đầu</label>
                                 <input
@@ -322,6 +393,75 @@ export default function CardPage() {
                                     required
                                 />
                             </div>
+
+                            {/* Chỉ hiển thị các trường sau nếu chọn Thẻ tháng */}
+                            {formData.type === 'Thẻ tháng' && (
+                                <>
+                                    {/* Thời hạn đăng ký */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="durationMonths">Thời hạn đăng ký</label>
+                                        <select
+                                            id="durationMonths"
+                                            name="durationMonths"
+                                            className="cardpage-select"
+                                            value={formData.durationMonths}
+                                            onChange={handleFormChange}
+                                            required
+                                        >
+                                            <option value="1">1 tháng</option>
+                                            <option value="3">3 tháng</option>
+                                            <option value="6">6 tháng</option>
+                                            <option value="9">9 tháng</option>
+                                            <option value="12">12 tháng</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Họ và tên khách hàng */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="fullName">Tên khách hàng</label>
+                                        <input
+                                            id="fullName"
+                                            name="fullName"
+                                            type="text"
+                                            placeholder="Ví dụ: Nguyễn Văn A"
+                                            className="cardpage-input"
+                                            value={formData.fullName}
+                                            onChange={handleFormChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Số điện thoại */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="phone">Số điện thoại</label>
+                                        <input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            placeholder="Ví dụ: 0987654321"
+                                            className="cardpage-input"
+                                            value={formData.phone}
+                                            onChange={handleFormChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Email */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="email">Email</label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            placeholder="Ví dụ: vana@gmail.com"
+                                            className="cardpage-input"
+                                            value={formData.email}
+                                            onChange={handleFormChange}
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            )}
 
                             <div className="cardpage-form-group">
                                 <label>Trạng thái</label>
@@ -359,6 +499,16 @@ export default function CardPage() {
                             </div>
                         </form>
                     </div>
+                </div>
+            )}
+
+            {/* Custom Toast notification popup */}
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    <span className="material-symbols-outlined">
+                        {toast.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="toast-text">{toast.message}</span>
                 </div>
             )}
         </main>

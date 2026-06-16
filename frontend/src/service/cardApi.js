@@ -28,3 +28,10 @@ export const createCard = async (payload) => {
     const response = await API.post("/cards/card", payload)
     return response.data.data || response.data
 }
+
+export const deleteCard = async (id, deletedBy) => {
+    const response = await API.delete(`/cards/${id}`, {
+        data: { deleted_by: deletedBy }
+    })
+    return response.data.data || response.data
+}
