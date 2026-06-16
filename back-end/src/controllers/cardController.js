@@ -39,7 +39,16 @@ export const getMonthCardLogs = async (req, res) => {
 export const createCard = async (req, res) => {
   try {
     const { code, type, startDate, plate, fullName, phone, email, durationMonths } = req.body;
-    const newCard = await cardService.createCard({ code, type, startDate, plate, fullName, phone, email, durationMonths });
+    const newCard = await cardService.createCard({
+      code: type === 'Thẻ tháng' ? undefined : code,
+      type,
+      startDate,
+      plate,
+      fullName,
+      phone,
+      email,
+      durationMonths
+    });
     res.status(201).json(newCard);
   } catch (err) {
     res.status(500).json({ error: err.message });

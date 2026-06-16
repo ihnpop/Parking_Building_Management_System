@@ -110,12 +110,11 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    // Submit create card
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormError(null);
 
-        if (!formData.code.trim()) {
+        if (formData.type === 'Thẻ lượt' && !formData.code.trim()) {
             setFormError('Vui lòng nhập Mã thẻ.');
             return;
         }
@@ -134,7 +133,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         try {
             setSubmitting(true);
             await createCard({
-                code: formData.code.trim(),
+                code: formData.type === 'Thẻ lượt' ? formData.code.trim() : undefined,
                 type: formData.type,
                 plate: formData.plate.trim() || undefined,
                 startDate: formData.startDate,
@@ -261,7 +260,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 {filteredCards.length > 0 ? (
                                     filteredCards.map((row) => (
                                         <tr key={row.code} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px' }}>{row.code}</td>
+                                            <td style={{ padding: '12px' }}>{row.type === 'Thẻ tháng' ? '---' : row.code}</td>
                                             <td style={{ padding: '12px' }}>{row.type}</td>
                                             <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
                                             <td style={{ padding: '12px' }}>
@@ -327,20 +326,22 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <form className="cardpage-modal-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
                             {/* Mã thẻ (UID) */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="code" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Mã thẻ (UID)</label>
-                                <input
-                                    id="code"
-                                    name="code"
-                                    type="text"
-                                    className="cardpage-input"
-                                    placeholder="Ví dụ: 04FA23B1"
-                                    value={formData.code}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                    required
-                                />
-                            </div>
+                            {formData.type === 'Thẻ lượt' && (
+                                <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label htmlFor="code" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Mã thẻ (UID)</label>
+                                    <input
+                                        id="code"
+                                        name="code"
+                                        type="text"
+                                        className="cardpage-input"
+                                        placeholder="Ví dụ: 04FA23B1"
+                                        value={formData.code}
+                                        onChange={handleFormChange}
+                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                        required
+                                    />
+                                </div>
+                            )}
 
                             {/* Loại thẻ */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>

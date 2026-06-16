@@ -32,7 +32,6 @@ export default function MonthCardPage() {
     // Filter Logic dựa trên dữ liệu từ API Supabase của bạn
     const filteredData = monthCards.filter((row) => {
         const matchesSearch =
-            (row.cardNo || '').toLowerCase().includes(search.toLowerCase()) ||
             (row.plate || '').toLowerCase().includes(search.toLowerCase()) ||
             (row.customer || '').toLowerCase().includes(search.toLowerCase());
 
@@ -111,7 +110,7 @@ export default function MonthCardPage() {
                     <span className="material-symbols-outlined" style={{ color: '#888', marginRight: '5px' }}>search</span>
                     <input
                         type="text"
-                        placeholder="Tìm theo biển số, tên chủ xe, số thẻ..."
+                        placeholder="Tìm theo biển số, tên chủ xe..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         style={{ border: 'none', outline: 'none', width: '100%' }}
@@ -148,7 +147,6 @@ export default function MonthCardPage() {
                             <thead>
                                 <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left' }}>
                                     <th style={{ padding: '12px' }}>STT</th>
-                                    <th style={{ padding: '12px' }}>SỐ THẺ</th>
                                     <th style={{ padding: '12px' }}>BIỂN SỐ</th>
                                     <th style={{ padding: '12px' }}>TÊN KHÁCH HÀNG</th>
                                     <th style={{ padding: '12px' }}>LOẠI XE</th>
@@ -161,7 +159,6 @@ export default function MonthCardPage() {
                                     filteredData.map((row) => (
                                         <tr key={row.id} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '12px' }}>{row.id}</td>
-                                            <td style={{ padding: '12px' }}>{row.cardNo}</td>
                                             <td style={{ padding: '12px' }}>{row.plate}</td>
                                             <td style={{ padding: '12px' }}>{row.customer}</td>
                                             <td style={{ padding: '12px' }}>{row.type}</td>
@@ -179,7 +176,7 @@ export default function MonthCardPage() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                                             Không tìm thấy vé tháng phù hợp
                                         </td>
                                     </tr>
