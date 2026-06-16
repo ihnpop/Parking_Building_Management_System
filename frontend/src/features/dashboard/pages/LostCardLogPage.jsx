@@ -17,9 +17,8 @@ export default function LostCardLogPage() {
 
     // Dữ liệu nhập vào của form báo mất thẻ mới
     const [newLostCard, setNewLostCard] = useState({
-        card_code: '',
         plate_number: '',
-        customer_name: ''
+        description: ''
     });
 
     // Xử lý gửi yêu cầu tạo báo mất thẻ mới lên server
@@ -27,9 +26,8 @@ export default function LostCardLogPage() {
         try {
             // Tạo payload gửi đi từ dữ liệu form
             const payload = {
-                card_code: newLostCard.card_code,
                 plate_number: newLostCard.plate_number,
-                description: newLostCard.customer_name ? `Báo mất thẻ. Chủ xe: ${newLostCard.customer_name}` : 'Báo mất thẻ'
+                description: newLostCard.description || 'Báo mất thẻ'
             };
 
             // Gọi API tạo báo mất thẻ mới
@@ -39,9 +37,8 @@ export default function LostCardLogPage() {
             // Đóng modal và reset dữ liệu form về mặc định
             setShowCreateModal(false);
             setNewLostCard({
-                card_code: '',
                 plate_number: '',
-                customer_name: ''
+                description: ''
             });
         } catch (err) {
             console.error(err);
@@ -278,7 +275,7 @@ export default function LostCardLogPage() {
                                     <th>MÃ BÁO MẤT</th>
                                     <th>MÃ THẺ</th>
                                     <th>BIỂN SỐ XE</th>
-                                    <th>CHỦ XE</th>
+                                    <th>LOẠI THẺ</th>
                                     <th>NGÀY BÁO MẤT</th>
                                     <th>TRẠNG THÁI</th>
                                     <th>NGƯỜI XỬ LÝ</th>
@@ -291,7 +288,7 @@ export default function LostCardLogPage() {
                                         const reportId = row.lost_report_id || row.id;
                                         const cardCode = row.card_code || row.cardNo;
                                         const plateNumber = row.plate_number || row.plate;
-                                        const customerName = row.customer_name || row.owner;
+                                        const cardType = row.card_type || 'Thẻ lượt';
                                         const reportDate = row.reported_at || row.date;
 
                                         return (
@@ -299,7 +296,7 @@ export default function LostCardLogPage() {
                                                 <td className="lost-id-cell">{reportId}</td>
                                                 <td>{cardCode}</td>
                                                 <td>{renderPlate(plateNumber)}</td>
-                                                <td>{customerName}</td>
+                                                <td>{cardType}</td>
                                                 <td>
                                                     {reportDate && !isNaN(Date.parse(reportDate))
                                                         ? new Date(reportDate).toLocaleString('vi-VN', {
@@ -365,23 +362,10 @@ export default function LostCardLogPage() {
                         <h2>Tạo báo mất mới</h2>
 
                         <div className="lost-form-group">
-                            <label>Mã thẻ</label>
-                            <input
-                                type="text"
-                                value={newLostCard.card_code}
-                                onChange={(e) =>
-                                    setNewLostCard({
-                                        ...newLostCard,
-                                        card_code: e.target.value
-                                    })
-                                }
-                            />
-                        </div>
-
-                        <div className="lost-form-group">
                             <label>Biển số xe</label>
                             <input
                                 type="text"
+                                placeholder="Nhập biển số xe..."
                                 value={newLostCard.plate_number}
                                 onChange={(e) =>
                                     setNewLostCard({
@@ -393,14 +377,15 @@ export default function LostCardLogPage() {
                         </div>
 
                         <div className="lost-form-group">
-                            <label>Chủ xe</label>
+                            <label>Lí do</label>
                             <input
                                 type="text"
-                                value={newLostCard.customer_name}
+                                placeholder="Nhập lí do báo mất..."
+                                value={newLostCard.description}
                                 onChange={(e) =>
                                     setNewLostCard({
                                         ...newLostCard,
-                                        customer_name: e.target.value
+                                        description: e.target.value
                                     })
                                 }
                             />

@@ -306,7 +306,7 @@ export const getLostCards = async () => {
       status,
       description,
       handled_by,
-      card ( code ),
+      card ( code, type ),
       vehicle (
         plate_number,
         customer ( full_name )
@@ -325,7 +325,9 @@ export const getLostCards = async () => {
     const reportId = log.lost_report_id ? log.lost_report_id.substring(0, 8).toUpperCase() : `LR-${idx + 1}`;
     const cardCode = log.card?.code || "Không rõ";
     const plateNumber = log.vehicle?.plate_number || "Chưa có xe";
-    const customerName = log.vehicle?.customer?.full_name || "Khách vãng lai";
+
+    // Nếu card là null (không có đăng ký thẻ) -> thẻ lượt, ngược lại lấy type từ card
+    const cardType = log.card?.type || "Thẻ lượt";
 
     // Nếu rỗng (NULL - Chờ xử lý) thì hiển thị gạch ngang thanh lịch "---"
     const handlerName = log.profiles?.full_name || "---";
@@ -335,7 +337,6 @@ export const getLostCards = async () => {
     if (log.status === 'RESOLVED' || log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
       statusText = 'Đã xong';
     } else if (log.status === 'PENDING' || !log.status) {
-      // Nếu trạng thái trong DB là PENDING và chưa có người xử lý (handled_by là null) -> Chờ xử lý
       if (!log.handled_by) {
         statusText = 'Chờ xử lý';
       } else {
@@ -350,7 +351,7 @@ export const getLostCards = async () => {
       id: reportId,
       cardNo: cardCode,
       plate: plateNumber,
-      owner: customerName,
+      card_type: cardType,
       date: log.reported_at,
       handler: handlerName,
 
@@ -358,78 +359,138 @@ export const getLostCards = async () => {
       lost_report_id: reportId,
       card_code: cardCode,
       plate_number: plateNumber,
-      customer_name: customerName,
       reported_at: log.reported_at,
       handler_name: handlerName,
 
-      status: statusText // Trả về chuẩn: 'Chờ xử lý', 'Đang xử lý', hoặc 'Đã xong'
+      status: statusText
     };
   });
 };
 
 /**
  * Tạo báo cáo mất thẻ mới.
- * Hỗ trợ nhận diện qua card_id/vehicle_id hoặc tra cứu qua card_code/plate_number.
+ * Chỉ cần nhập biển số xe và lí do - hệ thống tự động tra cứu vehicle và card.
  */
 export const createLostCard = async ({
-  card_id,
-  vehicle_id,
-  card_code,
   plate_number,
   description
 }) => {
-  let finalCardId = card_id;
-  let finalVehicleId = vehicle_id;
+  // Biển số xe là trường bắt buộc
+  if (!plate_number) {
+    throw new Error("Vui lòng nhập biển số xe.");
+  }
 
-  // Nếu không có card_id nhưng có card_code, tiến hành tra cứu card_id từ bảng card
-  if (!finalCardId && card_code) {
-    const { data: card, error: cardErr } = await supabase
-      .from('card')
+  // 1. Tra cứu vehicle_id từ biển số xe
+  const { data: vehicle, error: vehicleErr } = await supabase
+    .from('vehicle')
+    .select('vehicle_id')
+    .eq('plate_number', plate_number)
+    .maybeSingle();
+
+  if (vehicleErr) {
+    throw new Error(vehicleErr.message);
+  }
+  if (!vehicle) {
+    throw new Error(`Không tìm thấy xe có biển số ${plate_number}`);
+  }
+
+  // 2. Tìm thẻ đang gắn với xe qua bảng card_registrations
+  //    Ưu tiên thẻ ACTIVE, nếu không có thì lấy bất kỳ thẻ nào đã đăng ký
+  let finalCardId = null;
+
+  // 2a. Tìm thẻ có trạng thái ACTIVE
+  const { data: activeReg, error: activeErr } = await supabase
+    .from('card_registrations')
+    .select('card_id')
+    .eq('vehicle_id', vehicle.vehicle_id)
+    .eq('status', 'ACTIVE')
+    .limit(1)
+    .maybeSingle();
+
+  if (activeErr) {
+    throw new Error(activeErr.message);
+  }
+
+  if (activeReg) {
+    finalCardId = activeReg.card_id;
+  } else {
+    // 2b. Không có thẻ ACTIVE -> tìm bất kỳ thẻ nào đã đăng ký với xe
+    const { data: anyReg, error: anyErr } = await supabase
+      .from('card_registrations')
       .select('card_id')
-      .eq('code', card_code)
+      .eq('vehicle_id', vehicle.vehicle_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    if (cardErr) {
-      throw new Error(cardErr.message);
+    if (anyErr) {
+      throw new Error(anyErr.message);
     }
-    if (!card) {
-      throw new Error(`Không tìm thấy thẻ có mã ${card_code}`);
+    if (anyReg) {
+      finalCardId = anyReg.card_id;
     }
-    finalCardId = card.card_id;
   }
 
-  // Nếu không có vehicle_id nhưng có plate_number, tiến hành tra cứu vehicle_id từ bảng vehicle
-  if (!finalVehicleId && plate_number) {
-    const { data: vehicle, error: vehicleErr } = await supabase
-      .from('vehicle')
-      .select('vehicle_id')
-      .eq('plate_number', plate_number)
-      .maybeSingle();
-
-    if (vehicleErr) {
-      throw new Error(vehicleErr.message);
-    }
-    if (!vehicle) {
-      throw new Error(`Không tìm thấy xe có biển số ${plate_number}`);
-    }
-    finalVehicleId = vehicle.vehicle_id;
-  }
-
-  // Mã thẻ (hoặc ID thẻ) là trường bắt buộc cần thiết để ghi nhận báo mất
+  // 2c. Nếu vẫn không tìm thấy thẻ -> tìm qua bảng parking_order
   if (!finalCardId) {
-    throw new Error("Vui lòng cung cấp mã thẻ hoặc ID thẻ.");
+    const { data: order, error: orderErr } = await supabase
+      .from('parking_order')
+      .select('card_id')
+      .eq('vehicle_id', vehicle.vehicle_id)
+      .not('card_id', 'is', null)
+      .order('check_in_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (orderErr) {
+      throw new Error(orderErr.message);
+    }
+    if (order) {
+      finalCardId = order.card_id;
+    }
   }
 
-  // Thêm mới bản ghi vào bảng nhật ký mất thẻ card_lost_log
+  // Nếu không tìm được thẻ nào liên kết với xe -> báo lỗi (DB yêu cầu card_id NOT NULL)
+  if (!finalCardId) {
+    throw new Error(`Xe biển số ${plate_number} chưa được gắn thẻ nào trong hệ thống. Vui lòng đăng ký thẻ trước.`);
+  }
+
+  // Lấy thông tin thẻ để kiểm tra loại thẻ
+  const { data: cardObj, error: cardErr } = await supabase
+    .from('card')
+    .select('type')
+    .eq('card_id', finalCardId)
+    .maybeSingle();
+
+  if (cardErr) {
+    throw new Error(cardErr.message);
+  }
+
+  // Nếu không tìm thấy thẻ hoặc loại thẻ không phải 'Thẻ tháng' -> là thẻ lượt
+  const isDailyCard = !cardObj || cardObj.type !== 'Thẻ tháng';
+
+  if (isDailyCard) {
+    // Nếu là thẻ lượt, chủ xe trong database (customer_id) sẽ là null
+    const { error: updateErr } = await supabase
+      .from('vehicle')
+      .update({ customer_id: null })
+      .eq('vehicle_id', vehicle.vehicle_id);
+
+    if (updateErr) {
+      console.error("Lỗi khi cập nhật customer_id thành null cho thẻ lượt:", updateErr.message);
+    }
+  }
+
+  // 3. Thêm mới bản ghi vào bảng nhật ký mất thẻ card_lost_log
   const { data, error } = await supabase
     .from('card_lost_log')
     .insert({
       card_id: finalCardId,
-      vehicle_id: finalVehicleId,
+      vehicle_id: vehicle.vehicle_id,
       description: description || "Báo mất thẻ",
       reported_at: new Date().toISOString(),
-      status: 'PENDING', // Mặc định trạng thái là PENDING (Chờ xử lý)
-      handled_by: null   // Chưa có nhân viên xử lý
+      status: 'PENDING',            // Mặc định trạng thái Chờ xử lý
+      handled_by: null              // Chưa có nhân viên xử lý
     })
     .select()
     .single();
