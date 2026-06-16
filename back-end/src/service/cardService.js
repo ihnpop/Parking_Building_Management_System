@@ -49,29 +49,6 @@ export const getMonthCards = async () => {
   });
 };
 
-export const getLostCards = async () => {
-  const { data, error } = await supabase
-    .from("incident_report")
-    .select("*")
-    .eq("incident_type", "LOST_CARD");
-
-  if (error) throw new Error(error.message);
-
-  return data.map((item, idx) => ({
-    id: item.incident_id || `LR-${String(idx + 1).padStart(3, '0')}`,
-    cardNo: item.card_code || "N/A",
-    plate: item.plate_number || "N/A",
-    owner: item.customer_name || "N/A",
-    date: new Date(item.created_at).toLocaleString('vi-VN'),
-    status: item.status === 'OPEN'
-      ? 'Đang xử lý'
-      : item.status === 'RESOLVED'
-        ? 'Đã tìm lại'
-        : 'Đã hủy thẻ',
-    handler: item.handler_name || 'N/A'
-  }));
-};
-
 export const getMonthCardLogs = async () => {
   const { data, error } = await supabase
     .from("payment")
@@ -111,6 +88,78 @@ export const getMonthCardLogs = async () => {
       type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
       amount,
       status
+    };
+  });
+};
+
+
+export const getLostCards = async () => {
+  // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log
+  const { data, error } = await supabase
+    .from('card_lost_log')
+    .select(`
+      lost_report_id,
+      reported_at,
+      status,
+      description,
+      handled_by,
+      card ( code ),
+      vehicle (
+        plate_number,
+        customer ( full_name )
+      ),
+      profiles ( full_name )
+    `)
+    .order('reported_at', { ascending: false });
+
+  if (error) {
+    console.error("Lỗi khi truy vấn nhật ký mất thẻ:", error);
+    throw new Error(error.message);
+  }
+
+  // 2. Chuẩn hóa và làm phẳng cấu trúc dữ liệu JSON trả về
+  return data.map((log, idx) => {
+    const reportId = log.lost_report_id ? log.lost_report_id.substring(0, 8).toUpperCase() : `LR-${idx + 1}`;
+    const cardCode = log.card?.code || "Không rõ";
+    const plateNumber = log.vehicle?.plate_number || "Chưa có xe";
+    const customerName = log.vehicle?.customer?.full_name || "Khách vãng lai";
+
+    // Nếu rỗng (NULL - Chờ xử lý) thì hiển thị gạch ngang thanh lịch "---"
+    const handlerName = log.profiles?.full_name || "---";
+
+    // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
+    let statusText = 'Đang xử lý';
+    if (log.status === 'RESOLVED' || log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
+      statusText = 'Đã xong';
+    } else if (log.status === 'PENDING' || !log.status) {
+      // Nếu trạng thái trong DB là PENDING và chưa có người xử lý (handled_by là null) -> Chờ xử lý
+      if (!log.handled_by) {
+        statusText = 'Chờ xử lý';
+      } else {
+        statusText = 'Đang xử lý';
+      }
+    } else if (log.status === 'CANCELED' || log.status === 'Đã hủy thẻ') {
+      statusText = 'Đã hủy thẻ';
+    }
+
+    return {
+      // Khớp hoàn toàn cả định dạng trường cũ (Dự phòng cho UI)
+      id: reportId,
+      cardNo: cardCode,
+      plate: plateNumber,
+      owner: customerName,
+      date: log.reported_at,
+      handler: handlerName,
+
+      // Khớp hoàn toàn định dạng trường phẳng mới
+      lost_report_id: reportId,
+      card_code: cardCode,
+      plate_number: plateNumber,
+      customer_name: customerName,
+      reported_at: log.reported_at,
+      handler_name: handlerName,
+
+      status: statusText // Trả về chuẩn: 'Chờ xử lý', 'Đang xử lý', hoặc 'Đã xong'
     };
   });
 };

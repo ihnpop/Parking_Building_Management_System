@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getLostCards } from '../../../service/cardApi';
+import axios from 'axios';
 
 export default function LostCardLogPage() {
     const navigate = useNavigate();
@@ -15,13 +15,22 @@ export default function LostCardLogPage() {
     const fetchLostCards = async () => {
         try {
             setLoading(true);
-            const data = await getLostCards();
-            setLostCards(data);
-            setFilteredCards(data);
             setError(null);
+
+            // Gọi trực tiếp tới endpoint Backend của bạn
+            const response = await axios.get('http://localhost:3636/api/cards/lost-card');
+            const data = response.data.data || response.data;
+
+            if (Array.isArray(data)) {
+                setLostCards(data);
+                setFilteredCards(data);
+            } else {
+                setLostCards([]);
+                setFilteredCards([]);
+            }
         } catch (err) {
             console.error("Error fetching lost cards:", err);
-            setError("Không thể tải nhật ký mất thẻ. Vui lòng thử lại sau!");
+            setError("Không thể tải nhật ký mất thẻ. Vui lòng kiểm tra kết nối Backend!");
         } finally {
             setLoading(false);
         }
@@ -31,27 +40,41 @@ export default function LostCardLogPage() {
         fetchLostCards();
     }, []);
 
+    // Xử lý bộ lọc tìm kiếm và đồng bộ 3 trạng thái hiển thị
     const handleFilter = () => {
         let filtered = lostCards.filter((row) => {
-            const matchesSearch = 
-                row.cardNo.toLowerCase().includes(search.toLowerCase()) || 
-                row.plate.toLowerCase().includes(search.toLowerCase()) || 
-                row.owner.toLowerCase().includes(search.toLowerCase()) || 
-                row.id.toLowerCase().includes(search.toLowerCase());
-            
-            const matchesStatus = statusFilter === 'Tất cả' || row.status === statusFilter;
-            
+            const cardCode = (row.card_code || row.cardNo || '').toLowerCase();
+            const plateNumber = (row.plate_number || row.plate || '').toLowerCase();
+            const customerName = (row.customer_name || row.owner || '').toLowerCase();
+            const reportId = (row.lost_report_id || row.id || '').toLowerCase();
+            const searchKey = search.toLowerCase();
+
+            const matchesSearch =
+                cardCode.includes(searchKey) ||
+                plateNumber.includes(searchKey) ||
+                customerName.includes(searchKey) ||
+                reportId.includes(searchKey);
+
+            // Đồng bộ chuỗi chữ trạng thái
+            let currentStatus = row.status || 'Chờ xử lý';
+            if (currentStatus === 'PENDING') currentStatus = 'Chờ xử lý';
+            if (currentStatus === 'RESOLVED') currentStatus = 'Đã xong';
+
+            const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
+
             return matchesSearch && matchesStatus;
         });
         setFilteredCards(filtered);
     };
 
-    // Trigger filter when statusFilter changes or search is cleared
     useEffect(() => {
         handleFilter();
-    }, [statusFilter, lostCards]);
+    }, [statusFilter, search, lostCards]);
 
     const renderPlate = (plateStr) => {
+        if (!plateStr || plateStr === "N/A" || plateStr === "Chưa có xe") {
+            return <div className="lost-plate-box">---</div>;
+        }
         const parts = plateStr.split('-');
         if (parts.length === 2) {
             return (
@@ -64,23 +87,33 @@ export default function LostCardLogPage() {
         return <div className="lost-plate-box">{plateStr}</div>;
     };
 
+    // Chỉ định class màu CSS riêng biệt cho 3 trạng thái khác nhau
+    // const getStatusClass = (status) => {
+    //     if (status === 'Chờ xử lý' || status === 'PENDING') return 'status-pending'; // Màu vàng/cam cảnh báo
+    //     if (status === 'Đang xử lý') return 'status-processing' || 'status-pending'; // Bạn có thể định nghĩa màu xanh dương trong CSS, hoặc dùng tạm màu vàng cam
+    //     if (status === 'Đã xong' || status === 'RESOLVED') return 'status-recovered'; // Màu xanh lá hoàn thành
+    //     return '';
+    // };  
+
     const getStatusClass = (status) => {
         switch (status) {
+            case 'Chờ xử lý':
+                return 'status-pending';     /* Màu vàng cam */
             case 'Đang xử lý':
-                return 'status-pending';
-            case 'Đã hủy thẻ':
-                return 'status-cancelled';
+                return 'status-processing';  /* Màu xanh dương vừa thêm */
+            case 'Đã xong':
             case 'Đã tìm lại':
-                return 'status-recovered';
+                return 'status-recovered';   /* Màu xanh lá */
             default:
                 return '';
         }
     };
 
-    // Dynamic stats
+    // Tính toán số liệu thống kê động chia đều cho 3 trạng thái
     const totalLost = lostCards.length;
-    const resolved = lostCards.filter(c => c.status === 'Đã tìm lại' || c.status === 'Đã hủy thẻ').length;
-    const pending = lostCards.filter(c => c.status === 'Đang xử lý').length;
+    const pendingCount = lostCards.filter(c => c.status === 'Chờ xử lý' || c.status === 'PENDING').length;
+    const processingCount = lostCards.filter(c => c.status === 'Đang xử lý').length;
+    const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'RESOLVED').length;
 
     return (
         <div className="lost-card-log-page">
@@ -103,45 +136,40 @@ export default function LostCardLogPage() {
                 </div>
             </header>
 
-            {/* Summary Cards */}
+            {/* Thống kê 3 trạng thái động */}
             <section className="lost-stats-grid">
                 <article className="lost-stat-card">
                     <div className="lost-stat-content">
-                        <p className="lost-stat-label">Tổng thẻ báo mất</p>
-                        <p className="lost-stat-value">{loading ? '...' : totalLost}</p>
-                        <p className="lost-stat-note positive">
-                            <span className="material-symbols-outlined">trending_up</span>
-                            +12% so với tháng trước
-                        </p>
+                        <p className="lost-stat-label">Chờ xử lý</p>
+                        <p className="lost-stat-value" style={{ color: '#ff9800' }}>{loading ? '...' : pendingCount}</p>
+                        <p className="lost-stat-note warning-note">Hệ thống vừa ghi nhận</p>
                     </div>
                     <div className="lost-stat-icon warning">
-                        <span className="material-symbols-outlined">warning</span>
+                        <span className="material-symbols-outlined">hourglass_empty</span>
                     </div>
                 </article>
 
                 <article className="lost-stat-card">
                     <div className="lost-stat-content">
-                        <p className="lost-stat-label">Đã xử lý xong</p>
-                        <p className="lost-stat-value">{loading ? '...' : resolved}</p>
+                        <p className="lost-stat-label">Đang xử lý</p>
+                        <p className="lost-stat-value" style={{ color: '#2196f3' }}>{loading ? '...' : processingCount}</p>
+                        <p className="lost-stat-note" style={{ color: '#2196f3' }}>Nhân viên đang làm việc</p>
+                    </div>
+                    <div className="lost-stat-icon" style={{ backgroundColor: '#e3f2fd', color: '#2196f3' }}>
+                        <span className="material-symbols-outlined">sync</span>
+                    </div>
+                </article>
+
+                <article className="lost-stat-card">
+                    <div className="lost-stat-content">
+                        <p className="lost-stat-label">Đã xong</p>
+                        <p className="lost-stat-value" style={{ color: '#4caf50' }}>{loading ? '...' : resolvedCount}</p>
                         <div className="lost-stat-progress-bar">
-                            <div className="progress-fill" style={{ width: totalLost > 0 ? `${(resolved / totalLost) * 100}%` : '0%' }}></div>
+                            <div className="progress-fill" style={{ width: totalLost > 0 ? `${(resolvedCount / totalLost) * 100}%` : '0%', backgroundColor: '#4caf50' }}></div>
                         </div>
                     </div>
                     <div className="lost-stat-icon success">
                         <span className="material-symbols-outlined">check_circle</span>
-                    </div>
-                </article>
-
-                <article className="lost-stat-card">
-                    <div className="lost-stat-content">
-                        <p className="lost-stat-label">Đang chờ xử lý</p>
-                        <p className="lost-stat-value">{loading ? '...' : pending}</p>
-                        <p className="lost-stat-note warning-note">
-                            Cần xử lý trong 24h tới
-                        </p>
-                    </div>
-                    <div className="lost-stat-icon pending">
-                        <span className="material-symbols-outlined">assignment_late</span>
                     </div>
                 </article>
             </section>
@@ -153,9 +181,9 @@ export default function LostCardLogPage() {
                         <label>Tìm kiếm</label>
                         <div className="search-input-wrapper">
                             <span className="material-symbols-outlined">search</span>
-                            <input 
-                                type="text" 
-                                placeholder="Tìm theo Mã thẻ hoặc Biển số..." 
+                            <input
+                                type="text"
+                                placeholder="Tìm theo Mã thẻ hoặc Biển số..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
@@ -165,15 +193,15 @@ export default function LostCardLogPage() {
 
                     <div className="lost-filter-group dropdown-group">
                         <label>Trạng thái</label>
-                        <select 
+                        <select
                             className="lost-select"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
-                            <option value="Tất cả">Tất cả</option>
+                            <option value="Tất cả">Tất cả (Tổng: {totalLost})</option>
+                            <option value="Chờ xử lý">Chờ xử lý</option>
                             <option value="Đang xử lý">Đang xử lý</option>
-                            <option value="Đã hủy thẻ">Đã hủy thẻ</option>
-                            <option value="Đã tìm lại">Đã tìm lại</option>
+                            <option value="Đã xong">Đã xong</option>
                         </select>
                     </div>
 
@@ -221,27 +249,45 @@ export default function LostCardLogPage() {
                             </thead>
                             <tbody>
                                 {filteredCards.length > 0 ? (
-                                    filteredCards.map((row) => (
-                                        <tr key={row.id}>
-                                            <td className="lost-id-cell">{row.id}</td>
-                                            <td>{row.cardNo}</td>
-                                            <td>{renderPlate(row.plate)}</td>
-                                            <td>{row.owner}</td>
-                                            <td>{row.date}</td>
-                                            <td>
-                                                <span className={`status-badge-lost ${getStatusClass(row.status)}`}>
-                                                    <span className="dot"></span>
-                                                    {row.status}
-                                                </span>
-                                            </td>
-                                            <td>{row.handler}</td>
-                                            <td>
-                                                <button type="button" className="lost-action-btn">
-                                                    <span className="material-symbols-outlined">edit</span>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    filteredCards.map((row) => {
+                                        const reportId = row.lost_report_id || row.id;
+                                        const cardCode = row.card_code || row.cardNo;
+                                        const plateNumber = row.plate_number || row.plate;
+                                        const customerName = row.customer_name || row.owner;
+                                        const reportDate = row.reported_at || row.date;
+
+                                        return (
+                                            <tr key={reportId}>
+                                                <td className="lost-id-cell">{reportId}</td>
+                                                <td>{cardCode}</td>
+                                                <td>{renderPlate(plateNumber)}</td>
+                                                <td>{customerName}</td>
+                                                <td>
+                                                    {reportDate && !isNaN(Date.parse(reportDate))
+                                                        ? new Date(reportDate).toLocaleString('vi-VN', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric'
+                                                        })
+                                                        : reportDate}
+                                                </td>
+                                                <td>
+                                                    <span className={`status-badge-lost ${getStatusClass(row.status)}`}>
+                                                        <span className="dot"></span>
+                                                        {row.status}
+                                                    </span>
+                                                </td>
+                                                <td>{row.handler_name}</td>
+                                                <td>
+                                                    <button type="button" className="lost-action-btn">
+                                                        <span className="material-symbols-outlined">edit</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
@@ -252,7 +298,7 @@ export default function LostCardLogPage() {
                             </tbody>
                         </table>
 
-                        {/* Footer / Pagination */}
+                        {/* Footer */}
                         <div className="lost-table-footer">
                             <span className="footer-info">Hiển thị {filteredCards.length} của {totalLost} báo cáo</span>
                             <div className="footer-right-actions">
