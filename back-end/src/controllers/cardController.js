@@ -18,6 +18,15 @@ export const getMonthCards = async (req, res) => {
   }
 };
 
+export const getMonthCardLogs = async (req, res) => {
+  try {
+    const logs = await cardService.getMonthCardLogs();
+    res.status(200).json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getLostCards = async (req, res) => {
   try {
     const lostCards = await cardService.getLostCards();
@@ -27,12 +36,24 @@ export const getLostCards = async (req, res) => {
   }
 };
 
-export const getMonthCardLogs = async (req, res) => {
+
+export const getLostLogs = async (req, res) => {
   try {
-    const logs = await cardService.getMonthCardLogs();
-    res.status(200).json(logs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    // Gọi đến hàm xử lý dữ liệu ở tầng Service mà bạn vừa viết ở phần 2.1
+    const logs = await cardService.getLostCardLogs();
+
+    // Trả về dữ liệu dạng JSON với mã trạng thái thành công 200 cho Frontend
+    return res.status(200).json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    console.error("Lỗi tại cardController - getLostLogs:", error);
+    // Trả về lỗi 500 nếu hệ thống gặp sự cố bất ngờ
+    return res.status(500).json({
+      success: false,
+      message: "Đã xảy ra lỗi khi lấy danh sách nhật ký mất thẻ."
+    });
   }
 };
 // Create a new card

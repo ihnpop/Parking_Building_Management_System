@@ -458,6 +458,7 @@ body {
 
 .material-symbols-outlined {
   font-size: 24px;
+  padding: 11px;
 }
 
 .menu-item span.material-symbols-outlined {
@@ -5243,4 +5244,18 @@ body {
     /* 1 cột trên điện thoại */
     grid-template-columns: 1fr;
   }
+}
+
+/* Màu cho trạng thái Đang xử lý (Xanh dương thanh lịch) */
+.status-badge-lost.status-processing {
+  background-color: #e3f2fd;
+  /* Nền xanh dương nhạt */
+  color: #1e88e5;
+  /* Chữ xanh dương đậm */
+  border: 1px solid #bbdefb;
+}
+
+.status-badge-lost.status-processing .dot {
+  background-color: #1e88e5;
+  /* Chấm tròn màu xanh dương */
 }
