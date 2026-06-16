@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getCards, createCard } from '../../../service/cardApi';
+import { useAuth } from '../../../context/AuthContext';
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -10,10 +12,16 @@ const INITIAL_FORM = {
     code: '',
     type: 'Thẻ lượt',
     plate: '',
+    fullName: '',
+    phone: '',
+    email: '',
+    durationMonths: '1',
     startDate: new Date().toISOString().split('T')[0],
 };
 
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
+    const navigate = useNavigate();
+    const { userRole } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -23,6 +31,15 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'Admin';
+            case 'MANAGER': return 'Manager';
+            case 'STAFF': return 'Staff';
+            default: return r;
+        }
+    };
 
     // Filters - Tự động nhận defaultType từ Tab lớn bên ngoài truyền vào
     const [typeFilter, setTypeFilter] = useState(defaultType);
@@ -102,10 +119,16 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             setFormError('Vui lòng nhập Mã thẻ.');
             return;
         }
-
         if (!formData.startDate) {
             setFormError('Vui lòng chọn ngày bắt đầu.');
             return;
+        }
+
+        if (formData.type === 'Thẻ tháng') {
+            if (!formData.plate || !formData.fullName || !formData.phone || !formData.email) {
+                setFormError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe cho Thẻ tháng.');
+                return;
+            }
         }
 
         try {
@@ -113,9 +136,12 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             await createCard({
                 code: formData.code.trim(),
                 type: formData.type,
-                plate: formData.plate.trim() || null,
+                plate: formData.plate.trim() || undefined,
                 startDate: formData.startDate,
-                status: 'Hoạt động'
+                fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
+                phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
+                email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
+                durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
             });
             setShowModal(false);
             await fetchCards(); // Tải lại bảng dữ liệu ngay lập tức
@@ -335,16 +361,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
                             {/* Biển số xe */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe (Nếu có)</label>
+                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe</label>
                                 <input
                                     id="plate"
                                     name="plate"
                                     type="text"
                                     className="cardpage-input"
-                                    placeholder="Ví dụ: 59G1-12345"
+                                    placeholder={formData.type === 'Thẻ tháng' ? "Ví dụ: 30K-12345" : "Ví dụ: 59G1-12345 (Nếu có)"}
                                     value={formData.plate}
                                     onChange={handleFormChange}
                                     style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    required={formData.type === 'Thẻ tháng'}
                                 />
                             </div>
 
@@ -362,6 +389,79 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     required
                                 />
                             </div>
+
+                            {/* Chỉ hiển thị các trường sau nếu chọn Thẻ tháng */}
+                            {formData.type === 'Thẻ tháng' && (
+                                <>
+                                    {/* Thời hạn đăng ký */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="durationMonths" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Thời hạn đăng ký</label>
+                                        <select
+                                            id="durationMonths"
+                                            name="durationMonths"
+                                            className="cardpage-select"
+                                            value={formData.durationMonths}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
+                                            required
+                                        >
+                                            <option value="1">1 tháng</option>
+                                            <option value="3">3 tháng</option>
+                                            <option value="6">6 tháng</option>
+                                            <option value="9">9 tháng</option>
+                                            <option value="12">12 tháng</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Họ và tên khách hàng */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="fullName" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Tên khách hàng</label>
+                                        <input
+                                            id="fullName"
+                                            name="fullName"
+                                            type="text"
+                                            placeholder="Ví dụ: Nguyễn Văn A"
+                                            className="cardpage-input"
+                                            value={formData.fullName}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Số điện thoại */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="phone" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Số điện thoại</label>
+                                        <input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            placeholder="Ví dụ: 0987654321"
+                                            className="cardpage-input"
+                                            value={formData.phone}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Email */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="email" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Email</label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            placeholder="Ví dụ: vana@gmail.com"
+                                            className="cardpage-input"
+                                            value={formData.email}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            )}
 
                             {/* Trạng thái mặc định */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>

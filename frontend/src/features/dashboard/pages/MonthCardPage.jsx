@@ -32,15 +32,15 @@ export default function MonthCardPage() {
     // Filter Logic dựa trên dữ liệu từ API Supabase của bạn
     const filteredData = monthCards.filter((row) => {
         const matchesSearch =
-            row.cardNo.toLowerCase().includes(search.toLowerCase()) ||
-            row.plate.toLowerCase().includes(search.toLowerCase()) ||
-            row.customer.toLowerCase().includes(search.toLowerCase());
+            (row.cardNo || '').toLowerCase().includes(search.toLowerCase()) ||
+            (row.plate || '').toLowerCase().includes(search.toLowerCase()) ||
+            (row.customer || '').toLowerCase().includes(search.toLowerCase());
 
         const matchesType =
             vehicleTypeFilter === 'Tất cả loại xe' ||
-            row.type.toLowerCase().includes(vehicleTypeFilter.toLowerCase()) ||
-            (vehicleTypeFilter === 'Ô tô' && row.type.toLowerCase().includes('ô tô')) ||
-            (vehicleTypeFilter === 'Xe máy' && row.type.toLowerCase().includes('xe máy'));
+            (row.type || '').toLowerCase().includes(vehicleTypeFilter.toLowerCase()) ||
+            (vehicleTypeFilter === 'Ô tô' && (row.type || '').toLowerCase().includes('ô tô')) ||
+            (vehicleTypeFilter === 'Xe máy' && (row.type || '').toLowerCase().includes('xe máy'));
 
         const matchesStatus = statusFilter === 'Tất cả trạng thái' || row.status === statusFilter;
 
