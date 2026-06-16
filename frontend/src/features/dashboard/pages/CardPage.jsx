@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCards } from '../../../service/cardApi';
+import { getCards, createCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
 
 /**
@@ -8,12 +8,28 @@ import { useAuth } from '../../../context/AuthContext';
  * Fetching data dynamically from Supabase via backend API.
  */
 
+const INITIAL_FORM = {
+    type: 'Thẻ tháng',
+    plate: '',
+    fullName: '',
+    phone: '',
+    email: '',
+    durationMonths: '1',
+    startDate: new Date().toISOString().split('T')[0],
+};
+
 export default function CardPage() {
     const navigate = useNavigate();
     const { userRole } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Modal state
+    const [showModal, setShowModal] = useState(false);
+    const [formData, setFormData] = useState(INITIAL_FORM);
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState(null);
 
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
     const getRoleLabel = (r) => {
@@ -71,6 +87,62 @@ export default function CardPage() {
         { label: 'ĐÃ KHÓA', value: lockedCards, note: 'Thẻ bị chặn hoặc vô hiệu' },
     ];
 
+    // Open modal
+    const handleCreateCard = () => {
+        setFormData(INITIAL_FORM);
+        setFormError(null);
+        setShowModal(true);
+    };
+
+    // Close modal
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setFormError(null);
+    };
+
+    // Handle form field change
+    const handleFormChange = (e) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    // Submit create card
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFormError(null);
+
+        if (!formData.startDate) {
+            setFormError('Vui lòng chọn ngày bắt đầu.');
+            return;
+        }
+
+        if (formData.type === 'Thẻ tháng') {
+            if (!formData.plate || !formData.fullName || !formData.phone || !formData.email) {
+                setFormError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe cho Thẻ tháng.');
+                return;
+            }
+        }
+
+        try {
+            setSubmitting(true);
+            await createCard({
+                type: formData.type,
+                startDate: formData.startDate,
+                plate: formData.plate || undefined,
+                fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
+                phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
+                email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
+                durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
+            });
+            setShowModal(false);
+            await fetchCards();
+        } catch (err) {
+            console.error('Error creating card:', err);
+            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <main className="card-page">
             <header className="cardpage-header">
@@ -102,7 +174,7 @@ export default function CardPage() {
                 <div className="cardpage-filters">
                     <div className="cardpage-filter-group">
                         <label>Loại thẻ</label>
-                        <select 
+                        <select
                             className="cardpage-select"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
@@ -115,7 +187,7 @@ export default function CardPage() {
 
                     <div className="cardpage-filter-group">
                         <label>Trạng thái</label>
-                        <select 
+                        <select
                             className="cardpage-select"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
@@ -126,8 +198,8 @@ export default function CardPage() {
                         </select>
                     </div>
 
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         className="cardpage-button secondary"
                         onClick={handleResetFilters}
                     >
@@ -139,8 +211,8 @@ export default function CardPage() {
                     <button type="button" className="cardpage-button outline" onClick={fetchCards}>
                         Tải lại dữ liệu
                     </button>
-                    <button type="button" className="cardpage-button primary">
-                        Đăng ký thẻ mới
+                    <button type="button" className="cardpage-button primary" onClick={handleCreateCard}>
+                        + Đăng ký thẻ mới
                     </button>
                 </div>
             </section>
@@ -218,6 +290,179 @@ export default function CardPage() {
                     </>
                 )}
             </section>
+
+            {/* ===== Modal Đăng ký thẻ mới ===== */}
+            {showModal && (
+                <div
+                    className="cardpage-modal-overlay"
+                    onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
+                >
+                    <div className="cardpage-modal">
+                        <div className="cardpage-modal-header">
+                            <h2>Đăng ký thẻ mới</h2>
+                            <button
+                                type="button"
+                                className="cardpage-modal-close"
+                                onClick={handleCloseModal}
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form className="cardpage-modal-form" onSubmit={handleSubmit}>
+                            <div className="cardpage-form-group">
+                                <label htmlFor="type">Loại thẻ</label>
+                                <select
+                                    id="type"
+                                    name="type"
+                                    className="cardpage-select"
+                                    value={formData.type}
+                                    onChange={handleFormChange}
+                                    required
+                                >
+                                    <option value="Thẻ tháng">Thẻ tháng</option>
+                                    <option value="Thẻ lượt">Thẻ lượt</option>
+                                </select>
+                            </div>
+
+
+
+                            {/* Biển số xe */}
+                            <div className="cardpage-form-group">
+                                <label htmlFor="plate">Biển số xe</label>
+                                <input
+                                    id="plate"
+                                    name="plate"
+                                    type="text"
+                                    placeholder="Ví dụ: 30K-12345"
+                                    className="cardpage-input"
+                                    value={formData.plate}
+                                    onChange={handleFormChange}
+                                    required={formData.type === 'Thẻ tháng'}
+                                />
+                            </div>
+
+                            {/* Ngày bắt đầu */}
+                            <div className="cardpage-form-group">
+                                <label htmlFor="startDate">Ngày bắt đầu</label>
+                                <input
+                                    id="startDate"
+                                    name="startDate"
+                                    type="date"
+                                    className="cardpage-input"
+                                    value={formData.startDate}
+                                    onChange={handleFormChange}
+                                    required
+                                />
+                            </div>
+
+                            {/* Chỉ hiển thị các trường sau nếu chọn Thẻ tháng */}
+                            {formData.type === 'Thẻ tháng' && (
+                                <>
+                                    {/* Thời hạn đăng ký */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="durationMonths">Thời hạn đăng ký</label>
+                                        <select
+                                            id="durationMonths"
+                                            name="durationMonths"
+                                            className="cardpage-select"
+                                            value={formData.durationMonths}
+                                            onChange={handleFormChange}
+                                            required
+                                        >
+                                            <option value="1">1 tháng</option>
+                                            <option value="3">3 tháng</option>
+                                            <option value="6">6 tháng</option>
+                                            <option value="9">9 tháng</option>
+                                            <option value="12">12 tháng</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Họ và tên khách hàng */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="fullName">Tên khách hàng</label>
+                                        <input
+                                            id="fullName"
+                                            name="fullName"
+                                            type="text"
+                                            placeholder="Ví dụ: Nguyễn Văn A"
+                                            className="cardpage-input"
+                                            value={formData.fullName}
+                                            onChange={handleFormChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Số điện thoại */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="phone">Số điện thoại</label>
+                                        <input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            placeholder="Ví dụ: 0987654321"
+                                            className="cardpage-input"
+                                            value={formData.phone}
+                                            onChange={handleFormChange}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Email */}
+                                    <div className="cardpage-form-group">
+                                        <label htmlFor="email">Email</label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            placeholder="Ví dụ: vana@gmail.com"
+                                            className="cardpage-input"
+                                            value={formData.email}
+                                            onChange={handleFormChange}
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="cardpage-form-group">
+                                <label>Trạng thái</label>
+                                <input
+                                    type="text"
+                                    className="cardpage-input"
+                                    value="Hoạt động"
+                                    disabled
+                                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                                />
+                            </div>
+
+                            {formError && (
+                                <p style={{ color: '#ff4d4d', fontSize: '0.875rem', margin: '4px 0' }}>
+                                    {formError}
+                                </p>
+                            )}
+
+                            <div className="cardpage-modal-actions">
+                                <button
+                                    type="button"
+                                    className="cardpage-button secondary"
+                                    onClick={handleCloseModal}
+                                    disabled={submitting}
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="cardpage-button primary"
+                                    disabled={submitting}
+                                >
+                                    {submitting ? 'Đang lưu...' : 'Đăng ký'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </main>
     )
 }

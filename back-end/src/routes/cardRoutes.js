@@ -9,5 +9,7 @@ router.get("/lost-card", controller.getLostCards);
 router.get("/month-card-logs", controller.getMonthCardLogs);
 router.get('/lost-logs', controller.getLostLogs);
 
-
+// Đăng ký các API cho việc quản lý mất thẻ
+router.post('/lost-card', controller.createLostCard);
+router.post("/card", controller.createCard);
 export default router;

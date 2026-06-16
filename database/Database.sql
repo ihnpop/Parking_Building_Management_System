@@ -39,15 +39,13 @@ CREATE TABLE profiles (
 CREATE TABLE customer (
     customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    profile_id UUID REFERENCES profiles(id),
-
     full_name VARCHAR(255),
 
     phone VARCHAR(50),
 
     email VARCHAR(255),
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -81,7 +79,7 @@ CREATE TABLE vehicle (
 
     color VARCHAR(50),
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -193,15 +191,32 @@ CREATE TABLE gate (
 -- ==========================================
 -- CARD
 -- ==========================================
-
 CREATE TABLE card (
     card_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     code VARCHAR(100) UNIQUE NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'AVAILABLE',
+    type VARCHAR(50) NOT NULL,
+
+    expired_date DATE,
+
+    status VARCHAR(50) DEFAULT 'Đã khóa',
 
     created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE card_registrations (
+
+    registration_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    card_id UUID NOT NULL REFERENCES card(card_id),
+
+    vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
+
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+
+    created_at TIMESTAMP DEFAULT NOW()
+
 );
 
 -- ==========================================

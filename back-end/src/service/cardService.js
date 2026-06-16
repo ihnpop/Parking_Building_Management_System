@@ -3,24 +3,114 @@ import supabase from "../config/supabaseClient.js";
 export const getCards = async () => {
   const { data, error } = await supabase
     .from('card')
-    .select('*');
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        status,
+        vehicle (
+          plate_number,
+          customer (
+            full_name
+          )
+        )
+      )
+    `);
 
   if (error) throw new Error(error.message);
-  return data;
+
+  return data.map(item => {
+    const activeReg = item.card_registrations?.find(r => r.status === 'ACTIVE') || item.card_registrations?.[0];
+    return {
+      card_id: item.card_id,
+      code: item.code,
+      type: item.type,
+      expired_date: item.expired_date,
+      status: item.status,
+      created_at: item.created_at,
+      plate: activeReg?.vehicle?.plate_number || "Chưa đăng ký",
+      customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký"
+    };
+  });
 };
 
 export const getMonthCards = async () => {
+  // const { data, error } = await supabase
+  //   .from('card')
+  //   .select('*')
+  //   .like("type", "Thẻ tháng");
+
+  // export const getMonthCards = async () => {
   const { data, error } = await supabase
-    .from('card')
-    .select('*')
-    .like("type", "Thẻ tháng");
+    .from("card_registrations")
+    .select(`
+      registration_id,
+      status,
+      created_at,
+
+      card!inner (
+        card_id,
+        code,
+        type,
+        expired_date,
+        status,
+        created_at
+      ),
+
+      vehicle (
+        plate_number,
+
+        customer (
+          full_name
+        ),
+
+        vehicle_type (
+          name
+        )
+      )
+    `)
+    .eq("card.type", "Thẻ tháng");
 
   if (error) throw new Error(error.message);
 
+  // const { data: cards, error: cardError } = await supabase
+  //   .from("card")
+  //   .select("*")
+  //   .like("type", "Thẻ tháng");
+
   const { data: cards, error: cardError } = await supabase
-    .from("card")
-    .select("*")
-    .like("type", "Thẻ tháng");
+    .from("card_registrations")
+    .select(`
+      registration_id,
+      status,
+      created_at,
+
+      card!inner (
+        card_id,
+        code,
+        type,
+        expired_date,
+        status,
+        created_at
+      ),
+
+      vehicle (
+        plate_number,
+
+        customer (
+          full_name
+        ),
+
+        vehicle_type (
+          name
+        )
+      )
+    `)
+    .eq("card.type", "Thẻ tháng");
 
   if (cardError) throw new Error(cardError.message);
 
@@ -38,12 +128,15 @@ export const getMonthCards = async () => {
 
     return {
       id: String(i + 1).padStart(2, '0'),
-      cardNo: cardCode,
+      // cardNo: cardCode,
+      cardNo: vp.card?.code,
       plate: vp.vehicle?.plate_number || "Chưa có",
       customer: vp.vehicle?.customer?.full_name || "Khách vãng lai",
       type: vp.vehicle?.vehicle_type?.name || "Xe máy",
-      startDate: new Date(vp.start_date).toLocaleDateString('vi-VN'),
-      endDate: new Date(vp.end_date).toLocaleDateString('vi-VN'),
+      // startDate: new Date(vp.start_date).toLocaleDateString('vi-VN'),
+      // endDate: new Date(vp.end_date).toLocaleDateString('vi-VN'),
+      startDate: new Date(vp.card?.created_at).toLocaleDateString('vi-VN'),
+      endDate: new Date(vp.card?.expired_date).toLocaleDateString('vi-VN'),
       status: statusText
     };
   });
@@ -90,6 +183,116 @@ export const getMonthCardLogs = async () => {
       status
     };
   });
+
+}
+
+export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
+  // Generate a random unique code
+  const generateCode = async () => {
+    const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
+    const { data: existing } = await supabase.from('card').select('code').eq('code', random).maybeSingle();
+    if (existing) return generateCode();
+    return random;
+  };
+  const code = await generateCode();
+
+  // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
+  let expiredDate = null;
+  if (type === 'Thẻ tháng') {
+    const months = parseInt(durationMonths) || 1;
+    const start = new Date(startDate);
+    start.setMonth(start.getMonth() + months);
+    expiredDate = start.toISOString().split('T')[0];
+  }
+
+  const { data: newCard, error: cardError } = await supabase
+    .from('card')
+    .insert({
+      code,
+      type,
+      created_at: startDate,
+      expired_date: expiredDate,
+      status: 'Hoạt động',
+    })
+    .select()
+    .single();
+
+  if (cardError) throw new Error(cardError.message);
+
+  // Link to vehicle if plate is provided
+  if (plate) {
+    // Check if vehicle with plate exists
+    let { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', plate)
+      .maybeSingle();
+
+    if (vehicleErr) throw new Error(vehicleErr.message);
+
+    if (!vehicle) {
+      let customerId = null;
+
+      // If it's a monthly card, create/use customer
+      if (type === 'Thẻ tháng') {
+        const { data: customer, error: custErr } = await supabase
+          .from('customer')
+          .insert({
+            full_name: fullName || `Chủ xe ${plate}`,
+            phone: phone || null,
+            email: email || null,
+            status: 'Hoạt động'
+          })
+          .select()
+          .single();
+
+        if (custErr) throw new Error(custErr.message);
+        customerId = customer ? customer.customer_id : null;
+      }
+
+      // Fetch first active vehicle type
+      const { data: vtList, error: vtErr } = await supabase
+        .from('vehicle_type')
+        .select('vehicle_type_id')
+        .limit(1);
+
+      if (vtErr) throw new Error(vtErr.message);
+      const vehicleTypeId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
+
+      if (!vehicleTypeId) {
+        throw new Error("Không tìm thấy loại xe nào trong hệ thống. Vui lòng cấu hình loại xe trước.");
+      }
+
+      // Insert new vehicle
+      const { data: newVehicle, error: insertVehErr } = await supabase
+        .from('vehicle')
+        .insert({
+          customer_id: customerId,
+          vehicle_type_id: vehicleTypeId,
+          plate_number: plate,
+          status: 'Hoạt động'
+        })
+        .select()
+        .single();
+
+      if (insertVehErr) throw new Error(insertVehErr.message);
+      vehicle = newVehicle;
+    }
+
+    // Link card to vehicle via card_registrations
+    const { error: regErr } = await supabase
+      .from('card_registrations')
+      .insert({
+        card_id: newCard.card_id,
+        vehicle_id: vehicle.vehicle_id,
+        status: 'ACTIVE',
+        created_at: startDate
+      });
+
+    if (regErr) throw new Error(regErr.message);
+  }
+
+  return newCard;
 };
 
 
@@ -163,3 +366,79 @@ export const getLostCards = async () => {
     };
   });
 };
+
+/**
+ * Tạo báo cáo mất thẻ mới.
+ * Hỗ trợ nhận diện qua card_id/vehicle_id hoặc tra cứu qua card_code/plate_number.
+ */
+export const createLostCard = async ({
+  card_id,
+  vehicle_id,
+  card_code,
+  plate_number,
+  description
+}) => {
+  let finalCardId = card_id;
+  let finalVehicleId = vehicle_id;
+
+  // Nếu không có card_id nhưng có card_code, tiến hành tra cứu card_id từ bảng card
+  if (!finalCardId && card_code) {
+    const { data: card, error: cardErr } = await supabase
+      .from('card')
+      .select('card_id')
+      .eq('code', card_code)
+      .maybeSingle();
+
+    if (cardErr) {
+      throw new Error(cardErr.message);
+    }
+    if (!card) {
+      throw new Error(`Không tìm thấy thẻ có mã ${card_code}`);
+    }
+    finalCardId = card.card_id;
+  }
+
+  // Nếu không có vehicle_id nhưng có plate_number, tiến hành tra cứu vehicle_id từ bảng vehicle
+  if (!finalVehicleId && plate_number) {
+    const { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', plate_number)
+      .maybeSingle();
+
+    if (vehicleErr) {
+      throw new Error(vehicleErr.message);
+    }
+    if (!vehicle) {
+      throw new Error(`Không tìm thấy xe có biển số ${plate_number}`);
+    }
+    finalVehicleId = vehicle.vehicle_id;
+  }
+
+  // Mã thẻ (hoặc ID thẻ) là trường bắt buộc cần thiết để ghi nhận báo mất
+  if (!finalCardId) {
+    throw new Error("Vui lòng cung cấp mã thẻ hoặc ID thẻ.");
+  }
+
+  // Thêm mới bản ghi vào bảng nhật ký mất thẻ card_lost_log
+  const { data, error } = await supabase
+    .from('card_lost_log')
+    .insert({
+      card_id: finalCardId,
+      vehicle_id: finalVehicleId,
+      description: description || "Báo mất thẻ",
+      reported_at: new Date().toISOString(),
+      status: 'PENDING', // Mặc định trạng thái là PENDING (Chờ xử lý)
+      handled_by: null   // Chưa có nhân viên xử lý
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+export const getLostCardLogs = getLostCards;
