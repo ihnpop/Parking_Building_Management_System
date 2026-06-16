@@ -39,11 +39,19 @@ export const getMonthCardLogs = async (req, res) => {
 export const deleteCard = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) return res.status(400).json({ error: 'Thiếu card_id.' });
-    await cardService.deleteCard(id);
-    res.status(200).json({ success: true, message: 'Xóa thẻ thành công.' });
+    const { deleted_by } = req.body;
+    if (!id) return res.status(400).json({ success: false, message: 'Thiếu card_id.' });
+    
+    await cardService.deleteCard(id, deleted_by);
+    res.status(200).json({
+      success: true,
+      message: "Card deleted successfully"
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 

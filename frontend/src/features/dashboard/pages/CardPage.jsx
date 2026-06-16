@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCards, createCard } from '../../../service/cardApi';
+import { getCards, createCard, deleteCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
 
 /**
@@ -20,7 +20,7 @@ const INITIAL_FORM = {
 
 export default function CardPage() {
     const navigate = useNavigate();
-    const { userRole } = useAuth();
+    const { userRole, user } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -30,6 +30,35 @@ export default function CardPage() {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+
+    // Toast state
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => {
+            setToast({ show: false, message: '', type: 'success' });
+        }, 3000);
+    };
+
+    // Handle Delete Card
+    const handleDelete = async (row) => {
+        if (!window.confirm("Are you sure you want to delete this card?")) {
+            return;
+        }
+        try {
+            const res = await deleteCard(row.card_id, user?.id);
+            if (res.success) {
+                showToast(res.message || "Card deleted successfully", "success");
+                await fetchCards();
+            } else {
+                showToast(res.message || "Xóa thẻ thất bại", "error");
+            }
+        } catch (err) {
+            console.error("Error deleting card:", err);
+            const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
+            showToast(errMsg, "error");
+        }
+    };
 
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
     const getRoleLabel = (r) => {
@@ -258,9 +287,18 @@ export default function CardPage() {
                                                     {row.status}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td style={{ display: 'flex', gap: '8px' }}>
                                                 <button type="button" className="cardpage-icon-button">
                                                     <span className="material-symbols-outlined">edit</span>
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    className="cardpage-icon-button"
+                                                    style={{ color: '#ef4444' }}
+                                                    onClick={() => handleDelete(row)}
+                                                    title="Xóa thẻ"
+                                                >
+                                                    <span className="material-symbols-outlined">delete</span>
                                                 </button>
                                             </td>
                                         </tr>
@@ -461,6 +499,16 @@ export default function CardPage() {
                             </div>
                         </form>
                     </div>
+                </div>
+            )}
+
+            {/* Custom Toast notification popup */}
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    <span className="material-symbols-outlined">
+                        {toast.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="toast-text">{toast.message}</span>
                 </div>
             )}
         </main>

@@ -9,4 +9,5 @@ router.get("/lost-card", controller.getLostCards);
 router.get("/month-card-logs", controller.getMonthCardLogs);
 
 router.post("/card", controller.createCard);
+router.delete("/:id", controller.deleteCard);
 export default router;

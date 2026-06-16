@@ -1,4 +1,5 @@
 import supabase from "../config/supabaseClient.js";
+import * as cardRepository from "../repositories/cardRepository.js";
 
 export const getCards = async () => {
   const { data, error } = await supabase
@@ -19,7 +20,8 @@ export const getCards = async () => {
           )
         )
       )
-    `);
+    `)
+    .not('status', 'eq', 'Đã xóa');
 
   if (error) throw new Error(error.message);
 
@@ -295,23 +297,33 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
 };
 
 
-export const deleteCard = async (cardId) => {
-  // First, remove all card_registrations linked to this card
-  const { error: regErr } = await supabase
-    .from('card_registrations')
-    .delete()
-    .eq('card_id', cardId);
+export const deleteCard = async (cardId, currentUserId) => {
+  // 1. Kiểm tra card tồn tại
+  const card = await cardRepository.findById(cardId);
+  if (!card) {
+    throw new Error("Card not found");
+  }
 
-  if (regErr) throw new Error(`Lỗi xóa đăng ký thẻ: ${regErr.message}`);
+  // 2. Kiểm tra status của card
+  const statusUpper = (card.status || '').toUpperCase();
+  
+  if (statusUpper === 'ACTIVE' || card.status === 'Hoạt động') {
+    throw new Error("Active card cannot be deleted");
+  }
+  
+  if (statusUpper === 'DELETED' || card.status === 'Đã xóa') {
+    throw new Error("Card is already deleted");
+  }
 
-  // Then delete the card itself
-  const { error: cardErr } = await supabase
-    .from('card')
-    .delete()
-    .eq('card_id', cardId);
+  // Chỉ cho phép xóa AVAILABLE (Chưa sử dụng) và EXPIRED (Đã hết hạn)
+  // và hỗ trợ cả mặc định hệ thống là 'Đã khóa'
+  const allowedStatuses = ['AVAILABLE', 'EXPIRED', 'CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
+  if (!allowedStatuses.includes(statusUpper) && !allowedStatuses.includes(card.status.toUpperCase())) {
+    throw new Error("Only AVAILABLE or EXPIRED cards can be deleted");
+  }
 
-  if (cardErr) throw new Error(`Lỗi xóa thẻ: ${cardErr.message}`);
-
+  // 3. Thực hiện Soft Delete thông qua Repository
+  await cardRepository.softDelete(cardId, currentUserId);
   return { success: true };
 };
 
