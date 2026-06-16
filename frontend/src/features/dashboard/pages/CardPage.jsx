@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { getCards, createCard } from '../../../service/cardApi';
+import { useState, useEffect, useRef } from 'react'
+import { getCards, createCard, deleteCard } from '../../../service/cardApi';
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -23,6 +23,16 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+
+    // Delete modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [cardToDelete, setCardToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
+
+    // Action dropdown state
+    const [openActionMenu, setOpenActionMenu] = useState(null);
+    const actionMenuRef = useRef(null);
 
     // Filters - Tự động nhận defaultType từ Tab lớn bên ngoài truyền vào
     const [typeFilter, setTypeFilter] = useState(defaultType);
@@ -87,6 +97,55 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setShowModal(false);
         setFormError(null);
     };
+
+    // Open delete confirmation modal
+    const handleOpenDeleteModal = (card) => {
+        setCardToDelete(card);
+        setDeleteError(null);
+        setShowDeleteModal(true);
+        setOpenActionMenu(null);
+    };
+
+    // Close delete modal
+    const handleCloseDeleteModal = () => {
+        setShowDeleteModal(false);
+        setCardToDelete(null);
+        setDeleteError(null);
+    };
+
+    // Confirm delete
+    const handleConfirmDelete = async () => {
+        if (!cardToDelete) return;
+        try {
+            setDeleting(true);
+            setDeleteError(null);
+            await deleteCard(cardToDelete.card_id);
+            setShowDeleteModal(false);
+            setCardToDelete(null);
+            await fetchCards();
+        } catch (err) {
+            console.error('Error deleting card:', err);
+            setDeleteError(err?.response?.data?.error || err.message || 'Lỗi khi xóa thẻ.');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // Toggle action dropdown
+    const handleToggleActionMenu = (cardCode) => {
+        setOpenActionMenu(prev => prev === cardCode ? null : cardCode);
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+                setOpenActionMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Handle form field change
     const handleFormChange = (e) => {
@@ -245,9 +304,36 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '12px' }}>
-                                                <button type="button" className="cardpage-icon-button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
-                                                </button>
+                                                <div className="cardpage-action-wrapper" ref={openActionMenu === row.code ? actionMenuRef : null}>
+                                                    <button
+                                                        type="button"
+                                                        className="cardpage-icon-button"
+                                                        title="Thao tác"
+                                                        onClick={() => handleToggleActionMenu(row.code)}
+                                                    >
+                                                        <span className="material-symbols-outlined">more_vert</span>
+                                                    </button>
+                                                    {openActionMenu === row.code && (
+                                                        <div className="cardpage-action-menu">
+                                                            <button
+                                                                type="button"
+                                                                className="cardpage-action-menu-item"
+                                                                onClick={() => { setOpenActionMenu(null); }}
+                                                            >
+                                                                <span className="material-symbols-outlined">edit</span>
+                                                                Chỉnh sửa
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="cardpage-action-menu-item danger"
+                                                                onClick={() => handleOpenDeleteModal(row)}
+                                                            >
+                                                                <span className="material-symbols-outlined">delete</span>
+                                                                Xóa thẻ
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -278,129 +364,68 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 )}
             </section>
 
-            {/* ===== Modal Đăng ký thẻ mới ===== */}
-            {showModal && (
+            {/* ===== Modal Xác nhận Xóa Thẻ ===== */}
+            {showDeleteModal && cardToDelete && (
                 <div
                     className="cardpage-modal-overlay"
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}
-                    onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
+                    onClick={(e) => { if (e.target === e.currentTarget) handleCloseDeleteModal(); }}
                 >
-                    <div className="cardpage-modal" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '450px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                        <div className="cardpage-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Đăng ký thẻ mới</h2>
+                    <div className="cardpage-modal cardpage-delete-modal">
+                        <div className="cardpage-delete-modal-icon">
+                            <span className="material-symbols-outlined">delete_forever</span>
+                        </div>
+                        <h2 className="cardpage-delete-modal-title">Xác nhận xóa thẻ</h2>
+                        <p className="cardpage-delete-modal-desc">
+                            Bạn có chắc chắn muốn xóa thẻ này không?
+                        </p>
+                        <div className="cardpage-delete-modal-info">
+                            <div className="cardpage-delete-info-row">
+                                <span className="delete-info-label">Mã thẻ</span>
+                                <span className="delete-info-value">{cardToDelete.code}</span>
+                            </div>
+                            <div className="cardpage-delete-info-row">
+                                <span className="delete-info-label">Loại thẻ</span>
+                                <span className="delete-info-value">{cardToDelete.type}</span>
+                            </div>
+                            <div className="cardpage-delete-info-row">
+                                <span className="delete-info-label">Biển số</span>
+                                <span className="delete-info-value">{cardToDelete.plate}</span>
+                            </div>
+                            <div className="cardpage-delete-info-row">
+                                <span className="delete-info-label">Trạng thái</span>
+                                <span className={`cardpage-status ${cardToDelete.status === 'Hoạt động' ? 'active' : 'locked'}`}>
+                                    <span className="material-symbols-outlined">circle</span>
+                                    {cardToDelete.status}
+                                </span>
+                            </div>
+                        </div>
+                        <p className="cardpage-delete-modal-warning">
+                            ⚠️ Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến thẻ này sẽ bị xóa vĩnh viễn.
+                        </p>
+                        {deleteError && (
+                            <p style={{ color: '#ef4444', fontSize: '0.875rem', textAlign: 'center', margin: '0' }}>
+                                {deleteError}
+                            </p>
+                        )}
+                        <div className="cardpage-modal-actions">
                             <button
                                 type="button"
-                                className="cardpage-modal-close"
-                                onClick={handleCloseModal}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                className="cardpage-button secondary"
+                                onClick={handleCloseDeleteModal}
+                                disabled={deleting}
                             >
-                                <span className="material-symbols-outlined">close</span>
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="button"
+                                className="cardpage-button danger"
+                                onClick={handleConfirmDelete}
+                                disabled={deleting}
+                            >
+                                <span className="material-symbols-outlined">{deleting ? 'hourglass_empty' : 'delete'}</span>
+                                {deleting ? 'Đang xóa...' : 'Xác nhận xóa'}
                             </button>
                         </div>
-
-                        <form className="cardpage-modal-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-                            {/* Mã thẻ (UID) */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="code" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Mã thẻ (UID)</label>
-                                <input
-                                    id="code"
-                                    name="code"
-                                    type="text"
-                                    className="cardpage-input"
-                                    placeholder="Ví dụ: 04FA23B1"
-                                    value={formData.code}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                    required
-                                />
-                            </div>
-
-                            {/* Loại thẻ */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="type" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Loại thẻ</label>
-                                <select
-                                    id="type"
-                                    name="type"
-                                    className="cardpage-select"
-                                    value={formData.type}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
-                                    required
-                                >
-                                    <option value="Thẻ lượt">Thẻ lượt</option>
-                                    <option value="Thẻ tháng">Thẻ tháng</option>
-                                </select>
-                            </div>
-
-                            {/* Biển số xe */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe (Nếu có)</label>
-                                <input
-                                    id="plate"
-                                    name="plate"
-                                    type="text"
-                                    className="cardpage-input"
-                                    placeholder="Ví dụ: 59G1-12345"
-                                    value={formData.plate}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                />
-                            </div>
-
-                            {/* Ngày bắt đầu */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="startDate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Ngày bắt đầu</label>
-                                <input
-                                    id="startDate"
-                                    name="startDate"
-                                    type="date"
-                                    className="cardpage-input"
-                                    value={formData.startDate}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                    required
-                                />
-                            </div>
-
-                            {/* Trạng thái mặc định */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>Trạng thái</label>
-                                <input
-                                    type="text"
-                                    className="cardpage-input"
-                                    value="Hoạt động"
-                                    disabled
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', opacity: 0.6, cursor: 'not-allowed', backgroundColor: '#f5f5f5' }}
-                                />
-                            </div>
-
-                            {formError && (
-                                <p style={{ color: '#ff4d4d', fontSize: '0.875rem', margin: '4px 0', fontWeight: '500' }}>
-                                    {formError}
-                                </p>
-                            )}
-
-                            <div className="cardpage-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                                <button
-                                    type="button"
-                                    className="cardpage-button secondary"
-                                    onClick={handleCloseModal}
-                                    disabled={submitting}
-                                    style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="cardpage-button primary"
-                                    disabled={submitting}
-                                    style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
-                                >
-                                    {submitting ? 'Đang lưu...' : 'Đăng ký'}
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             )}
