@@ -117,42 +117,40 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
 
   let fee = billableHours * 10000; // Giá mặc định 10k/giờ
 
-  // Thử tra cứu bảng giá từ Database nếu xe có liên kết vehicle_id
-  if (activeSession.vehicle_id) {
-    try {
-      // Tìm thông tin xe để lấy vehicle_type_id
-      const { data: vehicle } = await supabase
-        .from("vehicle")
-        .select("vehicle_type_id")
-        .eq("vehicle_id", activeSession.vehicle_id)
-        .maybeSingle();
+  // Thử tra cứu bảng giá từ Database dựa trên biển số xe
+  try {
+    // Tìm thông tin xe để lấy vehicle_type_id
+    const { data: vehicle } = await supabase
+      .from("vehicle")
+      .select("vehicle_type_id")
+      .eq("plate_number", activeSession.plate_number)
+      .maybeSingle();
 
-      if (vehicle?.vehicle_type_id) {
-        // Tìm price_item khớp với loại xe và số giờ
-        const { data: priceItems } = await supabase
-          .from("price_item")
-          .select("price, min_hour, max_hour")
-          .eq("vehicle_type_id", vehicle.vehicle_type_id);
+    if (vehicle?.vehicle_type_id) {
+      // Tìm price_item khớp với loại xe và số giờ
+      const { data: priceItems } = await supabase
+        .from("price_item")
+        .select("price, min_hour, max_hour")
+        .eq("vehicle_type_id", vehicle.vehicle_type_id);
 
-        if (priceItems && priceItems.length > 0) {
-          // Tìm khoảng giờ phù hợp
-          const matchingItem = priceItems.find(item => {
-            const min = item.min_hour || 0;
-            const max = item.max_hour;
-            if (max === null || max === undefined) {
-              return billableHours >= min;
-            }
-            return billableHours >= min && billableHours <= max;
-          });
-
-          if (matchingItem) {
-            fee = Number(matchingItem.price);
+      if (priceItems && priceItems.length > 0) {
+        // Tìm khoảng giờ phù hợp
+        const matchingItem = priceItems.find(item => {
+          const min = item.min_hour || 0;
+          const max = item.max_hour;
+          if (max === null || max === undefined) {
+            return billableHours >= min;
           }
+          return billableHours >= min && billableHours <= max;
+        });
+
+        if (matchingItem) {
+          fee = Number(matchingItem.price);
         }
       }
-    } catch (dbErr) {
-      console.error("Error fetching database pricing, falling back to default:", dbErr);
     }
+  } catch (dbErr) {
+    console.error("Error fetching database pricing, falling back to default:", dbErr);
   }
 
   // 5. Cập nhật phiên gửi xe thành COMPLETED
