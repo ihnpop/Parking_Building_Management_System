@@ -14,14 +14,17 @@ import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import ResetPassword from "./features/auth/pages/ResetPassword";
 
-
 import "./styles/App.css";
-
 
 export default function App() {
   return (
     <Routes>
-      {/* 1. Trang Đăng nhập */}
+      {/* =========================================================================
+          SỬA LỖI TRẮNG TRANG: Tự động chuyển hướng từ đường dẫn gốc "/" về "/login"
+         ========================================================================= */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* 1. Trang Đăng nhập và Khôi phục mật khẩu */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -30,7 +33,7 @@ export default function App() {
 
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập và phân quyền */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
-      
+
       <Route path="/login/dashboard/card" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -38,7 +41,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/month-card" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -46,7 +49,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -54,7 +57,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/login-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -62,7 +65,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/month-card-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -70,7 +73,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/settings" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -78,7 +81,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
@@ -86,7 +89,7 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
-      
+
       <Route path="/login/dashboard/user-management" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN']}>
@@ -98,6 +101,5 @@ export default function App() {
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
-
   );
 }

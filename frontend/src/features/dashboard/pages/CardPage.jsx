@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getCards, createCard } from '../../../service/cardApi';
+import { useAuth } from '../../../context/AuthContext';
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -7,13 +9,19 @@ import { getCards, createCard } from '../../../service/cardApi';
  */
 
 const INITIAL_FORM = {
-    code: '',
+    code: '', // Đã khôi phục trường nhập mã UID thẻ vật lý
     type: 'Thẻ lượt',
     plate: '',
+    fullName: '',
+    phone: '',
+    email: '',
+    durationMonths: '1',
     startDate: new Date().toISOString().split('T')[0],
 };
 
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
+    const navigate = useNavigate();
+    const { userRole } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -23,6 +31,16 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'Admin';
+            case 'MANAGER': return 'Manager';
+            case 'STAFF': return 'Staff';
+            default: return r;
+        }
+    };
 
     // Filters - Tự động nhận defaultType từ Tab lớn bên ngoài truyền vào
     const [typeFilter, setTypeFilter] = useState(defaultType);
@@ -93,13 +111,13 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    // Submit create card
+    // Submit create card nâng cao gộp cả Thẻ Lượt lẫn Thẻ Tháng
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormError(null);
 
         if (!formData.code.trim()) {
-            setFormError('Vui lòng nhập Mã thẻ.');
+            setFormError('Vui lòng nhập Mã thẻ (UID).');
             return;
         }
 
@@ -108,15 +126,34 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             return;
         }
 
+        if (formData.type === 'Thẻ tháng') {
+            if (!formData.plate.trim() || !formData.fullName.trim() || !formData.phone.trim() || !formData.email.trim()) {
+                setFormError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe khi đăng ký Thẻ tháng.');
+                return;
+            }
+        }
+
         try {
             setSubmitting(true);
-            await createCard({
+
+            // Xây dựng payload động theo loại thẻ được chọn
+            const payload = {
                 code: formData.code.trim(),
                 type: formData.type,
-                plate: formData.plate.trim() || null,
                 startDate: formData.startDate,
-                status: 'Hoạt động'
-            });
+                status: 'Hoạt động',
+                plate: formData.plate.trim() || null
+            };
+
+            // Nếu là Thẻ tháng, đính kèm thêm thông tin gia hạn và liên hệ khách hàng
+            if (formData.type === 'Thẻ tháng') {
+                payload.fullName = formData.fullName.trim();
+                payload.phone = formData.phone.trim();
+                payload.email = formData.email.trim();
+                payload.durationMonths = formData.durationMonths;
+            }
+
+            await createCard(payload);
             setShowModal(false);
             await fetchCards(); // Tải lại bảng dữ liệu ngay lập tức
         } catch (err) {
@@ -203,7 +240,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             </section>
 
             {/* Khối hiển thị Bảng danh sách thẻ */}
-            <section className="cardpage-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px' }}>
+            <section className="cardpage-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px', background: '#fff' }}>
                 <div className="cardpage-table-header" style={{ marginBottom: '15px' }}>
                     <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem' }}>Danh sách thẻ</h2>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Quản lý thông tin thẻ, loại thẻ, trạng thái và hành động.</p>
@@ -235,7 +272,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 {filteredCards.length > 0 ? (
                                     filteredCards.map((row) => (
                                         <tr key={row.code} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px' }}>{row.code}</td>
+                                            <td style={{ padding: '12px', fontWeight: '600' }}>{row.code}</td>
                                             <td style={{ padding: '12px' }}>{row.type}</td>
                                             <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
                                             <td style={{ padding: '12px' }}>
@@ -278,14 +315,14 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 )}
             </section>
 
-            {/* ===== Modal Đăng ký thẻ mới ===== */}
+            {/* ===== Modal Đăng ký thẻ mới Nâng cao (Gộp trường Động) ===== */}
             {showModal && (
                 <div
                     className="cardpage-modal-overlay"
                     style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}
                     onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
                 >
-                    <div className="cardpage-modal" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '450px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                    <div className="cardpage-modal" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
                         <div className="cardpage-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Đăng ký thẻ mới</h2>
                             <button
@@ -300,7 +337,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
                         <form className="cardpage-modal-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-                            {/* Mã thẻ (UID) */}
+                            {/* 1. Mã thẻ vật lý (UID) */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label htmlFor="code" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Mã thẻ (UID)</label>
                                 <input
@@ -316,7 +353,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 />
                             </div>
 
-                            {/* Loại thẻ */}
+                            {/* 2. Loại thẻ */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label htmlFor="type" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Loại thẻ</label>
                                 <select
@@ -333,22 +370,23 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 </select>
                             </div>
 
-                            {/* Biển số xe */}
+                            {/* 3. Biển số xe */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe (Nếu có)</label>
+                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe {formData.type === 'Thẻ tháng' && <span style={{ color: 'red' }}>*</span>}</label>
                                 <input
                                     id="plate"
                                     name="plate"
                                     type="text"
+                                    placeholder="Ví dụ: 29A-123.45"
                                     className="cardpage-input"
-                                    placeholder="Ví dụ: 59G1-12345"
                                     value={formData.plate}
                                     onChange={handleFormChange}
                                     style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    required={formData.type === 'Thẻ tháng'}
                                 />
                             </div>
 
-                            {/* Ngày bắt đầu */}
+                            {/* 4. Ngày bắt đầu hiệu lực */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label htmlFor="startDate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Ngày bắt đầu</label>
                                 <input
@@ -363,9 +401,82 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 />
                             </div>
 
-                            {/* Trạng thái mặc định */}
+                            {/* ===== KHỐI THÔNG TIN BỔ SUNG: Chỉ hiển thị khi chọn Thẻ tháng ===== */}
+                            {formData.type === 'Thẻ tháng' && (
+                                <>
+                                    {/* Thời hạn gia hạn đăng ký trước */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="durationMonths" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Thời hạn đăng ký</label>
+                                        <select
+                                            id="durationMonths"
+                                            name="durationMonths"
+                                            className="cardpage-select"
+                                            value={formData.durationMonths}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
+                                            required
+                                        >
+                                            <option value="1">1 tháng</option>
+                                            <option value="3">3 tháng</option>
+                                            <option value="6">6 tháng</option>
+                                            <option value="9">9 tháng</option>
+                                            <option value="12">12 tháng</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Tên chủ thẻ */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="fullName" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Tên khách hàng <span style={{ color: 'red' }}>*</span></label>
+                                        <input
+                                            id="fullName"
+                                            name="fullName"
+                                            type="text"
+                                            placeholder="Ví dụ: Nguyễn Văn A"
+                                            className="cardpage-input"
+                                            value={formData.fullName}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* SĐT liên lạc */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="phone" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Số điện thoại <span style={{ color: 'red' }}>*</span></label>
+                                        <input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            placeholder="Ví dụ: 0987654321"
+                                            className="cardpage-input"
+                                            value={formData.phone}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Địa chỉ Email nhận biên lai */}
+                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                        <label htmlFor="email" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Email <span style={{ color: 'red' }}>*</span></label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            placeholder="Ví dụ: vana@gmail.com"
+                                            className="cardpage-input"
+                                            value={formData.email}
+                                            onChange={handleFormChange}
+                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {/* 5. Trạng thái mặc định */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>Trạng thái</label>
+                                <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>Trạng thái mặc định</label>
                                 <input
                                     type="text"
                                     className="cardpage-input"
