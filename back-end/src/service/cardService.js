@@ -175,7 +175,7 @@ export const getMonthCardLogs = async () => {
   });
 }
 
-export const createCard = async ({ code: inputCode, type, startDate, plate, fullName, phone, email, durationMonths }) => {
+export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
   // Generate a random unique code if not provided
   const generateCode = async () => {
     const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
@@ -183,7 +183,7 @@ export const createCard = async ({ code: inputCode, type, startDate, plate, full
     if (existing) return generateCode();
     return random;
   };
-  const code = type === 'Thẻ tháng' ? await generateCode() : (inputCode || await generateCode());
+  const code = await generateCode();
 
   // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
   let expiredDate = null;

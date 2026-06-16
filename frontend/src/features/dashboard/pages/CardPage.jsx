@@ -9,7 +9,6 @@ import { useAuth } from '../../../context/AuthContext';
  */
 
 const INITIAL_FORM = {
-    code: '',
     type: 'Thẻ lượt',
     plate: '',
     fullName: '',
@@ -114,10 +113,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         e.preventDefault();
         setFormError(null);
 
-        if (formData.type === 'Thẻ lượt' && !formData.code.trim()) {
-            setFormError('Vui lòng nhập Mã thẻ.');
-            return;
-        }
         if (!formData.startDate) {
             setFormError('Vui lòng chọn ngày bắt đầu.');
             return;
@@ -133,7 +128,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         try {
             setSubmitting(true);
             await createCard({
-                code: formData.type === 'Thẻ lượt' ? formData.code.trim() : undefined,
                 type: formData.type,
                 plate: formData.plate.trim() || undefined,
                 startDate: formData.startDate,
@@ -249,7 +243,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <table className="cardpage-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left' }}>
-                                    <th style={{ padding: '12px' }}>MÃ THẺ</th>
                                     <th style={{ padding: '12px' }}>LOẠI</th>
                                     <th style={{ padding: '12px' }}>BIỂN SỐ</th>
                                     <th style={{ padding: '12px' }}>TRẠNG THÁI</th>
@@ -259,8 +252,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <tbody>
                                 {filteredCards.length > 0 ? (
                                     filteredCards.map((row) => (
-                                        <tr key={row.code} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px' }}>{row.type === 'Thẻ tháng' ? '---' : row.code}</td>
+                                        <tr key={row.card_id} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '12px' }}>{row.type}</td>
                                             <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
                                             <td style={{ padding: '12px' }}>
@@ -278,7 +270,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="4" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
                                             Không tìm thấy thẻ phù hợp
                                         </td>
                                     </tr>
@@ -325,23 +317,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
                         <form className="cardpage-modal-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-                            {/* Mã thẻ (UID) */}
-                            {formData.type === 'Thẻ lượt' && (
-                                <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                    <label htmlFor="code" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Mã thẻ (UID)</label>
-                                    <input
-                                        id="code"
-                                        name="code"
-                                        type="text"
-                                        className="cardpage-input"
-                                        placeholder="Ví dụ: 04FA23B1"
-                                        value={formData.code}
-                                        onChange={handleFormChange}
-                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                        required
-                                    />
-                                </div>
-                            )}
 
                             {/* Loại thẻ */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
