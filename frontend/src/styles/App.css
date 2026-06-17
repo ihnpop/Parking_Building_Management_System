@@ -12071,3 +12071,352 @@ body {
   justify-content: center;
   padding: 12px 0;
 }
+
+/* ==========================================================================
+   CSS TRANG PHÂN QUYỀN - MENU BA CHẤM & MODAL HỘP THOẠI CHỈNH SỬA
+   ========================================================================== */
+
+/* Nút ba chấm hoạt động */
+.user-action-dots-btn:hover {
+  background-color: #f3f4f5 !important;
+}
+
+/* Khung dropdown chứa nút Chỉnh sửa và Xóa */
+.user-action-dropdown-menu {
+  position: absolute;
+  right: 12px;
+  top: 40px;
+  background-color: #ffffff;
+  border: 1px solid #e1e3e4;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: 140px;
+  padding: 6px 0;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Các item bên trong menu ba chấm */
+.dropdown-action-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none !important;
+  outline: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.dropdown-action-item span.material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Hover đổi màu tinh tế đúng tính chất chức năng */
+.dropdown-action-item.edit-item {
+  color: #241912;
+}
+
+.dropdown-action-item.edit-item:hover {
+  background-color: #f5f6f7;
+  color: #e65c00;
+}
+
+.dropdown-action-item.delete-item {
+  color: #dc3545;
+}
+
+.dropdown-action-item.delete-item:hover {
+  background-color: #fff5f5;
+}
+
+/* --- HỘP THOẠI MODAL POPUP CẬP NHẬT --- */
+.user-management-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(36, 25, 18, 0.4); /* Nền mờ xám ấm dịu mắt */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: userModalFadeIn 0.2s ease-out;
+}
+
+.user-management-modal-box {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 460px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: userModalSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Header Modal */
+.user-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background-color: #fafbfb;
+  border-bottom: 1px solid #f1f2f4;
+}
+
+.user-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #241912;
+  margin: 0;
+}
+
+.modal-close-x-btn {
+  background: transparent;
+  border: none !important;
+  outline: none;
+  cursor: pointer;
+  color: #8c8581;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.modal-close-x-btn:hover {
+  background-color: #f1f2f4;
+  color: #241912;
+}
+
+/* Thân form nhập dữ liệu */
+.user-modal-form-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-modal-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-modal-input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #584236;
+}
+
+.user-modal-input-group input,
+.modal-select-styled-wrapper select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e1e3e4;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #241912;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease;
+}
+
+.user-modal-input-group input:focus,
+.modal-select-styled-wrapper select:focus {
+  border-color: #e65c00;
+  box-shadow: 0 0 0 3px rgba(230, 92, 0, 0.1);
+}
+
+/* Chân trang Modal chứa nút xác nhận */
+.user-modal-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.user-modal-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none !important;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.user-modal-btn.cancel {
+  background-color: #f5f6f7;
+  color: #584236;
+}
+
+.user-modal-btn.cancel:hover {
+  background-color: #e8eae3;
+}
+
+.user-modal-btn.submit {
+  background-gradient: linear-gradient(135deg, #ff8c00, #e65c00);
+  background-color: #e65c00;
+  color: #ffffff;
+}
+
+.user-modal-btn.submit:hover {
+  background-color: #cc5200;
+  box-shadow: 0 2px 6px rgba(230, 92, 0, 0.2);
+}
+
+/* Animation mượt mà */
+@keyframes userModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes userModalSlideUp {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ==========================================================================
+   CSS BỔ SUNG: THANH LỌC BUNG NGANG VÀ SỬA ĐỔI FORM NHẬP TRONG MODAL
+   ========================================================================== */
+
+/* Khung bọc hiệu ứng co giãn nút bấm */
+.horizontal-role-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin-left 0.25s ease;
+}
+
+/* Khi đang trạng thái THU GỌN: Ẩn hoàn toàn biến mất */
+.horizontal-role-buttons.collapsed {
+  max-width: 0;
+  opacity: 0;
+  margin-left: 0;
+  pointer-events: none;
+}
+
+/* Khi đang trạng thái MỞ RỘNG: Bung ra toàn bộ 4 ô ngang */
+.horizontal-role-buttons.expanded {
+  max-width: 500px; /* Khống chế chiều rộng tối đa vừa đủ cho 4 nút */
+  opacity: 1;
+  margin-left: 8px;
+  pointer-events: auto;
+}
+
+/* Các nút vai trò con bên trong thanh trượt */
+.role-sub-filter-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background-color: #ffffff;
+  color: #555555;
+  border: 1px solid #e1e3e4 !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.role-sub-filter-btn:hover {
+  background-color: #f5f6f7;
+  color: #191c1d;
+}
+
+/* Khi ô vai trò con đó được click kích hoạt */
+.role-sub-filter-btn.selected {
+  background-color: #ffe8d6 !important;
+  color: #e65c00 !important;
+  border: 1px solid #e65c00 !important;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   CSS BỔ SUNG: KHỐI BỘ LỌC VAI TRÒ XỔ XUỐNG THEO CHIỀU DỌC ĐÈ LÊN NỘI DUNG
+   ========================================================================== */
+
+/* Khung bọc giữ vị trí tương đối của Dropdown */
+.vertical-filter-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Khung Menu Xổ Dọc - NỔI ĐÈ LÊN TRÊN bảng dữ liệu */
+.vertical-role-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px); /* Nằm ngay sát mép dưới nút bấm */
+  left: 0;
+  width: 180px;
+  background-color: #ffffff;
+  border: 1px solid #e1e3e4;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); /* Bóng đổ mềm mại sang trọng */
+  padding: 6px 0;
+  z-index: 100; /* Đảm bảo luôn nằm đè lên trên bảng table bên dưới */
+  display: flex;
+  flex-direction: column;
+  animation: filterDropdownFadeIn 0.15s ease-out;
+}
+
+/* Các hàng nút bấm vai trò bên trong Dropdown dọc */
+.role-dropdown-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Đẩy dấu tích check về bên phải */
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: none !important;
+  outline: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #584236;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+/* Hover đổi màu */
+.role-dropdown-item-btn:hover {
+  background-color: #f5f6f7;
+  color: #191c1d;
+}
+
+/* Khi vai trò đó đang được kích hoạt */
+.role-dropdown-item-btn.selected {
+  background-color: #fff4e6 !important;
+  color: #e65c00 !important;
+  font-weight: 600;
+}
+
+/* Icon tích xanh check nhỏ xinh */
+.role-dropdown-item-btn .select-check-icon {
+  font-size: 16px;
+  color: #e65c00;
+  font-weight: bold;
+}
+
+/* Hiệu ứng mở mượt mà của dropdown */
+@keyframes filterDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
