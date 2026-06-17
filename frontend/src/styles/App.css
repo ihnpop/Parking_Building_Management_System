@@ -11757,3 +11757,317 @@ body {
 .view-all-logs-btn:hover {
   background-color: #f3f4f5;
 }
+
+/* ==========================================================================
+   CẤU HÌNH LAYOUT PHẲNG - GHIM CỐ ĐỊNH SIDEBAR & TOPBAR KHI SCROLL
+   ========================================================================== */
+
+/* Khung layout bọc ngoài cùng: Cố định 100% chiều cao màn hình, chặn cuộn body */
+.layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden; /* Ghim cứng toàn bộ layout không cho trôi khi cuộn chuột */
+}
+
+/* Thanh Sidebar bên trái - NỚI RỘNG CHIỀU RỘNG LÊN 280PX ĐỂ KHÔNG BỊ TRÀN CHỮ */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  height: 100%; /* Đảm bảo luôn cao bằng màn hình */
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  border-right: none !important; /* Không border phân cách */
+  padding: 0 16px 24px 16px;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s ease;
+  overflow: hidden;
+}
+
+/* Khi Sidebar thu hẹp */
+.sidebar.collapsed {
+  width: 72px;
+  min-width: 72px;
+  padding: 0 12px 24px 12px;
+}
+
+/* Khối chính chứa Topbar và View dưới */
+.layout .main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  background-color: transparent;
+}
+
+/* THANH HEADER (TOPBAR) - ĐỨNG IM CỐ ĐỊNH PHẲNG HOÀN TOÀN */
+.header {
+  height: 70px;
+  min-height: 70px;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: none !important; /* Không border phân cách */
+  box-shadow: none !important; /* Tạo không gian phẳng liền mạch */
+}
+
+.header-left-group {
+  display: flex;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #191c1d;
+  margin: 0;
+}
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+/* VÙNG NỘI DUNG CHỨA CÁC TRANG VIEW: Đây là nơi DUY NHẤT được phép cuộn chuột */
+.layout .content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto; /* Tự động xuất hiện thanh cuộn riêng tại đây khi nội dung quá dài */
+  overflow-x: hidden;
+  height: calc(100vh - 70px); /* Khống chế chiều cao trừ đi thanh topbar */
+}
+
+/* KHỐI BRAND HEADER TRONG SIDEBAR */
+.sidebar .brand {
+  height: 70px;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  border-bottom: none !important;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.sidebar:not(.collapsed) .brand {
+  justify-content: flex-start;
+}
+
+.sidebar.collapsed .brand {
+  justify-content: center;
+}
+
+/* Vùng chứa Logo khi thu nhỏ */
+.brand-logo-zone {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+/* ĐIỀU CHỈNH CỠ CHỮ NHỎ LẠI MỘT CHÚT ĐỂ THOÁNG VÀ ĐẸP HƠN */
+.brand-text-group {
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  max-width: 140px; /* Khống chế bề ngang để nhường chỗ cho nút toggle mở rộng */
+}
+
+.brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #241912;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: #8c8581;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 1. NÚT BẤM KHI SIDEBAR ĐANG MỞ RỘNG: Luôn luôn hiển thị cố định ở bên phải cùng hàng */
+.sidebar-gemini-toggle-expanded {
+  margin-left: auto; /* Tự động đẩy kịch biên về bên phải cùng hàng với logo */
+  background: transparent;
+  border: none !important;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  color: #584236;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-gemini-toggle-expanded:hover {
+  background-color: #f5f6f7;
+}
+
+/* 2. NÚT BẤM KHI SIDEBAR ĐANG THU NHỎ: Ẩn đi và chỉ hiện lên khi di chuột vào logo zone */
+.sidebar-gemini-toggle-collapsed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f5f6f7;
+  border: none !important;
+  outline: none;
+  border-radius: 8px;
+  color: #584236;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0; /* Mặc định ẩn nút hoàn toàn khi thu nhỏ */
+  pointer-events: none;
+  transition: opacity 0.15s ease, background-color 0.2s ease;
+}
+
+.sidebar-gemini-toggle-collapsed:hover {
+  background-color: #e8eae3;
+}
+
+/* HIỆU ỨNG HOVER KIỂU GEMINI: Di chuột vào vùng logo khi đang thu nhỏ -> Hiện nút mở rộng */
+.sidebar.collapsed .brand-logo-zone:hover .sidebar-gemini-toggle-collapsed {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* MENU TRONG SIDEBAR */
+.sidebar .menu-item {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  color: #584236;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.sidebar .menu-item.active {
+  background-color: #fff4e6 !important;
+  color: #e65c00 !important;
+  font-weight: 600;
+}
+
+.sidebar .menu-item:hover:not(.active) {
+  background-color: #f5f6f7 !important;
+}
+
+.sidebar.collapsed .menu-item {
+  justify-content: center;
+  padding: 12px 0;
+  border-radius: 8px;
+}
+
+.sidebar.collapsed .menu-item span.material-symbols-outlined {
+  margin: 0;
+}
+
+/* FOOTER SIDEBAR */
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: none !important;
+  padding-top: 16px;
+}
+
+.sidebar-account-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  background-color: #fafbfb;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.sidebar.collapsed .sidebar-account-card {
+  justify-content: center;
+  padding: 6px 0;
+  background-color: transparent;
+}
+
+.account-avatar-circle {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff8c00, #e65c00);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 2px 4px rgba(230, 92, 0, 0.15);
+}
+
+.account-info-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.account-info-email {
+  font-size: 13px;
+  font-weight: 600;
+  color: #241912;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Nếu email quá dài tự động thêm dấu ba chấm để tránh phá vỡ bố cục */
+}
+
+.account-info-role {
+  font-size: 11px;
+  color: #8c8581;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   TINH CHỈNH NÚT ĐĂNG XUẤT (CHỮ ĐỎ - HOVER CHỮ TRẮNG NỀN ĐỎ) THEO YÊU CẦU
+   ========================================================================== */
+.sidebar .logout {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  color: #dc3545 !important; /* Đổi màu chữ mặc định thành màu đỏ rực rỡ */
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Khi di chuột vào: Biến đổi thành chữ trắng nền đỏ nổi bật */
+.sidebar .logout:hover {
+  background-color: #dc3545 !important; /* Nền đỏ */
+  color: #ffffff !important; /* Chữ trắng */
+}
+
+.sidebar.collapsed .logout {
+  justify-content: center;
+  padding: 12px 0;
+}

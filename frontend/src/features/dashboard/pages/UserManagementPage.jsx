@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-// ĐÃ XÓA: Bỏ import DashboardShell để tránh lỗi lồng khung giao diện
 
 export default function UserManagementPage() {
     const { userRole } = useAuth();
     const [users, setUsers] = useState([
-        // Khởi tạo data mẫu đồng bộ theo hình ảnh thực tế của bạn
         { id: 1, name: 'Nguyễn Văn A', username: 'manager', email: 'manager@gmail.com', status: 'Không hoạt động', role: 'Manager' },
         { id: 2, name: 'Trần Văn B', username: 'staff', email: 'staff@gmail.com', status: 'Không hoạt động', role: 'Staff' },
         { id: 3, name: 'Nguyễn Anh Tuấn', username: 'admin', email: 'admin@gmail.com', status: 'Không hoạt động', role: 'Admin' }
@@ -13,10 +11,10 @@ export default function UserManagementPage() {
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả');
 
-    // Logic filter dữ liệu người dùng
     const filteredUsers = users.filter(user => {
         const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) ||
-            user.email.toLowerCase().includes(search.toLowerCase());
+            user.email.toLowerCase().includes(search.toLowerCase()) ||
+            user.username.toLowerCase().includes(search.toLowerCase());
         const matchesRole = roleFilter === 'Tất cả' || user.role === roleFilter;
         return matchesSearch && matchesRole;
     });
@@ -26,11 +24,10 @@ export default function UserManagementPage() {
     };
 
     return (
-        // ĐÃ SỬA: Chuyển về thẻ div phẳng thông thường, bám sát cấu trúc UI của bạn
-        <div className="user-management-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="user-management-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px' }}>
 
-            {/* Khối Banner thông tin tổng quát Phân Quyền */}
-            <div className="user-mgmt-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #eee', borderRadius: '8px', background: '#fff' }}>
+            {/* Khối Banner thông tin tổng quát */}
+            <div className="user-mgmt-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #e1e3e4', borderRadius: '8px', background: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <div style={{ background: '#ffe8d6', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
                         <span className="material-symbols-outlined" style={{ color: '#e65c00', fontSize: '28px' }}>manage_accounts</span>
@@ -41,14 +38,14 @@ export default function UserManagementPage() {
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#333', block: 'block', lineHeight: '1' }}>{users.length}</span>
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#333', display: 'block', lineHeight: '1' }}>{users.length}</span>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>Tổng người dùng</p>
                 </div>
             </div>
 
-            {/* Thanh công cụ tìm kiếm và lọc danh sách nhanh */}
+            {/* THANH TÌM KIẾM VÀ LỌC ĐÃ ĐƯỢC ĐƯA XUỐNG DƯỚI VIEW */}
             <div className="user-mgmt-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', borderRadius: '6px', padding: '6px 12px', background: '#fff', width: '350px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e1e3e4', borderRadius: '6px', padding: '8px 12px', background: '#fff', width: '350px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#888', marginRight: '8px', fontSize: '20px' }}>search</span>
                     <input
                         type="text"
@@ -68,27 +65,23 @@ export default function UserManagementPage() {
                             style={{
                                 padding: '8px 16px',
                                 borderRadius: '6px',
-                                border: '1px solid #ddd',
                                 fontSize: '0.9rem',
                                 fontWeight: '500',
                                 backgroundColor: roleFilter === role ? '#ffe8d6' : '#fff',
                                 color: roleFilter === role ? '#e65c00' : '#555',
-                                border: roleFilter === role ? '1px solid #e65c00' : '1px solid #ddd',
-                                cursor: 'pointer'
+                                border: roleFilter === role ? '1px solid #e65c00' : '1px solid #e1e3e4',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
                             }}
                         >
                             {role}
                         </button>
                     ))}
-                    <button type="button" style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
-                        Làm mới
-                    </button>
                 </div>
             </div>
 
             {/* Bảng phân quyền dữ liệu người dùng */}
-            <div className="user-mgmt-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px', background: '#fff' }}>
+            <div className="user-mgmt-table-card" style={{ border: '1px solid #e1e3e4', borderRadius: '8px', padding: '15px', background: '#fff' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left', color: '#666', fontSize: '0.85rem' }}>
