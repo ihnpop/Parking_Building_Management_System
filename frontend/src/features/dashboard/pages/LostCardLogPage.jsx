@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import { createLostCard } from "../../../service/cardApi"
 export default function LostCardLogPage() {
     const navigate = useNavigate();
     const [lostCards, setLostCards] = useState([]);
@@ -12,6 +12,41 @@ export default function LostCardLogPage() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
 
+    // Trạng thái hiển thị modal tạo báo mất thẻ
+    const [showCreateModal, setShowCreateModal] = useState(false);
+
+    // Dữ liệu nhập vào của form báo mất thẻ mới
+    const [newLostCard, setNewLostCard] = useState({
+        plate_number: '',
+        description: ''
+    });
+
+    // Xử lý gửi yêu cầu tạo báo mất thẻ mới lên server
+    const handleCreateLostCard = async () => {
+        try {
+            // Tạo payload gửi đi từ dữ liệu form
+            const payload = {
+                plate_number: newLostCard.plate_number,
+                description: newLostCard.description || 'Báo mất thẻ'
+            };
+
+            // Gọi API tạo báo mất thẻ mới
+            await createLostCard(payload);
+            // Tải lại danh sách nhật ký mất thẻ mới nhất
+            await fetchLostCards();
+            // Đóng modal và reset dữ liệu form về mặc định
+            setShowCreateModal(false);
+            setNewLostCard({
+                plate_number: '',
+                description: ''
+            });
+        } catch (err) {
+            console.error(err);
+            // Hiển thị thông báo lỗi chi tiết từ Server nếu có
+            const message = err.response?.data?.message || err.message || 'Không thể tạo báo mất';
+            alert(message);
+        }
+    };
     const fetchLostCards = async () => {
         try {
             setLoading(true);
@@ -240,7 +275,7 @@ export default function LostCardLogPage() {
                                     <th>MÃ BÁO MẤT</th>
                                     <th>MÃ THẺ</th>
                                     <th>BIỂN SỐ XE</th>
-                                    <th>CHỦ XE</th>
+                                    <th>LOẠI THẺ</th>
                                     <th>NGÀY BÁO MẤT</th>
                                     <th>TRẠNG THÁI</th>
                                     <th>NGƯỜI XỬ LÝ</th>
@@ -253,7 +288,7 @@ export default function LostCardLogPage() {
                                         const reportId = row.lost_report_id || row.id;
                                         const cardCode = row.card_code || row.cardNo;
                                         const plateNumber = row.plate_number || row.plate;
-                                        const customerName = row.customer_name || row.owner;
+                                        const cardType = row.card_type || 'Thẻ lượt';
                                         const reportDate = row.reported_at || row.date;
 
                                         return (
@@ -261,7 +296,7 @@ export default function LostCardLogPage() {
                                                 <td className="lost-id-cell">{reportId}</td>
                                                 <td>{cardCode}</td>
                                                 <td>{renderPlate(plateNumber)}</td>
-                                                <td>{customerName}</td>
+                                                <td>{cardType}</td>
                                                 <td>
                                                     {reportDate && !isNaN(Date.parse(reportDate))
                                                         ? new Date(reportDate).toLocaleString('vi-VN', {
@@ -311,7 +346,7 @@ export default function LostCardLogPage() {
                                         <span className="material-symbols-outlined">chevron_right</span>
                                     </button>
                                 </div>
-                                <button type="button" className="lost-create-button">
+                                <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
                                     <span className="material-symbols-outlined">add</span>
                                     Tạo báo mất mới
                                 </button>
@@ -320,6 +355,61 @@ export default function LostCardLogPage() {
                     </>
                 )}
             </section>
+            {showCreateModal && (
+                <div className="lost-modal-overlay">
+                    <div className="lost-modal">
+
+                        <h2>Tạo báo mất mới</h2>
+
+                        <div className="lost-form-group">
+                            <label>Biển số xe</label>
+                            <input
+                                type="text"
+                                placeholder="Nhập biển số xe..."
+                                value={newLostCard.plate_number}
+                                onChange={(e) =>
+                                    setNewLostCard({
+                                        ...newLostCard,
+                                        plate_number: e.target.value
+                                    })
+                                }
+                            />
+                        </div>
+
+                        <div className="lost-form-group">
+                            <label>Lí do</label>
+                            <input
+                                type="text"
+                                placeholder="Nhập lí do báo mất..."
+                                value={newLostCard.description}
+                                onChange={(e) =>
+                                    setNewLostCard({
+                                        ...newLostCard,
+                                        description: e.target.value
+                                    })
+                                }
+                            />
+                        </div>
+
+                        <div className="lost-modal-actions">
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(false)}
+                            >
+                                Hủy
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleCreateLostCard}
+                            >
+                                Lưu
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
