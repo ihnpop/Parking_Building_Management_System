@@ -88,18 +88,18 @@ export default function SystemOperations() {
     };
 
     const handleCameraClick = (id) => {
-        if (mode === 'IN') {
-            if (id === 'vehicleImage') {
-                vehicleInputRef.current?.click();
-            } else if (id === 'plateImage') {
-                plateInputRef.current?.click();
-            }
-        } else {
-            if (id === 'camera3') {
-                exitVehicleInputRef.current?.click();
-            } else if (id === 'camera4') {
-                exitPlateInputRef.current?.click();
-            }
+        if (id === 'vehicleImage') {
+            vehicleInputRef.current?.click();
+            setMode('IN');
+        } else if (id === 'plateImage') {
+            plateInputRef.current?.click();
+            setMode('IN');
+        } else if (id === 'camera3') {
+            exitVehicleInputRef.current?.click();
+            setMode('OUT');
+        } else if (id === 'camera4') {
+            exitPlateInputRef.current?.click();
+            setMode('OUT');
         }
     };
 
@@ -287,10 +287,9 @@ export default function SystemOperations() {
                 </section>
 
                 <section className="camera-grid">
-                    {cameraCards.map((camera) => {
+                    {[cameraCards[0], cameraCards[2], cameraCards[1], cameraCards[3]].map((camera) => {
                         const isCameraIn = camera.id === 'vehicleImage' || camera.id === 'plateImage';
-                        const isCameraOut = camera.id === 'camera3' || camera.id === 'camera4';
-                        const isActiveMode = (mode === 'IN' && isCameraIn) || (mode === 'OUT' && isCameraOut);
+                        const isCurrentlyActiveMode = (mode === 'IN' && isCameraIn) || (mode === 'OUT' && !isCameraIn);
                         
                         let bgImage = camera.image;
                         let isSelected = false;
@@ -310,48 +309,53 @@ export default function SystemOperations() {
                         }
 
                         return (
-                            <article key={camera.title} className="camera-card" style={{ opacity: isActiveMode ? 1 : 0.45, transition: 'opacity 0.25s ease' }}>
+                            <article 
+                                key={camera.title} 
+                                className="camera-card" 
+                                style={{ 
+                                    opacity: isCurrentlyActiveMode ? 1 : 0.7, 
+                                    transition: 'opacity 0.25s ease' 
+                                }}
+                            >
                                 <div
                                     className="camera-image"
                                     style={{
                                         backgroundImage: `url(${bgImage})`,
-                                        cursor: isActiveMode ? 'pointer' : 'not-allowed'
+                                        cursor: 'pointer'
                                     }}
-                                    onClick={() => isActiveMode && handleCameraClick(camera.id)}
-                                    onMouseEnter={() => isActiveMode && setHoveredCamera(camera.id)}
-                                    onMouseLeave={() => isActiveMode && setHoveredCamera(null)}
+                                    onClick={() => handleCameraClick(camera.id)}
+                                    onMouseEnter={() => setHoveredCamera(camera.id)}
+                                    onMouseLeave={() => setHoveredCamera(null)}
                                 >
                                     <span className="camera-label">{camera.title}</span>
                                     {camera.badge && <span className={`camera-badge ${camera.badgeClass}`}>{camera.badge}</span>}
                                     
                                     {/* Overlay showing upload message on hover */}
-                                    {isActiveMode && (
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                inset: 0,
-                                                backgroundColor: hoveredCamera === camera.id ? 'rgba(15, 23, 42, 0.6)' : 'rgba(0, 0, 0, 0)',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                justifyContent: 'center',
-                                                alignItems: 'center',
-                                                transition: 'all 0.2s ease',
-                                                opacity: hoveredCamera === camera.id ? 1 : 0,
-                                                pointerEvents: 'none',
-                                                color: 'white',
-                                                gap: '8px',
-                                                zIndex: 10
-                                            }}
-                                        >
-                                            <span className="material-symbols-outlined" style={{ fontSize: 40 }}>add_a_photo</span>
-                                            <span style={{ fontSize: 13, fontWeight: 'bold' }}>
-                                                {camera.id === 'vehicleImage' ? 'Click tải ảnh xe vào' :
-                                                 camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
-                                                 camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
-                                                 'Click tải ảnh biển số ra'}
-                                            </span>
-                                        </div>
-                                    )}
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            backgroundColor: hoveredCamera === camera.id ? 'rgba(15, 23, 42, 0.6)' : 'rgba(0, 0, 0, 0)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            transition: 'all 0.2s ease',
+                                            opacity: hoveredCamera === camera.id ? 1 : 0,
+                                            pointerEvents: 'none',
+                                            color: 'white',
+                                            gap: '8px',
+                                            zIndex: 10
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: 40 }}>add_a_photo</span>
+                                        <span style={{ fontSize: 13, fontWeight: 'bold' }}>
+                                            {camera.id === 'vehicleImage' ? 'Click tải ảnh xe vào' :
+                                             camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
+                                             camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
+                                             'Click tải ảnh biển số ra'}
+                                        </span>
+                                    </div>
 
                                     {/* Selected badge */}
                                     {isSelected && (
@@ -618,5 +622,5 @@ export default function SystemOperations() {
                 </div>
             )}
         </div>
-    )
+    );
 }
