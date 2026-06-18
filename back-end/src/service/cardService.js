@@ -110,104 +110,68 @@ export const getCards = async () => {
 }
 
 export const getMonthCards = async () => {
-  // const { data, error } = await supabase
-  //   .from('card')
-  //   .select('*')
-  //   .like("type", "Thẻ tháng");
-
-  // export const getMonthCards = async () => {
   const { data, error } = await supabase
-    .from("card_registrations")
+    .from("card")
     .select(`
-      registration_id,
+      card_id,
+      code,
+      type,
+      expired_date,
       status,
       created_at,
-
-      card!inner (
-        card_id,
-        code,
-        type,
-        expired_date,
+      card_registrations (
+        registration_id,
         status,
-        created_at
-      ),
-
-      vehicle (
-        plate_number,
-
-        customer (
-          full_name
-        ),
-
-        vehicle_type (
-          name
+        created_at,
+        vehicle (
+          plate_number,
+          customer (
+            full_name
+          ),
+          vehicle_type (
+            name
+          )
         )
       )
     `)
-    .eq("card.type", "Thẻ tháng");
+    .eq("type", "Thẻ tháng")
+    .not("status", "eq", "Đã xóa");
 
   if (error) throw new Error(error.message);
 
-  // const { data: cards, error: cardError } = await supabase
-  //   .from("card")
-  //   .select("*")
-  //   .like("type", "Thẻ tháng");
-
-  const { data: cards, error: cardError } = await supabase
-    .from("card_registrations")
-    .select(`
-      registration_id,
-      status,
-      created_at,
-
-      card!inner (
-        card_id,
-        code,
-        type,
-        expired_date,
-        status,
-        created_at
-      ),
-
-      vehicle (
-        plate_number,
-
-        customer (
-          full_name
-        ),
-
-        vehicle_type (
-          name
-        )
-      )
-    `)
-    .eq("card.type", "Thẻ tháng");
-
-  if (cardError) throw new Error(cardError.message);
-
-  return data.map((vp, i) => {
-    const cardCode = cards && cards[i % cards.length]
-      ? cards[i % cards.length].code
-      : `CARD-${i + 1000}`;
+  return data.map((card, i) => {
+    // Tìm liên kết đăng ký đang hoạt động (Hoạt động hoặc ACTIVE)
+    const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động' || r.status === 'ACTIVE') || null;
 
     let statusText = "Hoạt động";
-    if (vp.status === 'EXPIRED') {
+    const expiredDate = card.expired_date ? new Date(card.expired_date) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (card.status === 'Hết hạn' || card.status === 'Đã hết hạn' || card.status === 'EXPIRED' || (expiredDate && expiredDate < today)) {
       statusText = "Đã hết hạn";
-    } else if (new Date(vp.end_date) - new Date() < 7 * 24 * 60 * 60 * 1000) {
-      statusText = "Sắp hết hạn";
+    } else if (card.status === 'Đã khóa' || card.status === 'LOCKED') {
+      statusText = "Đã khóa";
+    } else if (expiredDate) {
+      expiredDate.setHours(0, 0, 0, 0);
+      const diffTime = expiredDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) {
+        statusText = "Sắp hết hạn";
+      }
     }
 
     return {
       id: String(i + 1).padStart(2, '0'),
-      // cardNo: cardCode,
-      cardNo: vp.card?.code,
-      plate: vp.vehicle?.plate_number || "Chưa có",
-      customer: vp.vehicle?.customer?.full_name || "Khách vãng lai",
-      type: vp.vehicle?.vehicle_type?.name || "Xe máy",
-      // startDate: new Date(vp.start_date).toLocaleDateString('vi-VN'),
-      // endDate: new Date(vp.end_date).toLocaleDateString('vi-VN'),
-      startDate: new Date(vp.card?.created_at).toLocaleDateString('vi-VN'),
-      endDate: new Date(vp.card?.expired_date).toLocaleDateString('vi-VN'),
+      card_id: card.card_id,
+      registrationId: activeReg?.registration_id || null,
+      cardNo: card.code,
+      plate: activeReg?.vehicle?.plate_number || "Chưa có",
+      customer: activeReg?.vehicle?.customer?.full_name || "Khách vãng lai",
+      type: activeReg?.vehicle?.vehicle_type?.name || "Xe máy",
+      startDate: card.created_at ? new Date(card.created_at).toLocaleDateString('vi-VN') : "Chưa có",
+      endDate: card.expired_date ? new Date(card.expired_date).toLocaleDateString('vi-VN') : "Không giới hạn",
+      expiredDate: card.expired_date,
       status: statusText
     };
   });
