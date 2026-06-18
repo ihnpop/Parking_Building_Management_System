@@ -1,0 +1,32 @@
+import axios from "axios";
+
+const API = axios.create({
+    baseURL: "http://localhost:3636/api/month-card",
+});
+
+// Helper để lấy token xác thực từ localStorage
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+/**
+ * Lấy danh sách gói cước gia hạn thẻ tháng từ API
+ * @returns {Promise<Array>}
+ */
+export const getRenewPackages = async () => {
+    const response = await API.get("/renew-packages");
+    return response.data;
+};
+
+/**
+ * Gửi yêu cầu gia hạn thẻ tháng lên API Backend
+ * @param {object} payload - { registrationId, months, note }
+ * @returns {Promise<object>}
+ */
+export const renewMonthCard = async (payload) => {
+    const response = await API.post("/renew", payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};

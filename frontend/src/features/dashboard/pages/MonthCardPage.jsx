@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMonthCards } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
+import RenewCardDialog from '../components/RenewCardDialog';
 
 /**
  * MonthCardPage displays monthly card management interface.
@@ -14,6 +15,7 @@ export default function MonthCardPage() {
     const [monthCards, setMonthCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [renewingCard, setRenewingCard] = useState(null);
 
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
     const getRoleLabel = (r) => {
@@ -119,7 +121,11 @@ export default function MonthCardPage() {
                             <span className="material-symbols-outlined">refresh</span>
                             Làm mới
                         </button>
-                        <button type="button" className="month-btn month-btn-outline">
+                        <button 
+                            type="button" 
+                            className="month-btn month-btn-outline"
+                            onClick={() => alert("Vui lòng chọn nút Gia hạn ở cột Thao tác của từng thẻ tháng trong danh sách bên dưới.")}
+                        >
                             <span className="material-symbols-outlined">calendar_today</span>
                             Gia hạn
                         </button>
@@ -238,8 +244,17 @@ export default function MonthCardPage() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <button type="button" className="action-icon-btn">
+                                                <button type="button" className="action-icon-btn" title="Chỉnh sửa">
                                                     <span className="material-symbols-outlined">edit</span>
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    className="action-icon-btn" 
+                                                    title="Gia hạn"
+                                                    onClick={() => setRenewingCard(row)}
+                                                    disabled={!row.registrationId || row.status === 'Đã khóa'}
+                                                >
+                                                    <span className="material-symbols-outlined">calendar_today</span>
                                                 </button>
                                             </td>
                                         </tr>
@@ -269,6 +284,13 @@ export default function MonthCardPage() {
                     </>
                 )}
             </div>
+
+            <RenewCardDialog 
+                isOpen={!!renewingCard} 
+                onClose={() => setRenewingCard(null)} 
+                cardData={renewingCard} 
+                onSuccess={fetchMonthCards} 
+            />
         </div>
     )
 }
