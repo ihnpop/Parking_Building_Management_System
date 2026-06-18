@@ -1323,6 +1323,8 @@ body {
   border-radius: 24px;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 32px 64px rgba(15, 23, 42, 0.18);
   animation: modalIn 0.22s ease;
 }
@@ -12419,4 +12421,1509 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================================================
+   OCCUPANCY CHART STYLES
+   ============================================================ */
+
+.occupancy-page {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box; /* Đảm bảo padding không làm vỡ giao diện */
+}
+
+.analytics-container {
+  width: 100%;
+  max-width: 1400px;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1f2937;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+.back-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 40px;
+  margin-top: 60px; /* Tăng top margin để không bị đè bởi nút back tuyệt đối */
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.page-header p {
+  font-size: 1.05rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.chart-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.1);
+  margin-bottom: 32px;
+}
+
+.chart-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.chart-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.chart-header p {
+  font-size: 0.95rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* --- ĐÃ SỬA CẤU TRÚC CHART ĐỂ THẲNG HÀNG TRỤC HOÀNH VÀ TRỤC TUNG --- */
+.chart-container {
+  display: flex;
+  gap: 0px; /* Đổi thành 0 để bám sát trục tọa độ */
+  margin-bottom: 50px; /* Tạo không gian rộng rãi cho nhãn nghiêng dưới đáy */
+  position: relative;
+  height: 350px;
+}
+
+.y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 60px; /* Tăng nhẹ để số % không bị đẩy xuống hàng */
+  padding-right: 12px;
+  text-align: right;
+  border-right: 2px solid #e5e7eb;
+  box-sizing: border-box;
+}
+
+.y-axis span {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+  height: 0px; /* Để điểm mốc text nằm chính xác ngang hàng với vạch lưới */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.grid-lines {
+  position: absolute;
+  left: 60px; /* Trùng khớp hoàn toàn với độ rộng của .y-axis */
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.grid-line {
+  height: 1px;
+  background: #e5e7eb;
+  width: 100%;
+}
+
+.bars-wrapper {
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  height: 100%;
+  padding-left: 16px; /* Tạo khoảng cách thụt lề từ trục tung ra cột đầu tiên */
+  padding-right: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+  position: relative;
+}
+
+.bar-inner {
+  width: 100%;
+  display: flex;
+  align-items: flex-end; /* Đẩy cột bám chặt xuống đáy trục hoành */
+  justify-content: center;
+  height: 100%;
+  position: relative;
+  border-bottom: 2px solid #e5e7eb; /* Đường kẻ đậm làm trục hoành */
+}
+
+/* --- ĐÃ SỬA ĐỂ HIỂN THỊ MÀU SẮC CỘT VÀ HIỆU ỨNG HOVER CHUẨN --- */
+.bar {
+  width: 60%; /* Chuyển sang % để co giãn tự động mượt mà khi đổi Ngày/Tuần/Tháng */
+  max-width: 32px; 
+  min-width: 8px;
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%) !important; /* Ép nhận dải màu */
+  border-radius: 6px 6px 0 0;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  z-index: 5;
+}
+
+.bar:hover {
+  transform: scaleY(1.02); /* Giảm scaleY để tránh chân cột bị hẫng khỏi trục hoành */
+  filter: brightness(1.1); /* Tạo hiệu ứng sáng lên khi hover */
+}
+
+/* --- ĐÃ SỬA TOOLTIP HIỂN THỊ TRÊN ĐẦU CỘT CHỨ KHÔNG NẰM DƯỚI ĐÁY --- */
+.tooltip {
+  position: absolute;
+  bottom: 100%; /* Đẩy tooltip luôn luôn nằm trên đỉnh của cột */
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: #1f2937;
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip::after { /* Thêm mũi tên nhỏ chỉ xuống cột cho đẹp */
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+}
+
+.bar-inner:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+/* --- ĐÃ SỬA CHỮ ĐỂ KHÔNG ĐÈ TRỤC HOÀNH VÀ KHÔNG BỊ CHỒNG NHAU --- */
+.bar-label {
+  font-size: 11px;
+  color: #4b5563;
+  font-weight: 600;
+  text-align: center;
+  position: absolute;
+  top: 100%; /* Đặt chuẩn xác ngay phía dưới đáy trục hoành */
+  padding-top: 12px;
+  transform: none;
+  transform-origin: top center;
+  white-space: nowrap;
+}
+
+.period-selector {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  margin-top: 20px;
+}
+
+.period-selector button {
+  padding: 10px 24px;
+  border: 2px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-selector button:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.period-selector button.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  color: #6b7280;
+  font-weight: 500;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+  border-radius: 4px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+  border-color: #7dd3fc;
+}
+
+.summary-icon {
+  font-size: 2rem;
+  min-width: 50px;
+  text-align: center;
+}
+
+.summary-card p {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.summary-card h3 {
+  font-size: 1.5rem;
+  color: #1f2937;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ==========================================================================
+   FIX TOÀN DIỆN LAYOUT THANH BỘ LỌC NGANG VÀ PHÂN TÁCH MÀU SẮC TRẠNG THÁI
+   ========================================================================== */
+
+/* Khung bọc ngoài của bộ lọc dạng khối phẳng liền mạch */
+.lost-card-log-page .lost-toolbar-modern {
+  background: #ffffff !important;
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  margin-bottom: 24px !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Ép thanh ngang phân chia layout chuẩn Flexbox hàng ngang kịch biên */
+.lost-card-log-page .lost-filters-horizontal-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 16px !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lost-card-log-page .lost-filter-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.lost-card-log-page .filter-field-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #6b7280 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-bottom: 2px !important;
+  white-space: nowrap !important; /* Ngăn nhãn chữ bị nhảy xuống hàng */
+}
+
+/* 1. Sửa ô Tìm kiếm nâng cao (Tự co giãn chiếm kịch không gian) */
+.lost-card-log-page .search-premium-wrapper {
+  flex: 2 !important;
+  min-width: 300px !important;
+}
+
+.lost-card-log-page .premium-input-box-styled {
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+  height: 42px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+.lost-card-log-page .premium-input-box-styled:focus-within {
+  border-color: var(--db-primary, #2563eb) !important;
+  box-shadow: 0 0 0 3px var(--db-primary-light, #eff6ff) !important;
+}
+
+.lost-card-log-page .premium-input-box-styled input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  font-size: 0.9rem !important;
+  color: #1f2937 !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+}
+
+.lost-card-log-page .search-brand-icon-premium {
+  color: #94a3b8 !important;
+  margin-right: 8px !important;
+  font-size: 20px !important;
+}
+
+/* 2. Sửa ô Chọn trạng thái xử lý */
+.lost-card-log-page .select-premium-wrapper {
+  flex: 1 !important;
+  min-width: 180px !important;
+}
+
+.lost-card-log-page .premium-select-box-styled {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.lost-card-log-page .premium-select-box-styled select {
+  width: 100% !important;
+  height: 42px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 36px 0 14px !important;
+  outline: none !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+  appearance: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+}
+
+.lost-card-log-page .premium-select-box-styled select:focus {
+  border-color: var(--db-primary, #2563eb) !important;
+  box-shadow: 0 0 0 3px var(--db-primary-light, #eff6ff) !important;
+}
+
+.lost-card-log-page .select-arrow-icon-premium {
+  position: absolute !important;
+  right: 12px !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+}
+
+/* 3. Sửa ô Khoảng ngày báo mất */
+.lost-card-log-page .date-premium-wrapper {
+  flex: 1.5 !important;
+  min-width: 260px !important;
+}
+
+.lost-card-log-page .premium-date-inputs-styled {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 10px !important;
+  height: 42px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lost-card-log-page .premium-date-inputs-styled:focus-within {
+  border-color: var(--db-primary, #2563eb) !important;
+  box-shadow: 0 0 0 3px var(--db-primary-light, #eff6ff) !important;
+}
+
+.lost-card-log-page .date-field-node-premium {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.lost-card-log-page .date-field-node-premium input[type="date"] {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  width: 100% !important;
+  font-size: 0.85rem !important;
+  color: #1f2937 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+}
+
+.lost-card-log-page .date-range-split-dash-premium {
+  color: #94a3b8 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+/* ==========================================================================
+   TÁCH BIỆT MÀU SẮC TRẠNG THÁI: CHỜ XỬ LÝ (ĐỎ CAM) VS ĐANG XỬ LÝ (XANH DƯƠNG)
+   ========================================================================== */
+
+/* Nhuộm ô chỉ số Đang chờ xử lý thành màu đỏ cam nổi bật */
+.lost-card-log-page .pending-icon { background: #ffebee !important; color: #ef4444 !important; }
+.lost-card-log-page .pending-border { border-left: 5px solid #ef4444 !important; }
+.lost-card-log-page .text-pending { color: #b91c1c !important; }
+.lost-card-log-page .warning-alert { color: #ef4444 !important; }
+
+/* Nhuộm thanh biểu đồ tỷ lệ phần trăm Đang chờ xử lý sang tone đỏ cam */
+.lost-card-log-page .pending-fill { background: linear-gradient(90deg, #ef4444, #f87171) !important; }
+
+/* Nhuộm badge trạng thái trong bảng thành màu đỏ cam phân tách */
+.lost-card-log-page .status-badge-lost-premium.status-pending-wait {
+  background: #ffebee !important;
+  color: #b91c1c !important;
+}
+
+/* Đồng bộ vị trí và độ rộng của bảng dữ liệu bên dưới */
+.lost-card-log-page .lost-table-card-premium {
+  margin-top: 16px !important;
+  clear: both !important;
+}
+
+/* ==========================================================================
+   BỔ SUNG TOÀN DIỆN CHÂN TRANG NHẬT KÝ MẤT THẺ (TONE XANH NEWCOLOR PHẲNG)
+   ========================================================================== */
+
+/* Khung Analytics phía trên: Chia kịch khung trái (2/3) và biểu đồ phải (1/3) */
+.lost-card-log-page .lost-dashboard-analytics-container {
+  display: flex !important;
+  gap: 20px !important;
+  margin-bottom: 24px !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+/* Lưới Grid bên trái chia đều thành 2 cột cho 4 ô chỉ số vuông vắn */
+.lost-card-log-page .lost-stats-grid-layout {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 16px !important;
+  flex-grow: 1 !important;
+}
+
+/* Thiết kế ô chỉ số theo phong cách phẳng lỳ hiện đại */
+.lost-card-log-page .lost-stat-box-item {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid #E5E7EB !important;
+  padding: 18px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 115px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.lost-card-log-page .lost-stat-box-item:hover {
+  transform: translateY(-2px) !important;
+  border-color: #2563EB !important; /* Xanh Royal */
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.05) !important;
+}
+
+.lost-card-log-page .lost-box-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.lost-card-log-page .lost-box-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.lost-card-log-page .lost-box-icon span {
+  font-size: 20px !important;
+}
+
+/* Phối màu dải liên kết cho từng ô */
+.lost-card-log-page .total-icon { background: #f1f5f9 !important; color: #475569 !important; }
+.lost-card-log-page .total-border { border-left: 5px solid #475569 !important; }
+
+.lost-card-log-page .success-icon { background: #ecfdf5 !important; color: #10b981 !important; }
+.lost-card-log-page .success-border { border-left: 5px solid #10b981 !important; }
+
+.lost-card-log-page .lost-box-label {
+  font-size: 0.9rem !important;
+  color: #4b5563 !important;
+  font-weight: 600 !important;
+}
+
+.lost-card-log-page .lost-box-body {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  margin-top: 12px !important;
+}
+
+.lost-card-log-page .lost-box-number {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+.lost-card-log-page .text-total { color: #1f2937 !important; }
+.lost-card-log-page .text-success { color: #065f46 !important; }
+.lost-card-log-page .lost-box-subtext { font-size: 0.8rem !important; color: #9ca3af !important; }
+.lost-card-log-page .success-alert { color: #10b981 !important; font-weight: 600 !important; }
+
+/* ── THIẾT KẾ KHỐI BIỂU ĐỒ 1/3 GỌN GÀNG BÊN PHẢI ── */
+.lost-card-log-page .lost-chart-visualization-card.compressed-width {
+  width: 35% !important;
+  min-width: 300px !important;
+  flex-shrink: 0 !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  padding: 18px 20px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.lost-card-log-page .chart-header-zone {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.lost-card-log-page .chart-header-zone h4 {
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  margin: 0 !important;
+}
+
+.lost-card-log-page .chart-bars-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  justify-content: center !important;
+  flex-grow: 1 !important;
+}
+
+.lost-card-log-page .chart-bar-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.lost-card-log-page .bar-meta-desc {
+  display: flex !important;
+  justify-content: space-between !important;
+  font-size: 0.8rem !important;
+  color: #6b7280 !important;
+}
+
+.lost-card-log-page .bar-name-label { font-weight: 500; }
+.lost-card-log-page .bar-data-counter b { color: #111827; }
+
+.lost-card-log-page .bar-track-background {
+  width: 100% !important;
+  height: 8px !important;
+  background: #f3f4f6 !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+
+.lost-card-log-page .bar-fill-color {
+  height: 100% !important;
+  border-radius: 4px !important;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+.lost-card-log-page .total-fill { background: #475569 !important; }
+.lost-card-log-page .success-fill { background: linear-gradient(90deg, #10b981, #34d399) !important; }
+
+/* ── SỬA LỖI VỠ LAYOUT THANH CÔNG CỤ BỘ LỌC NGANG ── */
+.lost-card-log-page .lost-toolbar-modern {
+  background: #ffffff !important;
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+.lost-card-log-page .lost-filters-horizontal-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 16px !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+}
+
+.lost-card-log-page .lost-filter-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.lost-card-log-page .filter-field-label {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: #4b5563 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-bottom: 2px !important;
+  white-space: nowrap !important;
+}
+
+.lost-card-log-page .search-premium-wrapper {
+  flex: 2 !important;
+  min-width: 300px !important;
+}
+
+.lost-card-log-page .premium-input-box-styled {
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+  height: 42px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lost-card-log-page .premium-input-box-styled:focus-within {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px #EFF6FF !important;
+}
+
+.lost-card-log-page .premium-input-box-styled input {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  width: 100% !important;
+  font-size: 0.9rem !important;
+  color: #1f2937 !important;
+}
+
+.lost-card-log-page .search-brand-icon-premium {
+  color: #94a3b8 !important;
+  margin-right: 8px !important;
+  font-size: 20px !important;
+}
+
+.lost-card-log-page .clear-btn-premium {
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+}
+
+.lost-card-log-page .select-premium-wrapper {
+  flex: 1 !important;
+  min-width: 180px !important;
+}
+
+.lost-card-log-page .premium-select-box-styled {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.lost-card-log-page .premium-select-box-styled select {
+  width: 100% !important;
+  height: 42px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 36px 0 14px !important;
+  outline: none !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+  appearance: none !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+}
+
+.lost-card-log-page .premium-select-box-styled select:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px #EFF6FF !important;
+}
+
+.lost-card-log-page .select-arrow-icon-premium {
+  position: absolute !important;
+  right: 12px !important;
+  color: #6b7280 !important;
+  pointer-events: none !important;
+}
+
+.lost-card-log-page .date-premium-wrapper {
+  flex: 1.5 !important;
+  min-width: 260px !important;
+}
+
+.lost-card-log-page .premium-date-inputs-styled {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0 10px !important;
+  height: 42px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lost-card-log-page .premium-date-inputs-styled:focus-within {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px #EFF6FF !important;
+}
+
+.lost-card-log-page .date-field-node-premium input[type="date"] {
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 0.85rem !important;
+  color: #1f2937 !important;
+}
+
+/* ── BẢNG DỮ LIỆU PHẲNG ── */
+.lost-card-log-page .lost-table-card-premium {
+  margin-top: 16px !important;
+  clear: both !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  padding: 20px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+}
+
+/* Nút Tạo báo mất mới */
+.lost-card-log-page .lost-create-button-premium {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 0 16px !important;
+  height: 38px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+.lost-card-log-page .lost-create-button-premium:hover { background: #1d4ed8 !important; }
+
+
+/* ==========================================================================
+   MÀU SẮC PHÂN TÁCH: ĐANG CHỜ XỬ LÝ (ĐỎ CAM KHẨN CẤP) VS ĐANG XỬ LÝ (XANH KHÁC BIỆT)
+   ========================================================================== */
+
+/* 1. Trạng thái: ĐANG CHỜ XỬ LÝ -> ĐỎ CAM CHỦ ĐẠO (Độc lập rực rỡ) */
+.lost-card-log-page .pending-icon { background: #fef2f2 !important; color: #ef4444 !important; }
+.lost-card-log-page .pending-border { border-left: 5px solid #ef4444 !important; }
+.lost-card-log-page .text-pending { color: #dc2626 !important; }
+.lost-card-log-page .warning-alert { color: #ef4444 !important; font-weight: 600 !important; }
+.lost-card-log-page .pending-fill { background: linear-gradient(90deg, #ef4444, #f87171) !important; }
+.lost-card-log-page .status-badge-lost-premium.status-pending-wait {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+
+/* 2. Trạng thái: ĐANG XỬ LÝ -> XANH ĐẠI DƯƠNG / HỒ THỦY (Khác biệt hoàn toàn) */
+.lost-card-log-page .processing-icon { background: #e0f2fe !important; color: #0284c7 !important; }
+.lost-card-log-page .processing-border { border-left: 5px solid #0284c7 !important; }
+.lost-card-log-page .text-processing { color: #0369a1 !important; }
+.lost-card-log-page .processing-fill { background: linear-gradient(90deg, #0284c7, #38bdf8) !important; }
+.lost-card-log-page .status-badge-lost-premium.status-pending {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+/* ==========================================================================
+   THIẾT KẾ LẠI BẢNG DỮ LIỆU HIỆN ĐẠI FLAT UI CAO CẤP (ANTI-UG LÝ)
+   ========================================================================== */
+
+/* Khung viền bọc ngoài bảng: Bo tròn mềm mại, đổ bóng chìm tinh tế */
+.lost-card-log-page .lost-table-card-premium {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 24px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 16px rgba(15, 23, 42, 0.03) !important;
+  margin-top: 24px !important;
+}
+
+/* Định dạng cấu trúc bảng phẳng */
+.lost-card-log-page .lost-table-modernized {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  text-align: left !important;
+}
+
+/* Làm mới thanh tiêu đề (Header): Thoáng đãng, chữ xám nhẹ, nền dịu mát */
+.lost-card-log-page .lost-table-modernized th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  padding: 16px 18px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* Làm mới các hàng dữ liệu (Rows): Giãn cách rộng rãi, chữ nét rõ ràng */
+.lost-card-log-page .lost-table-modernized td {
+  padding: 16px 18px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #334155 !important;
+  font-size: 13.5px !important;
+  vertical-align: middle !important;
+}
+
+/* Hiệu ứng highlight nhẹ hàng khi di chuột qua */
+.lost-card-log-page .lost-table-modernized tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Mã báo mất nổi bật chuẩn công nghệ */
+.lost-card-log-page .lost-id-cell-premium {
+  font-weight: 700 !important;
+  color: #2563eb !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ── BIẾN CHỮ THÀNH HUY HIỆU TRẠNG THÁI (STATUS BADGES) XINH XẮN ── */
+.lost-card-log-page .status-badge-lost-premium {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* Tách biệt dải màu cực kỳ trực quan */
+.lost-card-log-page .status-badge-lost-premium.status-pending-wait { 
+  background: #fef2f2 !important; 
+  color: #ef4444 !important; /* Đỏ cam cảnh báo */
+}
+.lost-card-log-page .status-badge-lost-premium.status-pending { 
+  background: #e0f2fe !important; 
+  color: #0284c7 !important; /* Xanh hồ thủy đang xử lý */
+}
+.lost-card-log-page .status-badge-lost-premium.status-recovered { 
+  background: #d1fae5 !important; 
+  color: #065f46 !important; /* Xanh lá đã xong */
+}
+
+/* Chấm tròn nhỏ nháy thở nhẹ tinh tế trước chữ trạng thái */
+.lost-card-log-page .status-badge-lost-premium::before {
+  content: "" !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  margin-right: 8px !important;
+  background-color: currentColor !important;
+}
+
+/* ── LÀM SẠCH NÚT BÚT CHÌ THAO TÁC KHÔNG CÒN VIỀN Ô VUÔNG ── */
+.lost-card-log-page .lost-action-btn-premium {
+  background: transparent !important;
+  border: none !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.lost-card-log-page .lost-action-btn-premium:hover {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+.lost-card-log-page .lost-action-btn-premium span {
+  font-size: 18px !important;
+}
+
+/* ── THIẾT KẾ LẠI FOOTER PHÂN TRANG: ĐẨY SANG 2 BÊN CÂN ĐỐI ── */
+.lost-card-log-page .lost-table-footer-premium {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 24px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+.lost-card-log-page .footer-info-premium {
+  font-size: 13.5px !important;
+  color: #64748b !important;
+}
+.lost-card-log-page .footer-info-premium b {
+  color: #0f172a !important;
+}
+
+.lost-card-log-page .footer-right-actions-premium {
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+}
+
+/* Cụm nút chuyển trang */
+.lost-card-log-page .lost-pagination-premium {
+  display: flex !important;
+  gap: 6px !important;
+}
+
+.lost-card-log-page .page-btn-premium {
+  min-width: 34px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.lost-card-log-page .page-btn-premium:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.lost-card-log-page .page-btn-premium.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2) !important;
+}
+
+.lost-card-log-page .page-btn-premium:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+.lost-card-log-page .page-btn-premium span {
+  font-size: 18px !important;
+}
+
+/* Nút Tạo báo mất mới kịch biên phải */
+.lost-card-log-page .lost-create-button-premium {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 0 20px !important;
+  height: 40px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+.lost-card-log-page .lost-create-button-premium:hover {
+  background: #1d4ed8 !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25) !important;
+}
+
+/* ==========================================================================
+   THIẾT KẾ PHÂN TẦNG NỀN XÁM FLAT UI & ĐỔ BÓNG MỜ NỔI BẬT KHỐI CHỨA
+   ========================================================================== */
+
+/* 1. Nhuộm riêng phần nền của trang Nhật ký mất thẻ thành màu xám nhạt cao cấp */
+.lost-card-log-page {
+  background-color: #f8fafc !important; /* Xám mịn Light Gray (chuẩn SaaS hiện đại) */
+  padding: 20px !important;
+  border-radius: 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* 2. Làm nổi bật lưới 4 ô vuông chỉ số phía trên */
+.lost-card-log-page .lost-stat-box-item {
+  background: #ffffff !important; /* Trắng tinh khôi để nổi bật trên nền xám */
+  border: 1px solid #e2e8f0 !important; /* Viền xám mảnh nguyên bản */
+  /* Đổ bóng mờ siêu mịn, có chiều sâu dịu mắt */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Hiệu ứng nâng khối và tăng độ mờ bóng khi di chuột qua ô chỉ số */
+.lost-card-log-page .lost-stat-box-item:hover {
+  transform: translateY(-3px) !important;
+  border-color: #2563eb !important; /* Viền xanh khi hover */
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.08), 0 4px 6px -2px rgba(37, 99, 235, 0.03) !important;
+}
+
+/* 3. Làm nổi bật khối biểu đồ tỉ lệ 1/3 bên phải */
+.lost-card-log-page .lost-chart-visualization-card.compressed-width {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+  transition: box-shadow 0.25s ease !important;
+}
+
+.lost-card-log-page .lost-chart-visualization-card.compressed-width:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* 4. Làm nổi bật thanh công cụ bộ lọc toolbar */
+.lost-card-log-page .lost-toolbar-modern {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* 5. Làm nổi bật khối bảng danh sách kết quả phía dưới */
+.lost-card-log-page .lost-table-card-premium {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  /* Đổ bóng mờ rộng hơn một chút cho khối bảng lớn vững chãi */
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.04), 0 2px 6px -2px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* ==========================================================================
+   TRIỆT TIÊU TOÀN BỘ NỀN CAM CŨ - ĐỒNG BỘ KHÔNG GIAN XÁM PHẲNG HIỆN ĐẠI
+   ========================================================================== */
+
+/* Ép thẻ body và cấu trúc layout bọc ngoài trang Mất thẻ phải đổi sang màu xám phẳng */
+body, 
+.layout,
+.main,
+.content {
+  background: #f8fafc !important; /* Xóa bỏ dải gradient màu cam kem cũ, thay bằng xám dịu mát */
+}
+
+/* Đảm bảo vùng đệm khoảng cách của trang mất thẻ không bị lộ màu cũ */
+.lost-card-log-page {
+  background-color: #f8fafc !important;
+  padding: 8px 20px 24px 20px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+/* Tinh chỉnh nhẹ thanh Topbar phía trên đầu để tiệp màu phẳng lỳ với nền mới */
+.header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   ĐỒNG BỘ CHỮ NHÃN MÀU XANH THƯƠNG HIỆU & TINH CHỈNH TOOLBAR GỌN GÀNG
+   ========================================================================== */
+
+/* Chuyển các chữ nhãn tiêu đề bộ lọc thành màu xanh và làm sắc nét lên */
+.lost-card-log-page .filter-field-label {
+  color: var(--db-primary, #2563eb) !important; /* Đổi thành màu xanh chủ đạo */
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important; /* Tạo khoảng cách đệm nhẹ với ô input phía dưới */
+}
+
+/* Tinh chỉnh cấu trúc ô nhập liệu Tìm kiếm để icon và chữ cân đối tuyệt đối */
+.lost-card-log-page .premium-input-box-styled {
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  border-radius: 10px !important; /* Bo góc mềm mại hơn */
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 42px !important;
+}
+
+/* Làm cho icon kính lúp màu xanh dịu, không bị chói */
+.lost-card-log-page .search-brand-icon-premium {
+  color: var(--db-primary, #2563eb) !important;
+  opacity: 0.7 !important;
+  font-size: 20px !important;
+  margin-right: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Định hình ô select trạng thái gọn gàng, bắt mắt */
+.lost-card-log-page .premium-select-box-styled select {
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 0 36px 0 14px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: var(--db-text-dark, #1f2937) !important;
+  cursor: pointer !important;
+}
+
+/* Căn giữa biểu tượng mũi tên xổ xuống của ô select */
+.lost-card-log-page .select-arrow-icon-premium {
+  color: var(--db-primary, #2563eb) !important;
+  opacity: 0.8 !important;
+  font-size: 20px !important;
+  right: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Định hình lại khung chọn khoảng ngày phẳng và đẹp mắt */
+.lost-card-log-page .premium-date-inputs-styled {
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Chữ "đến" ở giữa 2 ô ngày gọn gàng */
+.lost-card-log-page .date-range-split-dash-premium {
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: lowercase !important;
+}
+
+/* Tối ưu hiệu ứng hover khi click chuột vào các ô lọc */
+.lost-card-log-page .premium-input-box-styled:focus-within,
+.lost-card-log-page .premium-select-box-styled select:focus,
+.lost-card-log-page .premium-date-inputs-styled:focus-within {
+  border-color: var(--db-primary, #2563eb) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important; /* Đổ bóng phát sáng xanh mịn */
+  background-color: #ffffff !important;
+}
+
+/* ==========================================================================
+   TỐI ƯU CỤM PHÂN TRANG SANG TRỌNG & ĐỒNG BỘ AVATAR TOPBAR MÀU XANH
+   ========================================================================== */
+
+/* 1. Thiết kế lại 3 mục nút chuyển trang (.page-btn) cực kỳ sang trọng */
+.lost-card-log-page .lost-pagination .page-btn {
+  min-width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important; /* Bo góc phẳng mềm mại */
+  border: 1px solid #cbd5e1 !important; /* Viền xám mảnh tinh tế */
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 0 6px !important;
+}
+
+/* Hiệu ứng khi rê chuột qua các nút thông thường */
+.lost-card-log-page .lost-pagination .page-btn:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: var(--db-primary, #2563eb) !important;
+  color: var(--db-primary, #2563eb) !important;
+}
+
+/* Nút trang đang kích hoạt (Active) - Đổ dải màu xanh Royal cực sang */
+.lost-card-log-page .lost-pagination .page-btn.active {
+  background: var(--db-primary, #2563eb) !important;
+  color: #ffffff !important;
+  border-color: var(--db-primary, #2563eb) !important;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18) !important; /* Đổ bóng mờ xanh nhẹ */
+}
+
+/* Trạng thái nút bị vô hiệu hóa (Disabled mũi tên) */
+.lost-card-log-page .lost-pagination .page-btn:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Khớp icon mũi tên chevron bên trong nút cân đối tuyệt đối */
+.lost-card-log-page .lost-pagination .page-btn span {
+  font-size: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+
+/* 2. Nhuộm lại vòng tròn Avatar ở Topbar góc phải sang màu xanh công nghệ */
+.avatar-wrapper .avatar,
+.avatar {
+  background: var(--db-primary, #2563eb) !important; /* Đổi từ cam sang xanh Royal */
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hiệu ứng phản hồi nhẹ khi click vào avatar */
+.avatar-wrapper .avatar:hover,
+.avatar:hover {
+  background: #1d4ed8 !important; /* Xanh đậm hơn chút khi hover */
+  transform: scale(1.02) !important;
+}
+
+/* ==========================================================================
+   NHUỘM XANH KHỐI DROPDOWN VAI TRÒ CŨ CÒN SÓT LẠI (CLEAN ORANGE DROPDOWN)
+   ========================================================================== */
+
+/* 1. Nhuộm nút bấm kích hoạt chính khi đang ở trạng thái mở rộng */
+.vertical-filter-dropdown-container .main-filter-toggle-btn.active,
+.main-filter-toggle-btn[style*="background: rgb(255, 232, 214)"] {
+  background-color: var(--db-primary-light, #eff6ff) !important; /* Đổi nền cam sang xanh nhạt phẳng */
+  color: var(--db-primary, #2563eb) !important; /* Đổi chữ cam sang xanh chủ đạo */
+  border-color: rgba(37, 99, 235, 0.3) !important;
+}
+
+/* 2. Định hình và dọn màu cam trong danh sách menu xổ dọc */
+.vertical-role-dropdown-menu {
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  background: #ffffff !important;
+}
+
+/* 3. Nhuộm các mục chọn bên trong list xổ dọc */
+.vertical-role-dropdown-menu .role-dropdown-item-btn {
+  font-size: 13.5px !important;
+  color: #475569 !important;
+  transition: all 0.15s ease !important;
+}
+
+/* Khi di chuột qua (Hover) hoặc khi mục đó được chọn (Selected) */
+.vertical-role-dropdown-menu .role-dropdown-item-btn:hover,
+.vertical-role-dropdown-menu .role-dropdown-item-btn.selected {
+  background-color: var(--db-primary-light, #eff6ff) !important; /* Nền xanh nhạt dịu mát */
+  color: var(--db-primary, #2563eb) !important; /* Chữ xanh dương công nghệ */
+}
+
+/* Nhuộm màu xanh cho icon check chọn vai trò */
+.vertical-role-dropdown-menu .select-check-icon {
+  color: var(--db-primary, #2563eb) !important;
+}
+
+/* ==========================================================================
+   TRIỆT TIÊU TUYỆT ĐỐI MẢNG MÀU CAM CŨ - ĐỒNG BỘ BACKGROUND XÁM SẠCH SẼ
+   ========================================================================== */
+
+/* Ép tất cả các thẻ bọc nền gốc từ body đến nội dung phân hệ đổi sang màu xám phẳng */
+html,
+body,
+#root,
+.layout,
+.main,
+.content,
+.login-layout {
+  background: #f8fafc !important; /* Xóa sạch hoàn toàn dải màu cam kem cũ */
+  background-image: none !important; /* Triệt tiêu các tia gradient cam lố đốm */
+}
+
+/* Đảm bảo khung bao bọc trang không bị hở màu nền cũ */
+.lost-card-log-page {
+  background-color: #f8fafc !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Tinh chỉnh lại Topbar trên đầu phẳng lỳ tiệp màu với không gian mới */
+.header {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   ÉP ĐỒNG BỘ 100% CHỮ NHÃN SANG MÀU XANH THƯƠNG HIỆU (ANTI-ORANGE FOR LABELS)
+   ========================================================================== */
+
+/* Ép tất cả các thẻ label nằm trong bộ lọc của trang Nhật ký mất thẻ sang màu xanh */
+.lost-card-log-page .lost-toolbar-modern label,
+.lost-card-log-page .lost-toolbar-modern .filter-field-label,
+.lost-card-log-page .lost-filter-item label {
+  color: #2563eb !important; /* Xanh Royal chuẩn công nghệ */
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+  white-space: nowrap !important;
+}
+
+/* Đảm bảo chữ bên trong các ô input không bị nhiễm màu cam cũ */
+.lost-card-log-page .premium-input-box-styled input,
+.lost-card-log-page .premium-select-box-styled select,
+.lost-card-log-page .premium-date-inputs-styled input {
+  color: #1f2937 !important; /* Màu chữ tối phẳng lỳ dễ đọc */
+  font-family: inherit !important;
+}
+
+/* Định hình lại icon kính lúp sang màu xanh đồng bộ */
+.lost-card-log-page .search-brand-icon-premium {
+  color: #2563eb !important;
+  opacity: 0.8 !important;
+}
+
+/* Định hình lại icon mũi tên xổ xuống sang màu xanh đồng bộ */
+.lost-card-log-page .select-arrow-icon-premium {
+  color: #2563eb !important;
+  opacity: 0.8 !important;
+}
+
+/* ==========================================================================
+   XỬ LÝ TRIỆT ĐỂ: ĐÈ BỎ MÀU NÂU CAM CỦA .LOST-TOOLBAR DIV SANG MÀU XANH
+   ========================================================================== */
+
+/* Nhắm thẳng vào cấu trúc div/label lồng trong bộ lọc để ép sang màu xanh công nghệ */
+.lost-card-log-page .lost-toolbar-modern .lost-filter-item div,
+.lost-card-log-page .lost-toolbar-modern .lost-filter-item label,
+.lost-card-log-page .lost-toolbar div,
+.lost-card-log-page .lost-toolbar label {
+  color: #2563eb !important; /* Ép 100% sang màu xanh dương Royal cao cấp */
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+/* Đảm bảo chữ người dùng NHẬP VÀO trong ô input hoặc select KHÔNG bị biến thành màu xanh */
+.lost-card-log-page .premium-input-box-styled input,
+.lost-card-log-page .premium-select-box-styled select,
+.lost-card-log-page .premium-date-inputs-styled input {
+  color: #1f2937 !important; /* Chữ nhập/chọn vẫn là màu đen phẳng lỳ rõ nét */
+  text-transform: none !important;
+  font-weight: 500 !important;
+}
+
+/* ==========================================================================
+   ÁP DỤNG ĐỒNG BỘ CHỮ XANH KHÔNG GIAN BỘ LỌC CHO CÁC TRANG NHẬT KÝ HỆ THỐNG
+   ========================================================================== */
+
+/* Ép 100% các chữ nhãn, tiêu đề nhỏ trong toolbar của mọi trang về màu xanh */
+.lost-card-log-page .lost-toolbar-modern .filter-field-label,
+.lost-card-log-page .lost-toolbar-modern div,
+.lost-card-log-page .lost-filter-item div,
+.lost-card-log-page .lost-toolbar div {
+  color: #2563eb !important; /* Xanh Royal sang trọng công nghệ */
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+/* Đèn chấm tròn nhỏ nháy thở tinh tế trước huy hiệu trạng thái */
+.lost-card-log-page .status-badge-lost-premium::before {
+  content: "" !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  margin-right: 8px !important;
+  background-color: currentColor !important;
+}
+
+/* Giữ chữ bên trong các ô gõ input luôn đen phẳng mịn dễ đọc */
+.lost-card-log-page .premium-input-box-styled input,
+.lost-card-log-page .premium-select-box-styled select {
+  color: #1f2937 !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
 }

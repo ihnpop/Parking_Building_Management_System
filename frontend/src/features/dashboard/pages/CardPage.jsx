@@ -9,7 +9,7 @@ import { useAuth } from '../../../context/AuthContext';
  */
 
 const INITIAL_FORM = {
-    type: 'Thẻ tháng',
+    type: 'Thẻ lượt',
     plate: '',
     fullName: '',
     phone: '',
@@ -30,7 +30,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
-
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
     const getRoleLabel = (r) => {
         switch (r) {
@@ -109,7 +108,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    // Submit create card
     const handleSubmit = async (e) => {
         e.preventDefault();
         setFormError(null);
@@ -133,7 +131,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             const payload = {
                 type: formData.type,
                 startDate: formData.startDate,
-                plate: formData.plate || undefined,
+                plate: formData.plate.trim() || undefined,
                 fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
                 phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
                 email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
@@ -247,7 +245,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <tbody>
                                 {filteredCards.length > 0 ? (
                                     filteredCards.map((row) => (
-                                        <tr key={row.code} style={{ borderBottom: '1px solid #eee', fontSize: '0.95rem' }}>
+                                        <tr key={row.card_id || row.code} style={{ borderBottom: '1px solid #eee', fontSize: '0.95rem' }}>
                                             <td style={{ padding: '12px', fontWeight: '600' }}>{row.code}</td>
                                             <td style={{ padding: '12px' }}>{row.type}</td>
                                             <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
@@ -317,8 +315,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 <input
                                     id="plate"
                                     name="plate"
-                                    type="text"
-                                    placeholder="Ví dụ: 30K-12345"
+                                    placeholder={formData.type === 'Thẻ tháng' ? "Ví dụ: 30K-12345" : "Ví dụ: 59G1-12345 (Nếu có)"}
                                     className="cardpage-input"
                                     value={formData.plate}
                                     onChange={handleFormChange}

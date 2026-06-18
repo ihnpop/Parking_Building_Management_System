@@ -55,8 +55,8 @@ export default function DashboardView() {
                 fontWeight: '600',
                 background: 'none',
                 border: 'none',
-                borderBottom: isActive ? '3px solid #e65c00' : '3px solid transparent',
-                color: isActive ? '#e65c00' : '#666',
+                borderBottom: isActive ? '3px solid #2563eb' : '3px solid transparent',
+                color: isActive ? '#2563eb' : '#666',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
             }}
@@ -85,7 +85,7 @@ export default function DashboardView() {
             {currentView === 'log-management' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
-                        {renderTabButton('Nhật ký quẹt thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
+                        {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
                         {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
                         {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
                     </div>
