@@ -47,7 +47,7 @@ export default function App() {
 
       <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
             <LostCardLogPage />
           </RoleProtectedRoute>
         </ProtectedRoute>
@@ -79,7 +79,7 @@ export default function App() {
 
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
             <OccupancyChart />
           </RoleProtectedRoute>
         </ProtectedRoute>

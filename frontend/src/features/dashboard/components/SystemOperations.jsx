@@ -7,6 +7,7 @@ import {
     preCheckExitGate,
     exitGate
 } from '../../../service/parkingApi';
+import { useNavigate } from 'react-router-dom';
 
 const cameraCards = [
     {
@@ -37,11 +38,13 @@ const cameraCards = [
     },
 ]
 
+
 const actionShortcuts = [
     { label: 'F1', text: 'Thống kê', primary: false },
-    { label: 'F2', text: 'Tìm kiếm', primary: false },
+    { label: 'F2', text: 'Báo Cáo', primary: false },
     { label: 'ENTER', text: 'Xác nhận', primary: true },
 ]
+
 
 export default function SystemOperations() {
     // ── Mode State ───────────────────────────────────────────────────────────
@@ -81,6 +84,8 @@ export default function SystemOperations() {
     const plateInputRef = useRef(null);
     const exitVehicleInputRef = useRef(null);
     const exitPlateInputRef = useRef(null);
+
+    const navigate = useNavigate();
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     const showToast = (message, type = 'success') => {
@@ -275,7 +280,35 @@ export default function SystemOperations() {
         }
         await handlePreCheck(plateNumber);
     };
+    useEffect(() => {
+        const handleKeyDown = (event) => {
 
+            if (event.key === 'F1') {
+                event.preventDefault();
+                navigate('/login/dashboard/OccupancyChart');
+            }
+            if (event.key === 'F2') {
+                event.preventDefault();
+                navigate('/login/dashboard/lost-card-log');
+            }
+
+            if (event.key === 'Enter') {
+                event.preventDefault();
+
+                if (mode === 'IN') {
+                    handleCheckInSubmit();
+                } else {
+                    handleCheckOutSubmit();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [navigate, mode]);
     return (
         <div className="system-page">
             {/* Hidden File Inputs for uploads */}
@@ -864,7 +897,26 @@ export default function SystemOperations() {
                             key={action.label}
                             type="button"
                             className={action.primary ? 'shortcut-button shortcut-primary' : 'shortcut-button'}
+                            // onClick={() => {
+                            //     if (action.label === 'ENTER') {
+                            //         if (mode === 'IN') {
+                            //             handleCheckInSubmit();
+                            //         } else {
+                            //             handleCheckOutSubmit();
+                            //         }
+                            //     }
+                            // }}  
                             onClick={() => {
+
+                                if (action.label === 'F1') {
+                                    navigate("/login/dashboard/OccupancyChart");
+                                    return;
+                                }
+                                if (action.label === 'F2') {
+                                    navigate('/login/dashboard/lost-card-log');
+                                    return;
+                                }
+
                                 if (action.label === 'ENTER') {
                                     if (mode === 'IN') {
                                         handleCheckInSubmit();
