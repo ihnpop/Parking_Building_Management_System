@@ -42,7 +42,7 @@ export default function CardPage() {
 
     // Handle Delete Card
     const handleDelete = async (row) => {
-        if (!window.confirm("Are you sure you want to delete this card?")) {
+        if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) {
             return;
         }
         try {
@@ -108,12 +108,15 @@ export default function CardPage() {
     // Stats
     const totalCards = cards.length;
     const activeCards = cards.filter(c => c.status === 'Hoạt động').length;
-    const lockedCards = cards.filter(c => c.status === 'Đã khóa').length;
+    const pendingCards = cards.filter(c => c.status === 'Đang chờ').length;
+    const expiredCards = cards.filter(c => c.status === 'Hết hạn').length;
+    const deletedCards = cards.filter(c => c.status === 'Đã xóa').length;
 
     const summaryItems = [
         { label: 'TỔNG SỐ THẺ', value: totalCards, note: 'Tất cả các thẻ đang quản lý' },
         { label: 'ĐANG HOẠT ĐỘNG', value: activeCards, note: 'Thẻ hiện đang sử dụng được' },
-        { label: 'ĐÃ KHÓA', value: lockedCards, note: 'Thẻ bị chặn hoặc vô hiệu' },
+        { label: 'ĐANG CHỜ', value: pendingCards, note: 'Thẻ chưa được kích hoạt' },
+        { label: 'HẾT HẠN', value: expiredCards, note: 'Thẻ đã quá hạn sử dụng' },
     ];
 
     // Open modal
@@ -223,7 +226,9 @@ export default function CardPage() {
                         >
                             <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                             <option value="Hoạt động">Hoạt động</option>
-                            <option value="Đã khóa">Đã khóa</option>
+                            <option value="Đang chờ">Đang chờ</option>
+                            <option value="Đã xóa">Đã xóa</option>
+                            <option value="Hết hạn">Hết hạn</option>
                         </select>
                     </div>
 
@@ -282,10 +287,15 @@ export default function CardPage() {
                                             <td>{row.type}</td>
                                             <td>{row.plate}</td>
                                             <td>
-                                                <span className={`cardpage-status ${row.status === 'Hoạt động' ? 'active' : 'locked'}`}>
-                                                    <span className="material-symbols-outlined">circle</span>
-                                                    {row.status}
-                                                </span>
+                                                <span className={`cardpage-status ${
+                                                row.status === 'Hoạt động' ? 'active' :
+                                                row.status === 'Đang chờ' ? 'pending' :
+                                                row.status === 'Đã xóa' ? 'deleted' :
+                                                row.status === 'Hết hạn' ? 'expired' : 'locked'
+                                            }`}>
+                                                <span className="material-symbols-outlined">circle</span>
+                                                {row.status}
+                                            </span>
                                             </td>
                                             <td style={{ display: 'flex', gap: '8px' }}>
                                                 <button type="button" className="cardpage-icon-button">

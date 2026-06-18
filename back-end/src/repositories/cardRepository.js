@@ -90,6 +90,60 @@ export const findActiveRegistrationByVehicle = async (vehicleId) => {
 };
 
 /**
+ * Tìm liên kết đăng ký đang hoạt động theo vehicle_id (hỗ trợ nhiều giá trị status)
+ * Dùng cho checkout thẻ tháng (registration có thể có status 'ACTIVE' hoặc 'Hoạt động')
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const findActiveRegistrationByVehicleAny = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select('*, card(*)')
+    .eq('vehicle_id', vehicleId)
+    .in('status', ['ACTIVE', 'Hoạt động'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) throw new Error(error.message);
+  return data && data.length > 0 ? data[0] : null;
+};
+
+/**
+ * Tìm registration mới nhất của xe (bất kể status)
+ * Dùng để tái kích hoạt thẻ tháng khi xe vào lại sau checkout
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const findLatestRegistrationByVehicle = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select('*, card(*)')
+    .eq('vehicle_id', vehicleId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) throw new Error(error.message);
+  return data && data.length > 0 ? data[0] : null;
+};
+
+/**
+ * Tái kích hoạt registration (đổi status về 'Hoạt động')
+ * @param {string} registrationId
+ * @returns {Promise<object>}
+ */
+export const reactivateRegistration = async (registrationId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .update({ status: 'Hoạt động' })
+    .eq('registration_id', registrationId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
  * Tìm liên kết đăng ký đang hoạt động theo card_id
  * @param {string} cardId 
  * @returns {Promise<object|null>}
@@ -113,7 +167,7 @@ export const findActiveRegistrationByCard = async (cardId) => {
  * @param {string} status 
  * @returns {Promise<object>}
  */
-export const createRegistration = async (cardId, vehicleId, status = 'ACTIVE') => {
+export const createRegistration = async (cardId, vehicleId, status = 'Hoạt động') => {
   const { data, error } = await supabase
     .from('card_registrations')
     .insert({

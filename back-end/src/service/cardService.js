@@ -26,7 +26,7 @@ export const getCards = async () => {
   if (error) throw new Error(error.message);
 
   return data.map(item => {
-    const activeReg = item.card_registrations?.find(r => r.status === 'ACTIVE') || item.card_registrations?.[0];
+    const activeReg = item.card_registrations?.find(r => r.status === 'Hoạt động') ?? null;
     return {
       card_id: item.card_id,
       code: item.code,
@@ -286,7 +286,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
       .insert({
         card_id: newCard.card_id,
         vehicle_id: vehicle.vehicle_id,
-        status: 'ACTIVE',
+        status: 'Hoạt động',
         created_at: startDate
       });
 
@@ -306,11 +306,11 @@ export const deleteCard = async (cardId, currentUserId) => {
   // 2. Kiểm tra status của card
   const statusUpper = (card.status || '').toUpperCase();
 
-  if (statusUpper === 'ACTIVE' || card.status === 'Hoạt động') {
+  if (statusUpper === 'Hoạt động' || card.status === 'Hoạt động') {
     throw new Error("Active card cannot be deleted");
   }
 
-  if (statusUpper === 'DELETED' || card.status === 'Đã xóa') {
+  if (statusUpper === 'Đã xóa' || card.status === 'Đã xóa') {
     throw new Error("Card is already deleted");
   }
 

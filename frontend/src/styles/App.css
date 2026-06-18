@@ -1260,6 +1260,21 @@ body {
   color: #b91c1c;
 }
 
+.cardpage-status.pending {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.cardpage-status.expired {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.cardpage-status.deleted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .cardpage-icon-button {
   width: 42px;
   height: 42px;

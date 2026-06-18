@@ -128,7 +128,7 @@ export const preCheckEntry = async (plateNumber) => {
   }
 
   return {
-    vehicleType: "Thẻ tháng",
+    vehicleType: "MONTHLY",
     plateNumber: cleanPlate,
     ownerName: vehicle.customer?.full_name || "Chủ xe tháng",
     cardCode: card.code,
@@ -205,7 +205,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       const { data: vtList } = await supabase
         .from('vehicle_type')
         .select('vehicle_type_id')
-        .eq('name', 'Motorbike')
+        .eq('name', 'Xe máy')
         .limit(1);
 
       let vtId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
@@ -235,12 +235,12 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     });
 
     // Tạo liên kết tạm thời giữa thẻ lượt và xe
-    await cardRepository.createRegistration(card.card_id, vehicle.vehicle_id, 'ACTIVE');
+    await cardRepository.createRegistration(card.card_id, vehicle.vehicle_id, 'Hoạt động');
 
     // Cập nhật trạng thái thẻ sang ACTIVE
-    await cardRepository.updateStatus(card.card_id, 'ACTIVE');
+    await cardRepository.updateStatus(card.card_id, 'Hoạt động');
 
-    return { success: true, message: "Check in Visitor thành công.", session };
+    return { success: true, message: "Check in vãng lai thành công.", session };
   } else {
     // --- LƯỢT XE THÁNG (MONTHLY) ---
     // Backend tự xác định thẻ
@@ -256,7 +256,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     }
 
     const card = activeReg.card;
-    if (card.type !== 'Thẻ tháng' && card.type !== 'MONTHLY') {
+    if (card.type !== 'Thẻ tháng') {
       throw Object.assign(new Error("Thẻ liên kết của xe không phải loại Thẻ tháng."), { statusCode: 400 });
     }
 
@@ -275,7 +275,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       card_id: card.card_id
     });
 
-    return { success: true, message: "Check in Monthly thành công. Mở cổng vào.", session };
+    return { success: true, message: "Check in thẻ tháng thành công. Mở cổng vào.", session };
   }
 };
 
@@ -304,7 +304,7 @@ export const preCheckExit = async (plateNumber) => {
   if (activeSession.card_id) {
     card = await cardRepository.findById(activeSession.card_id);
     if (card) {
-      isMonthly = card.type === 'Thẻ tháng' || card.type === 'MONTHLY';
+      isMonthly = card.type === 'Thẻ tháng';
     }
   }
 
@@ -312,7 +312,7 @@ export const preCheckExit = async (plateNumber) => {
     const activeReg = await cardRepository.findActiveRegistrationByVehicle(vehicle.vehicle_id);
     if (activeReg && activeReg.card) {
       card = activeReg.card;
-      isMonthly = card.type === 'Thẻ tháng' || card.type === 'MONTHLY';
+      isMonthly = card.type === 'Thẻ tháng';
     }
   }
 
@@ -410,9 +410,9 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     await cardRepository.deactivateRegistration(activeReg.registration_id);
 
     // Trả trạng thái thẻ về AVAILABLE
-    await cardRepository.updateStatus(card.card_id, 'AVAILABLE');
+    await cardRepository.updateStatus(card.card_id, 'Đang chờ');
 
-    return { success: true, message: "Check out Visitor thành công. Cổng ra mở.", session: updatedSession };
+    return { success: true, message: "Check out thẻ lượt thành công. Cổng ra mở.", session: updatedSession };
   } else if (plateNumber) {
     // --- LƯỢT XE THÁNG (MONTHLY CHECK-OUT) ---
     const cleanPlate = plateNumber.trim().toUpperCase();

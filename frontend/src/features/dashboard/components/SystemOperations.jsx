@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { 
-    uploadGateFile, 
-    simulateOcrFile, 
-    preCheckEntryGate, 
-    entryGate, 
-    preCheckExitGate, 
-    exitGate 
+import {
+    uploadGateFile,
+    simulateOcrFile,
+    preCheckEntryGate,
+    entryGate,
+    preCheckExitGate,
+    exitGate
 } from '../../../service/parkingApi';
 
 const cameraCards = [
@@ -278,7 +278,7 @@ export default function SystemOperations() {
 
     return (
         <div className="system-page">
-             {/* Hidden File Inputs for uploads */}
+            {/* Hidden File Inputs for uploads */}
             <input
                 type="file"
                 ref={vehicleInputRef}
@@ -312,7 +312,7 @@ export default function SystemOperations() {
                             showToast("Đang xử lý ảnh biển số và OCR...", "success");
                             const uploadRes = await uploadGateFile(file, "entry/plate");
                             setEntryPlateUrl(uploadRes.publicUrl);
-                            
+
                             const ocrRes = await simulateOcrFile(file);
                             if (ocrRes.success) {
                                 setPlateNumber(ocrRes.plateNumber);
@@ -359,7 +359,7 @@ export default function SystemOperations() {
                             showToast("Đang xử lý ảnh biển số ra và OCR...", "success");
                             const uploadRes = await uploadGateFile(file, "exit/plate");
                             setExitPlateUrl(uploadRes.publicUrl);
-                            
+
                             const ocrRes = await simulateOcrFile(file);
                             if (ocrRes.success) {
                                 setPlateNumber(ocrRes.plateNumber);
@@ -409,7 +409,7 @@ export default function SystemOperations() {
                     {[cameraCards[0], cameraCards[2], cameraCards[1], cameraCards[3]].map((camera) => {
                         const isCameraIn = camera.id === 'vehicleImage' || camera.id === 'plateImage';
                         const isCurrentlyActiveMode = (mode === 'IN' && isCameraIn) || (mode === 'OUT' && !isCameraIn);
-                        
+
                         let bgImage = camera.image;
                         let isSelected = false;
 
@@ -428,12 +428,12 @@ export default function SystemOperations() {
                         }
 
                         return (
-                            <article 
-                                key={camera.title} 
-                                className="camera-card" 
-                                style={{ 
-                                    opacity: isCurrentlyActiveMode ? 1 : 0.7, 
-                                    transition: 'opacity 0.25s ease' 
+                            <article
+                                key={camera.title}
+                                className="camera-card"
+                                style={{
+                                    opacity: isCurrentlyActiveMode ? 1 : 0.7,
+                                    transition: 'opacity 0.25s ease'
                                 }}
                             >
                                 <div
@@ -448,7 +448,7 @@ export default function SystemOperations() {
                                 >
                                     <span className="camera-label">{camera.title}</span>
                                     {camera.badge && <span className={`camera-badge ${camera.badgeClass}`}>{camera.badge}</span>}
-                                    
+
                                     {/* Overlay showing upload message on hover */}
                                     <div
                                         style={{
@@ -470,9 +470,9 @@ export default function SystemOperations() {
                                         <span className="material-symbols-outlined" style={{ fontSize: 40 }}>add_a_photo</span>
                                         <span style={{ fontSize: 13, fontWeight: 'bold' }}>
                                             {camera.id === 'vehicleImage' ? 'Click tải ảnh xe vào' :
-                                             camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
-                                             camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
-                                             'Click tải ảnh biển số ra'}
+                                                camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
+                                                    camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
+                                                        'Click tải ảnh biển số ra'}
                                         </span>
                                     </div>
 
@@ -505,10 +505,10 @@ export default function SystemOperations() {
 
                 <section className="active-transaction">
                     {/* Tab Switcher inside the transaction card */}
-                    <div style={{ 
-                        gridColumn: '1 / -1', 
-                        display: 'flex', 
-                        gap: '12px', 
+                    <div style={{
+                        gridColumn: '1 / -1',
+                        display: 'flex',
+                        gap: '12px',
                         borderBottom: '1px solid #e5e7eb',
                         paddingBottom: '12px',
                         marginBottom: '-8px'
@@ -559,7 +559,7 @@ export default function SystemOperations() {
                         </button>
                     </div>
 
-                    <form 
+                    <form
                         className="transaction-highlight"
                         onSubmit={handleFormSubmit}
                     >
@@ -596,7 +596,7 @@ export default function SystemOperations() {
                                             <p style={{ margin: '4px 0', fontSize: '14px' }}>
                                                 Biển số: <strong style={{ color: '#ea580c' }}>{preCheckResult.plateNumber}</strong>
                                             </p>
-                                            
+
                                             <div style={{ marginTop: '10px' }}>
                                                 <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600' }}>Available Cards</label>
                                                 <select
@@ -779,7 +779,7 @@ export default function SystemOperations() {
                             )}
                         </button>
                     </form>
-                    
+
                     <div className="transaction-details">
                         {lastSession ? (
                             <>
@@ -827,8 +827,8 @@ export default function SystemOperations() {
                                 <div className={lastSession.type === 'OUT' ? "" : "transaction-row transaction-total"}>
                                     <div className="transaction-row-label">Trạng thái:</div>
                                     <div className="transaction-row-value" style={{ color: lastSession.type === 'OUT' ? '#3b82f6' : '#22c55e' }}>
-                                        {lastSession.status === 'PARKING' ? 'ĐANG GỬI' : 
-                                         lastSession.status === 'COMPLETED' ? 'HOÀN THÀNH' : lastSession.status}
+                                        {lastSession.status === 'PARKING' ? 'ĐANG GỬI' :
+                                            lastSession.status === 'COMPLETED' ? 'HOÀN THÀNH' : lastSession.status}
                                     </div>
                                 </div>
                             </>
@@ -919,7 +919,7 @@ export default function SystemOperations() {
                                 </span>
                                 {preCheckResult.vehicleType === 'MONTHLY' ? 'Thông tin Xe tháng' : 'Chọn thẻ xe vãng lai'}
                             </h3>
-                            <button 
+                            <button
                                 onClick={() => setShowEntryModal(false)}
                                 style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}
                             >
@@ -961,14 +961,14 @@ export default function SystemOperations() {
                                 )}
 
                                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                    <button 
+                                    <button
                                         onClick={() => setShowEntryModal(false)}
                                         className="cardpage-button secondary"
                                         style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
                                     >
                                         Hủy
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={async () => {
                                             setShowEntryModal(false);
                                             await handleCheckInSubmit();
@@ -991,7 +991,7 @@ export default function SystemOperations() {
                                     {preCheckResult.availableCards?.slice(0, 3).map((card) => {
                                         const isSelected = selectedCard === card.code;
                                         return (
-                                            <div 
+                                            <div
                                                 key={card.card_id}
                                                 onClick={() => setSelectedCard(card.code)}
                                                 style={{
@@ -1025,14 +1025,14 @@ export default function SystemOperations() {
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                    <button 
+                                    <button
                                         onClick={() => setShowEntryModal(false)}
                                         className="cardpage-button secondary"
                                         style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
                                     >
                                         Hủy
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={async () => {
                                             if (!selectedCard) {
                                                 showToast('Vui lòng chọn 1 thẻ lượt.', 'error');
@@ -1082,7 +1082,7 @@ export default function SystemOperations() {
                                 </span>
                                 {preCheckResult.vehicleType === 'MONTHLY' ? 'Thông tin Xe tháng ra' : 'Xác nhận xe vãng lai ra'}
                             </h3>
-                            <button 
+                            <button
                                 onClick={() => setShowExitModal(false)}
                                 style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}
                             >
@@ -1110,9 +1110,9 @@ export default function SystemOperations() {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px' }}>
                                     <span style={{ color: '#64748b', fontWeight: 'bold' }}>Phí thanh toán:</span>
-                                    <strong style={{ 
-                                        color: preCheckResult.vehicleType === 'MONTHLY' ? '#16a34a' : '#ea580c', 
-                                        fontSize: '18px' 
+                                    <strong style={{
+                                        color: preCheckResult.vehicleType === 'MONTHLY' ? '#16a34a' : '#ea580c',
+                                        fontSize: '18px'
                                     }}>
                                         {preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ
                                     </strong>
@@ -1120,14 +1120,14 @@ export default function SystemOperations() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button 
+                                <button
                                     onClick={() => setShowExitModal(false)}
                                     className="cardpage-button secondary"
                                     style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
                                 >
                                     Hủy
                                 </button>
-                                <button 
+                                <button
                                     onClick={async () => {
                                         setShowExitModal(false);
                                         await handleCheckOutSubmit();
