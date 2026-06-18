@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCards, createCard, deleteCard } from '../../../service/cardApi';
+import {
+    getCards,
+    createCard,
+    deleteCard,
+    updateCard
+} from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
+
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -16,6 +22,10 @@ const INITIAL_FORM = {
     email: '',
     durationMonths: '1',
     startDate: new Date().toISOString().split('T')[0],
+
+    checkInTime: '',
+    checkOutTime: '',
+    status: 'Hoạt động'
 };
 
 export default function CardPage() {
@@ -39,6 +49,30 @@ export default function CardPage() {
             setToast({ show: false, message: '', type: 'success' });
         }, 3000);
     };
+
+    //Handle Edit  Card
+    const handleEdit = (card) => {
+
+        setEditingCard(card);
+
+        setFormData({
+            type: card.type || '',
+            plate: card.plate || '',
+            fullName: card.fullName || '',
+            phone: card.phone || '',
+            email: card.email || '',
+            durationMonths: card.durationMonths || '1',
+            startDate: card.startDate?.split('T')[0] || '',
+
+            checkInTime: card.check_in_time || '',
+            checkOutTime: card.check_out_time || '',
+            status: card.status || 'Hoạt động'
+        });
+
+        setShowModal(true);
+    };
+
+    const [editingCard, setEditingCard] = useState(null);
 
     // Handle Delete Card
     const handleDelete = async (row) => {
@@ -121,8 +155,12 @@ export default function CardPage() {
 
     // Open modal
     const handleCreateCard = () => {
+        setEditingCard(null);
+
         setFormData(INITIAL_FORM);
+
         setFormError(null);
+
         setShowModal(true);
     };
 
@@ -130,6 +168,7 @@ export default function CardPage() {
     const handleCloseModal = () => {
         setShowModal(false);
         setFormError(null);
+        setEditingCard(null);
     };
 
     // Handle form field change
@@ -156,16 +195,48 @@ export default function CardPage() {
 
         try {
             setSubmitting(true);
-            await createCard({
-                type: formData.type,
-                startDate: formData.startDate,
-                plate: formData.plate || undefined,
-                fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
-                phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
-                email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
-                durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
-            });
+            if (editingCard) {
+
+                await updateCard(
+                    editingCard.card_id,
+                    {
+                        type: formData.type,
+                        plate: formData.plate,
+                        fullName: formData.fullName,
+                        phone: formData.phone,
+                        email: formData.email,
+                        durationMonths: formData.durationMonths,
+
+                        checkInTime: hasPlate
+                            ? formData.checkInTime
+                            : null,
+
+                        checkOutTime: hasPlate
+                            ? formData.checkOutTime
+                            : null,
+
+                        status: hasPlate
+                            ? formData.status
+                            : editingCard.status
+                    }
+                );
+
+                showToast("Cập nhật thẻ thành công");
+
+            } else {
+                await createCard({
+                    type: formData.type,
+                    startDate: formData.startDate,
+                    plate: formData.plate || undefined,
+                    fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
+                    phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
+                    email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
+                    durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
+                });
+                showToast("Tạo thẻ thành công");
+            }
             setShowModal(false);
+            setEditingCard(null);
             await fetchCards();
         } catch (err) {
             console.error('Error creating card:', err);
@@ -174,7 +245,9 @@ export default function CardPage() {
             setSubmitting(false);
         }
     };
-
+    const hasPlate =
+        formData.plate &&
+        formData.plate.trim() !== '';
     return (
         <main className="card-page">
             <header className="cardpage-header">
@@ -285,24 +358,31 @@ export default function CardPage() {
                                         <tr key={row.code}>
                                             <td>{row.code}</td>
                                             <td>{row.type}</td>
-                                            <td>{row.plate}</td>
+                                            {/* <td>{row.plate}</td> */}
                                             <td>
-                                                <span className={`cardpage-status ${
-                                                row.status === 'Hoạt động' ? 'active' :
-                                                row.status === 'Đang chờ' ? 'pending' :
-                                                row.status === 'Đã xóa' ? 'deleted' :
-                                                row.status === 'Hết hạn' ? 'expired' : 'locked'
-                                            }`}>
-                                                <span className="material-symbols-outlined">circle</span>
-                                                {row.status}
-                                            </span>
+                                                {row.plate || "Chưa đăng ký"}
+                                            </td>
+                                            <td>
+                                                <span className={`cardpage-status ${row.status === 'Hoạt động' ? 'active' :
+                                                    row.status === 'Đang chờ' ? 'pending' :
+                                                        row.status === 'Đã xóa' ? 'deleted' :
+                                                            row.status === 'Hết hạn' ? 'expired' : 'locked'
+                                                    }`}>
+                                                    <span className="material-symbols-outlined">circle</span>
+                                                    {row.status}
+                                                </span>
                                             </td>
                                             <td style={{ display: 'flex', gap: '8px' }}>
-                                                <button type="button" className="cardpage-icon-button">
+                                                <button
+                                                    type="button"
+                                                    className="cardpage-icon-button"
+                                                    onClick={() => handleEdit(row)}
+                                                    title="Chỉnh sửa thẻ"
+                                                >
                                                     <span className="material-symbols-outlined">edit</span>
                                                 </button>
-                                                <button 
-                                                    type="button" 
+                                                <button
+                                                    type="button"
                                                     className="cardpage-icon-button"
                                                     style={{ color: '#ef4444' }}
                                                     onClick={() => handleDelete(row)}
@@ -347,7 +427,10 @@ export default function CardPage() {
                 >
                     <div className="cardpage-modal">
                         <div className="cardpage-modal-header">
-                            <h2>Đăng ký thẻ mới</h2>
+                            {/* <h2>Đăng ký thẻ mới</h2> */}
+                            <h2>
+                                {editingCard ? 'Cập nhật thẻ' : 'Đăng ký thẻ mới'}
+                            </h2>
                             <button
                                 type="button"
                                 className="cardpage-modal-close"
@@ -395,6 +478,7 @@ export default function CardPage() {
                                 <label htmlFor="startDate">Ngày bắt đầu</label>
                                 <input
                                     id="startDate"
+                                    disabled={!!editingCard}
                                     name="startDate"
                                     type="date"
                                     className="cardpage-input"
@@ -402,6 +486,52 @@ export default function CardPage() {
                                     onChange={handleFormChange}
                                     required
                                 />
+                            </div>
+
+                            {/* Thời gian vào */}
+                            <div className="cardpage-form-group">
+                                <label>Thời gian vào</label>
+
+                                <input
+                                    type="datetime-local"
+                                    name="checkInTime"
+                                    value={formData.checkInTime}
+                                    onChange={handleFormChange}
+                                    className="cardpage-input"
+                                    disabled={!hasPlate}
+                                />
+                            </div>
+
+                            {/* Thời gian ra */}
+                            <div className="cardpage-form-group">
+                                <label>Thời gian ra</label>
+
+                                <input
+                                    type="datetime-local"
+                                    name="checkOutTime"
+                                    value={formData.checkOutTime}
+                                    onChange={handleFormChange}
+                                    className="cardpage-input"
+                                    disabled={!hasPlate}
+                                />
+                            </div>
+
+                            {/* Trạng thái */}
+                            <div className="cardpage-form-group">
+                                <label>Trạng thái</label>
+
+                                <select
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleFormChange}
+                                    className="cardpage-select"
+                                    disabled={!hasPlate}
+                                >
+                                    <option value="Hoạt động">Hoạt động</option>
+                                    <option value="Đang chờ">Đang chờ</option>
+                                    <option value="Đã xóa">Đã xóa</option>
+                                    <option value="Hết hạn">Hết hạn</option>
+                                </select>
                             </div>
 
                             {/* Chỉ hiển thị các trường sau nếu chọn Thẻ tháng */}
@@ -473,7 +603,7 @@ export default function CardPage() {
                                 </>
                             )}
 
-                            <div className="cardpage-form-group">
+                            {/* <div className="cardpage-form-group">
                                 <label>Trạng thái</label>
                                 <input
                                     type="text"
@@ -482,11 +612,23 @@ export default function CardPage() {
                                     disabled
                                     style={{ opacity: 0.6, cursor: 'not-allowed' }}
                                 />
-                            </div>
+                            </div> */}
 
                             {formError && (
                                 <p style={{ color: '#ff4d4d', fontSize: '0.875rem', margin: '4px 0' }}>
                                     {formError}
+                                </p>
+                            )}
+                            {!hasPlate && editingCard && (
+                                <p
+                                    style={{
+                                        color: '#f59e0b',
+                                        fontSize: '14px',
+                                        marginTop: '8px'
+                                    }}
+                                >
+                                    Thẻ chưa có biển số nên không thể chỉnh sửa
+                                    thời gian vào, thời gian ra và trạng thái.
                                 </p>
                             )}
 
@@ -504,7 +646,12 @@ export default function CardPage() {
                                     className="cardpage-button primary"
                                     disabled={submitting}
                                 >
-                                    {submitting ? 'Đang lưu...' : 'Đăng ký'}
+                                    {submitting
+                                        ? 'Đang lưu...'
+                                        : editingCard
+                                            ? 'Cập nhật'
+                                            : 'Đăng ký'
+                                    }
                                 </button>
                             </div>
                         </form>

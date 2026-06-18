@@ -62,7 +62,7 @@ export const deleteCard = async (req, res) => {
     const { id } = req.params;
     const { deleted_by } = req.body;
     if (!id) return res.status(400).json({ success: false, message: 'Thiếu card_id.' });
-    
+
     await cardService.deleteCard(id, deleted_by);
     res.status(200).json({
       success: true,
@@ -104,5 +104,34 @@ export const createLostCard = async (req, res) => {
       success: false,
       message: error.message
     });
+  }
+};
+
+export const updateCard = async (
+  req,
+  res
+) => {
+  try {
+
+    const { id } = req.params;
+
+    const result =
+      await cardService.updateCard(
+        id,
+        req.body
+      );
+
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+
   }
 };

@@ -25,20 +25,89 @@ export const getCards = async () => {
 
   if (error) throw new Error(error.message);
 
-  return data.map(item => {
-    const activeReg = item.card_registrations?.find(r => r.status === 'Hoạt động') ?? null;
-    return {
-      card_id: item.card_id,
-      code: item.code,
-      type: item.type,
-      expired_date: item.expired_date,
-      status: item.status,
-      created_at: item.created_at,
-      plate: activeReg?.vehicle?.plate_number || "Chưa đăng ký",
-      customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký"
-    };
-  });
-};
+  return await Promise.all(
+    data.map(async (item) => {
+      const activeReg =
+        item.card_registrations?.find(
+          r => r.status === 'Hoạt động'
+        ) ?? null;
+
+      let latestSession = null;
+
+      if (activeReg?.vehicle?.vehicle_id) {
+        const { data: sessions } = await supabase
+          .from("parking_sessions")
+          .select(`
+          session_id,
+          entry_time,
+          exit_time
+        `)
+          .eq(
+            "vehicle_id",
+            activeReg.vehicle.vehicle_id
+          )
+          .order(
+            "entry_time",
+            { ascending: false }
+          )
+          .limit(1);
+
+        latestSession = sessions?.[0] || null;
+      }
+      return {
+        // card_id: item.card_id,
+        // code: item.code,
+        // type: item.type,
+        // expired_date: item.expired_date,
+        // status: item.status,
+        // created_at: item.created_at,
+        // plate: activeReg?.vehicle?.plate_number || "Chưa đăng ký",
+        // customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký"
+
+        card_id: item.card_id,
+        code: item.code,
+        type: item.type,
+
+        expired_date: item.expired_date,
+        status: item.status,
+        created_at: item.created_at,
+
+        plate:
+          activeReg?.vehicle?.plate_number ||
+          "",
+
+        fullName:
+          activeReg?.vehicle?.customer?.full_name ||
+          "",
+
+        phone:
+          activeReg?.vehicle?.customer?.phone ||
+          "",
+
+        email:
+          activeReg?.vehicle?.customer?.email ||
+          "",
+
+        check_in_time:
+          latestSession?.entry_time || '',
+
+        check_out_time:
+          latestSession?.exit_time || '',
+
+        customer_name:
+          activeReg?.vehicle?.customer?.full_name ||
+          "Chưa đăng ký",
+
+        vehicle_id:
+          activeReg?.vehicle?.vehicle_id || null,
+
+        customer_id:
+          activeReg?.vehicle?.customer?.customer_id ||
+          null
+      };
+    })
+  )
+}
 
 export const getMonthCards = async () => {
   // const { data, error } = await supabase
@@ -532,4 +601,213 @@ export const createLostCard = async ({
   return data;
 };
 
+
+// export const updateCard = async (
+//   cardId,
+//   payload
+// ) => {
+
+//   const {
+//     plate,
+//     status,
+//     checkInTime,
+//     checkOutTime
+//   } = payload;
+
+//   // ===== Update trạng thái thẻ =====
+//   await supabase
+//     .from("card")
+//     .update({
+//       status
+//     })
+//     .eq("card_id", cardId);
+
+//   // ===== Nếu có biển số =====
+//   // if (
+//   //   plate &&
+//   //   plate !== "Chưa đăng ký"
+//   // ) {
+
+//   //   // Tìm vehicle
+//   //   const {
+//   //     data: vehicle
+//   //   } = await supabase
+//   //     .from("vehicle")
+//   //     .select("vehicle_id")
+//   //     .eq("plate_number", plate)
+//   //     .single(); 
+
+//   const {
+//     data: registration
+//   } = await supabase
+//     .from("card_registrations")
+//     .select(`
+//         vehicle_id
+//     `)
+//     .eq("card_id", cardId)
+//     .eq("status", "ACTIVE")
+//     .single();
+
+//   if (!registration) {
+
+//     return {
+//       success: true,
+//       message: "Thẻ chưa đăng ký xe"
+//     };
+//   }
+
+//   await supabase
+//     .from("vehicle")
+//     .update({
+//       plate_number: plate
+//     })
+//     .eq(
+//       "vehicle_id",
+//       registration.vehicle_id
+//     );
+
+//   const {
+//     data: session
+//   } = await supabase
+//     .from("parking_sessions")
+//     .select("session_id")
+//     .eq(
+//       "vehicle_id",
+//       registration.vehicle_id
+//     )
+//     .order(
+//       "entry_time",
+//       { ascending: false }
+//     )
+//     .limit(1)
+//     .single();
+
+//   if (vehicle) {
+
+//     // Update session mới nhất
+//     const {
+//       data: session
+//     } = await supabase
+//       .from("parking_sessions")
+//       .select("session_id")
+//       .eq(
+//         "vehicle_id",
+//         vehicle.vehicle_id
+//       )
+//       .order(
+//         "entry_time",
+//         { ascending: false }
+//       )
+//       .limit(1)
+//       .single();
+
+//     if (session) {
+
+//       await supabase
+//         .from("parking_sessions")
+//         .update({
+
+//           plate_number: plate,
+
+//           entry_time:
+//             checkInTime || null,
+
+//           exit_time:
+//             checkOutTime || null
+
+//         })
+//         .eq(
+//           "session_id",
+//           session.session_id
+//         );
+//     }
+//   }
+// }
+
+// return {
+//   success: true
+// };
+
+
 export const getLostCardLogs = getLostCards;
+
+export const updateCard = async (
+  cardId,
+  payload
+) => {
+
+  const {
+    plate,
+    status,
+    checkInTime,
+    checkOutTime
+  } = payload;
+
+  // update card
+  await supabase
+    .from("card")
+    .update({
+      status
+    })
+    .eq("card_id", cardId);
+
+  // tìm xe của thẻ
+  const { data: registration } = await supabase
+    .from("card_registrations")
+    .select("vehicle_id")
+    .eq("card_id", cardId)
+    .in("status", ["ACTIVE", "Hoạt động"])
+    .maybeSingle();
+
+  if (!registration) {
+    return {
+      success: true,
+      message: "Thẻ chưa đăng ký xe"
+    };
+  }
+
+  // cập nhật biển số
+  await supabase
+    .from("vehicle")
+    .update({
+      plate_number: plate
+    })
+    .eq(
+      "vehicle_id",
+      registration.vehicle_id
+    );
+
+  // lấy session mới nhất
+  const { data: session } = await supabase
+    .from("parking_sessions")
+    .select("session_id")
+    .eq(
+      "vehicle_id",
+      registration.vehicle_id
+    )
+    .order(
+      "entry_time",
+      { ascending: false }
+    )
+    .limit(1)
+    .maybeSingle();
+
+  if (session) {
+
+    await supabase
+      .from("parking_sessions")
+      .update({
+        plate_number: plate,
+        entry_time: checkInTime || null,
+        exit_time: checkOutTime || null
+      })
+      .eq(
+        "session_id",
+        session.session_id
+      );
+  }
+
+  return {
+    success: true
+  };
+};

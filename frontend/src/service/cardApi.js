@@ -41,3 +41,12 @@ export const createLostCard = async (payload) => {
     const response = await API.post("/cards/lost-card", payload)
     return response.data.data || response.data
 }
+
+export const updateCard = async (id, payload) => {
+    const response = await API.put(
+        `/cards/${id}`,
+        payload
+    );
+
+    return response.data.data || response.data;
+};
