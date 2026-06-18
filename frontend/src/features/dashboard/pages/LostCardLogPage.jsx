@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getLostCards } from '../../../service/cardApi';
 
 export default function LostCardLogPage() {
-    const navigate = useNavigate();
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -33,20 +31,19 @@ export default function LostCardLogPage() {
 
     const handleFilter = () => {
         let filtered = lostCards.filter((row) => {
-            const matchesSearch = 
-                row.cardNo.toLowerCase().includes(search.toLowerCase()) || 
-                row.plate.toLowerCase().includes(search.toLowerCase()) || 
-                row.owner.toLowerCase().includes(search.toLowerCase()) || 
+            const matchesSearch =
+                row.cardNo.toLowerCase().includes(search.toLowerCase()) ||
+                row.plate.toLowerCase().includes(search.toLowerCase()) ||
+                row.owner.toLowerCase().includes(search.toLowerCase()) ||
                 row.id.toLowerCase().includes(search.toLowerCase());
-            
+
             const matchesStatus = statusFilter === 'Tất cả' || row.status === statusFilter;
-            
+
             return matchesSearch && matchesStatus;
         });
         setFilteredCards(filtered);
     };
 
-    // Trigger filter when statusFilter changes or search is cleared
     useEffect(() => {
         handleFilter();
     }, [statusFilter, lostCards]);
@@ -66,42 +63,21 @@ export default function LostCardLogPage() {
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'Đang xử lý':
-                return 'status-pending';
-            case 'Đã hủy thẻ':
-                return 'status-cancelled';
-            case 'Đã tìm lại':
-                return 'status-recovered';
-            default:
-                return '';
+            case 'Đang xử lý': return 'status-pending';
+            case 'Đã hủy thẻ': return 'status-cancelled';
+            case 'Đã tìm lại': return 'status-recovered';
+            default: return '';
         }
     };
 
-    // Dynamic stats
     const totalLost = lostCards.length;
     const resolved = lostCards.filter(c => c.status === 'Đã tìm lại' || c.status === 'Đã hủy thẻ').length;
     const pending = lostCards.filter(c => c.status === 'Đang xử lý').length;
 
     return (
-        <div className="lost-card-log-page">
-            {/* Header */}
-            <header className="lost-header">
-                <div className="lost-header-left">
-                    <button type="button" className="lost-back-button" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <h1>Nhật ký xử lý mất thẻ</h1>
-                </div>
+        <div className="lost-card-log-page" style={{ width: '100%' }}>
 
-                <div className="lost-header-right">
-                    <button type="button" className="lost-bell-button" onClick={fetchLostCards}>
-                        <span className="material-symbols-outlined">refresh</span>
-                    </button>
-                    <div className="lost-avatar">
-                        <span className="material-symbols-outlined">person</span>
-                    </div>
-                </div>
-            </header>
+            {/* ĐÃ XÓA HEADER VÀ NÚT BACK LẶP LẠI TẠI ĐÂY */}
 
             {/* Summary Cards */}
             <section className="lost-stats-grid">
@@ -136,9 +112,7 @@ export default function LostCardLogPage() {
                     <div className="lost-stat-content">
                         <p className="lost-stat-label">Đang chờ xử lý</p>
                         <p className="lost-stat-value">{loading ? '...' : pending}</p>
-                        <p className="lost-stat-note warning-note">
-                            Cần xử lý trong 24h tới
-                        </p>
+                        <p className="lost-stat-note warning-note">Cần xử lý trong 24h tới</p>
                     </div>
                     <div className="lost-stat-icon pending">
                         <span className="material-symbols-outlined">assignment_late</span>
@@ -153,9 +127,9 @@ export default function LostCardLogPage() {
                         <label>Tìm kiếm</label>
                         <div className="search-input-wrapper">
                             <span className="material-symbols-outlined">search</span>
-                            <input 
-                                type="text" 
-                                placeholder="Tìm theo Mã thẻ hoặc Biển số..." 
+                            <input
+                                type="text"
+                                placeholder="Tìm theo Mã thẻ hoặc Biển số..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
@@ -165,11 +139,7 @@ export default function LostCardLogPage() {
 
                     <div className="lost-filter-group dropdown-group">
                         <label>Trạng thái</label>
-                        <select 
-                            className="lost-select"
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                        >
+                        <select className="lost-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                             <option value="Tất cả">Tất cả</option>
                             <option value="Đang xử lý">Đang xử lý</option>
                             <option value="Đã hủy thẻ">Đã hủy thẻ</option>
@@ -194,16 +164,10 @@ export default function LostCardLogPage() {
 
             {/* Table */}
             <section className="lost-table-card">
-                {error && (
-                    <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
-                        {error}
-                    </div>
-                )}
+                {error && <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-                        Đang tải nhật ký mất thẻ...
-                    </div>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký mất thẻ...</div>
                 ) : (
                     <>
                         <table className="lost-table">
@@ -244,15 +208,12 @@ export default function LostCardLogPage() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                            Không tìm thấy dữ liệu phù hợp
-                                        </td>
+                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>Không tìm thấy dữ liệu phù hợp</td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
 
-                        {/* Footer / Pagination */}
                         <div className="lost-table-footer">
                             <span className="footer-info">Hiển thị {filteredCards.length} của {totalLost} báo cáo</span>
                             <div className="footer-right-actions">

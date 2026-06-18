@@ -30,38 +30,7 @@ export default function LoginLogPage() {
 
     return (
         <div className="login-log-page">
-            {/* Header */}
-            <header className="log-header">
-                <div className="log-header-left">
-                    <button type="button" className="log-back-button" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <h1>Nhật ký đăng nhập</h1>
-                </div>
 
-                <div className="log-header-right">
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge"></span>
-                    </button>
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">help</span>
-                    </button>
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">settings</span>
-                    </button>
-
-                    <div className="log-user-profile">
-                        <div className="profile-text">
-                            <span className="profile-name">Admin User</span>
-                            <span className="profile-role">SUPER ADMINISTRATOR</span>
-                        </div>
-                        <div className="profile-avatar">
-                            <span className="material-symbols-outlined">person</span>
-                        </div>
-                    </div>
-                </div>
-            </header>
 
             {/* Stats Cards */}
             <section className="log-stats-grid">

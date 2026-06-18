@@ -23,3 +23,8 @@ export const getMonthCardLogs = async () => {
     const response = await API.get("/cards/month-card-logs")
     return response.data.data || response.data
 }
+
+export const createCard = async (payload) => {
+    const response = await API.post("/cards/card", payload)
+    return response.data.data || response.data
+}

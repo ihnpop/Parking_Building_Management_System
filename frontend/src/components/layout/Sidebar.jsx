@@ -1,15 +1,9 @@
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-/**
- * Sidebar layout for the parking management dashboard.
- * This component is styled to match the sample on the left side.
- */
-export default function Sidebar({ activeTab, onTabChange }) {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { userRole, logout } = useAuth();
+export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsCollapsed }) {
+    const { user, userRole, logout } = useAuth();
     const role = userRole ? userRole.toUpperCase() : null;
+    const userEmail = user?.email || 'admin@parkflow.com';
 
     const canSeeDashboard = role === 'ADMIN' || role === 'MANAGER';
     const canSeeUserMgmt = role === 'ADMIN';
@@ -20,76 +14,141 @@ export default function Sidebar({ activeTab, onTabChange }) {
         } catch (err) {
             console.error("Error during logout:", err);
         }
-        navigate('/login', { replace: true });
     };
 
-    // Determine the active tab based on pathname and activeTab state
-    const pathname = location.pathname;
-    let effectiveActiveTab = activeTab;
-    if (activeTab !== 'system') {
-        if (pathname.includes('/user-management')) {
-            effectiveActiveTab = 'user-management';
-        } else {
-            effectiveActiveTab = 'dashboard';
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
         }
-    }
+    };
+
+    const userInitials = userEmail.charAt(0).toUpperCase();
 
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+            {/* Khối Header Sidebar cấu hình theo chuẩn hiển thị Gemini */}
             <div className="brand">
-                <div className="brand-icon">
-                    <span className="material-symbols-outlined">directions_car</span>
+                <div className="brand-logo-zone" onClick={() => isCollapsed && setIsCollapsed(false)}>
+                    <div className="brand-icon">
+                        <span className="material-symbols-outlined">directions_car</span>
+                    </div>
+
+                    {/* Nút bấm này CHỈ kích hoạt hiệu ứng ẩn hiện hover khi đang THU NHỎ */}
+                    {isCollapsed && (
+                        <button
+                            type="button"
+                            className="sidebar-gemini-toggle-collapsed"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsCollapsed(false);
+                            }}
+                            title="Mở rộng"
+                        >
+                            <span className="material-symbols-outlined">menu</span>
+                        </button>
+                    )}
                 </div>
 
-                <div>
-                    <div className="brand-title">Quản lý Bãi xe</div>
-                    <div className="brand-subtitle">Hệ thống quản trị</div>
-                </div>
+                {!isCollapsed && (
+                    <>
+                        <div className="brand-text-group">
+                            <div className="brand-title">Quản lý Bãi xe</div>
+                            <div className="brand-subtitle">Hệ thống quản trị</div>
+                        </div>
+
+                        {/* Khi đang MỞ RỘNG, nút bấm này LUÔN LUÔN hiển thị cố định ở bên phải cùng hàng */}
+                        <button
+                            type="button"
+                            className="sidebar-gemini-toggle-expanded"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsCollapsed(true);
+                            }}
+                            title="Thu nhỏ"
+                        >
+                            <span className="material-symbols-outlined">menu_open</span>
+                        </button>
+                    </>
+                )}
             </div>
 
             <nav className="menu">
                 {canSeeDashboard && (
                     <button
                         type="button"
-                        className={`menu-item ${effectiveActiveTab === 'dashboard' ? 'active' : ''}`}
-                        onClick={() => {
-                            onTabChange('dashboard');
-                            navigate('/login/dashboard');
-                        }}
+                        className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                        onClick={() => onTabChange('dashboard')}
                     >
                         <span className="material-symbols-outlined">dashboard</span>
-                        <span>Bảng điều khiển</span>
+                        {!isCollapsed && <span>Bảng điều khiển</span>}
+                    </button>
+                )}
+
+                {canSeeDashboard && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'card-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('card-management')}
+                    >
+                        <span className="material-symbols-outlined">badge</span>
+                        {!isCollapsed && <span>Quản lý Thẻ</span>}
+                    </button>
+                )}
+
+                {canSeeDashboard && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('log-management')}
+                    >
+                        <span className="material-symbols-outlined">history</span>
+                        {!isCollapsed && <span>Nhật ký vận hành</span>}
                     </button>
                 )}
 
                 <button
                     type="button"
-                    className={`menu-item ${effectiveActiveTab === 'system' ? 'active' : ''}`}
+                    className={`menu-item ${activeTab === 'system' ? 'active' : ''}`}
                     onClick={() => onTabChange('system')}
                 >
                     <span className="material-symbols-outlined">business_center</span>
-                    <span>Nghiệp vụ hệ thống</span>
+                    {!isCollapsed && <span>Nghiệp vụ hệ thống</span>}
                 </button>
 
                 {canSeeUserMgmt && (
                     <button
                         type="button"
-                        className={`menu-item ${effectiveActiveTab === 'user-management' ? 'active' : ''}`}
-                        onClick={() => {
-                            onTabChange('user-management');
-                            navigate('/login/dashboard/user-management');
-                        }}
+                        className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('user-management')}
                     >
                         <span className="material-symbols-outlined">manage_accounts</span>
-                        <span>Phân quyền</span>
+                        {!isCollapsed && <span>Phân quyền</span>}
                     </button>
                 )}
             </nav>
 
-            <button type="button" className="logout" onClick={handleLogout}>
-                <span className="material-symbols-outlined">logout</span>
-                <span>Đăng xuất</span>
-            </button>
+            <div className="sidebar-footer">
+                <div className="sidebar-account-card">
+                    <div className="account-avatar-circle">
+                        {userInitials}
+                    </div>
+                    {!isCollapsed && (
+                        <div className="account-info-details">
+                            <div className="account-info-email" title={userEmail}>{userEmail}</div>
+                            <div className="account-info-role">{getRoleLabel(role)}</div>
+                        </div>
+                    )}
+                </div>
+
+                <button type="button" className="logout" onClick={handleLogout}>
+                    <span className="material-symbols-outlined">logout</span>
+                    {!isCollapsed && <span>Đăng xuất</span>}
+                </button>
+            </div>
         </aside>
-    )
-}
+    );
+}
