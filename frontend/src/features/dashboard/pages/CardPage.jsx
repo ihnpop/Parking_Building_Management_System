@@ -40,11 +40,10 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }
     };
 
-    // Filters - Tự động nhận defaultType từ Tab lớn bên ngoài truyền vào
+    // Filters - Tự động nhận defaultType từ Tab lớn hệ thống
     const [typeFilter, setTypeFilter] = useState(defaultType);
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
 
-    // Đồng bộ lại bộ lọc nếu defaultType từ Tab lớn thay đổi
     useEffect(() => {
         setTypeFilter(defaultType);
     }, [defaultType]);
@@ -73,14 +72,14 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setStatusFilter('Tất cả trạng thái');
     };
 
-    // Filter logic chuẩn theo các thuộc tính gốc (card.type, card.status)
+    // Filter logic
     const filteredCards = cards.filter(card => {
         const matchesType = typeFilter === 'Tất cả loại thẻ' || card.type === typeFilter;
         const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
         return matchesType && matchesStatus;
     });
 
-    // Thống kê số lượng (Stats)
+    // Stats
     const totalCards = cards.length;
     const activeCards = cards.filter(c => c.status === 'Hoạt động').length;
     const lockedCards = cards.filter(c => c.status === 'Đã khóa').length;
@@ -93,7 +92,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     // Open modal
     const handleCreateCard = () => {
-        setFormData({ ...INITIAL_FORM, type: defaultType }); // Gợi ý sẵn loại thẻ theo tab đang chọn
+        setFormData({ ...INITIAL_FORM, type: defaultType === 'Tất cả loại thẻ' ? 'Thẻ tháng' : defaultType });
         setFormError(null);
         setShowModal(true);
     };
@@ -127,17 +126,21 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
         try {
             setSubmitting(true);
-            await createCard({
+
+            // Đóng gói dữ liệu (Mã thẻ UID tự sinh ngẫu nhiên hoặc xử lý ngầm ở backend nếu bỏ nhập tay)
+            const payload = {
                 type: formData.type,
-                plate: formData.plate.trim() || undefined,
                 startDate: formData.startDate,
+                plate: formData.plate.trim() || undefined,
                 fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
                 phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
                 email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
                 durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
-            });
+            };
+
+            await createCard(payload);
             setShowModal(false);
-            await fetchCards(); // Tải lại bảng dữ liệu ngay lập tức
+            await fetchCards();
         } catch (err) {
             console.error('Error creating card:', err);
             setFormError(err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
@@ -148,42 +151,41 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     return (
         <main className="card-page" style={{ width: '100%' }}>
-
-            {/* Khối thống kê số lượng thẻ phía trên */}
+            {/* Khối thống kê */}
             <section className="cardpage-summary-grid" style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
                 {summaryItems.map((item) => (
-                    <article key={item.label} className="cardpage-summary-card" style={{ flex: 1, padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-                        <p className="summary-label" style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#666' }}>{item.label}</p>
+                    <article key={item.label} className="cardpage-summary-card" style={{ flex: 1, padding: '15px', border: '1px solid #eee', borderRadius: '8px', background: '#fff' }}>
+                        <p className="summary-label" style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#666', fontWeight: '600' }}>{item.label}</p>
                         <p className="summary-value" style={{ margin: '0 0 5px 0', fontSize: '1.8rem', fontWeight: 'bold' }}>{loading ? '...' : item.value}</p>
                         <p className="summary-note" style={{ margin: 0, fontSize: '0.75rem', color: '#999' }}>{item.note}</p>
                     </article>
                 ))}
             </section>
 
-            {/* Thanh công cụ tìm kiếm và bộ lọc */}
+            {/* Thanh công cụ / bộ lọc */}
             <section className="cardpage-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px', flexWrap: 'wrap' }}>
                 <div className="cardpage-filters" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                     <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#555' }}>Loại thẻ</label>
+                        <label style={{ fontSize: '0.85rem', color: '#555', fontWeight: '500' }}>Loại thẻ</label>
                         <select
                             className="cardpage-select"
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
                         >
                             <option value="Tất cả loại thẻ">Tất cả loại thẻ</option>
-                            <option value="Thẻ lượt">Thẻ lượt</option>
                             <option value="Thẻ tháng">Thẻ tháng</option>
+                            <option value="Thẻ lượt">Thẻ lượt</option>
                         </select>
                     </div>
 
                     <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#555' }}>Trạng thái</label>
+                        <label style={{ fontSize: '0.85rem', color: '#555', fontWeight: '500' }}>Trạng thái</label>
                         <select
                             className="cardpage-select"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
                         >
                             <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                             <option value="Hoạt động">Hoạt động</option>
@@ -195,36 +197,26 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         type="button"
                         className="cardpage-button secondary"
                         onClick={handleResetFilters}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', marginTop: '22px' }}
+                        style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', marginTop: '22px', fontSize: '0.9rem' }}
                     >
                         Làm mới bộ lọc
                     </button>
                 </div>
 
                 <div className="cardpage-actions" style={{ display: 'flex', gap: '10px', marginTop: '22px' }}>
-                    <button
-                        type="button"
-                        className="cardpage-button outline"
-                        onClick={fetchCards}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
-                    >
+                    <button type="button" className="cardpage-button outline" onClick={fetchCards} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '0.9rem' }}>
                         Tải lại dữ liệu
                     </button>
-                    <button
-                        type="button"
-                        className="cardpage-button primary"
-                        onClick={handleCreateCard}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
-                    >
+                    <button type="button" className="cardpage-button primary" onClick={handleCreateCard} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
                         + Đăng ký thẻ mới
                     </button>
                 </div>
             </section>
 
-            {/* Khối hiển thị Bảng danh sách thẻ */}
-            <section className="cardpage-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px' }}>
+            {/* Bảng danh sách */}
+            <section className="cardpage-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px', background: '#fff' }}>
                 <div className="cardpage-table-header" style={{ marginBottom: '15px' }}>
-                    <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem' }}>Danh sách thẻ</h2>
+                    <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', fontWeight: '600' }}>Danh sách thẻ</h2>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Quản lý thông tin thẻ, loại thẻ, trạng thái và hành động.</p>
                 </div>
 
@@ -242,7 +234,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     <>
                         <table className="cardpage-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                                <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left', color: '#666', fontSize: '0.85rem' }}>
+                                    <th style={{ padding: '12px' }}>MÃ THẺ</th>
                                     <th style={{ padding: '12px' }}>LOẠI</th>
                                     <th style={{ padding: '12px' }}>BIỂN SỐ</th>
                                     <th style={{ padding: '12px' }}>TRẠNG THÁI</th>
@@ -252,11 +245,12 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <tbody>
                                 {filteredCards.length > 0 ? (
                                     filteredCards.map((row) => (
-                                        <tr key={row.card_id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <tr key={row.card_id || row.code} style={{ borderBottom: '1px solid #eee', fontSize: '0.95rem' }}>
+                                            <td style={{ padding: '12px', fontWeight: '600' }}>{row.code}</td>
                                             <td style={{ padding: '12px' }}>{row.type}</td>
                                             <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
                                             <td style={{ padding: '12px' }}>
-                                                <span className={`cardpage-status ${row.status === 'Hoạt động' ? 'active' : 'locked'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                                <span className={`cardpage-status ${row.status === 'Hoạt động' ? 'active' : 'locked'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}>
                                                     <span className="material-symbols-outlined" style={{ fontSize: '12px', color: row.status === 'Hoạt động' ? '#4caf50' : '#f44336' }}>circle</span>
                                                     {row.status}
                                                 </span>
@@ -270,55 +264,35 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
                                             Không tìm thấy thẻ phù hợp
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
-
-                        {/* Phân trang (Pagination) */}
-                        <div className="cardpage-table-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.85rem', color: '#666' }}>Hiển thị {filteredCards.length} trong {totalCards}</span>
-                            <div className="cardpage-pagination" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <button type="button" className="pagination-button" disabled style={{ padding: '5px 8px', cursor: 'not-allowed' }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
-                                </button>
-                                <button type="button" className="pagination-button active" style={{ padding: '5px 12px', backgroundColor: '#e65c00', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>1</button>
-                                <button type="button" className="pagination-button" disabled style={{ padding: '5px 8px', cursor: 'not-allowed' }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
-                                </button>
-                            </div>
-                        </div>
                     </>
                 )}
             </section>
 
-            {/* ===== Modal Đăng ký thẻ mới ===== */}
+            {/* ===== MODAL ĐĂNG KÝ THÈ MỚI ĐÃ LOẠI BỎ HOÀN TOÀN TRƯỜNG UID ===== */}
             {showModal && (
                 <div
                     className="cardpage-modal-overlay"
                     style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}
                     onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
                 >
-                    <div className="cardpage-modal" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '450px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                    <div className="cardpage-modal" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
                         <div className="cardpage-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Đăng ký thẻ mới</h2>
-                            <button
-                                type="button"
-                                className="cardpage-modal-close"
-                                onClick={handleCloseModal}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                            >
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600' }}>Đăng ký thẻ mới</h2>
+                            <button type="button" className="cardpage-modal-close" onClick={handleCloseModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
 
                         <form className="cardpage-modal-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
-
-                            {/* Loại thẻ */}
+                            {/* 1. Loại thẻ */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label htmlFor="type" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Loại thẻ</label>
                                 <select
@@ -330,20 +304,20 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
                                     required
                                 >
-                                    <option value="Thẻ lượt">Thẻ lượt</option>
                                     <option value="Thẻ tháng">Thẻ tháng</option>
+                                    <option value="Thẻ lượt">Thẻ lượt</option>
                                 </select>
                             </div>
 
-                            {/* Biển số xe */}
+                            {/* 2. Biển số xe */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe</label>
+                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe {formData.type === 'Thẻ tháng' && <span style={{ color: 'red' }}>*</span>}</label>
                                 <input
                                     id="plate"
                                     name="plate"
                                     type="text"
-                                    className="cardpage-input"
                                     placeholder={formData.type === 'Thẻ tháng' ? "Ví dụ: 30K-12345" : "Ví dụ: 59G1-12345 (Nếu có)"}
+                                    className="cardpage-input"
                                     value={formData.plate}
                                     onChange={handleFormChange}
                                     style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
@@ -351,7 +325,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 />
                             </div>
 
-                            {/* Ngày bắt đầu */}
+                            {/* 3. Ngày bắt đầu */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label htmlFor="startDate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Ngày bắt đầu</label>
                                 <input
@@ -366,10 +340,10 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 />
                             </div>
 
-                            {/* Chỉ hiển thị các trường sau nếu chọn Thẻ tháng */}
+                            {/* ─── KHỐI HIỂN THỊ ĐỘNG THEO THỨ TỰ ẢNH MẪU KHI CHỌN THỂ THÁNG ─── */}
                             {formData.type === 'Thẻ tháng' && (
                                 <>
-                                    {/* Thời hạn đăng ký */}
+                                    {/* 4. Thời hạn đăng ký */}
                                     <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                         <label htmlFor="durationMonths" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Thời hạn đăng ký</label>
                                         <select
@@ -389,9 +363,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                         </select>
                                     </div>
 
-                                    {/* Họ và tên khách hàng */}
+                                    {/* 5. Tên khách hàng */}
                                     <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="fullName" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Tên khách hàng</label>
+                                        <label htmlFor="fullName" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Tên khách hàng <span style={{ color: 'red' }}>*</span></label>
                                         <input
                                             id="fullName"
                                             name="fullName"
@@ -405,9 +379,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                         />
                                     </div>
 
-                                    {/* Số điện thoại */}
+                                    {/* 6. Số điện thoại */}
                                     <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="phone" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Số điện thoại</label>
+                                        <label htmlFor="phone" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Số điện thoại <span style={{ color: 'red' }}>*</span></label>
                                         <input
                                             id="phone"
                                             name="phone"
@@ -421,9 +395,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                         />
                                     </div>
 
-                                    {/* Email */}
+                                    {/* 7. Email */}
                                     <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="email" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Email</label>
+                                        <label htmlFor="email" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Email <span style={{ color: 'red' }}>*</span></label>
                                         <input
                                             id="email"
                                             name="email"
@@ -439,7 +413,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 </>
                             )}
 
-                            {/* Trạng thái mặc định */}
+                            {/* 8. Trạng thái */}
                             <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>Trạng thái</label>
                                 <input
@@ -463,7 +437,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     className="cardpage-button secondary"
                                     onClick={handleCloseModal}
                                     disabled={submitting}
-                                    style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+                                    style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '0.9rem' }}
                                 >
                                     Hủy
                                 </button>
@@ -471,7 +445,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     type="submit"
                                     className="cardpage-button primary"
                                     disabled={submitting}
-                                    style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+                                    style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
                                 >
                                     {submitting ? 'Đang lưu...' : 'Đăng ký'}
                                 </button>
