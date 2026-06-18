@@ -315,7 +315,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                 <input
                                     id="plate"
                                     name="plate"
-                                    type="text"
                                     placeholder={formData.type === 'Thẻ tháng' ? "Ví dụ: 30K-12345" : "Ví dụ: 59G1-12345 (Nếu có)"}
                                     className="cardpage-input"
                                     value={formData.plate}
