@@ -69,6 +69,8 @@ import userRouter from "./src/routes/userRoutes.js"
 
 import parkingRouter from "./src/routes/parkingRoutes.js"
 
+import gateRouter from "./src/routes/gateRoutes.js"
+
 const app = express();
 
 app.use(cors());
@@ -80,6 +82,8 @@ app.use("/api/cards", cardRouter);
 app.use("/api/users", userRouter);
 
 app.use("/api/parking", parkingRouter);
+
+app.use("/api/gate", gateRouter);
 
 app.post(
 

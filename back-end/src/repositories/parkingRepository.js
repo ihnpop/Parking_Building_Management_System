@@ -17,6 +17,7 @@ export const createParkingSession = async ({
   plate_number,
   entry_vehicle_image,
   entry_plate_image,
+  card_id,
 }) => {
   const { data, error } = await supabase
     .from("parking_sessions")
@@ -28,6 +29,7 @@ export const createParkingSession = async ({
       entry_plate_image,
       entry_time: new Date().toISOString(),
       status: "PARKING",
+      card_id,
     })
     .select()
     .single();

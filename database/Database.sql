@@ -321,6 +321,55 @@ CREATE TABLE parking_order (
     status VARCHAR(50) DEFAULT 'PARKING'
 );
 
+CREATE TABLE parking_sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
+
+    -- RFID được sử dụng
+    card_id UUID REFERENCES card(card_id),
+
+    -- Xe vào bãi
+    vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
+
+    -- Snapshot biển số tại thời điểm vào bãi
+    plate_number VARCHAR(20) NOT NULL,
+
+    -- Thời gian
+    entry_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    exit_time TIMESTAMP,
+
+    -- Ảnh khi vào
+    entry_vehicle_image TEXT,
+    entry_plate_image TEXT,
+
+    -- Ảnh khi ra
+    exit_vehicle_image TEXT,
+    exit_plate_image TEXT,
+
+    -- Cổng vào / cổng ra
+    entry_gate_id UUID,
+    exit_gate_id UUID,
+
+    -- -- Nhân viên xử lý
+    -- created_by UUID,
+    -- closed_by UUID,
+
+    -- Phí gửi xe
+    -- total_fee NUMERIC(12,2) DEFAULT 0,
+
+    -- -- Thanh toán
+    -- payment_status VARCHAR(20)
+    --     DEFAULT 'UNPAID'
+    --     CHECK (payment_status IN ('UNPAID', 'PAID', 'FREE')),
+
+    -- Trạng thái phiên gửi xe
+    status VARCHAR(20)
+        DEFAULT 'PARKING'
+        CHECK (status IN ('PARKING', 'COMPLETED', 'LOST_CARD', 'CANCELLED')),
+
+    -- created_at TIMESTAMP DEFAULT NOW(),
+    -- updated_at TIMESTAMP DEFAULT NOW()
+);
+
 -- ==========================================
 -- PAYMENT
 -- ==========================================

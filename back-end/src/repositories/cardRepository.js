@@ -37,3 +37,111 @@ export const softDelete = async (cardId, currentUserId) => {
   if (error) throw new Error(error.message);
   return data;
 };
+
+/**
+ * Tìm kiếm thông tin thẻ theo mã code
+ * @param {string} code 
+ * @returns {Promise<object|null>}
+ */
+export const findByCode = async (code) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select('*')
+    .eq('code', code)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật trạng thái của thẻ
+ * @param {string} cardId 
+ * @param {string} status 
+ * @returns {Promise<object>}
+ */
+export const updateStatus = async (cardId, status) => {
+  const { data, error } = await supabase
+    .from('card')
+    .update({ status })
+    .eq('card_id', cardId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tìm liên kết đăng ký đang hoạt động theo vehicle_id
+ * @param {string} vehicleId 
+ * @returns {Promise<object|null>}
+ */
+export const findActiveRegistrationByVehicle = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select('*, card(*)')
+    .eq('vehicle_id', vehicleId)
+    .eq('status', 'Hoạt động')
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tìm liên kết đăng ký đang hoạt động theo card_id
+ * @param {string} cardId 
+ * @returns {Promise<object|null>}
+ */
+export const findActiveRegistrationByCard = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select('*, vehicle(*)')
+    .eq('card_id', cardId)
+    .eq('status', 'Hoạt động')
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tạo liên kết đăng ký mới giữa xe và thẻ
+ * @param {string} cardId 
+ * @param {string} vehicleId 
+ * @param {string} status 
+ * @returns {Promise<object>}
+ */
+export const createRegistration = async (cardId, vehicleId, status = 'ACTIVE') => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .insert({
+      card_id: cardId,
+      vehicle_id: vehicleId,
+      status,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Hủy kích hoạt liên kết thẻ (khi check-out)
+ * @param {string} registrationId 
+ * @returns {Promise<object>}
+ */
+export const deactivateRegistration = async (registrationId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .update({ status: 'Đang chờ' })
+    .eq('registration_id', registrationId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
