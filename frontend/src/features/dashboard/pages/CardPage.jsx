@@ -12,7 +12,6 @@ const INITIAL_FORM = {
     phone: '',
     email: '',
     durationMonths: '1',
-    // startDate: new Date().toISOString().split('T')[0],
 
     checkInTime: '',
     checkOutTime: '',
@@ -52,7 +51,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             phone: card.phone || '',
             email: card.email || '',
             durationMonths: card.durationMonths || '1',
-            // startDate: card.startDate?.split('T')[0] || '',
 
             checkInTime: card.check_in_time
                 ? new Date(card.check_in_time)
@@ -221,10 +219,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         e.preventDefault();
         setFormError(null);
 
-        // if (!formData.startDate) {
-        //     setFormError('Vui lòng chọn ngày bắt đầu.');
-        //     return;
-        // }
 
         if (formData.type === 'Thẻ tháng') {
             if (!formData.plate || !formData.fullName || !formData.phone || !formData.email) {
@@ -577,36 +571,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     required={formData.type === 'Thẻ tháng'}
                                 />
                             </div>
-
-                            {/* Ngày bắt đầu*/}
-                            {/* <div className="cardpage-form-group">
-                                <label htmlFor="startDate">Ngày bắt đầu</label>
-                                <input
-                                    id="startDate"
-                                    // disabled={!!editingCard}
-                                    name="startDate"
-                                    type="date"
-                                    className="cardpage-input"
-                                    value={formData.startDate}
-                                    onChange={handleFormChange}
-                                    required
-                                />
-                            </div> */}
-                            {/* {!editingCard && (
-                                <div className="cardpage-form-group">
-                                    <label htmlFor="startDate">Ngày bắt đầu</label>
-                                    <input
-                                        id="startDate"
-                                        name="startDate"
-                                        type="date"
-                                        className="cardpage-input"
-                                        value={formData.startDate}
-                                        onChange={handleFormChange}
-                                        required
-                                    />
-                                </div>
-                            )} */}
-
 
                             {/* Edit-only extra fields */}
                             {editingCard && (

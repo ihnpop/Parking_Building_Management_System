@@ -14,9 +14,13 @@ export const getCards = async () => {
       card_registrations (
         status,
         vehicle (
-          plate_number,
+          vehicle_id,
+        plate_number,
           customer (
-            full_name
+            customer_id,
+        full_name,
+        phone,
+        email
           )
         )
       )
@@ -29,7 +33,7 @@ export const getCards = async () => {
     data.map(async (item) => {
       const activeReg =
         item.card_registrations?.find(
-          r => r.status === 'Hoạt động'
+          r => r.status === 'Hoạt động' || r.status === 'ACTIVE'
         ) ?? null;
 
       let latestSession = null;
@@ -55,14 +59,6 @@ export const getCards = async () => {
         latestSession = sessions?.[0] || null;
       }
       return {
-        // card_id: item.card_id,
-        // code: item.code,
-        // type: item.type,
-        // expired_date: item.expired_date,
-        // status: item.status,
-        // created_at: item.created_at,
-        // plate: activeReg?.vehicle?.plate_number || "Chưa đăng ký",
-        // customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký"
 
         card_id: item.card_id,
         code: item.code,
@@ -126,7 +122,7 @@ export const getMonthCards = async () => {
         vehicle (
           plate_number,
           customer (
-            full_name
+        full_name
           ),
           vehicle_type (
             name
@@ -600,133 +596,6 @@ export const createLostCard = async ({
 
   return data;
 };
-
-
-// export const updateCard = async (
-//   cardId,
-//   payload
-// ) => {
-
-//   const {
-//     plate,
-//     status,
-//     checkInTime,
-//     checkOutTime
-//   } = payload;
-
-//   // ===== Update trạng thái thẻ =====
-//   await supabase
-//     .from("card")
-//     .update({
-//       status
-//     })
-//     .eq("card_id", cardId);
-
-//   // ===== Nếu có biển số =====
-//   // if (
-//   //   plate &&
-//   //   plate !== "Chưa đăng ký"
-//   // ) {
-
-//   //   // Tìm vehicle
-//   //   const {
-//   //     data: vehicle
-//   //   } = await supabase
-//   //     .from("vehicle")
-//   //     .select("vehicle_id")
-//   //     .eq("plate_number", plate)
-//   //     .single(); 
-
-//   const {
-//     data: registration
-//   } = await supabase
-//     .from("card_registrations")
-//     .select(`
-//         vehicle_id
-//     `)
-//     .eq("card_id", cardId)
-//     .eq("status", "ACTIVE")
-//     .single();
-
-//   if (!registration) {
-
-//     return {
-//       success: true,
-//       message: "Thẻ chưa đăng ký xe"
-//     };
-//   }
-
-//   await supabase
-//     .from("vehicle")
-//     .update({
-//       plate_number: plate
-//     })
-//     .eq(
-//       "vehicle_id",
-//       registration.vehicle_id
-//     );
-
-//   const {
-//     data: session
-//   } = await supabase
-//     .from("parking_sessions")
-//     .select("session_id")
-//     .eq(
-//       "vehicle_id",
-//       registration.vehicle_id
-//     )
-//     .order(
-//       "entry_time",
-//       { ascending: false }
-//     )
-//     .limit(1)
-//     .single();
-
-//   if (vehicle) {
-
-//     // Update session mới nhất
-//     const {
-//       data: session
-//     } = await supabase
-//       .from("parking_sessions")
-//       .select("session_id")
-//       .eq(
-//         "vehicle_id",
-//         vehicle.vehicle_id
-//       )
-//       .order(
-//         "entry_time",
-//         { ascending: false }
-//       )
-//       .limit(1)
-//       .single();
-
-//     if (session) {
-
-//       await supabase
-//         .from("parking_sessions")
-//         .update({
-
-//           plate_number: plate,
-
-//           entry_time:
-//             checkInTime || null,
-
-//           exit_time:
-//             checkOutTime || null
-
-//         })
-//         .eq(
-//           "session_id",
-//           session.session_id
-//         );
-//     }
-//   }
-// }
-
-// return {
-//   success: true
-// };
 
 
 export const getLostCardLogs = getLostCards;
