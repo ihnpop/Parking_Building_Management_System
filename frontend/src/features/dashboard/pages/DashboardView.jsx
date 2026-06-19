@@ -88,25 +88,28 @@ export default function DashboardView() {
         }, 800);
     };
 
-    const renderTabButton = (label, isActive, onClickAction) => (
-        <button
-            type="button"
-            onClick={onClickAction}
-            style={{
-                padding: '10px 24px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                background: 'none',
-                border: 'none',
-                borderBottom: isActive ? '3px solid #2563EB' : '3px solid transparent',
-                color: isActive ? '#2563EB' : '#666',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-            }}
-        >
-            {label}
-        </button>
-    );
+    const renderTabButton = (label, isActive, onClickAction) => {
+        const activeColor = '#004bca';
+        return (
+            <button
+                type="button"
+                onClick={onClickAction}
+                style={{
+                    padding: '10px 24px',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: isActive ? `3px solid ${activeColor}` : '3px solid transparent',
+                    color: isActive ? activeColor : '#666',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                }}
+            >
+                {label}
+            </button>
+        );
+    };
 
     const maxHourly = Math.max(...HOURLY_DATA, 1);
 
