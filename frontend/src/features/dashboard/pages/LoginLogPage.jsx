@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const initialLogs = [
-    { timestamp: '2023-11-24 14:32:01', username: 'nguyen.lam', initials: 'NL', ip: '192.168.1.45', device: 'Chrome / macOS', deviceIcon: 'desktop_windows', location: 'Hà Nội, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:30:15', username: 'unknown_user', initials: 'UK', ip: '45.12.8.212', device: 'Unknown / Bot', deviceIcon: 'public', location: 'Kyiv, UA', status: 'Failed' },
-    { timestamp: '2023-11-24 14:28:44', username: 'tran.hoang', initials: 'TH', ip: '115.23.45.98', device: 'Safari / iOS', deviceIcon: 'tablet_mac', location: 'TP.HCM, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:15:22', username: 'admin_main', initials: 'AD', ip: '10.0.0.5', device: 'Firefox / Windows', deviceIcon: 'laptop', location: 'Hà Nội, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:10:05', username: 'le.van.an', initials: 'LV', ip: '172.16.0.12', device: 'Edge / Windows', deviceIcon: 'desktop_windows', location: 'Đà Nẵng, VN', status: 'Success' },
+    { timestamp: '2023-11-24 14:32:01', username: 'nguyen.lam', initials: 'NL', role: 'Nhân viên', ip: '192.168.1.45', device: 'Chrome / macOS', deviceIcon: 'desktop_windows', location: 'Hà Nội, VN', status: 'Success' },
+    { timestamp: '2023-11-24 14:30:15', username: 'unknown_user', initials: 'UK', role: 'Nhân viên', ip: '45.12.8.212', device: 'Unknown / Bot', deviceIcon: 'public', location: 'Kyiv, UA', status: 'Failed' },
+    { timestamp: '2023-11-24 14:28:44', username: 'tran.hoang', initials: 'TH', role: 'Nhân viên', ip: '115.23.45.98', device: 'Safari / iOS', deviceIcon: 'tablet_mac', location: 'TP.HCM, VN', status: 'Success' },
+    { timestamp: '2023-11-24 14:15:22', username: 'admin_main', initials: 'AD', role: 'Admin', ip: '10.0.0.5', device: 'Firefox / Windows', deviceIcon: 'laptop', location: 'Hà Nội, VN', status: 'Success' },
+    { timestamp: '2023-11-24 14:10:05', username: 'le.van.an', initials: 'LV', role: 'Nhân viên', ip: '172.16.0.12', device: 'Edge / Windows', deviceIcon: 'desktop_windows', location: 'Đà Nẵng, VN', status: 'Success' },
 ];
 
 export default function LoginLogPage() {
@@ -21,46 +21,16 @@ export default function LoginLogPage() {
                 log.ip.toLowerCase().includes(search.toLowerCase()) ||
                 log.location.toLowerCase().includes(search.toLowerCase());
 
-            // Just basic filter as we don't have roles in mock data
-            return matchesSearch;
+            const matchesRole = roleFilter === 'Tất cả vai trò' || log.role === roleFilter;
+
+            return matchesSearch && matchesRole;
         });
         setLogs(filtered);
     };
 
     return (
         <div className="login-log-page">
-            {/* Header */}
-            <header className="log-header">
-                <div className="log-header-left">
-                    <button type="button" className="log-back-button" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <h1>Nhật ký đăng nhập</h1>
-                </div>
 
-                <div className="log-header-right">
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                        <span className="bell-badge"></span>
-                    </button>
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">help</span>
-                    </button>
-                    <button type="button" className="log-icon-btn">
-                        <span className="material-symbols-outlined">settings</span>
-                    </button>
-
-                    <div className="log-user-profile">
-                        <div className="profile-text">
-                            <span className="profile-name">Admin User</span>
-                            <span className="profile-role">SUPER ADMINISTRATOR</span>
-                        </div>
-                        <div className="profile-avatar">
-                            <span className="material-symbols-outlined">person</span>
-                        </div>
-                    </div>
-                </div>
-            </header>
 
             {/* Stats Cards */}
             <section className="log-stats-grid">
@@ -153,6 +123,7 @@ export default function LoginLogPage() {
                         <tr>
                             <th>TIMESTAMP</th>
                             <th>USERNAME</th>
+                            <th>ROLE</th>
                             <th>IP ADDRESS</th>
                             <th>DEVICE/BROWSER</th>
                             <th>LOCATION</th>
@@ -172,6 +143,11 @@ export default function LoginLogPage() {
                                             </div>
                                             <span className="username-text">{log.username}</span>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <span className={`role-badge ${log.role === 'Admin' ? 'admin' : 'staff'}`}>
+                                            {log.role}
+                                        </span>
                                     </td>
                                     <td>
                                         <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
@@ -199,7 +175,7 @@ export default function LoginLogPage() {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
                                     Không có dữ liệu nhật ký phù hợp
                                 </td>
                             </tr>

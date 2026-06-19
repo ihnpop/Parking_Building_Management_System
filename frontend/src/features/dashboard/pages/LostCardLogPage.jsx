@@ -139,6 +139,8 @@ export default function LostCardLogPage() {
             case 'Đã xong':
             case 'Đã tìm lại':
                 return 'status-recovered';   /* Màu xanh lá */
+            case 'Đã hủy thẻ':
+                return 'status-cancelled';
             default:
                 return '';
         }

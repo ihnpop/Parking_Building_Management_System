@@ -2,15 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-/**
- * Topbar component for the dashboard.
- * Displays the page title and user actions on the right.
- */
-export default function Topbar({ title, showExtras = false }) {
+export default function Topbar({ title, showExtras = false, currentTab }) {
     const { user, userRole, logout } = useAuth();
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
+
+    const isUserManagementPage = currentTab === 'user-management';
+    const isDashboard = currentTab === 'dashboard';
 
     const getRoleLabel = (r) => {
         if (!r) return 'Nhân viên';
@@ -22,7 +21,6 @@ export default function Topbar({ title, showExtras = false }) {
         }
     };
 
-    // Close dropdown on click outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -40,40 +38,44 @@ export default function Topbar({ title, showExtras = false }) {
             await logout();
             navigate('/login');
         } catch (err) {
-            console.error('Logout error:', err);
+            console.error(err);
         }
     };
 
-    // Calculate user initials
     const userEmail = user?.email || 'admin@parkflow.com';
-    const userInitials = user?.user_metadata?.full_name 
-        ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
-        : userEmail.substring(0, 2).toUpperCase();
+    const userInitials = userEmail.charAt(0).toUpperCase();
 
     return (
-        <header className="topbar">
-            <h1>{title}</h1>
+        <header className="header">
+            <div className="header-left-group">
+                <h1 className="page-title">{title}</h1>
+            </div>
 
-            <div className="top-actions">
-                <button type="button" className="bell" aria-label="Thông báo">
-                    <span className="material-symbols-outlined">notifications</span>
-                </button>
-                {showExtras && (
+            <div className="header-right-group">
+                {isDashboard && (
+                    <div className="db-status-badge">
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                        CSDL trực tuyến
+                    </div>
+                )}
+
+                {showExtras && !isUserManagementPage && !isDashboard && (
                     <>
-                        <button type="button" className="bell" aria-label="Cài đặt">
-                            <span className="material-symbols-outlined">settings</span>
+                        <div className="search">
+                            <span className="material-symbols-outlined">search</span>
+                            <input type="search" placeholder="Tìm kiếm nhanh (F4)..." />
+                        </div>
+                        <button type="button" className="bell" aria-label="Thông báo">
+                            <span className="material-symbols-outlined">notifications</span>
                         </button>
                         <button type="button" className="bell" aria-label="Trợ giúp">
                             <span className="material-symbols-outlined">help</span>
                         </button>
                     </>
                 )}
-                
+
                 <div className="avatar-wrapper" ref={dropdownRef}>
-                    <div 
-                        className="avatar" 
-                        onClick={() => setShowDropdown(!showDropdown)}
-                    >
+                    <div className="avatar" onClick={() => setShowDropdown(!showDropdown)}>
                         {userInitials}
                     </div>
 
@@ -83,11 +85,7 @@ export default function Topbar({ title, showExtras = false }) {
                                 <div className="user-dropdown-email">{userEmail}</div>
                                 <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
                             </div>
-                            <button 
-                                type="button" 
-                                className="user-dropdown-item" 
-                                onClick={handleLogout}
-                            >
+                            <button type="button" className="user-dropdown-item" onClick={handleLogout}>
                                 <span className="material-symbols-outlined">logout</span>
                                 Đăng xuất
                             </button>

@@ -388,6 +388,7 @@ export const getLostCards = async () => {
     const reportId = log.lost_report_id ? log.lost_report_id.substring(0, 8).toUpperCase() : `LR-${idx + 1}`;
     const cardCode = log.card?.code || "Không rõ";
     const plateNumber = log.vehicle?.plate_number || "Chưa có xe";
+    const customerName = log.vehicle?.customer?.full_name || "Khách vãng lai";
 
     // Nếu card là null (không có đăng ký thẻ) -> thẻ lượt, ngược lại lấy type từ card
     const cardType = log.card?.type || "Thẻ lượt";
@@ -415,6 +416,7 @@ export const getLostCards = async () => {
       cardNo: cardCode,
       plate: plateNumber,
       card_type: cardType,
+      owner: customerName,
       date: log.reported_at,
       handler: handlerName,
 
@@ -422,6 +424,7 @@ export const getLostCards = async () => {
       lost_report_id: reportId,
       card_code: cardCode,
       plate_number: plateNumber,
+      customer_name: customerName,
       reported_at: log.reported_at,
       handler_name: handlerName,
 
