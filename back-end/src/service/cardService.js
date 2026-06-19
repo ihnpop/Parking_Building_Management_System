@@ -221,6 +221,39 @@ export const getMonthCardLogs = async () => {
 };
 
 export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
+  const cleanPlate = plate ? plate.trim() : undefined;
+
+  // Validate plate uniqueness among active cards
+  if (cleanPlate) {
+    const { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', cleanPlate)
+      .maybeSingle();
+
+    if (vehicleErr) throw new Error(vehicleErr.message);
+
+    if (vehicle) {
+      const { data: activeReg, error: regCheckErr } = await supabase
+        .from('card_registrations')
+        .select(`
+          registration_id,
+          card (
+            code
+          )
+        `)
+        .eq('vehicle_id', vehicle.vehicle_id)
+        .in('status', ['Hoạt động', 'ACTIVE'])
+        .maybeSingle();
+
+      if (regCheckErr) throw new Error(regCheckErr.message);
+
+      if (activeReg) {
+        throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
+      }
+    }
+  }
+
   // Generate a random unique code
   const generateCode = async () => {
     const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
@@ -254,12 +287,12 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
   if (cardError) throw new Error(cardError.message);
 
   // Link to vehicle if plate is provided
-  if (plate) {
+  if (cleanPlate) {
     // Check if vehicle with plate exists
     let { data: vehicle, error: vehicleErr } = await supabase
       .from('vehicle')
       .select('vehicle_id')
-      .eq('plate_number', plate)
+      .eq('plate_number', cleanPlate)
       .maybeSingle();
 
     if (vehicleErr) throw new Error(vehicleErr.message);
@@ -272,7 +305,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
         const { data: customer, error: custErr } = await supabase
           .from('customer')
           .insert({
-            full_name: fullName || `Chủ xe ${plate}`,
+            full_name: fullName || `Chủ xe ${cleanPlate}`,
             phone: phone || null,
             email: email || null,
             status: 'Hoạt động'
@@ -303,7 +336,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
         .insert({
           customer_id: customerId,
           vehicle_type_id: vehicleTypeId,
-          plate_number: plate,
+          plate_number: cleanPlate,
           status: 'Hoạt động'
         })
         .select()
@@ -710,6 +743,40 @@ export const updateCard = async (
     checkOutTime
   } = payload;
 
+  const cleanPlate = plate ? plate.trim() : undefined;
+
+  // Validate plate uniqueness among active cards (excluding this card itself)
+  if (cleanPlate) {
+    const { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', cleanPlate)
+      .maybeSingle();
+
+    if (vehicleErr) throw new Error(vehicleErr.message);
+
+    if (vehicle) {
+      const { data: activeReg, error: regCheckErr } = await supabase
+        .from('card_registrations')
+        .select(`
+          registration_id,
+          card_id,
+          card (
+            code
+          )
+        `)
+        .eq('vehicle_id', vehicle.vehicle_id)
+        .in('status', ['Hoạt động', 'ACTIVE'])
+        .maybeSingle();
+
+      if (regCheckErr) throw new Error(regCheckErr.message);
+
+      if (activeReg && activeReg.card_id !== cardId) {
+        throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
+      }
+    }
+  }
+
   // update card
   await supabase
     .from("card")
@@ -737,7 +804,7 @@ export const updateCard = async (
   await supabase
     .from("vehicle")
     .update({
-      plate_number: plate
+      plate_number: cleanPlate
     })
     .eq(
       "vehicle_id",
@@ -764,7 +831,7 @@ export const updateCard = async (
     await supabase
       .from("parking_sessions")
       .update({
-        plate_number: plate,
+        plate_number: cleanPlate,
         entry_time: checkInTime || null,
         exit_time: checkOutTime || null
       })
