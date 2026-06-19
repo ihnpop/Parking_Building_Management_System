@@ -121,14 +121,14 @@ export default function MonthCardPage() {
                             <span className="material-symbols-outlined">refresh</span>
                             Làm mới
                         </button>
-                        <button 
-                            type="button" 
+                        {/* <button
+                            type="button"
                             className="month-btn month-btn-outline"
                             onClick={() => alert("Vui lòng chọn nút Gia hạn ở cột Thao tác của từng thẻ tháng trong danh sách bên dưới.")}
                         >
                             <span className="material-symbols-outlined">calendar_today</span>
                             Gia hạn
-                        </button>
+                        </button> */}
                         <button type="button" className="month-btn month-btn-primary">
                             <span className="material-symbols-outlined">add</span>
                             Thêm mới
@@ -192,12 +192,12 @@ export default function MonthCardPage() {
                     </select>
                 </div>
 
-                <button type="button" className="sort-download-btn" onClick={() => { setSearch(''); setVehicleTypeFilter('Tất cả loại xe'); setStatusFilter('Tất cả trạng thái'); }}>
+                {/* <button type="button" className="sort-download-btn" onClick={() => { setSearch(''); setVehicleTypeFilter('Tất cả loại xe'); setStatusFilter('Tất cả trạng thái'); }}>
                     <span className="material-symbols-outlined">restart_alt</span>
                 </button>
                 <button type="button" className="sort-download-btn">
                     <span className="material-symbols-outlined">download</span>
-                </button>
+                </button> */}
             </div>
 
             <div className="month-table-container">
@@ -247,9 +247,9 @@ export default function MonthCardPage() {
                                                 <button type="button" className="action-icon-btn" title="Chỉnh sửa">
                                                     <span className="material-symbols-outlined">edit</span>
                                                 </button>
-                                                <button 
-                                                    type="button" 
-                                                    className="action-icon-btn" 
+                                                <button
+                                                    type="button"
+                                                    className="action-icon-btn"
                                                     title="Gia hạn"
                                                     onClick={() => setRenewingCard(row)}
                                                     disabled={!row.registrationId || row.status === 'Đã khóa'}
@@ -285,11 +285,11 @@ export default function MonthCardPage() {
                 )}
             </div>
 
-            <RenewCardDialog 
-                isOpen={!!renewingCard} 
-                onClose={() => setRenewingCard(null)} 
-                cardData={renewingCard} 
-                onSuccess={fetchMonthCards} 
+            <RenewCardDialog
+                isOpen={!!renewingCard}
+                onClose={() => setRenewingCard(null)}
+                cardData={renewingCard}
+                onSuccess={fetchMonthCards}
             />
         </div>
     )
