@@ -305,15 +305,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <select
-                        className="cp-filter-select"
-                        value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value)}
-                    >
-                        <option value="Tất cả loại thẻ">Tất cả loại thẻ</option>
-                        <option value="Thẻ tháng">Thẻ tháng</option>
-                        <option value="Thẻ lượt">Thẻ lượt</option>
-                    </select>
+
                     <select
                         className="cp-filter-select"
                         value={statusFilter}
@@ -322,6 +314,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Đã khóa">Đã khóa</option>
+                        <option value="Đang chờ">Đang chờ</option>
                     </select>
                 </div>
                 <div className="cp-action-buttons">

@@ -25,14 +25,26 @@ export const getCards = async () => {
 
   return data.map(item => {
     const activeReg = item.card_registrations?.find(r => r.status === 'ACTIVE') || item.card_registrations?.[0];
+    const plate = activeReg?.vehicle?.plate_number;
+
+    // Derive status based on registration/plate
+    let status;
+    if (item.status === 'Đã khóa') {
+      status = 'Đã khóa';
+    } else if (plate) {
+      status = 'Hoạt động';   // Có biển số → Hoạt động
+    } else {
+      status = 'Đang chờ';    // Chưa có biển số → Đang chờ
+    }
+
     return {
       card_id: item.card_id,
       code: item.code,
       type: item.type,
       expired_date: item.expired_date,
-      status: item.status,
+      status,
       created_at: item.created_at,
-      plate: activeReg?.vehicle?.plate_number || "Chưa đăng ký",
+      plate: plate || "Chưa đăng ký",
       customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký"
     };
   });
