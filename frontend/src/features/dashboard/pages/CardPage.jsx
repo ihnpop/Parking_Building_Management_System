@@ -8,11 +8,6 @@ const ITEMS_PER_PAGE = 8;
 const INITIAL_FORM = {
     type: 'Thẻ lượt',
     plate: '',
-    fullName: '',
-    phone: '',
-    email: '',
-    durationMonths: '1',
-
     checkInTime: '',
     checkOutTime: '',
     status: 'Hoạt động'
@@ -45,13 +40,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const handleEdit = (card) => {
         setEditingCard(card);
         setFormData({
-            type: card.type || 'Thẻ lượt',
+            type: 'Thẻ lượt',
             plate: card.plate || '',
-            fullName: card.fullName || '',
-            phone: card.phone || '',
-            email: card.email || '',
-            durationMonths: card.durationMonths || '1',
-
             checkInTime: card.check_in_time
                 ? new Date(card.check_in_time)
                     .toISOString()
@@ -99,13 +89,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     // Filters
     const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState(defaultType);
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
     const [currentPage, setCurrentPage] = useState(1);
-
-    useEffect(() => {
-        setTypeFilter(defaultType);
-    }, [defaultType]);
 
     const fetchCards = async () => {
         try {
@@ -127,7 +112,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     const handleResetFilters = () => {
         setSearch('');
-        setTypeFilter(defaultType);
         setStatusFilter('Tất cả trạng thái');
     };
 
@@ -136,22 +120,19 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         return cards.filter(card => {
             const codeLower = (card.code || '').toLowerCase();
             const plateLower = (card.plate || '').toLowerCase();
-            const nameLower = (card.fullName || '').toLowerCase();
             const matchesSearch = search === '' ||
                 codeLower.includes(search.toLowerCase()) ||
-                plateLower.includes(search.toLowerCase()) ||
-                nameLower.includes(search.toLowerCase());
+                plateLower.includes(search.toLowerCase());
 
-            const matchesType = typeFilter === 'Tất cả loại thẻ' || card.type === typeFilter;
             const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
 
-            return matchesSearch && matchesType && matchesStatus;
+            return matchesSearch && matchesStatus;
         });
-    }, [cards, search, typeFilter, statusFilter]);
+    }, [cards, search, statusFilter]);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [search, typeFilter, statusFilter]);
+    }, [search, statusFilter]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
@@ -195,7 +176,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     // Open modal
     const handleCreateCard = () => {
         setEditingCard(null);
-        setFormData({ ...INITIAL_FORM, type: defaultType === 'Tất cả loại thẻ' ? 'Thẻ tháng' : defaultType });
+        setFormData(INITIAL_FORM);
         setFormError(null);
         setShowModal(true);
     };
@@ -219,26 +200,14 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         e.preventDefault();
         setFormError(null);
 
-
-        if (formData.type === 'Thẻ tháng') {
-            if (!formData.plate || !formData.fullName || !formData.phone || !formData.email) {
-                setFormError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe cho Thẻ tháng.');
-                return;
-            }
-        }
-
         try {
             setSubmitting(true);
             if (editingCard) {
                 await updateCard(
                     editingCard.card_id,
                     {
-                        type: formData.type,
+                        type: 'Thẻ lượt',
                         plate: formData.plate,
-                        fullName: formData.fullName,
-                        phone: formData.phone,
-                        email: formData.email,
-                        durationMonths: formData.durationMonths,
                         checkInTime: hasPlate ? formData.checkInTime : null,
                         checkOutTime: hasPlate ? formData.checkOutTime : null,
                         status: hasPlate ? formData.status : editingCard.status
@@ -247,13 +216,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 showToast("Cập nhật thẻ thành công", "success");
             } else {
                 await createCard({
-                    type: formData.type,
+                    type: 'Thẻ lượt',
                     startDate: formData.startDate,
-                    plate: formData.plate.trim() || undefined,
-                    fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
-                    phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
-                    email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
-                    durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
+                    plate: formData.plate.trim() || undefined
                 });
                 showToast("Đăng ký thẻ mới thành công", "success");
             }
@@ -383,20 +348,11 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <input
                             type="text"
                             className="cp-search-input"
-                            placeholder="Tìm theo mã thẻ, biển số, tên chủ xe..."
+                            placeholder="Tìm theo mã thẻ, biển số..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <select
-                        className="cp-filter-select"
-                        value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value)}
-                    >
-                        <option value="Tất cả loại thẻ">Tất cả loại thẻ</option>
-                        <option value="Thẻ tháng">Thẻ tháng</option>
-                        <option value="Thẻ lượt">Thẻ lượt</option>
-                    </select>
                     <select
                         className="cp-filter-select"
                         value={statusFilter}
@@ -438,7 +394,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     <tr>
                                         <th>STT</th>
                                         <th>Mã thẻ</th>
-                                        <th>Loại thẻ</th>
                                         <th>Biển số</th>
                                         <th>Trạng thái</th>
                                         <th className="cp-th-center">Thao tác</th>
@@ -450,7 +405,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                             <tr key={row.code || index} className="cp-table-row">
                                                 <td>{String((currentPage - 1) * ITEMS_PER_PAGE + index + 1).padStart(2, '0')}</td>
                                                 <td className="cp-td-bold">{row.code}</td>
-                                                <td>{row.type}</td>
                                                 <td>{row.plate || '---'}</td>
                                                 <td>
                                                     <span className={getStatusBadgeClass(row.status)}>
@@ -481,7 +435,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="6" className="cp-empty-row">
+                                            <td colSpan="5" className="cp-empty-row">
                                                 Không tìm thấy thẻ phù hợp
                                             </td>
                                         </tr>
@@ -541,34 +495,18 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         </div>
 
                         <form className="cp-modal-form" onSubmit={handleSubmit}>
-                            {/* 1. Loại thẻ */}
-                            <div className="cp-form-group">
-                                <label htmlFor="type">Loại thẻ</label>
-                                <select
-                                    id="type"
-                                    name="type"
-                                    className="cp-select"
-                                    value={formData.type}
-                                    onChange={handleFormChange}
-                                    required
-                                >
-                                    <option value="Thẻ tháng">Thẻ tháng</option>
-                                    <option value="Thẻ lượt">Thẻ lượt</option>
-                                </select>
-                            </div>
-
                             {/* 2. Biển số xe */}
                             <div className="cp-form-group">
-                                <label htmlFor="plate">Biển số xe {formData.type === 'Thẻ tháng' && <span style={{ color: '#ba1a1a' }}>*</span>}</label>
+                                <label htmlFor="plate">Biển số xe</label>
                                 <input
                                     id="plate"
                                     name="plate"
                                     type="text"
-                                    placeholder={formData.type === 'Thẻ tháng' ? "Ví dụ: 30K-12345" : "Ví dụ: 59G1-12345 (Nếu có)"}
+                                    readOnly
+                                    placeholder="Ví dụ: 59G1-12345 (Nếu có)"
                                     className="cp-input"
                                     value={formData.plate}
                                     onChange={handleFormChange}
-                                    required={formData.type === 'Thẻ tháng'}
                                 />
                             </div>
 
@@ -613,75 +551,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                             <option value="Đã khóa">Đã khóa</option>
                                             <option value="Hết hạn">Hết hạn</option>
                                         </select>
-                                    </div>
-                                </>
-                            )}
-
-                            {/* Conditional Client Fields when Type is Monthly Card */}
-                            {formData.type === 'Thẻ tháng' && (
-                                <>
-                                    {/* 4. Thời hạn đăng ký */}
-                                    <div className="cp-form-group">
-                                        <label htmlFor="durationMonths">Thời hạn đăng ký</label>
-                                        <select
-                                            id="durationMonths"
-                                            name="durationMonths"
-                                            className="cp-select"
-                                            value={formData.durationMonths}
-                                            onChange={handleFormChange}
-                                            required
-                                        >
-                                            <option value="1">1 tháng</option>
-                                            <option value="3">3 tháng</option>
-                                            <option value="6">6 tháng</option>
-                                            <option value="9">9 tháng</option>
-                                            <option value="12">12 tháng</option>
-                                        </select>
-                                    </div>
-
-                                    {/* 5. Tên khách hàng */}
-                                    <div className="cp-form-group">
-                                        <label htmlFor="fullName">Tên khách hàng <span style={{ color: '#ba1a1a' }}>*</span></label>
-                                        <input
-                                            id="fullName"
-                                            name="fullName"
-                                            type="text"
-                                            placeholder="Ví dụ: Nguyễn Văn A"
-                                            className="cp-input"
-                                            value={formData.fullName}
-                                            onChange={handleFormChange}
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* 6. Số điện thoại */}
-                                    <div className="cp-form-group">
-                                        <label htmlFor="phone">Số điện thoại <span style={{ color: '#ba1a1a' }}>*</span></label>
-                                        <input
-                                            id="phone"
-                                            name="phone"
-                                            type="tel"
-                                            placeholder="Ví dụ: 0987654321"
-                                            className="cp-input"
-                                            value={formData.phone}
-                                            onChange={handleFormChange}
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* 7. Email */}
-                                    <div className="cp-form-group">
-                                        <label htmlFor="email">Email <span style={{ color: '#ba1a1a' }}>*</span></label>
-                                        <input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            placeholder="Ví dụ: vana@gmail.com"
-                                            className="cp-input"
-                                            value={formData.email}
-                                            onChange={handleFormChange}
-                                            required
-                                        />
                                     </div>
                                 </>
                             )}

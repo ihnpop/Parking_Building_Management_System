@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getMonthCards } from '../../../service/cardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
+import EditMonthCardDialog from '../components/EditMonthCardDialog';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -9,6 +10,7 @@ export default function MonthCardPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [renewingCard, setRenewingCard] = useState(null);
+    const [editingCard, setEditingCard] = useState(null);
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -307,7 +309,13 @@ export default function MonthCardPage() {
                                                     </span>
                                                 </td>
                                                 <td className="mc-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                                    <button type="button" className="mc-edit-btn" title="Chỉnh sửa">
+                                                    <button
+                                                        type="button"
+                                                        className="mc-edit-btn"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        title="Chỉnh sửa"
+                                                        onClick={() => setEditingCard(row)}
+                                                    >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
                                                     <button
@@ -377,6 +385,12 @@ export default function MonthCardPage() {
                 isOpen={!!renewingCard}
                 onClose={() => setRenewingCard(null)}
                 cardData={renewingCard}
+                onSuccess={fetchMonthCards}
+            />
+            <EditMonthCardDialog
+                isOpen={!!editingCard}
+                onClose={() => setEditingCard(null)}
+                cardData={editingCard}
                 onSuccess={fetchMonthCards}
             />
         </div>

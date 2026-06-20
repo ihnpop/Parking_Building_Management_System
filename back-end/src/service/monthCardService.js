@@ -1,4 +1,5 @@
 import * as monthCardRepository from "../repositories/monthCardRepository.js";
+import supabase from "../config/supabaseClient.js";
 
 // Bảng giá gói gia hạn cố định
 export const RENEW_PACKAGES = [
@@ -117,4 +118,131 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
     newExpiryDate: newExpiryDateStr,
     price: pkg.price
   };
+};
+
+/**
+ * Cập nhật thông tin thẻ tháng (Biển số xe, tên khách hàng, sđt, email, trạng thái, check-in, check-out)
+ */
+export const updateMonthCard = async (cardId, payload) => {
+  const {
+    plate,
+    fullName,
+    phone,
+    email,
+    status,
+    checkInTime,
+    checkOutTime
+  } = payload;
+
+  const cleanPlate = plate ? plate.trim() : undefined;
+
+  // 1. Kiểm tra biển số duy nhất của các thẻ đang hoạt động (ngoại trừ thẻ hiện tại)
+  if (cleanPlate) {
+    const { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', cleanPlate)
+      .maybeSingle();
+
+    if (vehicleErr) throw new Error(vehicleErr.message);
+
+    if (vehicle) {
+      const { data: activeReg, error: regCheckErr } = await supabase
+        .from('card_registrations')
+        .select(`
+          registration_id,
+          card_id,
+          card (
+            code
+          )
+        `)
+        .eq('vehicle_id', vehicle.vehicle_id)
+        .in('status', ['Hoạt động', 'ACTIVE'])
+        .maybeSingle();
+
+      if (regCheckErr) throw new Error(regCheckErr.message);
+
+      if (activeReg && activeReg.card_id !== cardId) {
+        throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
+      }
+    }
+  }
+
+  // 2. Cập nhật bảng card
+  const { error: cardErr } = await supabase
+    .from("card")
+    .update({ status })
+    .eq("card_id", cardId);
+
+  if (cardErr) throw new Error(cardErr.message);
+
+  // 3. Tìm đăng ký hoạt động của thẻ để lấy xe và khách hàng
+  const { data: registration, error: regErr } = await supabase
+    .from("card_registrations")
+    .select(`
+      vehicle_id,
+      vehicle (
+        customer_id
+      )
+    `)
+    .eq("card_id", cardId)
+    .in("status", ["ACTIVE", "Hoạt động"])
+    .maybeSingle();
+
+  if (regErr) throw new Error(regErr.message);
+
+  if (registration) {
+    const vehicleId = registration.vehicle_id;
+    const customerId = registration.vehicle?.customer_id;
+
+    // 4. Cập nhật biển số xe ở bảng vehicle
+    if (cleanPlate && vehicleId) {
+      const { error: vehErr } = await supabase
+        .from("vehicle")
+        .update({ plate_number: cleanPlate })
+        .eq("vehicle_id", vehicleId);
+
+      if (vehErr) throw new Error(vehErr.message);
+    }
+
+    // 5. Cập nhật thông tin khách hàng ở bảng customer
+    if (customerId) {
+      const { error: custErr } = await supabase
+        .from("customer")
+        .update({
+          full_name: fullName,
+          phone: phone || null,
+          email: email || null
+        })
+        .eq("customer_id", customerId);
+
+      if (custErr) throw new Error(custErr.message);
+    }
+
+    // 6. Cập nhật session đỗ xe mới nhất của xe này (nếu có)
+    if (vehicleId) {
+      const { data: session } = await supabase
+        .from("parking_sessions")
+        .select("session_id")
+        .eq("vehicle_id", vehicleId)
+        .order("entry_time", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (session) {
+        const { error: sessErr } = await supabase
+          .from("parking_sessions")
+          .update({
+            plate_number: cleanPlate,
+            entry_time: checkInTime || null,
+            exit_time: checkOutTime || null
+          })
+          .eq("session_id", session.session_id);
+
+        if (sessErr) throw new Error(sessErr.message);
+      }
+    }
+  }
+
+  return { success: true };
 };

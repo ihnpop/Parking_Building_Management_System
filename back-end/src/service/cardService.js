@@ -15,16 +15,17 @@ export const getCards = async () => {
         status,
         vehicle (
           vehicle_id,
-        plate_number,
+          plate_number,
           customer (
             customer_id,
-        full_name,
-        phone,
-        email
+            full_name,
+            phone,
+            email
           )
         )
       )
     `)
+    .eq('type', 'Thẻ lượt')
     .not('status', 'eq', 'Đã xóa');
 
   if (error) throw new Error(error.message);
@@ -120,9 +121,13 @@ export const getMonthCards = async () => {
         status,
         created_at,
         vehicle (
+          vehicle_id,
           plate_number,
           customer (
-        full_name
+            customer_id,
+            full_name,
+            phone,
+            email
           ),
           vehicle_type (
             name
@@ -135,42 +140,64 @@ export const getMonthCards = async () => {
 
   if (error) throw new Error(error.message);
 
-  return data.map((card, i) => {
-    // Tìm liên kết đăng ký đang hoạt động (Hoạt động hoặc ACTIVE)
-    const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động' || r.status === 'ACTIVE') || null;
+  return await Promise.all(
+    data.map(async (card, i) => {
+      // Tìm liên kết đăng ký đang hoạt động (Hoạt động hoặc ACTIVE)
+      const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động' || r.status === 'ACTIVE') || null;
 
-    let statusText = "Hoạt động";
-    const expiredDate = card.expired_date ? new Date(card.expired_date) : null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      let statusText = "Hoạt động";
+      const expiredDate = card.expired_date ? new Date(card.expired_date) : null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    if (card.status === 'Hết hạn' || card.status === 'Đã hết hạn' || card.status === 'EXPIRED' || (expiredDate && expiredDate < today)) {
-      statusText = "Đã hết hạn";
-    } else if (card.status === 'Đã khóa' || card.status === 'LOCKED') {
-      statusText = "Đã khóa";
-    } else if (expiredDate) {
-      expiredDate.setHours(0, 0, 0, 0);
-      const diffTime = expiredDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays <= 7) {
-        statusText = "Sắp hết hạn";
+      if (card.status === 'Hết hạn' || card.status === 'Đã hết hạn' || card.status === 'EXPIRED' || (expiredDate && expiredDate < today)) {
+        statusText = "Đã hết hạn";
+      } else if (card.status === 'Đã khóa' || card.status === 'LOCKED') {
+        statusText = "Đã khóa";
+      } else if (expiredDate) {
+        expiredDate.setHours(0, 0, 0, 0);
+        const diffTime = expiredDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays <= 7) {
+          statusText = "Sắp hết hạn";
+        }
       }
-    }
 
-    return {
-      id: String(i + 1).padStart(2, '0'),
-      card_id: card.card_id,
-      registrationId: activeReg?.registration_id || null,
-      cardNo: card.code,
-      plate: activeReg?.vehicle?.plate_number || "Chưa có",
-      customer: activeReg?.vehicle?.customer?.full_name || "Khách vãng lai",
-      type: activeReg?.vehicle?.vehicle_type?.name || "Xe máy",
-      startDate: card.created_at ? new Date(card.created_at).toLocaleDateString('vi-VN') : "Chưa có",
-      endDate: card.expired_date ? new Date(card.expired_date).toLocaleDateString('vi-VN') : "Không giới hạn",
-      expiredDate: card.expired_date,
-      status: statusText
-    };
-  });
+      let latestSession = null;
+      if (activeReg?.vehicle?.vehicle_id) {
+        const { data: sessions } = await supabase
+          .from("parking_sessions")
+          .select(`
+            session_id,
+            entry_time,
+            exit_time
+          `)
+          .eq("vehicle_id", activeReg.vehicle.vehicle_id)
+          .order("entry_time", { ascending: false })
+          .limit(1);
+
+        latestSession = sessions?.[0] || null;
+      }
+
+      return {
+        id: String(i + 1).padStart(2, '0'),
+        card_id: card.card_id,
+        registrationId: activeReg?.registration_id || null,
+        cardNo: card.code,
+        plate: activeReg?.vehicle?.plate_number || "Chưa có",
+        customer: activeReg?.vehicle?.customer?.full_name || "Khách vãng lai",
+        phone: activeReg?.vehicle?.customer?.phone || "",
+        email: activeReg?.vehicle?.customer?.email || "",
+        type: activeReg?.vehicle?.vehicle_type?.name || "Xe máy",
+        startDate: card.created_at ? new Date(card.created_at).toLocaleDateString('vi-VN') : "Chưa có",
+        endDate: card.expired_date ? new Date(card.expired_date).toLocaleDateString('vi-VN') : "Không giới hạn",
+        expiredDate: card.expired_date,
+        status: statusText,
+        check_in_time: latestSession?.entry_time || '',
+        check_out_time: latestSession?.exit_time || ''
+      };
+    })
+  );
 };
 
 export const getMonthCardLogs = async () => {

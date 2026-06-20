@@ -30,3 +30,16 @@ export const renewMonthCard = async (payload) => {
     });
     return response.data;
 };
+
+/**
+ * Cập nhật thông tin thẻ tháng
+ * @param {string} id - card_id
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const updateMonthCard = async (id, payload) => {
+    const response = await API.put(`/${id}`, payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};
