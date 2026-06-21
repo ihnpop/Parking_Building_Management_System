@@ -21,4 +21,10 @@ router.post("/renew", monthCardController.renewMonthlyCard);
  */
 router.put("/:id", monthCardController.updateMonthCard);
 
+/**
+ * POST /api/month-card/create
+ * Tạo mới thẻ tháng (đăng ký mới)
+ */
+router.post("/create", monthCardController.createMonthCard);
+
 export default router;

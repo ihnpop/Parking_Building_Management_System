@@ -120,6 +120,138 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   };
 };
 
+
+/**
+ * Tạo mới một thẻ tháng (đăng ký mới)
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const createMonthCard = async ({
+  plate,
+  startDate,
+  durationMonths,
+  fullName,
+  phone,
+  email,
+  status,
+  vehicleTypeId,
+  note,
+  currentUserId
+}) => {
+  // 1. Validate dữ liệu đầu vào
+  if (!plate || !plate.trim()) {
+    throw new Error("Thiếu biển số xe.");
+  }
+  if (!fullName || !fullName.trim()) {
+    throw new Error("Thiếu tên khách hàng.");
+  }
+  if (!durationMonths || Number(durationMonths) <= 0) {
+    throw new Error("Thời hạn đăng ký không hợp lệ.");
+  }
+
+  const cleanPlate = plate.trim().toUpperCase();
+
+  // 2. Kiểm tra xe đã có thẻ đang hoạt động chưa
+  let vehicle = await monthCardRepository.findVehicleByPlate(cleanPlate);
+
+  if (vehicle) {
+    const activeReg = await monthCardRepository.findActiveRegistrationByVehicle(vehicle.vehicle_id);
+    if (activeReg) {
+      throw new Error(
+        `Biển số xe ${cleanPlate} đã có thẻ đang hoạt động (mã thẻ: ${activeReg.card?.code || ""}).`
+      );
+    }
+  }
+
+  // 3. Tìm hoặc tạo khách hàng
+  let customerId = null;
+  if (phone && phone.trim()) {
+    const existingCustomer = await monthCardRepository.findCustomerByPhone(phone.trim());
+    if (existingCustomer) {
+      customerId = existingCustomer.customer_id;
+    }
+  }
+  if (!customerId) {
+    const newCustomer = await monthCardRepository.createCustomer({
+      fullName: fullName.trim(),
+      phone: phone ? phone.trim() : null,
+      email: email ? email.trim() : null
+    });
+    customerId = newCustomer.customer_id;
+  }
+
+  // 4. Tìm hoặc tạo xe
+  if (!vehicle) {
+    if (!vehicleTypeId) {
+      throw new Error("Thiếu thông tin loại xe (vehicleTypeId).");
+    }
+    vehicle = await monthCardRepository.createVehicle({
+      plate: cleanPlate,
+      customerId,
+      vehicleTypeId
+    });
+  } else if (vehicle.customer_id !== customerId) {
+    // Xe đã tồn tại nhưng gắn với khách hàng khác -> cập nhật lại chủ xe mới
+    await supabase
+      .from("vehicle")
+      .update({ customer_id: customerId })
+      .eq("vehicle_id", vehicle.vehicle_id);
+  }
+
+  // 5. Tính ngày hết hạn
+  const start = startDate ? new Date(startDate) : new Date();
+  start.setHours(0, 0, 0, 0);
+  const expiredDateObj = addMonthsSafely(start, Number(durationMonths));
+  const expiredDateStr = expiredDateObj.toISOString().split("T")[0];
+
+  // 6. Sinh mã thẻ tự động (MT000001, MT000002, ...)
+  const totalCards = await monthCardRepository.countCards();
+  const code = `MT${String(totalCards + 1).padStart(6, "0")}`;
+
+  const cardStatus = status || "Hoạt động";
+
+  // 7. Tạo thẻ
+  const card = await monthCardRepository.createCard({
+    code,
+    type: "Thẻ tháng",
+    status: cardStatus,
+    expiredDate: expiredDateStr
+  });
+
+  // 8. Tạo đăng ký thẻ (liên kết thẻ với xe)
+  const registration = await monthCardRepository.createRegistration({
+    cardId: card.card_id,
+    vehicleId: vehicle.vehicle_id,
+    status: "ACTIVE"
+  });
+
+  // 9. Ghi log hoạt động
+  await monthCardRepository.createActivityLog({
+    cardId: card.card_id,
+    registrationId: registration.registration_id,
+    action: "CARD_CREATED",
+    oldData: null,
+    newData: {
+      code,
+      plate: cleanPlate,
+      expired_date: expiredDateStr,
+      months: Number(durationMonths)
+    },
+    note: note || "Tạo thẻ tháng mới",
+    performedBy: currentUserId || null
+  });
+
+  return {
+    success: true,
+    message: "Tạo thẻ tháng mới thành công.",
+    cardId: card.card_id,
+    cardCode: code,
+    registrationId: registration.registration_id,
+    expiredDate: expiredDateStr
+  };
+};
+
+
 /**
  * Cập nhật thông tin thẻ tháng (Biển số xe, tên khách hàng, sđt, email, trạng thái, check-in, check-out)
  */
