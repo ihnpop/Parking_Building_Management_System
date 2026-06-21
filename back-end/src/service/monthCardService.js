@@ -206,7 +206,7 @@ export const createMonthCard = async ({
 
   // 6. Sinh mã thẻ tự động (MT000001, MT000002, ...)
   const totalCards = await monthCardRepository.countCards();
-  const code = `MT${String(totalCards + 1).padStart(6, "0")}`;
+  const code = `MONTH${String(totalCards + 1).padStart(4, "0")}`;
 
   const cardStatus = status || "Hoạt động";
 

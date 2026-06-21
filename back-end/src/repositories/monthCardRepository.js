@@ -145,12 +145,27 @@ export const findVehicleByPlate = async (plate) => {
  * @param {object} payload - { plate, customerId }
  * @returns {Promise<object>}
  */
-export const createVehicle = async ({ plate, customerId }) => {
+// export const createVehicle = async ({ plate, customerId }) => {
+//   const { data, error } = await supabase
+//     .from('vehicle')
+//     .insert({
+//       plate_number: plate,
+//       customer_id: customerId
+//     })
+//     .select()
+//     .single();
+
+//   if (error) throw new Error(error.message);
+//   return data;
+// };  
+
+export const createVehicle = async ({ plate, customerId, vehicleTypeId }) => {
   const { data, error } = await supabase
     .from('vehicle')
     .insert({
       plate_number: plate,
-      customer_id: customerId
+      customer_id: customerId,
+      vehicle_type_id: vehicleTypeId
     })
     .select()
     .single();
