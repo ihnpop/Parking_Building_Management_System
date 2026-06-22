@@ -75,7 +75,6 @@ export const deleteCard = async (req, res) => {
     });
   }
 };
-
 // Create a new card
 export const createCard = async (req, res) => {
   try {

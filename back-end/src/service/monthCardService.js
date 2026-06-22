@@ -149,7 +149,11 @@ export const createMonthCard = async ({
     throw new Error("Thời hạn đăng ký không hợp lệ.");
   }
 
-  const cleanPlate = plate.trim().toUpperCase();
+  const cleanPlate = plate.replace(/[\s\.\-]/g, '').toUpperCase();
+  const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+  if (!plateRegex.test(cleanPlate)) {
+    throw new Error("Biển số xe không đúng định dạng xx(A-Z)xxxxx hoặc xx(A-Z)xxxx (Ví dụ: 29A12345)");
+  }
 
   // 2. Kiểm tra xe đã có thẻ đang hoạt động chưa
   let vehicle = await monthCardRepository.findVehicleByPlate(cleanPlate);
@@ -266,9 +270,17 @@ export const updateMonthCard = async (cardId, payload) => {
     checkOutTime
   } = payload;
 
-  const cleanPlate = plate ? plate.trim() : undefined;
+  let cleanPlate = plate ? plate.trim() : undefined;
+  if (cleanPlate) {
+    cleanPlate = cleanPlate.replace(/[\s\.\-]/g, '').toUpperCase();
+    const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+    if (!plateRegex.test(cleanPlate)) {
+      throw new Error("Biển số xe không đúng định dạng xx(A-Z)xxxxx hoặc xx(A-Z)xxxxx (Ví dụ: 29A12345)");
+    }
+  }
 
   // 1. Kiểm tra biển số duy nhất của các thẻ đang hoạt động (ngoại trừ thẻ hiện tại)
+  let existingVehicle = null;
   if (cleanPlate) {
     const { data: vehicle, error: vehicleErr } = await supabase
       .from('vehicle')
@@ -277,8 +289,9 @@ export const updateMonthCard = async (cardId, payload) => {
       .maybeSingle();
 
     if (vehicleErr) throw new Error(vehicleErr.message);
+    existingVehicle = vehicle;
 
-    if (vehicle) {
+    if (existingVehicle) {
       const { data: activeReg, error: regCheckErr } = await supabase
         .from('card_registrations')
         .select(`
@@ -288,7 +301,7 @@ export const updateMonthCard = async (cardId, payload) => {
             code
           )
         `)
-        .eq('vehicle_id', vehicle.vehicle_id)
+        .eq('vehicle_id', existingVehicle.vehicle_id)
         .in('status', ['Hoạt động', 'ACTIVE'])
         .maybeSingle();
 
@@ -312,6 +325,7 @@ export const updateMonthCard = async (cardId, payload) => {
   const { data: registration, error: regErr } = await supabase
     .from("card_registrations")
     .select(`
+      registration_id,
       vehicle_id,
       vehicle (
         customer_id
@@ -324,17 +338,37 @@ export const updateMonthCard = async (cardId, payload) => {
   if (regErr) throw new Error(regErr.message);
 
   if (registration) {
-    const vehicleId = registration.vehicle_id;
+    let vehicleId = registration.vehicle_id;
     const customerId = registration.vehicle?.customer_id;
 
-    // 4. Cập nhật biển số xe ở bảng vehicle
-    if (cleanPlate && vehicleId) {
-      const { error: vehErr } = await supabase
-        .from("vehicle")
-        .update({ plate_number: cleanPlate })
-        .eq("vehicle_id", vehicleId);
+    // 4. Cập nhật biển số xe ở bảng vehicle hoặc cập nhật liên kết đăng ký
+    if (cleanPlate) {
+      if (existingVehicle) {
+        if (existingVehicle.vehicle_id !== vehicleId) {
+          const { error: updateRegErr } = await supabase
+            .from("card_registrations")
+            .update({ vehicle_id: existingVehicle.vehicle_id })
+            .eq("registration_id", registration.registration_id);
 
-      if (vehErr) throw new Error(vehErr.message);
+          if (updateRegErr) throw new Error(updateRegErr.message);
+
+          vehicleId = existingVehicle.vehicle_id;
+
+          if (customerId) {
+            await supabase
+              .from("vehicle")
+              .update({ customer_id: customerId })
+              .eq("vehicle_id", vehicleId);
+          }
+        }
+      } else if (vehicleId) {
+        const { error: vehErr } = await supabase
+          .from("vehicle")
+          .update({ plate_number: cleanPlate })
+          .eq("vehicle_id", vehicleId);
+
+        if (vehErr) throw new Error(vehErr.message);
+      }
     }
 
     // 5. Cập nhật thông tin khách hàng ở bảng customer

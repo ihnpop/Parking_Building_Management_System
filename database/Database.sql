@@ -213,7 +213,7 @@ CREATE TABLE card_registrations (
 
     vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
 
-    status VARCHAR(20) DEFAULT 'ACTIVE',
+    status VARCHAR(20) DEFAULT 'Hoạt Động',
 
     created_at TIMESTAMP DEFAULT NOW()
 

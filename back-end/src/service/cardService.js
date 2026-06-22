@@ -244,7 +244,14 @@ export const getMonthCardLogs = async () => {
 };
 
 export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
-  const cleanPlate = plate ? plate.trim() : undefined;
+  let cleanPlate = plate ? plate.trim() : undefined;
+  if (cleanPlate) {
+    cleanPlate = cleanPlate.replace(/[\s\.\-]/g, '').toUpperCase();
+    const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+    if (!plateRegex.test(cleanPlate)) {
+      throw new Error("Biển số xe không đúng định dạng xx(A-Z)xxxxx hoặc xx(A-Z)xxxx (Ví dụ: 29A12345)");
+    }
+  }
 
   // Validate plate uniqueness among active cards
   if (cleanPlate) {
@@ -395,20 +402,44 @@ export const deleteCard = async (cardId, currentUserId) => {
   // 2. Kiểm tra status của card
   const statusUpper = (card.status || '').toUpperCase();
 
-  if (statusUpper === 'Hoạt động' || card.status === 'Hoạt động') {
-    throw new Error("Không thể xóa card hoạt động");
+  if (
+    statusUpper === 'HOẠT ĐỘNG' ||
+    card.status === 'Hoạt động'
+  ) {
+    throw new Error(
+      "Không thể xóa card hoạt động"
+    );
   }
 
-  if (statusUpper === 'Đã xóa' || card.status === 'Đã xóa') {
-    throw new Error("Card đã bị xóa");
+  if (
+    statusUpper === 'ĐÃ XÓA' ||
+    card.status === 'Đã xóa'
+  ) {
+    throw new Error(
+      "Card đã bị xóa"
+    );
+  }
+  if (
+    statusUpper === 'ĐÃ KHÓA'
+  ) {
+    throw new Error(
+      "Không thể xóa thẻ đã khóa"
+    );
   }
 
-  // Chỉ cho phép xóa AVAILABLE (Chưa sử dụng) và EXPIRED (Đã hết hạn)
-  // và hỗ trợ cả mặc định hệ thống là 'Đã khóa'
-  // const allowedStatuses = ['AVAILABLE', 'EXPIRED', 'CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
-  const allowedStatuses = ['CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
-  if (!allowedStatuses.includes(statusUpper) && !allowedStatuses.includes(card.status.toUpperCase())) {
-    throw new Error("Chỉ có thể xóa card chưa sử dụng, đã hết hạn hoặc đã khóa");
+  const allowedStatuses = [
+    // 'CHƯA SỬ DỤNG',
+    // 'ĐÃ HẾT HẠN' 
+    'ĐANG CHỜ'
+    // 'HẾT HẠN'
+  ];
+
+  if (
+    !allowedStatuses.includes(statusUpper)
+  ) {
+    throw new Error(
+      "Chỉ có thể xóa card chưa sử dụng hoặc đã hết hạn"
+    );
   }
 
   // 3. Thực hiện Soft Delete thông qua Repository
@@ -640,102 +671,386 @@ export const updateCard = async (
     checkOutTime
   } = payload;
 
-  const cleanPlate = plate ? plate.trim() : undefined;
+  // =========================
+  // Lấy thông tin card
+  // =========================
 
-  // Validate plate uniqueness among active cards (excluding this card itself)
+  const {
+    data: card,
+    error: cardError
+  } = await supabase
+    .from("card")
+    .select("*")
+    .eq("card_id", cardId)
+    .single();
+
+  if (cardError) {
+    throw new Error(cardError.message);
+  }
+
+  // TH5
+  if (card.status === "Đã khóa") {
+    throw new Error(
+      "Thẻ đã khóa, không được phép cập nhật"
+    );
+  }
+
+  let cleanPlate = plate?.trim() || "";
+
   if (cleanPlate) {
-    const { data: vehicle, error: vehicleErr } = await supabase
-      .from('vehicle')
-      .select('vehicle_id')
-      .eq('plate_number', cleanPlate)
-      .maybeSingle();
 
-    if (vehicleErr) throw new Error(vehicleErr.message);
+    cleanPlate = cleanPlate
+      .replace(/[\s.-]/g, "")
+      .toUpperCase();
 
-    if (vehicle) {
-      const { data: activeReg, error: regCheckErr } = await supabase
-        .from('card_registrations')
-        .select(`
-          registration_id,
-          card_id,
-          card (
-            code
-          )
-        `)
-        .eq('vehicle_id', vehicle.vehicle_id)
-        .in('status', ['Hoạt động'])
-        .maybeSingle();
+    const plateRegex =
+      /^\d{2}[A-Z]\d{4,5}$/;
 
-      if (regCheckErr) throw new Error(regCheckErr.message);
-
-      if (activeReg && activeReg.card_id !== cardId) {
-        throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
-      }
+    if (!plateRegex.test(cleanPlate)) {
+      throw new Error(
+        "Biển số xe không đúng định dạng"
+      );
     }
   }
 
-  // update card
-  await supabase
-    .from("card")
-    .update({
-      status
-    })
-    .eq("card_id", cardId);
+  // =========================
+  // registration hiện tại
+  // =========================
 
-  // tìm xe của thẻ
-  const { data: registration } = await supabase
+  const {
+    data: registration
+  } = await supabase
     .from("card_registrations")
-    .select("vehicle_id")
+    .select(`
+      registration_id,
+      vehicle_id
+    `)
     .eq("card_id", cardId)
-    .in("status", ["Hoạt động"])
+    .eq("status", "Hoạt động")
     .maybeSingle();
 
-  if (!registration) {
+  // ==================================================
+  // TH4
+  // Hoạt động -> Đang chờ
+  // clear biển số
+  // ==================================================
+
+  if (
+    status === "Đang chờ" &&
+    registration
+  ) {
+
+    await supabase
+      .from("card_registrations")
+      .delete()
+      .eq(
+        "registration_id",
+        registration.registration_id
+      );
+
+    await supabase
+      .from("card")
+      .update({
+        status: "Đang chờ"
+      })
+      .eq("card_id", cardId);
+
     return {
-      success: true,
-      message: "Thẻ chưa đăng ký xe"
+      success: true
     };
   }
 
-  // cập nhật biển số
-  await supabase
-    .from("vehicle")
-    .update({
-      plate_number: cleanPlate
-    })
-    .eq(
-      "vehicle_id",
-      registration.vehicle_id
-    );
+  // ==================================================
+  // TH2
+  // Đang chờ + nhập biển số
+  // => Hoạt động
+  // ==================================================
 
-  // lấy session mới nhất
-  const { data: session } = await supabase
-    .from("parking_sessions")
-    .select("session_id")
-    .eq(
-      "vehicle_id",
-      registration.vehicle_id
-    )
-    .order(
-      "entry_time",
-      { ascending: false }
-    )
-    .limit(1)
-    .maybeSingle();
+  if (
+    !registration &&
+    cleanPlate
+  ) {
 
-  if (session) {
+    if (!cleanPlate) {
+      throw new Error(
+        "Vui lòng nhập biển số xe"
+      );
+    }
+
+    let vehicleId = null;
+
+    const {
+      data: existingVehicle
+    } = await supabase
+      .from("vehicle")
+      .select("*")
+      .eq(
+        "plate_number",
+        cleanPlate
+      )
+      .maybeSingle();
+
+    if (existingVehicle) {
+
+      const {
+        data: usedReg
+      } = await supabase
+        .from("card_registrations")
+        .select("*")
+        .eq(
+          "vehicle_id",
+          existingVehicle.vehicle_id
+        )
+        .eq(
+          "status",
+          "Hoạt động"
+        )
+        .maybeSingle();
+
+      if (
+        usedReg &&
+        usedReg.card_id !== cardId
+      ) {
+        throw new Error(
+          "Biển số đã được sử dụng"
+        );
+      }
+
+      vehicleId =
+        existingVehicle.vehicle_id;
+
+    } else {
+
+      const {
+        data: vehicleType
+      } = await supabase
+        .from("vehicle_type")
+        .select("vehicle_type_id")
+        .limit(1)
+        .single();
+
+      const {
+        data: newVehicle,
+        error: vehicleError
+      } = await supabase
+        .from("vehicle")
+        .insert({
+          plate_number: cleanPlate,
+          vehicle_type_id:
+            vehicleType.vehicle_type_id,
+          status: "Hoạt động"
+        })
+        .select()
+        .single();
+
+      if (vehicleError) {
+        throw new Error(
+          vehicleError.message
+        );
+      }
+
+      vehicleId =
+        newVehicle.vehicle_id;
+    }
+
+    const {
+      error: regError
+    } = await supabase
+      .from("card_registrations")
+      .insert({
+        card_id: cardId,
+        vehicle_id: vehicleId,
+        status: "Hoạt động"
+      });
+
+    if (regError) {
+      throw new Error(
+        regError.message
+      );
+    }
 
     await supabase
-      .from("parking_sessions")
+      .from("card")
       .update({
-        plate_number: cleanPlate,
-        entry_time: checkInTime || null,
-        exit_time: checkOutTime || null
+        status: "Hoạt động"
       })
+      .eq("card_id", cardId);
+
+    return {
+      success: true
+    };
+  }
+
+  // ==================================================
+  // TH3
+  // Hoạt động nhưng không biển số
+  // ==================================================
+
+  if (
+    card.status === "Hoạt động" &&
+    !registration &&
+    !cleanPlate
+  ) {
+    throw new Error(
+      "Thẻ hoạt động bắt buộc phải có biển số"
+    );
+  }
+
+  // ==================================================
+  // TH1
+  // Xóa biển số
+  // ==================================================
+
+  if (
+    registration &&
+    !cleanPlate
+  ) {
+
+    await supabase
+      .from("card_registrations")
+      .delete()
       .eq(
-        "session_id",
-        session.session_id
+        "registration_id",
+        registration.registration_id
       );
+
+    await supabase
+      .from("card")
+      .update({
+        status: "Đang chờ"
+      })
+      .eq("card_id", cardId);
+
+    return {
+      success: true
+    };
+  }
+
+  // ==================================================
+  // Cập nhật biển số
+  // ==================================================
+
+  if (
+    registration &&
+    cleanPlate
+  ) {
+
+    const {
+      data: existingVehicle
+    } = await supabase
+      .from("vehicle")
+      .select("*")
+      .eq(
+        "plate_number",
+        cleanPlate
+      )
+      .maybeSingle();
+
+    if (
+      existingVehicle &&
+      existingVehicle.vehicle_id !==
+      registration.vehicle_id
+    ) {
+
+      const {
+        data: activeReg
+      } = await supabase
+        .from("card_registrations")
+        .select("*")
+        .eq(
+          "vehicle_id",
+          existingVehicle.vehicle_id
+        )
+        .eq(
+          "status",
+          "Hoạt động"
+        )
+        .maybeSingle();
+
+      if (
+        activeReg &&
+        activeReg.card_id !== cardId
+      ) {
+        throw new Error(
+          "Biển số đã thuộc thẻ khác"
+        );
+      }
+
+      await supabase
+        .from("card_registrations")
+        .update({
+          vehicle_id:
+            existingVehicle.vehicle_id
+        })
+        .eq(
+          "registration_id",
+          registration.registration_id
+        );
+
+    } else {
+
+      await supabase
+        .from("vehicle")
+        .update({
+          plate_number: cleanPlate
+        })
+        .eq(
+          "vehicle_id",
+          registration.vehicle_id
+        );
+    }
+
+    const {
+      data: session
+    } = await supabase
+      .from("parking_sessions")
+      .select("session_id")
+      .eq(
+        "vehicle_id",
+        registration.vehicle_id
+      )
+      .order(
+        "entry_time",
+        {
+          ascending: false
+        }
+      )
+      .limit(1)
+      .maybeSingle();
+
+    if (session) {
+
+      await supabase
+        .from("parking_sessions")
+        .update({
+          plate_number: cleanPlate,
+          entry_time:
+            checkInTime || null,
+          exit_time:
+            checkOutTime || null
+        })
+        .eq(
+          "session_id",
+          session.session_id
+        );
+    }
+
+    // await supabase
+    //   .from("card")
+    //   .update({
+    //     status
+    //   })
+    //   .eq("card_id", cardId); 
+
+    await supabase
+      .from("card")
+      .update({
+        status:
+          cleanPlate
+            ? "Hoạt động"
+            : "Đang chờ"
+      })
+      .eq("card_id", cardId);
   }
 
   return {
