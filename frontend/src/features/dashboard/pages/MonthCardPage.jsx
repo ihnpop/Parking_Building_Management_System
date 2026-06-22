@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getMonthCards } from '../../../service/cardApi';
+import RenewCardDialog from '../components/RenewCardDialog';
+import EditMonthCardDialog from '../components/EditMonthCardDialog';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -7,6 +9,8 @@ export default function MonthCardPage() {
     const [monthCards, setMonthCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [renewingCard, setRenewingCard] = useState(null);
+    const [editingCard, setEditingCard] = useState(null);
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -15,9 +19,6 @@ export default function MonthCardPage() {
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-
-    // Active tab: 'luot' or 'thang'
-    const [activeTab, setActiveTab] = useState('thang');
 
     const fetchMonthCards = async () => {
         try {
@@ -118,8 +119,6 @@ export default function MonthCardPage() {
 
     return (
         <div className="mc-page">
-
-
             {/* Stats Row */}
             <div className="mc-stats-row">
                 <div className="mc-stats-grid">
@@ -163,7 +162,6 @@ export default function MonthCardPage() {
                             <p className="mc-stat-value">{loading ? '...' : expired}</p>
                         </div>
                     </div>
-
                 </div>
 
                 {/* Donut Chart */}
@@ -238,19 +236,19 @@ export default function MonthCardPage() {
                         value={vehicleTypeFilter}
                         onChange={(e) => setVehicleTypeFilter(e.target.value)}
                     >
-                        <option>Tất cả loại xe</option>
-                        <option>Xe máy</option>
-                        <option>Ô tô</option>
+                        <option value="Tất cả loại xe">Tất cả loại xe</option>
+                        <option value="Xe máy">Xe máy</option>
+                        <option value="Ô tô">Ô tô</option>
                     </select>
                     <select
                         className="mc-filter-select"
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                        <option>Tất cả trạng thái</option>
-                        <option>Hoạt động</option>
-                        <option>Sắp hết hạn</option>
-                        <option>Hết hạn</option>
+                        <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+                        <option value="Hoạt động">Hoạt động</option>
+                        <option value="Sắp hết hạn">Sắp hết hạn</option>
+                        <option value="Đã hết hạn">Đã hết hạn</option>
                     </select>
                 </div>
                 <div className="mc-action-buttons">
@@ -258,7 +256,7 @@ export default function MonthCardPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
                         Làm mới
                     </button>
-                    <button type="button" className="mc-btn mc-btn-outline">
+                    <button type="button" className="mc-btn mc-btn-outline" onClick={() => alert("Vui lòng chọn nút Gia hạn ở cột Thao tác của từng thẻ tháng trong danh sách bên dưới.")}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
                         Gia hạn
                     </button>
@@ -288,6 +286,8 @@ export default function MonthCardPage() {
                                         <th>Biển số</th>
                                         <th>Tên khách hàng</th>
                                         <th>Loại xe</th>
+                                        <th>Ngày bắt đầu</th>
+                                        <th>Ngày hết hạn</th>
                                         <th>Trạng thái</th>
                                         <th className="mc-th-center">Thao tác</th>
                                     </tr>
@@ -298,24 +298,42 @@ export default function MonthCardPage() {
                                             <tr key={row.id || index} className="mc-table-row">
                                                 <td>{String((currentPage - 1) * ITEMS_PER_PAGE + index + 1).padStart(2, '0')}</td>
                                                 <td className="mc-td-bold">{row.cardNo}</td>
-                                                <td>{row.plate}</td>
-                                                <td>{row.customer}</td>
-                                                <td>{row.type}</td>
+                                                <td>{row.plate || '---'}</td>
+                                                <td>{row.customer || 'Khách vãng lai'}</td>
+                                                <td>{row.type || 'Xe máy'}</td>
+                                                <td>{row.startDate || 'Chưa có'}</td>
+                                                <td>{row.endDate || 'Không giới hạn'}</td>
                                                 <td>
                                                     <span className={getStatusBadgeClass(row.status)}>
                                                         {row.status}
                                                     </span>
                                                 </td>
-                                                <td className="mc-td-center">
-                                                    <button type="button" className="mc-edit-btn">
+                                                <td className="mc-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    <button
+                                                        type="button"
+                                                        className="mc-edit-btn"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        title="Chỉnh sửa"
+                                                        onClick={() => setEditingCard(row)}
+                                                    >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="mc-renew-btn"
+                                                        style={{ color: '#004bca', background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        title="Gia hạn"
+                                                        onClick={() => setRenewingCard(row)}
+                                                        disabled={!row.registrationId || row.status === 'Đã khóa'}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
                                                     </button>
                                                 </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="7" className="mc-empty-row">
+                                            <td colSpan="9" className="mc-empty-row">
                                                 Không tìm thấy vé tháng phù hợp
                                             </td>
                                         </tr>
@@ -362,6 +380,19 @@ export default function MonthCardPage() {
                     </>
                 )}
             </div>
+
+            <RenewCardDialog
+                isOpen={!!renewingCard}
+                onClose={() => setRenewingCard(null)}
+                cardData={renewingCard}
+                onSuccess={fetchMonthCards}
+            />
+            <EditMonthCardDialog
+                isOpen={!!editingCard}
+                onClose={() => setEditingCard(null)}
+                cardData={editingCard}
+                onSuccess={fetchMonthCards}
+            />
         </div>
     );
 }

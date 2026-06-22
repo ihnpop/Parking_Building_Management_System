@@ -64,18 +64,21 @@ import cors from "cors";
 import supabase from "./src/config/supabaseClient.js"
 
 import cardRouter from "./src/routes/cardRoutes.js"
-
 import userRouter from "./src/routes/userRoutes.js"
+import parkingRouter from "./src/routes/parkingRoutes.js"
+import gateRouter from "./src/routes/gateRoutes.js"
+import monthCardRouter from "./src/routes/monthCardRoutes.js"
 
 const app = express();
 
 app.use(cors());
-
 app.use(express.json());
 
 app.use("/api/cards", cardRouter);
-
 app.use("/api/users", userRouter);
+app.use("/api/parking", parkingRouter);
+app.use("/api/gate", gateRouter);
+app.use("/api/month-card", monthCardRouter);
 
 app.post(
 
