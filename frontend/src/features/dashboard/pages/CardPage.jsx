@@ -51,7 +51,7 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                             id="plate"
                             name="plate"
                             type="text"
-                            placeholder="Ví dụ: 30K-12345"
+                            placeholder="Ví dụ: 30K12345"
                             className="cp-input"
                             value={formData.plate}
                             onChange={onChange}
@@ -132,7 +132,7 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                             id="plate"
                             name="plate"
                             type="text"
-                            readOnly
+                            // readOnly
                             placeholder="Ví dụ: 59G1-12345 (Nếu có)"
                             className="cp-input"
                             value={formData.plate}
@@ -324,7 +324,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             setShowCreateModal(false);
             await fetchCards();
         } catch (err) {
-            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
+            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
         } finally {
             setSubmitting(false);
         }
@@ -348,7 +348,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             setEditingCard(null);
             await fetchCards();
         } catch (err) {
-            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
+            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
         } finally {
             setSubmitting(false);
         }
@@ -514,7 +514,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Đang chờ">Đang chờ</option>
                         <option value="Đã khóa">Đã khóa</option>
-                        <option value="Hết hạn">Hết hạn</option>
                         <option value="Đã xóa">Đã xóa</option>
                     </select>
                 </div>
