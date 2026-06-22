@@ -133,7 +133,7 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                             name="plate"
                             type="text"
                             // readOnly
-                            placeholder="Ví dụ: 59G1-12345 (Nếu có)"
+                            placeholder="Ví dụ: 59G112345 (Nếu có)"
                             className="cp-input"
                             value={formData.plate}
                             onChange={onChange}
