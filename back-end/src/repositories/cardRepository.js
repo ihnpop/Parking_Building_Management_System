@@ -100,7 +100,7 @@ export const findActiveRegistrationByVehicleAny = async (vehicleId) => {
     .from('card_registrations')
     .select('*, card(*)')
     .eq('vehicle_id', vehicleId)
-    .in('status', ['ACTIVE', 'Hoạt động'])
+    .in('status', ['Hoạt động'])
     .order('created_at', { ascending: false })
     .limit(1);
 

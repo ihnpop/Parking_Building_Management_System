@@ -50,10 +50,10 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   }
 
   // 3. Kiểm tra tính hợp lệ của Thẻ (Card)
-  if (card.status === 'Đã xóa' || card.status === 'DELETED') {
+  if (card.status === 'Đã xóa') {
     throw new Error("Không thể gia hạn thẻ đã bị xóa.");
   }
-  if (card.status === 'Đã khóa' || card.status === 'LOCKED') {
+  if (card.status === 'Đã khóa') {
     throw new Error("Không thể gia hạn thẻ đã bị khóa.");
   }
   if (card.type !== 'Thẻ tháng') {
@@ -61,7 +61,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   }
 
   // 4. Kiểm tra tính hợp lệ của Đăng ký (Registration)
-  const isRegActive = registration.status === 'Hoạt động' || registration.status === 'ACTIVE';
+  const isRegActive = registration.status === 'Hoạt động';
   if (!isRegActive) {
     throw new Error("Liên kết đăng ký thẻ hiện không hoạt động.");
   }
@@ -222,14 +222,14 @@ export const createMonthCard = async ({
   const registration = await monthCardRepository.createRegistration({
     cardId: card.card_id,
     vehicleId: vehicle.vehicle_id,
-    status: "ACTIVE"
+    status: "Hoạt động"
   });
 
   // 9. Ghi log hoạt động
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
     registrationId: registration.registration_id,
-    action: "CARD_CREATED",
+    action: "Tạo thẻ tháng mới",
     oldData: null,
     newData: {
       code,
@@ -318,7 +318,7 @@ export const updateMonthCard = async (cardId, payload) => {
       )
     `)
     .eq("card_id", cardId)
-    .in("status", ["ACTIVE", "Hoạt động"])
+    .in("status", ["Hoạt động"])
     .maybeSingle();
 
   if (regErr) throw new Error(regErr.message);

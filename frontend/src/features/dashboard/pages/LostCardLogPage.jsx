@@ -91,9 +91,13 @@ export default function LostCardLogPage() {
                 reportId.includes(searchKey);
 
             // Đồng bộ chuỗi chữ trạng thái
-            let currentStatus = row.status || 'Chờ xử lý';
-            if (currentStatus === 'PENDING') currentStatus = 'Chờ xử lý';
-            if (currentStatus === 'RESOLVED') currentStatus = 'Đã xong';
+            // let currentStatus = row.status || 'Chờ xử lý';
+            // if (currentStatus === 'PENDING') currentStatus = 'Chờ xử lý';
+            // if (currentStatus === 'RESOLVED') currentStatus = 'Đã xong'; 
+
+            // Đồng bộ chuỗi chữ trạng thái
+            const currentStatus = row.status || 'Chờ xử lý';
+
 
             const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
 
@@ -148,9 +152,9 @@ export default function LostCardLogPage() {
 
     // Tính toán số liệu thống kê động chia đều cho 3 trạng thái
     const totalLost = lostCards.length;
-    const pendingCount = lostCards.filter(c => c.status === 'Chờ xử lý' || c.status === 'PENDING').length;
+    const pendingCount = lostCards.filter(c => c.status === 'Chờ xử lý').length;
     const processingCount = lostCards.filter(c => c.status === 'Đang xử lý').length;
-    const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'RESOLVED').length;
+    const resolvedCount = lostCards.filter(c => c.status === 'Đã xong').length;
 
     return (
         <div className="lost-card-log-page">

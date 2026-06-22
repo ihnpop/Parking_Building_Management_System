@@ -188,7 +188,7 @@ export const findActiveRegistrationByVehicle = async (vehicleId) => {
       card ( code )
     `)
     .eq('vehicle_id', vehicleId)
-    .in('status', ['Hoạt động', 'ACTIVE'])
+    .in('status', ['Hoạt động'])
     .maybeSingle();
 
   if (error) throw new Error(error.message);

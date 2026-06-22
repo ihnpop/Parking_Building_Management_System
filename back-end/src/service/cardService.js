@@ -34,7 +34,7 @@ export const getCards = async () => {
     data.map(async (item) => {
       const activeReg =
         item.card_registrations?.find(
-          r => r.status === 'Hoạt động' || r.status === 'ACTIVE'
+          r => r.status === 'Hoạt động'
         ) ?? null;
 
       let latestSession = null;
@@ -143,16 +143,16 @@ export const getMonthCards = async () => {
   return await Promise.all(
     data.map(async (card, i) => {
       // Tìm liên kết đăng ký đang hoạt động (Hoạt động hoặc ACTIVE)
-      const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động' || r.status === 'ACTIVE') || null;
+      const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động') || null;
 
       let statusText = "Hoạt động";
       const expiredDate = card.expired_date ? new Date(card.expired_date) : null;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      if (card.status === 'Hết hạn' || card.status === 'Đã hết hạn' || card.status === 'EXPIRED' || (expiredDate && expiredDate < today)) {
+      if (card.status === 'Hết hạn' || card.status === 'Đã hết hạn' || (expiredDate && expiredDate < today)) {
         statusText = "Đã hết hạn";
-      } else if (card.status === 'Đã khóa' || card.status === 'LOCKED') {
+      } else if (card.status === 'Đã khóa') {
         statusText = "Đã khóa";
       } else if (expiredDate) {
         expiredDate.setHours(0, 0, 0, 0);
@@ -225,9 +225,9 @@ export const getMonthCardLogs = async () => {
     const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
     const time = new Date(item.payment_time).toLocaleString('vi-VN');
     const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
-    const status = item.status === 'PAID'
+    const status = item.status === 'Đã thanh toán'
       ? 'Thành công'
-      : item.status === 'PENDING'
+      : item.status === 'Chờ xử lý'
         ? 'Đang xử lý'
         : 'Thất bại';
 
@@ -266,7 +266,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
           )
         `)
         .eq('vehicle_id', vehicle.vehicle_id)
-        .in('status', ['Hoạt động', 'ACTIVE'])
+        .in('status', ['Hoạt động'])
         .maybeSingle();
 
       if (regCheckErr) throw new Error(regCheckErr.message);
@@ -454,15 +454,15 @@ export const getLostCards = async () => {
 
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
     let statusText = 'Đang xử lý';
-    if (log.status === 'RESOLVED' || log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
+    if (log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
       statusText = 'Đã xong';
-    } else if (log.status === 'PENDING' || !log.status) {
+    } else if (!log.status) {
       if (!log.handled_by) {
         statusText = 'Chờ xử lý';
       } else {
         statusText = 'Đang xử lý';
       }
-    } else if (log.status === 'CANCELED' || log.status === 'Đã hủy thẻ') {
+    } else if (log.status === 'Đã hủy thẻ') {
       statusText = 'Đã hủy thẻ';
     }
 
@@ -525,7 +525,7 @@ export const createLostCard = async ({
     .from('card_registrations')
     .select('card_id')
     .eq('vehicle_id', vehicle.vehicle_id)
-    .in('status', ['ACTIVE', 'Hoạt động'])
+    .in('status', ['Hoạt động'])
     .limit(1)
     .maybeSingle();
 
@@ -611,7 +611,7 @@ export const createLostCard = async ({
       vehicle_id: vehicle.vehicle_id,
       description: description || "Báo mất thẻ",
       reported_at: new Date().toISOString(),
-      status: 'PENDING',            // Mặc định trạng thái Chờ xử lý
+      status: 'Chờ xử lý',            // Mặc định trạng thái Chờ xử lý
       handled_by: null              // Chưa có nhân viên xử lý
     })
     .select()
@@ -662,7 +662,7 @@ export const updateCard = async (
           )
         `)
         .eq('vehicle_id', vehicle.vehicle_id)
-        .in('status', ['Hoạt động', 'ACTIVE'])
+        .in('status', ['Hoạt động'])
         .maybeSingle();
 
       if (regCheckErr) throw new Error(regCheckErr.message);
@@ -686,7 +686,7 @@ export const updateCard = async (
     .from("card_registrations")
     .select("vehicle_id")
     .eq("card_id", cardId)
-    .in("status", ["ACTIVE", "Hoạt động"])
+    .in("status", ["Hoạt động"])
     .maybeSingle();
 
   if (!registration) {

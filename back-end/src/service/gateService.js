@@ -403,7 +403,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
-      status: "COMPLETED"
+      status: "Đã xong"
     });
 
     // Giải phóng liên kết thẻ và xe (đổi status của registration sang INACTIVE)
@@ -433,7 +433,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
-      status: "COMPLETED"
+      status: "Đã xong"
     });
 
     // Đối với Monthly, không thay đổi trạng thái thẻ hay đăng ký thẻ. Thẻ vẫn tiếp tục ACTIVE.
