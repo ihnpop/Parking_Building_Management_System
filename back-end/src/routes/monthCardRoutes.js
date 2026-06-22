@@ -15,4 +15,10 @@ router.get("/renew-packages", monthCardController.getRenewPackages);
  */
 router.post("/renew", monthCardController.renewMonthlyCard);
 
+/**
+ * PUT /api/month-card/:id
+ * Cập nhật thông tin thẻ tháng
+ */
+router.put("/:id", monthCardController.updateMonthCard);
+
 export default router;

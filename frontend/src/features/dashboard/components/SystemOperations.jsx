@@ -897,15 +897,7 @@ export default function SystemOperations() {
                             key={action.label}
                             type="button"
                             className={action.primary ? 'shortcut-button shortcut-primary' : 'shortcut-button'}
-                            // onClick={() => {
-                            //     if (action.label === 'ENTER') {
-                            //         if (mode === 'IN') {
-                            //             handleCheckInSubmit();
-                            //         } else {
-                            //             handleCheckOutSubmit();
-                            //         }
-                            //     }
-                            // }}  
+
                             onClick={() => {
 
                                 if (action.label === 'F1') {
