@@ -389,25 +389,26 @@ export const deleteCard = async (cardId, currentUserId) => {
   // 1. Kiểm tra card tồn tại
   const card = await cardRepository.findById(cardId);
   if (!card) {
-    throw new Error("Card not found");
+    throw new Error("Không tìm thấy card");
   }
 
   // 2. Kiểm tra status của card
   const statusUpper = (card.status || '').toUpperCase();
 
   if (statusUpper === 'Hoạt động' || card.status === 'Hoạt động') {
-    throw new Error("Active card cannot be deleted");
+    throw new Error("Không thể xóa card hoạt động");
   }
 
   if (statusUpper === 'Đã xóa' || card.status === 'Đã xóa') {
-    throw new Error("Card is already deleted");
+    throw new Error("Card đã bị xóa");
   }
 
   // Chỉ cho phép xóa AVAILABLE (Chưa sử dụng) và EXPIRED (Đã hết hạn)
   // và hỗ trợ cả mặc định hệ thống là 'Đã khóa'
-  const allowedStatuses = ['AVAILABLE', 'EXPIRED', 'CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
+  // const allowedStatuses = ['AVAILABLE', 'EXPIRED', 'CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
+  const allowedStatuses = ['CHƯA SỬ DỤNG', 'ĐÃ HẾT HẠN', 'ĐÃ KHÓA'];
   if (!allowedStatuses.includes(statusUpper) && !allowedStatuses.includes(card.status.toUpperCase())) {
-    throw new Error("Only AVAILABLE or EXPIRED cards can be deleted");
+    throw new Error("Chỉ có thể xóa card chưa sử dụng, đã hết hạn hoặc đã khóa");
   }
 
   // 3. Thực hiện Soft Delete thông qua Repository

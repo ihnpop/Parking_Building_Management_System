@@ -66,7 +66,7 @@ export const deleteCard = async (req, res) => {
     await cardService.deleteCard(id, deleted_by);
     res.status(200).json({
       success: true,
-      message: "Card deleted successfully"
+      message: "Xóa card thành công"
     });
   } catch (err) {
     res.status(400).json({
