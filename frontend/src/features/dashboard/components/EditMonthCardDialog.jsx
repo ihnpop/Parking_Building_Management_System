@@ -229,7 +229,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                     </div>
 
                     {!hasPlate && (
-                        <p style={{ color: '#f59e0b', fontSize: '13px', margin: '0' }}>
+                        <p style={{ color: '#004BCA', fontSize: '13px', margin: '0' }}>
                             Thẻ chưa có biển số nên không thể cập nhật thời gian vào/ra.
                         </p>
                     )}
@@ -245,8 +245,9 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         </button>
                         <button
                             type="submit"
-                            className="renew-btn primary"
+                            className="cp-btn cp-btn-primary"
                             disabled={isSubmitting}
+
                         >
                             {isSubmitting ? 'Đang lưu...' : 'Xác nhận cập nhật'}
                         </button>
