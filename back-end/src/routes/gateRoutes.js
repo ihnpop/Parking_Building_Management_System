@@ -1,0 +1,39 @@
+import express from "express";
+import upload from "../middlewares/upload.js";
+import * as gateController from "../controllers/gateController.js";
+
+const router = express.Router();
+
+/**
+ * POST /api/gate/upload
+ * Tải ảnh chụp từ camera lên Storage
+ */
+router.post("/upload", upload.single("file"), gateController.uploadImage);
+
+/**
+ * POST /api/gate/ocr
+ * Giả lập OCR quét biển số
+ */
+router.post("/ocr", upload.single("file"), gateController.simulateOCR);
+
+/**
+ * POST /api/gate/entry/pre-check
+ */
+router.post("/entry/pre-check", gateController.preCheckEntry);
+
+/**
+ * POST /api/gate/entry
+ */
+router.post("/entry", gateController.entryTap);
+
+/**
+ * POST /api/gate/exit/pre-check
+ */
+router.post("/exit/pre-check", gateController.preCheckExit);
+
+/**
+ * POST /api/gate/exit
+ */
+router.post("/exit", gateController.exitTap);
+
+export default router;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMonthCardLogs } from '../../../service/cardApi';
+import { getMonthCardLogs } from '../../../service/monthCardApi';
 
 export default function MonthCardLogPage() {
     const [allLogs, setAllLogs] = useState([]);
@@ -33,7 +33,6 @@ export default function MonthCardLogPage() {
     const handleFilter = () => {
         let filtered = allLogs.filter((log) => {
             const matchesSearch =
-                log.cardNo.toLowerCase().includes(search.toLowerCase()) ||
                 log.plate.toLowerCase().includes(search.toLowerCase()) ||
                 log.owner.toLowerCase().includes(search.toLowerCase());
 
@@ -132,7 +131,7 @@ export default function MonthCardLogPage() {
                             <span className="material-symbols-outlined">search</span>
                             <input
                                 type="text"
-                                placeholder="Mã thẻ, Biển số, Chủ xe..."
+                                placeholder="Biển số, Chủ xe..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
@@ -179,7 +178,6 @@ export default function MonthCardLogPage() {
                             <thead>
                                 <tr>
                                     <th>THỜI GIAN</th>
-                                    <th>MÃ THẺ</th>
                                     <th>BIỂN SỐ</th>
                                     <th>CHỦ XE</th>
                                     <th>LOẠI GD</th>
@@ -192,7 +190,6 @@ export default function MonthCardLogPage() {
                                     logs.map((log, index) => (
                                         <tr key={index}>
                                             <td className="log-time">{log.time}</td>
-                                            <td className="log-card-no">{log.cardNo}</td>
                                             <td>{log.plate}</td>
                                             <td>{log.owner}</td>
                                             <td>{log.type}</td>
@@ -206,7 +203,7 @@ export default function MonthCardLogPage() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>Không tìm thấy nhật ký phù hợp</td>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>Không tìm thấy nhật ký phù hợp</td>
                                     </tr>
                                 )}
                             </tbody>
