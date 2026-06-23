@@ -211,7 +211,7 @@ export default function LoginPage() {
     return (
         <div className="new-login-container">
             <div className="bg-blur-container"></div>
-            
+
             <main className="main-card">
                 {/* Left Side: Hero Area */}
                 <section className="left-panel">
@@ -251,7 +251,7 @@ export default function LoginPage() {
                                 <input
                                     className="input-standard"
                                     id="email"
-                                    placeholder="nhanvien@congty.vn"
+                                    placeholder="chucvu@gmail.com"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}

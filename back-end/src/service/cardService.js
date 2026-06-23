@@ -220,7 +220,7 @@ export const getMonthCardLogs = async () => {
   if (error) throw new Error(error.message);
 
   return data.map((item, idx) => {
-    const cardCode = item.parking_order?.card?.code || `CARD-${1000 + idx}`;
+    const cardCode = item.parking_order?.card?.code || `CARD${1000 + idx}`;
     const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
     const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
     const time = new Date(item.payment_time).toLocaleString('vi-VN');
