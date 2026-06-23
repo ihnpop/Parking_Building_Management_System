@@ -163,3 +163,28 @@ export const updateMonthCard = async (req, res) => {
     });
   }
 };
+
+/**
+ * Lấy danh sách thẻ tháng
+ */
+export const getMonthCards = async (req, res) => {
+  try {
+    const monthCards = await monthCardService.getMonthCards();
+    return res.status(200).json(monthCards);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Lấy lịch sử giao dịch thẻ tháng
+ */
+export const getMonthCardLogs = async (req, res) => {
+  try {
+    const logs = await monthCardService.getMonthCardLogs();
+    return res.status(200).json(logs);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+

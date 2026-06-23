@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getMonthCards } from '../../../service/cardApi';
+import { getMonthCards } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
 

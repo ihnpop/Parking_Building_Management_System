@@ -43,3 +43,22 @@ export const updateMonthCard = async (id, payload) => {
     });
     return response.data;
 };
+
+/**
+ * Lấy danh sách thẻ tháng
+ * @returns {Promise<Array>}
+ */
+export const getMonthCards = async () => {
+    const response = await API.get("/");
+    return response.data.data || response.data;
+};
+
+/**
+ * Lấy lịch sử giao dịch thẻ tháng
+ * @returns {Promise<Array>}
+ */
+export const getMonthCardLogs = async () => {
+    const response = await API.get("/logs");
+    return response.data.data || response.data;
+};
+
