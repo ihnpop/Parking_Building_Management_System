@@ -4,10 +4,23 @@ import * as monthCardController from "../controllers/monthCardController.js";
 const router = express.Router();
 
 /**
+ * GET /api/month-card
+ * Lấy danh sách thẻ tháng
+ */
+router.get("/", monthCardController.getMonthCards);
+
+/**
+ * GET /api/month-card/logs
+ * Lấy lịch sử giao dịch thẻ tháng
+ */
+router.get("/logs", monthCardController.getMonthCardLogs);
+
+/**
  * GET /api/month-card/renew-packages
  * Lấy danh sách các gói gia hạn thẻ tháng khả dụng
  */
 router.get("/renew-packages", monthCardController.getRenewPackages);
+
 
 /**
  * POST /api/month-card/renew

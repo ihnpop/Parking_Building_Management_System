@@ -64,4 +64,34 @@ export const monthCardApi = {
     }
 };
 
+/**
+ * Lấy danh sách thẻ tháng
+ * @returns {Promise<Array>}
+ */
+export const getMonthCards = async () => {
+    const response = await API.get("/");
+    return response.data.data || response.data;
+};
+
+/**
+ * Lấy lịch sử giao dịch thẻ tháng
+ * @returns {Promise<Array>}
+ */
+export const getMonthCardLogs = async () => {
+    const response = await API.get("/logs");
+    return response.data.data || response.data;
+};
+
+/**
+ * Tạo mới thẻ tháng (đăng ký mới)
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const createMonthCard = async (payload) => {
+    const response = await API.post("/create", payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};
+
 

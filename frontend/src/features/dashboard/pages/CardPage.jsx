@@ -509,7 +509,11 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <select className="cp-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <select
+                        className="cp-filter-select"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
                         <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Đang chờ">Đang chờ</option>

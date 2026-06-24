@@ -399,10 +399,11 @@
 
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMonthCards } from '../../../service/cardApi';
+import { getMonthCards } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
-import CreateMonthCardDialog from '../components/CreateMonthCardDialog'; // Bổ sung dialog luồng eKYC mới
+import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
+
 
 const ITEMS_PER_PAGE = 8;
 
@@ -413,6 +414,7 @@ export default function MonthCardPage() {
     const [renewingCard, setRenewingCard] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false); // Trạng thái mở modal eKYC tổng
+
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -660,10 +662,17 @@ export default function MonthCardPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
                         Gia hạn
                     </button>
+
                     {/* Cập nhật sự kiện click kích hoạt Luồng Tạo Mới kèm eKYC */}
                     <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                         Thêm mới (eKYC)
+
+                        {/* <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                        Thêm mới */}
+
+
                     </button>
                 </div>
             </div>
