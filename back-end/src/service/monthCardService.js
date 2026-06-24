@@ -294,14 +294,6 @@ export const updateMonthCard = async (cardId, payload) => {
         "Thẻ đã khóa, không được phép chỉnh sửa thông tin."
       );
     }
-
-    //   if (currentCard.status === "Đã khóa") {
-    //     if (status === currentCard.status) {
-    //       // Không có gì thay đổi -> không báo lỗi, chỉ báo không có cập nhật
-    //       return { success: true, message: "Không có thay đổi nào được áp dụng (thẻ đang khóa)." };
-    //     }
-    // }
-
     // Chỉ cho cập nhật trạng thái
     const { error: cardErr } = await supabase
       .from("card")

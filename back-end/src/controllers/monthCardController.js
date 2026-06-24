@@ -143,27 +143,9 @@ export const createMonthCard = async (req, res) => {
   }
 };
 
-
-
-
-
 /**
  * Cập nhật thông tin thẻ tháng
  */
-// export const updateMonthCard = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const result = await monthCardService.updateMonthCard(id, req.body);
-//     return res.status(200).json(result);
-//   } catch (err) {
-//     console.error("Lỗi Controller cập nhật thẻ tháng:", err);
-//     return res.status(500).json({
-//       success: false,
-//       message: err.message
-//     });
-//   }
-// }; 
-
 export const updateMonthCard = async (req, res) => {
   try {
     const { id } = req.params;
