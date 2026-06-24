@@ -43,3 +43,25 @@ export const updateMonthCard = async (id, payload) => {
     });
     return response.data;
 };
+
+export const monthCardApi = {
+    // Hàm gửi dữ liệu ảnh Base64 lên Backend của bạn
+    verifyEkyc: async (frontBase64, backBase64) => {
+        const token = localStorage.getItem('supabase_token'); // Hoặc lấy từ AuthContext
+        const response = await axios.post(
+            `${API}/verify-ekyc`,
+            {
+                img_front_base64: frontBase64,
+                img_back_base64: backBase64
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    }
+};
+
+

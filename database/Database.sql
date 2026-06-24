@@ -520,3 +520,38 @@ VALUES
 ('ADMIN', 'Administrator'),
 ('MANAGER', 'Parking Manager'),
 ('STAFF', 'Parking Staff');
+
+ALTER TABLE customer
+ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE customer_kyc (
+    kyc_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    customer_id UUID NOT NULL
+        REFERENCES customer(customer_id)
+        ON DELETE CASCADE,
+
+    cccd_number VARCHAR(20),
+
+    face_match_score NUMERIC(5,2),
+
+    ekyc_status VARCHAR(20)
+        DEFAULT 'PENDING'
+        CHECK (
+            ekyc_status IN (
+                'PENDING',
+                'VERIFIED',
+                'REJECTED'
+            )
+        ),
+
+    front_cccd_url TEXT,
+
+    back_cccd_url TEXT,
+
+    selfie_url TEXT,
+
+    verified_at TIMESTAMP,
+
+    created_at TIMESTAMP DEFAULT NOW()
+);
