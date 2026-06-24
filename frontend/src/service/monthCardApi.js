@@ -62,3 +62,15 @@ export const getMonthCardLogs = async () => {
     return response.data.data || response.data;
 };
 
+/**
+ * Tạo mới thẻ tháng (đăng ký mới)
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const createMonthCard = async (payload) => {
+    const response = await API.post("/create", payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};
+

@@ -34,8 +34,8 @@ export const getCards = async () => {
     data.map(async (item) => {
       const activeReg =
         item.card_registrations?.find(
-          r => r.status === 'Hoạt động' || r.status === 'ACTIVE'
-        ) ?? item.card_registrations?.[0] ?? null;
+          r => r.status === 'Hoạt động'
+        ) ?? null;
 
       let latestSession = null;
 
@@ -59,39 +59,52 @@ export const getCards = async () => {
 
         latestSession = sessions?.[0] || null;
       }
-
-      const plate = activeReg?.vehicle?.plate_number;
-
-      // Derive status based on registration/plate
-      let status;
-      if (item.status === 'Đã khóa') {
-        status = 'Đã khóa';
-      } else if (plate) {
-        status = 'Hoạt động';   // Có biển số → Hoạt động
-      } else {
-        status = 'Đang chờ';    // Chưa có biển số → Đang chờ
-      }
-
       return {
+
         card_id: item.card_id,
         code: item.code,
         type: item.type,
+
         expired_date: item.expired_date,
-        status,
+        status: item.status,
         created_at: item.created_at,
-        plate: plate || "",
-        fullName: activeReg?.vehicle?.customer?.full_name || "",
-        phone: activeReg?.vehicle?.customer?.phone || "",
-        email: activeReg?.vehicle?.customer?.email || "",
-        check_in_time: latestSession?.entry_time || '',
-        check_out_time: latestSession?.exit_time || '',
-        customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký",
-        vehicle_id: activeReg?.vehicle?.vehicle_id || null,
-        customer_id: activeReg?.vehicle?.customer?.customer_id || null
+
+        plate:
+          activeReg?.vehicle?.plate_number ||
+          "",
+
+        fullName:
+          activeReg?.vehicle?.customer?.full_name ||
+          "",
+
+        phone:
+          activeReg?.vehicle?.customer?.phone ||
+          "",
+
+        email:
+          activeReg?.vehicle?.customer?.email ||
+          "",
+
+        check_in_time:
+          latestSession?.entry_time || '',
+
+        check_out_time:
+          latestSession?.exit_time || '',
+
+        customer_name:
+          activeReg?.vehicle?.customer?.full_name ||
+          "Chưa đăng ký",
+
+        vehicle_id:
+          activeReg?.vehicle?.vehicle_id || null,
+
+        customer_id:
+          activeReg?.vehicle?.customer?.customer_id ||
+          null
       };
     })
-  );
-};
+  )
+}
 
 export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
   let cleanPlate = plate ? plate.trim() : undefined;
