@@ -270,6 +270,53 @@ export const updateMonthCard = async (cardId, payload) => {
     checkOutTime
   } = payload;
 
+  const { data: currentCard, error: currentCardErr } = await supabase
+    .from("card")
+    .select("status")
+    .eq("card_id", cardId)
+    .single();
+
+  if (currentCardErr) {
+    throw new Error(currentCardErr.message);
+  }
+
+  // Không tìm thấy thẻ
+  if (!currentCard) {
+    throw new Error(`Không tìm thấy thẻ ${cardId}`);
+  }
+
+  // Thẻ đã khóa
+  if (currentCard.status === "Đã khóa") {
+
+    // Nếu trạng thái không thay đổi thì không cho sửa
+    if (status === currentCard.status) {
+      throw new Error(
+        "Thẻ đã khóa, không được phép chỉnh sửa thông tin."
+      );
+    }
+
+    //   if (currentCard.status === "Đã khóa") {
+    //     if (status === currentCard.status) {
+    //       // Không có gì thay đổi -> không báo lỗi, chỉ báo không có cập nhật
+    //       return { success: true, message: "Không có thay đổi nào được áp dụng (thẻ đang khóa)." };
+    //     }
+    // }
+
+    // Chỉ cho cập nhật trạng thái
+    const { error: cardErr } = await supabase
+      .from("card")
+      .update({ status })
+      .eq("card_id", cardId);
+
+    if (cardErr) {
+      throw new Error(cardErr.message);
+    }
+
+    return {
+      success: true
+    };
+  }
+
   let cleanPlate = plate ? plate.trim() : undefined;
   if (cleanPlate) {
     cleanPlate = cleanPlate.replace(/[\s\.\-]/g, '').toUpperCase();
