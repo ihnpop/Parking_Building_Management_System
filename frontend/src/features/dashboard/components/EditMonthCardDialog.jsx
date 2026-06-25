@@ -160,7 +160,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                             >
                                 {/* Options dùng DB values, label hiển thị UI */}
                                 <option value="Hoạt động">Hoạt động</option>
-                                <option value="Đang chờ">Sắp hết hạn</option>
+                                <option value="Đang chờ">Đang chờ</option>
                                 <option value="Đã khóa">Hết hạn (Đã khóa)</option>
                             </select>
                         </div>

@@ -153,7 +153,7 @@ export default function MonthCardPage() {
                             <span className="material-symbols-outlined">warning</span>
                         </div>
                         <div>
-                            <p className="mc-stat-label">Sắp hết hạn</p>
+                            <p className="mc-stat-label">Đang chờ</p>
                             <p className="mc-stat-value">{loading ? '...' : expiring}</p>
                         </div>
                     </div>
@@ -266,7 +266,7 @@ export default function MonthCardPage() {
                     {/* Cập nhật sự kiện click kích hoạt Luồng Tạo Mới kèm eKYC */}
                     <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                        Thêm mới (eKYC)
+                        Đăng ký vé tháng
 
                         {/* <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>

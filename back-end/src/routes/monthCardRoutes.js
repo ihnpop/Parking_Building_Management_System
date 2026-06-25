@@ -4,6 +4,24 @@ import * as monthCardController from "../controllers/monthCardController.js";
 const router = express.Router();
 
 /**
+ * GET /api/month-card/vehicle-types
+ * Lấy danh sách loại xe
+ */
+router.get("/vehicle-types", monthCardController.getVehicleTypes);
+
+/**
+ * GET /api/month-card/packages
+ * Lấy danh sách gói cước tháng
+ */
+router.get("/packages", monthCardController.getPackages);
+
+/**
+ * GET /api/month-card/next-code
+ * Sinh mã thẻ MONTH tiếp theo chưa tồn tại trong DB
+ */
+router.get("/next-code", monthCardController.getNextMonthCode);
+
+/**
  * GET /api/month-card
  * Lấy danh sách thẻ tháng
  */
@@ -27,6 +45,13 @@ router.get("/renew-packages", monthCardController.getRenewPackages);
  * Thực hiện gia hạn thẻ tháng
  */
 router.post("/renew", monthCardController.renewMonthlyCard);
+
+/**
+ * POST /api/month-card/verify-document
+ * Xác thực giấy tờ thật/giả bằng VNPT eKYC
+ */
+router.post("/verify-document", monthCardController.verifyDocument);
+
 
 /**
  * PUT /api/month-card/:id

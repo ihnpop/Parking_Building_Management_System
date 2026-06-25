@@ -1,4 +1,4 @@
-const registrationService = require('../service/parkingRegistrationService');
+import registrationService from '../service/parkingRegistrationService.js';
 
 class ParkingRegistrationController {
     async registerMonthlyTicket(req, res) {
@@ -10,6 +10,7 @@ class ParkingRegistrationController {
                 data: result
             });
         } catch (error) {
+            console.error("Lỗi đăng ký vé tháng khép kín:", error);
             return res.status(500).json({
                 success: false,
                 message: error.message || "Luồng đăng ký xe gặp sự cố hệ thống."
@@ -18,4 +19,4 @@ class ParkingRegistrationController {
     }
 }
 
-module.exports = new ParkingRegistrationController();
+export default new ParkingRegistrationController();
