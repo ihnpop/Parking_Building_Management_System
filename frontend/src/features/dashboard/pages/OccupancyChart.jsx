@@ -20,13 +20,12 @@ const statsData = {
             revenuePath: 'M 100,240 C 200,160 300,160 400,190 C 500,220 600,110 700,140 C 800,160 900,120 1000,70',
             trafficPath: 'M 100,260 C 200,210 300,200 400,230 C 500,250 600,170 700,190 C 800,220 900,180 1000,130',
             points: [
-                { x: 100, rev: '50K', tra: '1.2K', label: 'Tuần 1' },
-                { x: 250, rev: '90K', tra: '1.8K', label: 'Tuần 2' },
-                { x: 400, rev: '110K', tra: '1.6K', label: 'Tuần 3' },
-                { x: 550, rev: '85K', tra: '1.4K', label: 'Tuần 4' },
-                { x: 700, rev: '135K', tra: '2.4K', label: 'Tuần 5' },
-                { x: 850, rev: '115K', tra: '2.0K', label: 'Tuần 6' },
-                { x: 1000, rev: '160K', tra: '2.8K', label: 'Tuần 7' }
+                { x: 175, rev: '82K', tra: '1.2K', label: 'T1' },
+                { x: 325, rev: '95K', tra: '1.45K', label: 'T2' },
+                { x: 475, rev: '110K', tra: '1.65K', label: 'T3' },
+                { x: 625, rev: '98K', tra: '1.55K', label: 'T4' },
+                { x: 775, rev: '130K', tra: '2.05K', label: 'T5' },
+                { x: 925, rev: '142K', tra: '2.4K', label: 'T6' }
             ]
         },
         transactions: [
@@ -54,13 +53,13 @@ const statsData = {
             revenuePath: 'M 100,220 C 200,180 300,140 400,170 C 500,200 600,120 700,90 C 800,110 900,130 1000,80',
             trafficPath: 'M 100,240 C 200,210 300,180 400,200 C 500,220 600,160 700,130 C 800,150 900,160 1000,110',
             points: [
-                { x: 100, rev: '25K', tra: '0.6K', label: 'Thứ 2' },
-                { x: 250, rev: '40K', tra: '0.9K', label: 'Thứ 3' },
-                { x: 400, rev: '35K', tra: '0.8K', label: 'Thứ 4' },
+                { x: 160, rev: '25K', tra: '0.6K', label: 'Thứ 2' },
+                { x: 290, rev: '40K', tra: '0.9K', label: 'Thứ 3' },
+                { x: 420, rev: '35K', tra: '0.8K', label: 'Thứ 4' },
                 { x: 550, rev: '30K', tra: '0.7K', label: 'Thứ 5' },
-                { x: 700, rev: '55K', tra: '1.2K', label: 'Thứ 6' },
-                { x: 850, rev: '50K', tra: '1.1K', label: 'Thứ 7' },
-                { x: 1000, rev: '60K', tra: '1.3K', label: 'Chủ Nhật' }
+                { x: 680, rev: '55K', tra: '1.2K', label: 'Thứ 6' },
+                { x: 810, rev: '50K', tra: '1.1K', label: 'Thứ 7' },
+                { x: 940, rev: '60K', tra: '1.3K', label: 'Chủ Nhật' }
             ]
         },
         transactions: [
@@ -86,13 +85,13 @@ const statsData = {
             revenuePath: 'M 100,260 C 200,220 300,180 400,190 C 500,160 600,100 700,110 C 800,140 900,90 1000,60',
             trafficPath: 'M 100,280 C 200,240 300,200 400,210 C 500,190 600,130 700,140 C 800,170 900,120 1000,90',
             points: [
-                { x: 100, rev: '10K', tra: '0.1K', label: '00:00' },
-                { x: 250, rev: '15K', tra: '0.2K', label: '04:00' },
-                { x: 400, rev: '30K', tra: '0.4K', label: '08:00' },
+                { x: 160, rev: '10K', tra: '0.1K', label: '00:00' },
+                { x: 290, rev: '15K', tra: '0.2K', label: '04:00' },
+                { x: 420, rev: '30K', tra: '0.4K', label: '08:00' },
                 { x: 550, rev: '45K', tra: '0.6K', label: '12:00' },
-                { x: 700, rev: '55K', tra: '0.8K', label: '16:00' },
-                { x: 850, rev: '60K', tra: '0.9K', label: '20:00' },
-                { x: 1000, rev: '75K', tra: '1.1K', label: '23:59' }
+                { x: 680, rev: '55K', tra: '0.8K', label: '16:00' },
+                { x: 810, rev: '60K', tra: '0.9K', label: '20:00' },
+                { x: 940, rev: '75K', tra: '1.1K', label: '23:59' }
             ]
         },
         transactions: [
@@ -106,6 +105,7 @@ export default function OccupancyChart() {
     const { user, userRole, logout } = useAuth();
     const [selectedPeriod, setSelectedPeriod] = useState('month');
     const [showDropdown, setShowDropdown] = useState(false);
+    const [tooltip, setTooltip] = useState(null);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
 
@@ -145,7 +145,7 @@ export default function OccupancyChart() {
 
     // Calculate user initials
     const userEmail = user?.email || 'admin@parkflow.com';
-    const userInitials = user?.user_metadata?.full_name 
+    const userInitials = user?.user_metadata?.full_name
         ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
         : userEmail.substring(0, 2).toUpperCase();
 
@@ -162,7 +162,7 @@ export default function OccupancyChart() {
                     <button className="stats-bell-btn">
                         <span className="material-symbols-outlined">notifications</span>
                     </button>
-                    
+
                     <div className="avatar-wrapper" ref={dropdownRef}>
                         <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
                             <div className="profile-text">
@@ -177,9 +177,9 @@ export default function OccupancyChart() {
                                     <div className="user-dropdown-email">{userEmail}</div>
                                     <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
                                 </div>
-                                <button 
-                                    type="button" 
-                                    className="user-dropdown-item" 
+                                <button
+                                    type="button"
+                                    className="user-dropdown-item"
                                     onClick={handleLogout}
                                 >
                                     <span className="material-symbols-outlined">logout</span>
@@ -295,7 +295,6 @@ export default function OccupancyChart() {
                     </div>
                 </div>
 
-                {/* SVG Chart Panel */}
                 <div className="chart-panel-card">
                     <div className="chart-panel-header">
                         <h3>Biểu đồ Doanh thu & Lưu lượng</h3>
@@ -303,60 +302,85 @@ export default function OccupancyChart() {
                     </div>
 
                     <div className="chart-svg-container">
-                        <svg className="analytics-svg" viewBox="0 0 1100 320" preserveAspectRatio="none">
-                            {/* Grid Lines */}
-                            <line x1="80" y1="50" x2="1050" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-                            <line x1="80" y1="120" x2="1050" y2="120" stroke="#f1f5f9" strokeWidth="1" />
-                            <line x1="80" y1="190" x2="1050" y2="190" stroke="#f1f5f9" strokeWidth="1" />
-                            <line x1="80" y1="260" x2="1050" y2="260" stroke="#cbd5e1" strokeWidth="2" /> {/* X Axis baseline */}
-
-                            {/* Left Y-Axis labels */}
-                            <text x="40" y="55" className="svg-axis-lbl" textAnchor="middle">150K</text>
-                            <text x="40" y="125" className="svg-axis-lbl" textAnchor="middle">100K</text>
-                            <text x="40" y="195" className="svg-axis-lbl" textAnchor="middle">50K</text>
-
-                            {/* Right Y-Axis labels */}
-                            <text x="1080" y="55" className="svg-axis-lbl" textAnchor="middle">3K</text>
-                            <text x="1080" y="125" className="svg-axis-lbl" textAnchor="middle">2K</text>
-                            <text x="1080" y="195" className="svg-axis-lbl" textAnchor="middle">1K</text>
+                        <svg className="analytics-svg" viewBox="0 0 1100 420" preserveAspectRatio="none" style={{ width: '100%', height: 'auto', display: 'block' }}>
+                            {/* Grid Lines & Labels */}
+                            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => {
+                                const y = 350 - (i * 35); // Range = 280px. 350 is 0, 70 is max
+                                return (
+                                    <g key={`grid-${i}`}>
+                                        <line x1="120" y1={y} x2="980" y2={y} stroke="rgba(238, 236, 236, 1)" strokeWidth="1" />
+                                        <text x="110" y={y + 5} fill="#6b7280" fontSize="13" textAnchor="end">{i * 20}K</text>
+                                        <text x="990" y={y + 5} fill="#6b7280" fontSize="13" textAnchor="start">{(i * 2.5 / 8).toFixed(1)}K</text>
+                                    </g>
+                                );
+                            })}
 
                             {/* Left Axis Title */}
-                            <text x="15" y="150" className="svg-axis-title-left" transform="rotate(-90 15 150)" textAnchor="middle">Revenue (S$)</text>
+                            <text x="30" y="210" fill="#888" fontSize="14" transform="rotate(-90 30 210)" textAnchor="middle">Revenue (S$)</text>
                             {/* Right Axis Title */}
-                            <text x="1095" y="150" className="svg-axis-title-right" transform="rotate(90 1095 150)" textAnchor="middle">Traffic (Units)</text>
+                            <text x="1060" y="210" fill="#888" fontSize="14" transform="rotate(90 1060 210)" textAnchor="middle">Traffic (Units)</text>
 
-                            {/* Paths */}
-                            <path
-                                d={currentData.chartData.revenuePath}
-                                fill="none"
-                                stroke="#c2410c"
-                                strokeWidth="4"
-                                strokeLinecap="round"
-                            />
-                            <path
-                                d={currentData.chartData.trafficPath}
-                                fill="none"
-                                stroke="#1d4ed8"
-                                strokeWidth="4"
-                                strokeLinecap="round"
-                            />
+                            {/* Bars */}
+                            {currentData.chartData.points.map((pt, index) => {
+                                const BASELINE = 350;
+                                const BAR_WIDTH = 38;
+                                const GAP = 2;
+                                const RANGE_Y = 280;
 
-                            {/* Data Points */}
-                            {currentData.chartData.points.map((pt, index) => (
-                                <g key={index}>
-                                    <circle cx={pt.x} cy={parseInt(currentData.chartData.revenuePath.split(' ')[index * 2 + 1].split(',')[1]) || 150} r="6" fill="#c2410c" stroke="#ffffff" strokeWidth="2" className="chart-dot" />
-                                    <circle cx={pt.x} cy={parseInt(currentData.chartData.trafficPath.split(' ')[index * 2 + 1].split(',')[1]) || 180} r="6" fill="#1d4ed8" stroke="#ffffff" strokeWidth="2" className="chart-dot" />
+                                // Extract value from string (e.g., "82K" -> 82)
+                                const revValue = parseFloat(pt.rev.replace('K', '')) || 0;
+                                const traValue = parseFloat(pt.tra.replace('K', '')) || 0;
 
-                                    {/* X-axis labels */}
-                                    <text x={pt.x} y="290" className="svg-x-lbl" textAnchor="middle">{pt.label}</text>
+                                // Calculate heights relative to 160K max revenue and 2.5K max traffic
+                                const revenueHeight = Math.max((revValue / 160) * RANGE_Y, 0);
+                                const trafficHeight = Math.max((traValue / 2.5) * RANGE_Y, 0);
+
+                                const revenueX = pt.x - BAR_WIDTH - GAP;
+                                const trafficX = pt.x + GAP;
+
+                                return (
+                                    <g key={index}>
+                                        {/* Cột Doanh thu */}
+                                        <rect
+                                            x={revenueX}
+                                            y={BASELINE - revenueHeight}
+                                            width={BAR_WIDTH}
+                                            height={revenueHeight}
+                                            fill="#d84315"
+                                            style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
+                                            onMouseEnter={() => setTooltip({ x: revenueX + BAR_WIDTH / 2, y: BASELINE - revenueHeight - 35, value: pt.rev })}
+                                            onMouseLeave={() => setTooltip(null)}
+                                        />
+                                        {/* Cột Lưu lượng */}
+                                        <rect
+                                            x={trafficX}
+                                            y={BASELINE - trafficHeight}
+                                            width={BAR_WIDTH}
+                                            height={trafficHeight}
+                                            fill="#2563eb"
+                                            style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
+                                            onMouseEnter={() => setTooltip({ x: trafficX + BAR_WIDTH / 2, y: BASELINE - trafficHeight - 35, value: pt.tra })}
+                                            onMouseLeave={() => setTooltip(null)}
+                                        />
+
+                                        {/* X-axis labels */}
+                                        <text x={pt.x} y="380" fill="#888" fontSize="14" textAnchor="middle">{pt.label}</text>
+                                    </g>
+                                );
+                            })}
+
+                            {/* Tooltip Overlay */}
+                            {tooltip && (
+                                <g transform={`translate(${tooltip.x}, ${tooltip.y})`} style={{ pointerEvents: 'none' }}>
+                                    <rect x="-24" y="0" width="48" height="26" fill="rgba(30,30,30,0.95)" rx="4" stroke="#444" strokeWidth="1" />
+                                    <text x="0" y="18" fill="#fff" fontSize="13" fontWeight="bold" textAnchor="middle">{tooltip.value}</text>
                                 </g>
-                            ))}
+                            )}
                         </svg>
                     </div>
-
                     <div className="chart-legend-box">
                         <div className="legend-item">
-                            <span className="legend-dot orange-dot"></span>
+                            <span className="legend-dot red-dot"></span>
                             <span>Doanh thu (Revenue)</span>
                         </div>
                         <div className="legend-item">
@@ -365,7 +389,6 @@ export default function OccupancyChart() {
                         </div>
                     </div>
                 </div>
-
                 {/* Transactions Table Panel */}
                 <div className="table-panel-card">
                     <div className="table-panel-header">
@@ -411,6 +434,6 @@ export default function OccupancyChart() {
                     </div>
                 </div>
             </div>
-        </section>
+        </section >
     );
 }
