@@ -258,10 +258,6 @@ export default function MonthCardPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
                         Làm mới
                     </button>
-                    <button type="button" className="mc-btn mc-btn-outline" onClick={() => alert("Vui lòng chọn nút Gia hạn ở cột Thao tác của từng thẻ tháng trong danh sách bên dưới.")}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
-                        Gia hạn
-                    </button>
 
                     {/* Cập nhật sự kiện click kích hoạt Luồng Tạo Mới kèm eKYC */}
                     <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
