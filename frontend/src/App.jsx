@@ -13,7 +13,6 @@ import RoleProtectedRoute from './components/auth/RoleProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import ResetPassword from "./features/auth/pages/ResetPassword";
-
 import "./styles/App.css";
 
 export default function App() {
@@ -52,7 +51,7 @@ export default function App() {
 
       <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
             <LostCardLogPage />
           </RoleProtectedRoute>
         </ProtectedRoute>
@@ -84,7 +83,7 @@ export default function App() {
 
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
             <OccupancyChart />
           </RoleProtectedRoute>
         </ProtectedRoute>

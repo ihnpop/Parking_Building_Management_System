@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getLostCards } from '../../../service/cardApi';
-
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { createLostCard } from "../../../service/cardApi"
 export default function LostCardLogPage() {
+    const navigate = useNavigate();
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,13 +20,22 @@ export default function LostCardLogPage() {
     const fetchLostCards = async () => {
         try {
             setLoading(true);
-            const data = await getLostCards();
-            setLostCards(data);
-            setFilteredCards(data);
             setError(null);
+
+            // Gọi trực tiếp tới endpoint Backend của bạn
+            const response = await axios.get('http://localhost:3636/api/cards/lost-card');
+            const data = response.data.data || response.data;
+
+            if (Array.isArray(data)) {
+                setLostCards(data);
+                setFilteredCards(data);
+            } else {
+                setLostCards([]);
+                setFilteredCards([]);
+            }
         } catch (err) {
             console.error("Error fetching lost cards:", err);
-            setError("Không thể tải nhật ký mất thẻ. Vui lòng thử lại sau!");
+            setError("Không thể tải nhật ký mất thẻ. Vui lòng kiểm tra kết nối Backend!");
         } finally {
             setLoading(false);
         }
@@ -49,7 +60,22 @@ export default function LostCardLogPage() {
                 ownerStr.includes(searchStr) ||
                 idStr.includes(searchStr);
 
-            const matchesStatus = statusFilter === 'Tất cả' || row.status === statusFilter;
+            const matchesSearch =
+                cardCode.includes(searchKey) ||
+                plateNumber.includes(searchKey) ||
+                customerName.includes(searchKey) ||
+                reportId.includes(searchKey);
+
+            // Đồng bộ chuỗi chữ trạng thái
+            // let currentStatus = row.status || 'Chờ xử lý';
+            // if (currentStatus === 'PENDING') currentStatus = 'Chờ xử lý';
+            // if (currentStatus === 'RESOLVED') currentStatus = 'Đã xong'; 
+
+            // Đồng bộ chuỗi chữ trạng thái
+            const currentStatus = row.status || 'Chờ xử lý';
+
+
+            const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
 
             let matchesDate = true;
             if (row.date && startDate && endDate) {
@@ -101,7 +127,16 @@ export default function LostCardLogPage() {
     const resolvedPercent = totalLost > 0 ? Math.round((resolved / totalLost) * 100) : 0;
 
     return (
-        <div className="lost-card-log-page" style={{ width: '100%' }}>
+        <div className="lost-card-log-page">
+            {/* Header */}
+            <header className="lost-header">
+                <div className="lost-header-left">
+                    <button type="button" className="lost-back-button" onClick={() => navigate('/login/dashboard')}>
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <h1>Nhật ký xử lý mất thẻ</h1>
+                </div>
+            </header>
 
             {/* Bảng phân tích Dashboard 2/3 và 1/3 */}
             <section className="lost-dashboard-analytics-container">
@@ -337,8 +372,8 @@ export default function LostCardLogPage() {
                                         <span className="material-symbols-outlined">chevron_right</span>
                                     </button>
                                 </div>
-                                <button type="button" className="lost-create-button-premium">
-                                    <span className="material-symbols-outlined icon-add-shift">add</span>
+                                <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
+                                    <span className="material-symbols-outlined">add</span>
                                     Tạo báo mất mới
                                 </button>
                             </div>
@@ -346,6 +381,61 @@ export default function LostCardLogPage() {
                     </>
                 )}
             </section>
+            {showCreateModal && (
+                <div className="lost-modal-overlay">
+                    <div className="lost-modal">
+
+                        <h2>Tạo báo mất mới</h2>
+
+                        <div className="lost-form-group">
+                            <label>Biển số xe</label>
+                            <input
+                                type="text"
+                                placeholder="Nhập biển số xe..."
+                                value={newLostCard.plate_number}
+                                onChange={(e) =>
+                                    setNewLostCard({
+                                        ...newLostCard,
+                                        plate_number: e.target.value
+                                    })
+                                }
+                            />
+                        </div>
+
+                        <div className="lost-form-group">
+                            <label>Lí do</label>
+                            <input
+                                type="text"
+                                placeholder="Nhập lí do báo mất..."
+                                value={newLostCard.description}
+                                onChange={(e) =>
+                                    setNewLostCard({
+                                        ...newLostCard,
+                                        description: e.target.value
+                                    })
+                                }
+                            />
+                        </div>
+
+                        <div className="lost-modal-actions">
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(false)}
+                            >
+                                Hủy
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleCreateLostCard}
+                            >
+                                Lưu
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

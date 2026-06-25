@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMonthCardLogs } from '../../../service/cardApi';
+import { getMonthCardLogs } from '../../../service/monthCardApi';
 
 export default function MonthCardLogPage() {
     const [allLogs, setAllLogs] = useState([]);

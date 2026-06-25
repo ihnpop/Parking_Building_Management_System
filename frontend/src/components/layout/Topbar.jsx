@@ -9,6 +9,7 @@ export default function Topbar({ title, showExtras = false, currentTab }) {
     const dropdownRef = useRef(null);
 
     const isUserManagementPage = currentTab === 'user-management';
+    const isDashboard = currentTab === 'dashboard';
 
     const getRoleLabel = (r) => {
         if (!r) return 'Nhân viên';
@@ -47,12 +48,18 @@ export default function Topbar({ title, showExtras = false, currentTab }) {
     return (
         <header className="header">
             <div className="header-left-group">
-                {/* Nút toggle cũ ở đây đã được xóa bỏ hoàn toàn */}
                 <h1 className="page-title">{title}</h1>
             </div>
 
             <div className="header-right-group">
-                {showExtras && !isUserManagementPage && (
+                {isDashboard && (
+                    <div className="db-status-badge">
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                        CSDL trực tuyến
+                    </div>
+                )}
+
+                {showExtras && !isUserManagementPage && !isDashboard && (
                     <>
                         <div className="search">
                             <span className="material-symbols-outlined">search</span>
@@ -88,4 +95,4 @@ export default function Topbar({ title, showExtras = false, currentTab }) {
             </div>
         </header>
     );
-}
+}
