@@ -1,0 +1,24 @@
+import express from "express";
+import * as monthCardController from "../controllers/monthCardController.js";
+
+const router = express.Router();
+
+/**
+ * GET /api/month-card/renew-packages
+ * Lấy danh sách các gói gia hạn thẻ tháng khả dụng
+ */
+router.get("/renew-packages", monthCardController.getRenewPackages);
+
+/**
+ * POST /api/month-card/renew
+ * Thực hiện gia hạn thẻ tháng
+ */
+router.post("/renew", monthCardController.renewMonthlyCard);
+
+/**
+ * PUT /api/month-card/:id
+ * Cập nhật thông tin thẻ tháng
+ */
+router.put("/:id", monthCardController.updateMonthCard);
+
+export default router;

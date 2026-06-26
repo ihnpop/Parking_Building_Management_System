@@ -1,0 +1,20 @@
+{
+  "name": "parking-building-root",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install": "cd frontend && npm install",
+    "test": "echo \"No tests\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "multer": "^2.2.0",
+    "nodemailer": "^8.0.11",
+    "ua-parser-js": "^2.0.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
