@@ -95,12 +95,13 @@ export const preCheckEntry = async (req, res) => {
  */
 export const entryTap = async (req, res) => {
   try {
-    const { cardCode, plateNumber, entryVehicleImage, entryPlateImage } = req.body;
+    const { cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType } = req.body;
     const result = await gateService.entryTap({
       cardCode,
       plateNumber,
       entryVehicleImage,
-      entryPlateImage
+      entryPlateImage,
+      vehicleType
     });
 
     return res.status(201).json(result);

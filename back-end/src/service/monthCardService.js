@@ -104,7 +104,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
     registrationId: registration.registration_id,
-    action: 'CARD_RENEWED',
+    action: 'Đã gia hạn',
     oldData: oldDataLog,
     newData: newDataLog,
     note: note || `Gia hạn ${pkg.months} tháng`,

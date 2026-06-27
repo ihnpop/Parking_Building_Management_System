@@ -56,6 +56,7 @@ export default function SystemOperations() {
     const [plateImage, setPlateImage] = useState(null);
     const [vehiclePreview, setVehiclePreview] = useState(null);
     const [platePreview, setPlatePreview] = useState(null);
+    const [vehicleType, setVehicleType] = useState('Xe máy');
 
     // ── Check-Out State ──────────────────────────────────────────────────────
     const [exitVehicleImage, setExitVehicleImage] = useState(null);
@@ -103,6 +104,7 @@ export default function SystemOperations() {
         setSelectedCard('');
         setEntryVehicleUrl('');
         setEntryPlateUrl('');
+        setVehicleType('Xe máy');
     };
 
     const resetOutForm = () => {
@@ -115,6 +117,7 @@ export default function SystemOperations() {
         setSelectedCard('');
         setExitVehicleUrl('');
         setExitPlateUrl('');
+        setVehicleType('Xe máy');
     };
 
     const handlePreCheck = async (plate) => {
@@ -187,7 +190,8 @@ export default function SystemOperations() {
                     cardCode: selectedCard,
                     plateNumber: plateNumber.trim().toUpperCase(),
                     entryVehicleImage: entryVehicleUrl || null,
-                    entryPlateImage: entryPlateUrl || null
+                    entryPlateImage: entryPlateUrl || null,
+                    vehicleType: vehicleType
                 });
             } else {
                 // Monthly
@@ -258,7 +262,7 @@ export default function SystemOperations() {
                     entry_time: result.session?.entry_time || new Date().toISOString(),
                     exit_time: result.session?.exit_time || new Date().toISOString(),
                     type: 'OUT',
-                    status: 'COMPLETED'
+                    status: 'Hoàn thành'
                 });
                 resetOutForm();
             } else {
@@ -439,7 +443,7 @@ export default function SystemOperations() {
                 </section>
 
                 <section className="camera-grid">
-                    {[cameraCards[0], cameraCards[2], cameraCards[1], cameraCards[3]].map((camera) => {
+                    {[cameraCards[0], cameraCards[1], cameraCards[2], cameraCards[3]].map((camera) => {
                         const isCameraIn = camera.id === 'vehicleImage' || camera.id === 'plateImage';
                         const isCurrentlyActiveMode = (mode === 'IN' && isCameraIn) || (mode === 'OUT' && !isCameraIn);
 
@@ -749,6 +753,59 @@ export default function SystemOperations() {
                             </div>
                         )}
 
+                        {/* Selector Loại xe */}
+                        {true && (
+                            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
+                                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4b5563' }}>Loại xe:</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setVehicleType('Xe máy')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '10px 12px',
+                                            borderRadius: '10px',
+                                            border: vehicleType === 'Xe máy' ? '2px solid #fb923c' : '1px solid #e5e7eb',
+                                            background: vehicleType === 'Xe máy' ? '#fff7ed' : 'white',
+                                            color: vehicleType === 'Xe máy' ? '#ea580c' : '#4b5563',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>two_wheeler</span>
+                                        Xe máy
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setVehicleType('Ô tô')}
+                                        style={{
+                                            flex: 1,
+                                            padding: '10px 12px',
+                                            borderRadius: '10px',
+                                            border: vehicleType === 'Ô tô' ? '2px solid #fb923c' : '1px solid #e5e7eb',
+                                            background: vehicleType === 'Ô tô' ? '#fff7ed' : 'white',
+                                            color: vehicleType === 'Ô tô' ? '#ea580c' : '#4b5563',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>directions_car</span>
+                                        Ô tô
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             type="submit"
                             className="shortcut-button shortcut-primary"
@@ -860,8 +917,8 @@ export default function SystemOperations() {
                                 <div className={lastSession.type === 'OUT' ? "" : "transaction-row transaction-total"}>
                                     <div className="transaction-row-label">Trạng thái:</div>
                                     <div className="transaction-row-value" style={{ color: lastSession.type === 'OUT' ? '#3b82f6' : '#22c55e' }}>
-                                        {lastSession.status === 'PARKING' ? 'ĐANG GỬI' :
-                                            lastSession.status === 'COMPLETED' ? 'HOÀN THÀNH' : lastSession.status}
+                                        {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
+                                            (lastSession.status === 'Hoàn thành') ? 'HOÀN THÀNH' : lastSession.status}
                                     </div>
                                 </div>
                             </>

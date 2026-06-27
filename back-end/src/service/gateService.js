@@ -166,7 +166,7 @@ const getVisitorEntryResponse = async (plateNumber) => {
 /**
  * Xử lý cổng vào (Entry Gate Tap)
  */
-export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entryPlateImage }) => {
+export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType }) => {
   if (!plateNumber || !plateNumber.trim()) {
     throw Object.assign(new Error("Biển số xe là bắt buộc."), { statusCode: 400 });
   }
@@ -201,14 +201,22 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     // Tìm hoặc tạo xe tạm thời cho Visitor
     let vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
-      // Lấy vehicle_type_id mặc định (thường là Motorbike)
+      let vtId = null;
+      let searchTypeName = 'Xe máy';
+      if (vehicleType === 'Ô tô') {
+        searchTypeName = 'Ô tô';
+      } else if (vehicleType === 'Xe máy') {
+        searchTypeName = 'Xe máy';
+      }
+
       const { data: vtList } = await supabase
         .from('vehicle_type')
         .select('vehicle_type_id')
-        .eq('name', 'Xe máy')
+        .or(`name.eq."${vehicleType || 'Xe máy'}",name.eq."${searchTypeName}"`)
         .limit(1);
 
-      let vtId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
+      vtId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
+
       if (!vtId) {
         // Fallback lấy loại xe đầu tiên
         const { data: allVt } = await supabase.from('vehicle_type').select('vehicle_type_id').limit(1);
@@ -403,7 +411,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
-      status: "Đã xong"
+      status: "Hoàn thành"
     });
 
     // Giải phóng liên kết thẻ và xe (đổi status của registration sang INACTIVE)
@@ -433,7 +441,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
-      status: "Đã xong"
+      status: "Hoàn thành"
     });
 
     // Đối với Monthly, không thay đổi trạng thái thẻ hay đăng ký thẻ. Thẻ vẫn tiếp tục ACTIVE.
