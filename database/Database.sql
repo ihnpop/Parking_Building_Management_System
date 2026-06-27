@@ -592,6 +592,63 @@ CREATE TABLE public.entry_exit_log (
         REFERENCES vehicle_type(vehicle_type_id)
 );
 
+CREATE TABLE public.card_activity_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Liên kết đối tượng liên quan
+    card_id UUID NOT NULL REFERENCES public.card(card_id) ON DELETE CASCADE,
+    registration_id UUID REFERENCES public.card_registrations(registration_id) ON DELETE SET NULL,
+    
+    -- Phân loại hành động
+    action VARCHAR(50) NOT NULL, -- Ví dụ: 'Cấp mới', 'Gia hạn', 'Khóa thẻ', 'Mở khóa', 'Thay đổi thông tin'
+    
+    -- Chụp lại thông tin lúc thực hiện (Snapshot để tránh lịch sử bị thay đổi khi chủ xe đổi tên/biển số)
+    plate_number VARCHAR(20),
+    customer_name VARCHAR(255),
+    
+    -- Dữ liệu tài chính & hạn dùng (Phục vụ trực tiếp cho tính năng Gia hạn/Cấp mới)
+    duration_months INT,          -- Số tháng đăng ký/gia hạn (nếu có)
+    amount NUMERIC(12, 2),        -- Số tiền đóng (nếu có)
+    expired_date_before DATE,     -- Hạn dùng trước khi thao tác
+    expired_date_after DATE,      -- Hạn dùng sau khi thao tác
+    
+    -- Chi tiết thay đổi dạng JSONB (Lưu vết thuộc tính chi tiết)
+    old_data JSONB,               -- Trạng thái dữ liệu cũ (ví dụ: { phone: "090..." })
+    new_data JSONB,               -- Trạng thái dữ liệu mới (ví dụ: { phone: "091..." })
+    
+    -- Thông tin vận hành
+    performed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Staff thực hiện
+    performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),                     -- Thời gian thực hiện
+    note TEXT                                                            -- Ghi chú/Lý do
+);
+
+CREATE TABLE public.login_logs (
+
+    log_id UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    profiles_id UUID,
+
+    username VARCHAR(255) NOT NULL,
+
+    ip_address VARCHAR(50),
+
+    device_browser TEXT,
+
+    location VARCHAR(255),
+
+    status VARCHAR(50) NOT NULL,
+
+    login_time TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+    CONSTRAINT fk_login_logs_profiles
+        FOREIGN KEY (profiles_id)
+        REFERENCES profiles(id)
+        ON DELETE CASCADE
+
+);
+
 -- ==========================================
 -- INDEXES
 -- ==========================================

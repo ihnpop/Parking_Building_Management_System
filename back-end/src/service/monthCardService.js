@@ -104,7 +104,13 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
     registrationId: registration.registration_id,
-    action: 'Đã gia hạn',
+    action: 'Gia hạn',
+    plateNumber: registration.vehicle?.plate_number || null,
+    customerName: registration.vehicle?.customer?.full_name || null,
+    durationMonths: pkg.months,
+    amount: pkg.price,
+    expiredDateBefore: currentExpiryStr || null,
+    expiredDateAfter: newExpiryDateStr,
     oldData: oldDataLog,
     newData: newDataLog,
     note: note || `Gia hạn ${pkg.months} tháng`,
@@ -233,7 +239,13 @@ export const createMonthCard = async ({
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
     registrationId: registration.registration_id,
-    action: "Tạo thẻ tháng mới",
+    action: "Cấp mới",
+    plateNumber: cleanPlate,
+    customerName: fullName.trim(),
+    durationMonths: Number(durationMonths),
+    amount: null,
+    expiredDateBefore: null,
+    expiredDateAfter: expiredDateStr,
     oldData: null,
     newData: {
       code,
@@ -600,41 +612,60 @@ export const getMonthCards = async () => {
 
 export const getMonthCardLogs = async () => {
   const { data, error } = await supabase
-    .from("payment")
+    .from("card_activity_logs")
     .select(`
+      log_id,
+      card_id,
+      action,
+      plate_number,
+      customer_name,
       amount,
-      payment_time,
-      status,
-      parking_order (
-        card (code),
-        vehicle (
-          plate_number,
-          customer (full_name)
-        )
-      )
+      duration_months,
+      performed_at
     `)
-    .limit(50);
+    .order("performed_at", { ascending: false })
+    .limit(100);
 
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) return [];
+
+  // Manual join for card codes
+  const cardIds = [...new Set(data.map(item => item.card_id).filter(Boolean))];
+  let cardMap = {};
+  if (cardIds.length > 0) {
+    const { data: cards } = await supabase
+      .from('card')
+      .select('card_id, code')
+      .in('card_id', cardIds);
+    if (cards) {
+      cards.forEach(c => {
+        cardMap[c.card_id] = c.code;
+      });
+    }
+  }
 
   return data.map((item, idx) => {
-    const cardCode = item.parking_order?.card?.code || `CARD${1000 + idx}`;
-    const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
-    const owner = item.parking_order?.vehicle?.customer?.full_name || "";
-    const time = new Date(item.payment_time).toLocaleString('vi-VN');
-    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
-    const status = item.status === 'Đã thanh toán'
-      ? 'Thành công'
-      : item.status === 'Chờ xử lý'
-        ? 'Đang xử lý'
-        : 'Thất bại';
 
+    const cardCode = cardMap[item.card_id] || `CARD${1000 + idx}`;
+    const plate = item.plate_number || "Chưa có";
+    const owner = item.customer_name || "Khách vãng lai";
+    const time = new Date(item.performed_at).toLocaleString('vi-VN');
+    const amountVal = item.amount ? Number(item.amount) : 0;
+    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal);
+    const status = "Thành công";
+
+    let type = item.action;
+    if (item.action === 'Đã gia hạn' || item.action === 'Gia hạn') {
+      type = 'Gia hạn';
+    } else if (item.action === 'Tạo thẻ tháng mới' || item.action === 'Cấp mới') {
+      type = 'Cấp mới';
+    }
     return {
       time,
       cardNo: cardCode,
       plate,
       owner,
-      type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
+      type,
       amount,
       status
     };
