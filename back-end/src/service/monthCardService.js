@@ -341,7 +341,7 @@ export const updateMonthCard = async (cardId, payload) => {
           )
         `)
         .eq('vehicle_id', existingVehicle.vehicle_id)
-        .in('status', ['Hoạt động', 'ACTIVE'])
+        .in('status', ['Hoạt động'])
         .maybeSingle();
 
       if (regCheckErr) throw new Error(regCheckErr.message);
@@ -495,7 +495,7 @@ export const getMonthCards = async () => {
         card.card_registrations?.[0] ||
         null;
 
-      //Mapping trạng thái hiển thị
+      // Mapping trạng thái hiển thị
       // DB status -> Hiển thị
       // 'Hoạt động'  -> 'Hoạt động'
       // 'Đang chờ'   -> 'Sắp hết hạn'
@@ -558,7 +558,7 @@ export const getMonthCards = async () => {
 
         customer:
           activeReg?.vehicle?.customer?.full_name ||
-          "Khách vãng lai",
+          "",
 
         phone:
           activeReg?.vehicle?.customer?.phone ||
@@ -570,7 +570,7 @@ export const getMonthCards = async () => {
 
         type:
           activeReg?.vehicle?.vehicle_type?.name ||
-          "Xe máy",
+          "",
 
         startDate: card.created_at
           ? new Date(card.created_at).toLocaleDateString(
@@ -620,7 +620,7 @@ export const getMonthCardLogs = async () => {
   return data.map((item, idx) => {
     const cardCode = item.parking_order?.card?.code || `CARD${1000 + idx}`;
     const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
-    const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
+    const owner = item.parking_order?.vehicle?.customer?.full_name || "";
     const time = new Date(item.payment_time).toLocaleString('vi-VN');
     const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
     const status = item.status === 'Đã thanh toán'

@@ -94,7 +94,7 @@ export default function MonthCardPage() {
     // Stats
     const total = monthCards.length;
     const active = monthCards.filter(c => c.status === 'Hoạt động').length;
-    const expiring = monthCards.filter(c => c.status === 'Sắp hết hạn').length;
+    const expiring = monthCards.filter(c => c.status === 'Đang chờ').length;
     const expired = monthCards.filter(c => c.status === 'Đã khóa').length;
 
     const activePercent = total > 0 ? Math.round((active / total) * 100) : 0;
@@ -110,7 +110,7 @@ export default function MonthCardPage() {
     const getStatusBadgeClass = (status) => {
         switch (status) {
             case 'Hoạt động': return 'mc-status-badge mc-status-active';
-            case 'Sắp hết hạn': return 'mc-status-badge mc-status-expiring';
+            case 'Đang chờ': return 'mc-status-badge mc-status-expiring';
             case 'Đã khóa': return 'mc-status-badge mc-status-expired';
             default: return 'mc-status-badge mc-status-active';
         }
@@ -249,7 +249,7 @@ export default function MonthCardPage() {
                     >
                         <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                         <option value="Hoạt động">Hoạt động</option>
-                        <option value="Sắp hết hạn">Sắp hết hạn</option>
+                        <option value="Đang chờ">Đang chờ</option>
                         <option value="Đã khóa">Đã khóa</option>
                     </select>
                 </div>
@@ -303,8 +303,8 @@ export default function MonthCardPage() {
                                                 <td>{String((currentPage - 1) * ITEMS_PER_PAGE + index + 1).padStart(2, '0')}</td>
                                                 <td className="mc-td-bold">{row.cardNo}</td>
                                                 <td>{row.plate || '---'}</td>
-                                                <td>{row.customer || 'Khách vãng lai'}</td>
-                                                <td>{row.type || 'Xe máy'}</td>
+                                                <td>{row.customer || '---'}</td>
+                                                <td>{row.type || '---'}</td>
                                                 <td>{row.startDate || 'Chưa có'}</td>
                                                 <td>{row.endDate || 'Không giới hạn'}</td>
                                                 <td>
