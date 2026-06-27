@@ -153,7 +153,7 @@ const getVisitorEntryResponse = async (plateNumber) => {
     .from('card')
     .select('card_id, code, type, status')
     .eq('type', 'Thẻ lượt')
-    .eq('status', 'Hoạt động');
+    .eq('status', 'Đang chờ');
   if (error) throw new Error(error.message);
 
   return {
@@ -166,7 +166,7 @@ const getVisitorEntryResponse = async (plateNumber) => {
 /**
  * Xử lý cổng vào (Entry Gate Tap)
  */
-export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType }) => {
+export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType, staffId, gateId }) => {
   if (!plateNumber || !plateNumber.trim()) {
     throw Object.assign(new Error("Biển số xe là bắt buộc."), { statusCode: 400 });
   }
@@ -179,6 +179,72 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     throw Object.assign(new Error("Phương tiện đang ở trong bãi xe."), { statusCode: 400 });
   }
 
+  // Lấy tòa nhà của Staff
+  if (!staffId) {
+    throw Object.assign(new Error("Yêu cầu đăng nhập để thực hiện."), { statusCode: 401 });
+  }
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('building_id')
+    .eq('id', staffId)
+    .maybeSingle();
+
+  if (profileErr || !profile) {
+    throw Object.assign(new Error("Không tìm thấy thông tin tài khoản nhân viên."), { statusCode: 404 });
+  }
+
+  const buildingId = profile.building_id;
+  if (!buildingId) {
+    throw Object.assign(new Error("Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out."), { statusCode: 403 });
+  }
+
+  // Xác định gate_id và parking_id
+  let finalGateId = gateId;
+  let finalParkingId = null;
+
+  if (finalGateId) {
+    const { data: gateObj } = await supabase
+      .from('gate')
+      .select('parking_id')
+      .eq('gate_id', finalGateId)
+      .maybeSingle();
+    if (gateObj) {
+      finalParkingId = gateObj.parking_id;
+    }
+  }
+
+  if (!finalGateId || !finalParkingId) {
+    // Fallback: Tìm bãi đỗ xe thuộc tòa nhà của Staff
+    const { data: parkings } = await supabase
+      .from('parking')
+      .select('parking_id')
+      .eq('building_id', buildingId)
+      .limit(1);
+
+    if (parkings && parkings.length > 0) {
+      finalParkingId = parkings[0].parking_id;
+      // Tìm cổng của bãi đỗ xe này
+      const { data: gates } = await supabase
+        .from('gate')
+        .select('gate_id')
+        .eq('parking_id', finalParkingId)
+        .limit(1);
+
+      if (gates && gates.length > 0) {
+        finalGateId = gates[0].gate_id;
+      }
+    }
+  }
+
+  if (!finalGateId || !finalParkingId) {
+    throw Object.assign(new Error("Không tìm thấy cấu hình bãi đỗ xe hoặc cổng tương ứng với tòa nhà này."), { statusCode: 400 });
+  }
+
+  let session = null;
+  let vehicle = null;
+  let cardIdVal = null;
+  let ticketType = 'Thẻ lượt';
+
   // 1. Phân loại theo tham số truyền lên: nếu có cardCode -> Visitor, nếu không -> Monthly
   if (cardCode) {
     // --- LƯỢT XE VÃNG LAI (VISITOR) ---
@@ -188,18 +254,21 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       throw Object.assign(new Error(`Thẻ ${cardCode} không tồn tại trong hệ thống.`), { statusCode: 404 });
     }
 
-    const isAvailable = card.status === 'Hoạt động';
+    const isAvailable = card.status === 'Đang chờ';
     const isDaily = card.type === 'Thẻ lượt';
 
     if (!isAvailable) {
-      throw Object.assign(new Error("Thẻ hiện không ở trạng thái hoạt động."), { statusCode: 400 });
+      throw Object.assign(new Error("Thẻ hiện đã được sử dụng hoặc không ở trạng thái sẵn sàng."), { statusCode: 400 });
     }
     if (!isDaily) {
       throw Object.assign(new Error("Thẻ được chọn không phải là thẻ lượt."), { statusCode: 400 });
     }
 
+    cardIdVal = card.card_id;
+    ticketType = 'Thẻ lượt';
+
     // Tìm hoặc tạo xe tạm thời cho Visitor
-    let vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
+    vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
       let vtId = null;
       let searchTypeName = 'Xe máy';
@@ -234,7 +303,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     }
 
     // Tạo phiên gửi xe mới
-    const session = await parkingRepository.createParkingSession({
+    session = await parkingRepository.createParkingSession({
       vehicle_id: vehicle.vehicle_id,
       plate_number: cleanPlate,
       entry_vehicle_image: entryVehicleImage || null,
@@ -247,12 +316,10 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
 
     // Cập nhật trạng thái thẻ sang ACTIVE
     await cardRepository.updateStatus(card.card_id, 'Hoạt động');
-
-    return { success: true, message: "Check in vãng lai thành công.", session };
   } else {
     // --- LƯỢT XE THÁNG (MONTHLY) ---
     // Backend tự xác định thẻ
-    const vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
+    vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
       throw Object.assign(new Error(`Không tìm thấy phương tiện đăng ký cho biển số ${cleanPlate}.`), { statusCode: 404 });
     }
@@ -268,6 +335,9 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       throw Object.assign(new Error("Thẻ liên kết của xe không phải loại Thẻ tháng."), { statusCode: 400 });
     }
 
+    cardIdVal = card.card_id;
+    ticketType = 'Thẻ tháng';
+
     // Kiểm tra đăng ký hợp lệ
     const preCheckResult = await preCheckEntry(cleanPlate);
     if (!preCheckResult.canOpenGate) {
@@ -275,16 +345,40 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     }
 
     // Tạo phiên gửi xe
-    const session = await parkingRepository.createParkingSession({
+    session = await parkingRepository.createParkingSession({
       vehicle_id: vehicle.vehicle_id,
       plate_number: cleanPlate,
       entry_vehicle_image: entryVehicleImage || null,
       entry_plate_image: entryPlateImage || null,
       card_id: card.card_id
     });
-
-    return { success: true, message: "Check in thẻ tháng thành công. Mở cổng vào.", session };
   }
+
+  // Ghi log vào entry_exit_log
+  const { error: logErr } = await supabase
+    .from('entry_exit_log')
+    .insert({
+      session_id: session.session_id,
+      vehicle_id: vehicle.vehicle_id,
+      card_id: cardIdVal,
+      building_id: buildingId,
+      parking_id: finalParkingId,
+      gate_id: finalGateId,
+      staff_id: staffId,
+      direction: 'Xe vào',
+      event_time: new Date().toISOString(),
+      vehicle_type_id: vehicle.vehicle_type_id,
+      plate_number: cleanPlate,
+      ticket_type: ticketType,
+      applied_price: 0,
+      note: 'Nhân viên check-in xe vào bãi'
+    });
+
+  if (logErr) {
+    throw new Error("Lỗi ghi nhật ký vào/ra: " + logErr.message);
+  }
+
+  return { success: true, message: cardCode ? "Check in vãng lai thành công." : "Check in thẻ tháng thành công. Mở cổng vào.", session };
 };
 
 /**
@@ -382,8 +476,73 @@ export const preCheckExit = async (plateNumber) => {
 /**
  * Xử lý cổng ra (Exit Gate Tap)
  */
-export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPlateImage }) => {
+export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPlateImage, staffId, gateId }) => {
   const exitTime = new Date();
+
+  // Lấy tòa nhà của Staff
+  if (!staffId) {
+    throw Object.assign(new Error("Yêu cầu đăng nhập để thực hiện."), { statusCode: 401 });
+  }
+  const { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('building_id')
+    .eq('id', staffId)
+    .maybeSingle();
+
+  if (profileErr || !profile) {
+    throw Object.assign(new Error("Không tìm thấy thông tin tài khoản nhân viên."), { statusCode: 404 });
+  }
+
+  const buildingId = profile.building_id;
+  if (!buildingId) {
+    throw Object.assign(new Error("Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out."), { statusCode: 403 });
+  }
+
+  // Xác định gate_id và parking_id
+  let finalGateId = gateId;
+  let finalParkingId = null;
+
+  if (finalGateId) {
+    const { data: gateObj } = await supabase
+      .from('gate')
+      .select('parking_id')
+      .eq('gate_id', finalGateId)
+      .maybeSingle();
+    if (gateObj) {
+      finalParkingId = gateObj.parking_id;
+    }
+  }
+
+  if (!finalGateId || !finalParkingId) {
+    const { data: parkings } = await supabase
+      .from('parking')
+      .select('parking_id')
+      .eq('building_id', buildingId)
+      .limit(1);
+
+    if (parkings && parkings.length > 0) {
+      finalParkingId = parkings[0].parking_id;
+      const { data: gates } = await supabase
+        .from('gate')
+        .select('gate_id')
+        .eq('parking_id', finalParkingId)
+        .limit(1);
+
+      if (gates && gates.length > 0) {
+        finalGateId = gates[0].gate_id;
+      }
+    }
+  }
+
+  if (!finalGateId || !finalParkingId) {
+    throw Object.assign(new Error("Không tìm thấy cấu hình bãi đỗ xe hoặc cổng tương ứng với tòa nhà này."), { statusCode: 400 });
+  }
+
+  let session = null;
+  let vehicle = null;
+  let cardIdVal = null;
+  let ticketType = 'Thẻ lượt';
+  let fee = 0;
 
   if (cardCode) {
     // --- LƯỢT XE VÃNG LAI (VISITOR CHECK-OUT) ---
@@ -398,7 +557,9 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       throw Object.assign(new Error("Thẻ chưa được liên kết hoạt động với xe nào."), { statusCode: 400 });
     }
 
-    const vehicle = activeReg.vehicle;
+    vehicle = activeReg.vehicle;
+    cardIdVal = card.card_id;
+    ticketType = 'Thẻ lượt';
 
     // Tìm active session
     const activeSession = await parkingRepository.findActiveSessionByPlate(vehicle.plate_number);
@@ -406,8 +567,46 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       throw Object.assign(new Error(`Không tìm thấy phiên gửi xe hoạt động cho xe ${vehicle.plate_number}.`), { statusCode: 404 });
     }
 
+    // Tính toán phí gửi xe
+    let entryTimeStr = activeSession.entry_time;
+    if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+      entryTimeStr += "Z";
+    }
+    const entryTime = new Date(entryTimeStr);
+    const diffMs = exitTime.getTime() - entryTime.getTime();
+    const totalHours = diffMs / (1000 * 60 * 60);
+    const billableHours = Math.max(1, Math.ceil(totalHours));
+
+    fee = billableHours * 10000; // Giá mặc định 10k/giờ
+
+    if (vehicle && vehicle.vehicle_type_id) {
+      try {
+        const { data: priceItems } = await supabase
+          .from("price_item")
+          .select("price, min_hour, max_hour")
+          .eq("vehicle_type_id", vehicle.vehicle_type_id);
+
+        if (priceItems && priceItems.length > 0) {
+          const matchingItem = priceItems.find(item => {
+            const min = item.min_hour || 0;
+            const max = item.max_hour;
+            if (max === null || max === undefined) {
+              return billableHours >= min;
+            }
+            return billableHours >= min && billableHours <= max;
+          });
+
+          if (matchingItem) {
+            fee = Number(matchingItem.price);
+          }
+        }
+      } catch (dbErr) {
+        console.error("Lỗi tính toán phí khi checkout:", dbErr);
+      }
+    }
+
     // Cập nhật phiên gửi xe thành COMPLETED
-    const updatedSession = await parkingRepository.updateParkingSession(activeSession.session_id, {
+    session = await parkingRepository.updateParkingSession(activeSession.session_id, {
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
@@ -420,15 +619,22 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     // Trả trạng thái thẻ về AVAILABLE
     await cardRepository.updateStatus(card.card_id, 'Đang chờ');
 
-    return { success: true, message: "Check out thẻ lượt thành công. Cổng ra mở.", session: updatedSession };
   } else if (plateNumber) {
     // --- LƯỢT XE THÁNG (MONTHLY CHECK-OUT) ---
     const cleanPlate = plateNumber.trim().toUpperCase();
 
-    const vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
+    vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
       throw Object.assign(new Error(`Không tìm thấy phương tiện đăng ký cho biển số ${cleanPlate}.`), { statusCode: 404 });
     }
+
+    // Lấy liên kết thẻ tháng
+    const activeReg = await cardRepository.findActiveRegistrationByVehicle(vehicle.vehicle_id);
+    if (activeReg && activeReg.card) {
+      cardIdVal = activeReg.card.card_id;
+    }
+    ticketType = 'Thẻ tháng';
+    fee = 0; // Thẻ tháng miễn phí checkout theo lượt
 
     // Tìm active session
     const activeSession = await parkingRepository.findActiveSessionByPlate(cleanPlate);
@@ -437,17 +643,39 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     }
 
     // Cập nhật phiên gửi xe thành COMPLETED
-    const updatedSession = await parkingRepository.updateParkingSession(activeSession.session_id, {
+    session = await parkingRepository.updateParkingSession(activeSession.session_id, {
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
       status: "Hoàn thành"
     });
-
-    // Đối với Monthly, không thay đổi trạng thái thẻ hay đăng ký thẻ. Thẻ vẫn tiếp tục ACTIVE.
-
-    return { success: true, message: "Check out Monthly thành công. Cổng ra mở.", session: updatedSession };
   } else {
     throw Object.assign(new Error("Dữ liệu check-out không hợp lệ (cần truyền cardCode hoặc plateNumber)."), { statusCode: 400 });
   }
+
+  // Ghi log vào entry_exit_log
+  const { error: logErr } = await supabase
+    .from('entry_exit_log')
+    .insert({
+      session_id: session.session_id,
+      vehicle_id: vehicle.vehicle_id,
+      card_id: cardIdVal,
+      building_id: buildingId,
+      parking_id: finalParkingId,
+      gate_id: finalGateId,
+      staff_id: staffId,
+      direction: 'Xe ra',
+      event_time: exitTime.toISOString(),
+      vehicle_type_id: vehicle.vehicle_type_id,
+      plate_number: vehicle.plate_number,
+      ticket_type: ticketType,
+      applied_price: fee,
+      note: 'Nhân viên check-out xe ra khỏi bãi'
+    });
+
+  if (logErr) {
+    throw new Error("Lỗi ghi nhật ký vào/ra: " + logErr.message);
+  }
+
+  return { success: true, message: cardCode ? "Check out thẻ lượt thành công. Cổng ra mở." : "Check out Monthly thành công. Cổng ra mở.", session };
 };

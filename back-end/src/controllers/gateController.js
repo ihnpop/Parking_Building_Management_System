@@ -95,13 +95,18 @@ export const preCheckEntry = async (req, res) => {
  */
 export const entryTap = async (req, res) => {
   try {
-    const { cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType } = req.body;
+    const { cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType, gateId, gate_id } = req.body;
+    const staffId = req.user?.id;
+    const resolvedGateId = gateId || gate_id;
+
     const result = await gateService.entryTap({
       cardCode,
       plateNumber,
       entryVehicleImage,
       entryPlateImage,
-      vehicleType
+      vehicleType,
+      staffId,
+      gateId: resolvedGateId
     });
 
     return res.status(201).json(result);
@@ -138,12 +143,17 @@ export const preCheckExit = async (req, res) => {
  */
 export const exitTap = async (req, res) => {
   try {
-    const { cardCode, plateNumber, exitVehicleImage, exitPlateImage } = req.body;
+    const { cardCode, plateNumber, exitVehicleImage, exitPlateImage, gateId, gate_id } = req.body;
+    const staffId = req.user?.id;
+    const resolvedGateId = gateId || gate_id;
+
     const result = await gateService.exitTap({
       cardCode,
       plateNumber,
       exitVehicleImage,
-      exitPlateImage
+      exitPlateImage,
+      staffId,
+      gateId: resolvedGateId
     });
 
     return res.status(200).json(result);

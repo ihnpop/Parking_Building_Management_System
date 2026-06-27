@@ -2,40 +2,50 @@ import supabase from "../config/supabaseClient.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 
 export const getCards = async () => {
-  const { data, error } = await supabase
+  const { data: cards, error: cardError } = await supabase
     .from('card')
-    .select(`
-      card_id,
-      code,
-      type,
-      expired_date,
-      status,
-      created_at,
-      card_registrations (
-        status,
-        vehicle (
-          vehicle_id,
-          plate_number,
-          customer (
-            customer_id,
-            full_name,
-            phone,
-            email
-          )
-        )
-      )
-    `)
+    .select('card_id, code, type, expired_date, status, created_at')
     .eq('type', 'Thẻ lượt')
     .not('status', 'eq', 'Đã xóa');
 
-  if (error) throw new Error(error.message);
+  if (cardError) throw new Error(cardError.message);
+
+  if (!cards || cards.length === 0) return [];
+
+  const cardIds = cards.map(c => c.card_id);
+
+  const { data: registrations, error: regError } = await supabase
+    .from('card_registrations')
+    .select(`
+      card_id,
+      status,
+      vehicle (
+        vehicle_id,
+        plate_number,
+        customer (
+          customer_id,
+          full_name,
+          phone,
+          email
+        )
+      )
+    `)
+    .in('card_id', cardIds);
+
+  if (regError) throw new Error(regError.message);
+
+  const regMap = {};
+  registrations?.forEach(reg => {
+    if (!regMap[reg.card_id]) {
+      regMap[reg.card_id] = [];
+    }
+    regMap[reg.card_id].push(reg);
+  });
 
   return await Promise.all(
-    data.map(async (item) => {
-      const activeReg =
-        item.card_registrations?.find(
-          r => r.status === 'Hoạt động'
-        ) ?? null;
+    cards.map(async (item) => {
+      const cardRegs = regMap[item.card_id] || [];
+      const activeReg = cardRegs.find(r => r.status === 'Hoạt động') ?? null;
 
       let latestSession = null;
 

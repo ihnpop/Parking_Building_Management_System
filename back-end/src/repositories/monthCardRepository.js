@@ -6,21 +6,13 @@ import supabase from "../config/supabaseClient.js";
  * @returns {Promise<object|null>}
  */
 export const findRegistrationWithCard = async (registrationId) => {
-  const { data, error } = await supabase
+  const { data: reg, error } = await supabase
     .from('card_registrations')
     .select(`
       registration_id,
       status,
       created_at,
       card_id,
-      card (
-        card_id,
-        code,
-        type,
-        expired_date,
-        status,
-        created_at
-      ),
       vehicle (
         plate_number,
         customer (
@@ -32,7 +24,24 @@ export const findRegistrationWithCard = async (registrationId) => {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at
+    `)
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**
@@ -166,19 +175,28 @@ export const createVehicle = async ({ plate, customerId, vehicleTypeId }) => {
  * @returns {Promise<object|null>}
  */
 export const findActiveRegistrationByVehicle = async (vehicleId) => {
-  const { data, error } = await supabase
+  const { data: reg, error } = await supabase
     .from('card_registrations')
     .select(`
       registration_id,
-      card_id,
-      card ( code )
+      card_id
     `)
     .eq('vehicle_id', vehicleId)
     .in('status', ['Hoạt động'])
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select('code')
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**
