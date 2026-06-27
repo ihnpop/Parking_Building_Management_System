@@ -1,25 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const initialLogs = [
-    { timestamp: '2023-11-24 14:32:01', username: 'nguyen.lam', initials: 'NL', role: 'Nhân viên', ip: '192.168.1.45', device: 'Chrome / macOS', deviceIcon: 'desktop_windows', location: 'Hà Nội, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:30:15', username: 'unknown_user', initials: 'UK', role: 'Nhân viên', ip: '45.12.8.212', device: 'Unknown / Bot', deviceIcon: 'public', location: 'Kyiv, UA', status: 'Failed' },
-    { timestamp: '2023-11-24 14:28:44', username: 'tran.hoang', initials: 'TH', role: 'Nhân viên', ip: '115.23.45.98', device: 'Safari / iOS', deviceIcon: 'tablet_mac', location: 'TP.HCM, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:15:22', username: 'admin_main', initials: 'AD', role: 'Admin', ip: '10.0.0.5', device: 'Firefox / Windows', deviceIcon: 'laptop', location: 'Hà Nội, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:10:05', username: 'le.van.an', initials: 'LV', role: 'Nhân viên', ip: '172.16.0.12', device: 'Edge / Windows', deviceIcon: 'desktop_windows', location: 'Đà Nẵng, VN', status: 'Success' },
-];
+import { getLoginLogs } from '../../../service/userApi';
 
 export default function LoginLogPage() {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
-    const [logs, setLogs] = useState(initialLogs);
+    const [rawLogs, setRawLogs] = useState([]);
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadLogs = async () => {
+        setLoading(true);
+        try {
+            const data = await getLoginLogs();
+            setRawLogs(data || []);
+            setLogs(data || []);
+        } catch (err) {
+            console.error("Lỗi lấy nhật ký đăng nhập:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadLogs();
+    }, []);
 
     const handleFilter = () => {
-        let filtered = initialLogs.filter((log) => {
-            const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) ||
-                log.ip.toLowerCase().includes(search.toLowerCase()) ||
-                log.location.toLowerCase().includes(search.toLowerCase());
+        let filtered = rawLogs.filter((log) => {
+            const matchesSearch = (log.username || '').toLowerCase().includes(search.toLowerCase()) ||
+                (log.ip || '').toLowerCase().includes(search.toLowerCase()) ||
+                (log.location || '').toLowerCase().includes(search.toLowerCase());
 
             const matchesRole = roleFilter === 'Tất cả vai trò' || log.role === roleFilter;
 
@@ -28,19 +40,25 @@ export default function LoginLogPage() {
         setLogs(filtered);
     };
 
-    
+    useEffect(() => {
+        handleFilter();
+    }, [search, roleFilter, rawLogs]);
+
+    const getStatusClass = (status) => {
+        if (status === 'Thành công') return 'success';
+        if (status === 'Thất bại' || status === 'Tài khoản bị khóa') return 'failed';
+        return status?.toLowerCase() || '';
+    };
+
     const totalLogins = logs.length;
-    const failedLogins = logs.filter(log => log.status === 'Failed').length;
-    const successLogins = logs.filter(log => log.status === 'Success').length;
-    const activeSessions = 42; // Giả lập dữ liệu
+    const failedLogins = logs.filter(log => log.status === 'Thất bại' || log.status === 'Tài khoản bị khóa').length;
+    const successLogins = logs.filter(log => log.status === 'Thành công').length;
+    const activeSessions = successLogins; // Giả lập số phiên hoạt động dựa trên số lần đăng nhập thành công gần đây
 
     return (
         <div className="lost-card-log-wrapper">
-
-
             {/* Stats Cards */}
-            
-            <div className="lost-kpi-container" style={{marginBottom: "24px"}}>
+            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
@@ -51,7 +69,7 @@ export default function LoginLogPage() {
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value">{totalLogins}</div>
-                            <div className="lost-kpi-footer txt-gray">Hôm nay</div>
+                            <div className="lost-kpi-footer txt-gray">Ghi nhận</div>
                         </div>
                     </div>
 
@@ -86,11 +104,11 @@ export default function LoginLogPage() {
                             <div className="lost-kpi-icon-box icon-red">
                                 <span className="material-symbols-outlined">error</span>
                             </div>
-                            <span className="lost-kpi-title">Thất bại</span>
+                            <span className="lost-kpi-title">Thất bại / Khóa</span>
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value val-red">{failedLogins}</div>
-                            <div className="lost-kpi-footer txt-red">Cảnh báo</div>
+                            <div className="lost-kpi-footer txt-red">Cảnh báo bảo mật</div>
                         </div>
                     </div>
                 </div>
@@ -143,9 +161,6 @@ export default function LoginLogPage() {
                 </div>
             </div>
 
-
-            {/* Filter Toolbar */}
-            
             {/* Filter Toolbar */}
             <div className="lost-filter-card">
                 <div className="filter-block">
@@ -155,10 +170,9 @@ export default function LoginLogPage() {
                         <input
                             type="text"
                             className="filter-input has-icon-left"
-                            placeholder="Nhập tên hoặc IP..."
+                            placeholder="Nhập tên, IP hoặc vị trí..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
                         />
                     </div>
                 </div>
@@ -170,7 +184,7 @@ export default function LoginLogPage() {
                         <input 
                             type="text" 
                             className="filter-input has-icon-left"
-                            value="10/10/2023 - 11/10/2023" 
+                            value="Toàn thời gian" 
                             style={{ paddingLeft: '36px' }}
                             readOnly 
                         />
@@ -187,6 +201,7 @@ export default function LoginLogPage() {
                         >
                             <option value="Tất cả vai trò">Tất cả vai trò</option>
                             <option value="Admin">Admin</option>
+                            <option value="Quản lý">Quản lý</option>
                             <option value="Nhân viên">Nhân viên</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
@@ -194,115 +209,95 @@ export default function LoginLogPage() {
                 </div>
             </div>
 
-
             {/* Table */}
             <section className="log-table-card">
-                <table className="log-table">
-                    <thead>
-                        <tr>
-                            <th>TIMESTAMP</th>
-                            <th>USERNAME</th>
-                            <th>ROLE</th>
-                            <th>IP ADDRESS</th>
-                            <th>DEVICE/BROWSER</th>
-                            <th>LOCATION</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {logs.length > 0 ? (
-                            logs.map((log, index) => (
-                                <tr key={index}>
-                                    <td className="log-timestamp">{log.timestamp}</td>
-                                    <td>
-                                        <div className="log-user-cell">
-                                            <div className={`user-avatar-circle initials-${log.initials}`}>
-                                                {log.initials}
-                                            </div>
-                                            <span className="username-text">{log.username}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`role-badge ${log.role === 'Admin' ? 'admin' : 'staff'}`}>
-                                            {log.role}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
-                                    </td>
-                                    <td>
-                                        <div className="log-device-cell">
-                                            <span className={`material-symbols-outlined device-icon ${log.status === 'Failed' ? 'text-red' : ''}`}>
-                                                {log.deviceIcon}
-                                            </span>
-                                            <span>{log.device}</span>
-                                        </div>
-                                    </td>
-                                    <td>{log.location}</td>
-                                    <td>
-                                        <span className={`status-badge-log ${log.status.toLowerCase()}`}>
-                                            {log.status}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button type="button" className="log-action-btn">
-                                            <span className="material-symbols-outlined">visibility</span>
-                                        </button>
-                                    </td>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
+                        Đang tải dữ liệu nhật ký đăng nhập...
+                    </div>
+                ) : (
+                    <>
+                        <table className="log-table">
+                            <thead>
+                                <tr>
+                                    <th>THỜI GIAN</th>
+                                    <th>HỌ TÊN</th>
+                                    <th>VAI TRÒ</th>
+                                    <th>ĐỊA CHỈ IP</th>
+                                    <th>THIẾT BỊ/TRÌNH DUYỆT</th>
+                                    <th>VỊ TRÍ</th>
+                                    <th>TRẠNG THÁI</th>
+                                    <th>HÀNH ĐỘNG</th>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                    Không có dữ liệu nhật ký phù hợp
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                {logs.length > 0 ? (
+                                    logs.map((log, index) => (
+                                        <tr key={index}>
+                                            <td className="log-timestamp">{log.timestamp}</td>
+                                            <td>
+                                                <div className="log-user-cell">
+                                                    <div className={`user-avatar-circle initials-${log.initials || 'UK'}`}>
+                                                        {log.initials || 'UK'}
+                                                    </div>
+                                                    <span className="username-text">{log.username}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className={`role-badge ${log.role === 'Admin' ? 'admin' : log.role === 'Quản lý' ? 'manager' : 'staff'}`}>
+                                                    {log.role}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
+                                            </td>
+                                            <td>
+                                                <div className="log-device-cell">
+                                                    <span className={`material-symbols-outlined device-icon ${log.status !== 'Thành công' ? 'text-red' : ''}`}>
+                                                        {log.deviceIcon || 'public'}
+                                                    </span>
+                                                    <span>{log.device}</span>
+                                                </div>
+                                            </td>
+                                            <td>{log.location}</td>
+                                            <td>
+                                                <span className={`status-badge-log ${getStatusClass(log.status)}`}>
+                                                    {log.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button type="button" className="log-action-btn">
+                                                    <span className="material-symbols-outlined">visibility</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                            Không có dữ liệu nhật ký phù hợp
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
 
-                {/* Footer */}
-                <div className="log-table-footer">
-                    <span className="footer-info">Đang hiển thị 1 - {logs.length} của 256 bản ghi</span>
-                    <div className="log-pagination">
-                        <button type="button" className="page-btn">
-                            <span className="material-symbols-outlined">chevron_left</span>
-                        </button>
-                        <button type="button" className="page-btn active">1</button>
-                        <button type="button" className="page-btn">2</button>
-                        <button type="button" className="page-btn">3</button>
-                        <span className="pagination-dots">...</span>
-                        <button type="button" className="page-btn">52</button>
-                        <button type="button" className="page-btn">
-                            <span className="material-symbols-outlined">chevron_right</span>
-                        </button>
-                    </div>
-                </div>
+                        {/* Footer */}
+                        <div className="log-table-footer">
+                            <span className="footer-info">Đang hiển thị 1 - {logs.length} của {logs.length} bản ghi</span>
+                            <div className="log-pagination">
+                                <button type="button" className="page-btn" disabled>
+                                    <span className="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <button type="button" className="page-btn active">1</button>
+                                <button type="button" className="page-btn" disabled>
+                                    <span className="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </section>
-
-            {/* Bottom Section widgets */}
-            {/* <section className="log-bottom-widgets">
-                <article className="widget-card security-report">
-                    <div className="widget-content">
-                        <h3>Báo cáo bảo mật hàng tuần</h3>
-                        <p>Tóm tắt các nỗ lực truy cập bất hợp pháp và phân tích rủi ro hệ thống.</p>
-                    </div>
-                    <button type="button" className="widget-action-btn">
-                        <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                </article>
-
-                <article className="widget-card system-status">
-                    <div className="widget-content">
-                        <h3>Tình trạng hệ thống</h3>
-                        <p>Tất cả các dịch vụ xác thực đang hoạt động bình thường ở mức hiệu năng tối ưu.</p>
-                    </div>
-                    <div className="status-indicator-circle">
-                        <span className="material-symbols-outlined">check</span>
-                    </div>
-                </article>
-            </section> */}
         </div>
     );
 }
