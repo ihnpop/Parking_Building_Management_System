@@ -2934,19 +2934,20 @@ body {
 }
 
 .lost-pagination .page-btn {
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  color: #334155;
-  transition: all 0.2s;
+    min-width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4b5563;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-pagination .page-btn:hover {
@@ -2961,20 +2962,20 @@ body {
 }
 
 .lost-create-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background-color: #ea580c;
-  /* bright orange button */
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
-  transition: background-color 0.2s, transform 0.1s;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px; /* Tương đồng với pagination */
+    padding: 0 16px;
+    height: 36px; /* Bằng với min-width / height của pagination box */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-create-button:hover {
@@ -9392,19 +9393,20 @@ body {
 }
 
 .lost-pagination .page-btn {
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  color: #334155;
-  transition: all 0.2s;
+    min-width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4b5563;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-pagination .page-btn:hover {
@@ -9419,20 +9421,20 @@ body {
 }
 
 .lost-create-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background-color: #2563eb;
-  /* bright orange button */
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
-  transition: background-color 0.2s, transform 0.1s;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px; /* Tương đồng với pagination */
+    padding: 0 16px;
+    height: 36px; /* Bằng với min-width / height của pagination box */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-create-button:hover {
@@ -14523,19 +14525,20 @@ body {
 }
 
 .lost-pagination .page-btn {
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  color: #334155;
-  transition: all 0.2s;
+    min-width: 36px;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4b5563;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-pagination .page-btn:hover {
@@ -14550,20 +14553,20 @@ body {
 }
 
 .lost-create-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background-color: #2563eb;
-  /* bright orange button */
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2);
-  transition: background-color 0.2s, transform 0.1s;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px; /* Tương đồng với pagination */
+    padding: 0 16px;
+    height: 36px; /* Bằng với min-width / height của pagination box */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-create-button:hover {
@@ -15033,6 +15036,7 @@ body {
   font-size: 12px !important;
   font-weight: 700 !important;
   color: #fff !important;
+  white-space: nowrap !important;
 }
 
 .role-badge.admin {
@@ -21293,8 +21297,20 @@ body {
 
 /* Lost create button â€” blue */
 .lost-create-button {
-  background-color: #2563eb !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, .2) !important;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px; /* Tương đồng với pagination */
+    padding: 0 16px;
+    height: 36px; /* Bằng với min-width / height của pagination box */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-create-button:hover {
@@ -21707,8 +21723,20 @@ body {
 }
 
 .lost-create-button {
-  background-color: #2563eb !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, .25) !important;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px; /* Tương đồng với pagination */
+    padding: 0 16px;
+    height: 36px; /* Bằng với min-width / height của pagination box */
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .lost-create-button:hover {
@@ -21892,3 +21920,414 @@ td {
 @keyframes spin {
   to { transform: translateY(-50%) rotate(360deg); }
 }
+
+/* --- Lost Card Log Page Styles --- */
+.lost-card-log-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+}
+
+/* KPI Container */
+.lost-kpi-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+}
+
+.lost-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px; /* Tăng gap để bảng bên phải có thêm không gian thở */
+}
+
+.lost-kpi-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 10px 12px; 
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04); 
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100px; /* Tăng thêm nữa để cách xa nhau hơn */
+    position: relative;
+    gap: 16px; 
+    transition: transform 0.2s ease, box-shadow 0.2s ease; 
+    cursor: pointer;
+}
+
+.lost-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08); /* Bóng nổi khi hover */
+}
+
+.lost-kpi-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lost-kpi-icon-box {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lost-kpi-icon-box .material-symbols-outlined {
+    font-size: 16px;
+}
+
+/* Colors for icon boxes */
+.icon-gray { background: #f8fafc; color: #64748b; }
+.icon-red { background: #fef2f2; color: #ef4444; }
+.icon-blue { background: #eff6ff; color: #3b82f6; }
+.icon-green { background: #ecfdf5; color: #10b981; }
+
+.lost-kpi-title {
+    font-size: 14px; /* Chữ to hơn 1 tí */
+    color: #4b5563;
+    font-weight: 600;
+}
+
+.lost-kpi-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end; /* Ép tất cả nằm sát đáy box để số luôn cách đều viền dưới */
+}
+
+.lost-kpi-value {
+    font-size: 26px; /* Số to hơn tí */
+    font-weight: 700;
+    line-height: 1;
+    color: #111827;
+}
+
+.lost-kpi-value.val-red { color: #ef4444; }
+.lost-kpi-value.val-blue { color: #0052cc; }
+.lost-kpi-value.val-green { color: #10b981; }
+
+.lost-kpi-footer {
+    display: flex;
+    align-items: flex-end; /* Đổi thành flex-end để chữ và icon cùng chạm đáy */
+    gap: 4px;
+    font-size: 13px; 
+    font-weight: 500;
+    line-height: 1; /* Xóa khoảng trống của chữ để thẳng hàng với số */
+    padding-bottom: 2px; /* Tinh chỉnh nhẹ cho chữ ngang hàng với số 1 cách tương đối */
+}
+
+.lost-kpi-footer.txt-gray { color: #94a3b8; }
+.lost-kpi-footer.txt-orange { color: #f59e0b; }
+.lost-kpi-footer.txt-blue { color: #64748b; }
+.lost-kpi-footer.txt-green { color: #10b981; }
+
+.lost-kpi-footer .material-symbols-outlined {
+    font-size: 16px; /* Chỉnh icon cho to và cân bằng */
+    line-height: 1;
+}
+
+/* Distribution Card */
+.lost-dist-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 12px 16px; 
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Dàn đều 5 phần tử */
+    height: 100%;
+}
+
+.lost-dist-card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08); /* Hover cho cả bảng bên phải */
+}
+
+.lost-dist-title {
+    font-size: 12px; /* Thu nhỏ nữa */
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed #e2e8f0; /* Tích hợp đường kẻ vào title để giảm số lượng flex items */
+}
+
+.lost-dist-title .material-symbols-outlined {
+    font-size: 20px;
+}
+
+.lost-dist-divider {
+    display: none; /* Đã tích hợp vào title nên ẩn đi để còn đúng 5 flex items */
+}
+
+.lost-dist-item {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px; /* Gần lại tí để các row giãn ra được xa nhau hơn */
+}
+
+/* removed */
+
+.lost-dist-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #4b5563;
+    margin-bottom: 0; /* Đã dùng gap ở parent nên ko cần margin */
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.lost-dist-val {
+    font-weight: 600;
+    color: #111827;
+}
+
+.lost-dist-pct {
+    color: #64748b;
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.lost-dist-track {
+    width: 100%;
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.lost-dist-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); /* Chậm lại tí, dùng easing mượt */
+}
+
+/* Progress bar colors */
+.bg-dark { background: #475569; }
+.bg-gray { background: #cbd5e1; }
+.bg-blue { background: #3b82f6; }
+.bg-green { background: #10b981; }
+
+
+/* Filter Section */
+.lost-filter-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    display: flex;
+    gap: 20px;
+}
+
+.filter-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.filter-input-wrapper .material-symbols-outlined {
+    position: absolute;
+    color: #64748b;
+    font-size: 18px;
+}
+
+.filter-input-wrapper .icon-left {
+    left: 10px;
+}
+
+.filter-input-wrapper .icon-right {
+    right: 10px;
+    pointer-events: none;
+}
+
+.filter-input, .filter-select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1e293b;
+    padding: 0 12px;
+    outline: none;
+    transition: all 0.2s;
+    background: #ffffff;
+}
+
+.filter-input.has-icon-left {
+    padding-left: 36px;
+}
+
+.filter-input.has-icon-right {
+    padding-right: 36px;
+}
+
+.filter-select {
+    appearance: none;
+    cursor: pointer;
+}
+
+.filter-input:focus, .filter-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+}
+
+.date-range-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #334155;
+    font-size: 13px;
+}
+
+.date-range-display span {
+    color: #94a3b8;
+}
+
+/* Remove original header/toolbar from old component */
+.lost-header, .lost-stats-grid, .lost-toolbar {
+    display: none;
+}
+
+/* Adjust table card */
+.lost-table-card {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    overflow: hidden;
+}
+
+/* Modal Styling Improvements */
+.lost-modal {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 0; /* Bỏ padding tổng, chia vào từng phần */
+    width: 480px;
+    max-width: 90%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.lost-modal-header {
+    background: #f8fafc;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.lost-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.lost-modal-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.lost-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lost-form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.lost-form-group input, .lost-form-group select {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #1f2937;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.lost-form-group input:focus, .lost-form-group select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.lost-modal-actions {
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.lost-modal-actions .btn-cancel {
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #4b5563;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.lost-modal-actions .btn-cancel:hover {
+    background: #f3f4f6;
+}
+
+.lost-modal-actions .btn-save {
+    padding: 8px 16px;
+    border: none;
+    background: #3b82f6;
+    color: #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.lost-modal-actions .btn-save:hover {
+    background: #2563eb;
+}
+
+/* Ẩn các css mặc định cũ của modal nếu có bị trùng */
+.lost-modal > h2 { display: none; } /* Nếu dư header h2 ở root */
