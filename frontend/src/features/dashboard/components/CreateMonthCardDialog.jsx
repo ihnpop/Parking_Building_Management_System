@@ -4,12 +4,16 @@ import axios from 'axios';
 export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [codeLoading, setCodeLoading] = useState(false);
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
+    const [verifyResult, setVerifyResult] = useState(null);
+    const [verifying, setVerifying] = useState(false);
 
     // Metadata từ hệ thống
     const [vehicleTypes, setVehicleTypes] = useState([]);
     const [packages, setPackages] = useState([]);
+
 
     // Trạng thái lưu trữ tệp ảnh phục vụ eKYC
     const [frontImg, setFrontImg] = useState(null);
@@ -39,15 +43,17 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     const headers = { Authorization: `Bearer ${token}` };
 
                     const [resType, resPkg] = await Promise.all([
-                        axios.get('/api/vehicle-types', { headers }),
-                        axios.get('/api/packages', { headers })
+                        axios.get('http://localhost:3636/api/month-card/vehicle-types', { headers }),
+                        axios.get('http://localhost:3636/api/month-card/packages', { headers })
                     ]);
 
-                    setVehicleTypes(resType.data || []);
-                    setPackages(resPkg.data || []);
+                    const types = Array.isArray(resType.data) ? resType.data : [];
+                    const pkgs = Array.isArray(resPkg.data) ? resPkg.data : [];
+                    setVehicleTypes(types);
+                    setPackages(pkgs);
                 } catch (err) {
                     console.error("Lỗi tải thông tin cấu hình danh mục:", err);
-                    setError("Không thể tải danh mục cấu hình xe và gói cước.");
+                    setError("Đã kết nối được backend nhưng gặp lỗi tải danh mục xe và gói cước.");
                 }
             };
 
@@ -61,7 +67,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             setBackImg(null);
             setFrontPreview(null);
             setBackPreview(null);
+            setVerifyResult(null);
+            setVerifying(false);
             setFormData({
+
                 full_name: '',
                 phone: '',
                 email: '',
@@ -75,7 +84,29 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         }
     }, [isOpen]);
 
-    if (!isOpen) return null;
+    // Tự động sinh mã MONTH khi bước sang Step 4
+    useEffect(() => {
+        if (step === 4 && !formData.card_code) {
+            const fetchNextCode = async () => {
+                setCodeLoading(true);
+                try {
+                    const token = localStorage.getItem('token');
+                    const res = await axios.get('http://localhost:3636/api/month-card/next-code', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.data?.code) {
+                        setFormData(prev => ({ ...prev, card_code: res.data.code }));
+                    }
+                } catch (err) {
+                    console.error('Lỗi sinh mã thẻ:', err);
+                } finally {
+                    setCodeLoading(false);
+                }
+            };
+            fetchNextCode();
+        }
+    }, [step]);
+
 
     // Hàm chuyển đổi ảnh sang Base64 chuỗi thuần để gửi API
     const convertToBase64 = (file) => {
@@ -87,11 +118,50 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         });
     };
 
+    // Hàm gọi API xác thực giấy tờ thật giả (CCCD/CMND) qua VNPT eKYC
+    const handleVerifyDocument = async () => {
+        if (!frontImg) return;
+        setVerifying(true);
+        setVerifyResult(null);
+        setError(null);
+        try {
+            const frontBase64 = await convertToBase64(frontImg);
+            const backBase64 = backImg ? await convertToBase64(backImg) : null;
+
+            const token = localStorage.getItem('token');
+            const res = await axios.post('http://localhost:3636/api/month-card/verify-document',
+                { front_base64: frontBase64, back_base64: backBase64 },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (res.data && res.data.success) {
+                setVerifyResult(res.data);
+            } else {
+                setVerifyResult({
+                    isReal: false,
+                    liveness_msg: res.data?.liveness_msg || 'Không thể xác thực tính hợp lệ của giấy tờ.'
+                });
+            }
+        } catch (err) {
+            console.error("Lỗi xác thực giấy tờ:", err);
+            setVerifyResult({
+                isReal: false,
+                liveness_msg: err.response?.data?.error || 'Có lỗi xảy ra khi kết nối máy chủ xác thực eKYC.'
+            });
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+
     const handleFileChange = (e, type) => {
         const file = e.target.files[0];
         if (!file) return;
 
+        setVerifyResult(null);
+
         const reader = new FileReader();
+
         reader.onloadend = () => {
             if (type === 'front') {
                 setFrontImg(file);
@@ -140,7 +210,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             });
 
             if (response.data.success || response.data) {
-                setSuccessMessage('Đăng ký vé tháng khép kín thành công!');
+                setSuccessMessage('Đăng ký vé tháng thành công!');
                 setTimeout(() => {
                     onSuccess?.(); // Làm mới danh sách ngoài màn hình chính
                     onClose();     // Đóng modal
@@ -153,6 +223,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             setLoading(false);
         }
     };
+
+
+    if (!isOpen) return null;
 
     return (
         <div className="renew-modal-overlay">
@@ -169,7 +242,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             >
                 {/* Header */}
                 <div className="renew-modal-header">
-                    <h2>Đăng Ký Vé Tháng Khép Kín (VNPT eKYC)</h2>
+                    <h2>Đăng Ký Vé Tháng</h2>
                     <button
                         type="button"
                         className="renew-modal-close"
@@ -231,8 +304,100 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                         </div>
                                     </div>
                                 </div>
+
+                                <style>{`
+                                    @keyframes spin {
+                                        from { transform: rotate(0deg); }
+                                        to { transform: rotate(360deg); }
+                                    }
+                                    .animate-spin {
+                                        animation: spin 1s linear infinite;
+                                        display: inline-block;
+                                    }
+                                `}</style>
+
+                                {frontImg && backImg && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px', marginBottom: '8px' }}>
+                                        <button
+                                            type="button"
+                                            onClick={handleVerifyDocument}
+                                            disabled={verifying}
+                                            style={{
+                                                padding: '10px 16px',
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                background: verifying ? '#e0e0e0' : 'linear-gradient(135deg, #004bca 0%, #002d80 100%)',
+                                                color: verifying ? '#888' : '#fff',
+                                                fontWeight: '600',
+                                                cursor: verifying ? 'not-allowed' : 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                boxShadow: '0 4px 6px rgba(0, 75, 202, 0.15)',
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            {verifying ? (
+                                                <>
+                                                    <span className="material-symbols-outlined animate-spin" style={{ fontSize: '18px' }}>sync</span>
+                                                    Đang xác thực eKYC...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>verified_user</span>
+                                                    Xác thực giấy tờ thật/giả
+                                                </>
+                                            )}
+                                        </button>
+
+                                        {verifyResult && (
+                                            <div style={{
+                                                padding: '14px',
+                                                borderRadius: '8px',
+                                                background: verifyResult.isReal ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                                                color: verifyResult.isReal ? '#065f46' : '#991b1b',
+                                                border: `1px solid ${verifyResult.isReal ? '#34d399' : '#f87171'}`,
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: '12px'
+                                            }}>
+                                                <span className="material-symbols-outlined" style={{
+                                                    fontSize: '24px',
+                                                    color: verifyResult.isReal ? '#059669' : '#dc2626',
+                                                    marginTop: '2px'
+                                                }}>
+                                                    {verifyResult.isReal ? 'check_circle' : 'cancel'}
+                                                </span>
+                                                <div style={{ flexGrow: 1, fontSize: '14px', lineHeight: '1.5', textAlign: 'left' }}>
+                                                    <div style={{ fontWeight: '700', fontSize: '15px' }}>
+                                                        {verifyResult.isReal ? 'Xác thực thành công (Giấy tờ thật)' : 'Xác thực thất bại (Nghi ngờ giả mạo)'}
+                                                    </div>
+                                                    <div style={{ opacity: 0.9, marginTop: '2px' }}>
+                                                        Kết quả chi tiết: {verifyResult.liveness_msg}
+                                                    </div>
+                                                    {verifyResult.face_swapping && (
+                                                        <div style={{ color: '#d97706', fontWeight: '600', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
+                                                            Cảnh báo: Phát hiện dán ảnh giả (face swapping)!
+                                                        </div>
+                                                    )}
+                                                    {verifyResult.fake_liveness && (
+                                                        <div style={{ color: '#d97706', fontWeight: '600', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span>
+                                                            Cảnh báo: Phát hiện giấy tờ in ấn/chụp lại từ màn hình!
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="renew-form-group">
                                     <label>Họ và tên khách hàng</label>
+
                                     <input type="text" className="renew-select" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Ví dụ: Nguyễn Văn A" />
                                 </div>
                                 <div className="renew-form-group">
@@ -311,24 +476,51 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                             </>
                         )}
 
-                        {/* BƯỚC 4: CẤP THẺ RFID CỨNG */}
+                        {/* BƯỚC 4: CẤP MÃ THẺ MONTH */}
                         {step === 4 && (
                             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{ padding: '20px 0' }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#004bca' }}>rfid_handshake</span>
-                                    <p style={{ fontSize: '15px', color: '#333', marginTop: '10px', fontWeight: '500' }}>Vui lòng đặt thẻ cứng lên thiết bị đầu đọc RFID tại quầy</p>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#004bca' }}>badge</span>
+                                    <p style={{ fontSize: '15px', color: '#333', marginTop: '10px', fontWeight: '500' }}>Mã thẻ tháng được tạo tự động</p>
+                                    <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>Bạn có thể chỉnh sửa nếu cần</p>
                                 </div>
                                 <div className="renew-form-group" style={{ textAlign: 'left' }}>
-                                    <label>Mã UID Thẻ (Nhận diện tự động)</label>
-                                    <input
-                                        type="text"
-                                        className="renew-select"
-                                        value={formData.card_code}
-                                        onChange={(e) => setFormData({ ...formData, card_code: e.target.value.toUpperCase() })}
-                                        placeholder="Hệ thống đang chờ tín hiệu quẹt thẻ..."
-                                        style={{ textAlign: 'center', letterSpacing: '2px', fontWeight: 'bold', fontSize: '16px' }}
-                                        autoFocus
-                                    />
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Mã Thẻ Tháng
+                                        <span style={{
+                                            fontSize: '11px', fontWeight: '600', padding: '2px 8px',
+                                            borderRadius: '12px', background: '#e8f5e9', color: '#2e7d32'
+                                        }}>Tự động</span>
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="text"
+                                            className="renew-select"
+                                            value={codeLoading ? 'Đang sinh mã...' : formData.card_code}
+                                            onChange={(e) => setFormData({ ...formData, card_code: e.target.value.toUpperCase() })}
+                                            placeholder="MONTH0001"
+                                            disabled={codeLoading}
+                                            style={{
+                                                textAlign: 'center', letterSpacing: '3px', fontWeight: 'bold',
+                                                fontSize: '20px', color: '#004bca',
+                                                border: '2px solid #004bca', borderRadius: '8px',
+                                                background: codeLoading ? '#f5f5f9' : '#f0f5ff'
+                                            }}
+                                            autoFocus
+                                        />
+                                        {codeLoading && (
+                                            <div style={{
+                                                position: 'absolute', right: '12px', top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                width: '18px', height: '18px', borderRadius: '50%',
+                                                border: '2px solid #004bca', borderTopColor: 'transparent',
+                                                animation: 'spin 0.8s linear infinite'
+                                            }} />
+                                        )}
+                                    </div>
+                                    <p style={{ fontSize: '12px', color: '#888', marginTop: '6px', textAlign: 'center' }}>
+                                        💡 Mã được sinh tự động theo thứ tự. Bạn có thể nhập tay nếu muốn dùng mã khác.
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -353,10 +545,11 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     type="button"
                                     className="renew-btn primary"
                                     disabled={
-                                        (step === 1 && (!frontImg || !backImg || !formData.full_name || !formData.phone)) ||
+                                        (step === 1 && (!frontImg || !backImg || !formData.full_name || !formData.phone || !verifyResult || !verifyResult.isReal)) ||
                                         (step === 2 && (!formData.vehicle_type_id || !formData.plate_number)) ||
                                         (step === 3 && !formData.package_id)
                                     }
+
                                     onClick={() => setStep(prev => prev + 1)}
                                 >
                                     Tiếp theo

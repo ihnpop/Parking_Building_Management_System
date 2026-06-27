@@ -119,6 +119,15 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     {!isCollapsed && <span>Nghiệp vụ hệ thống</span>}
                 </button>
 
+                <button
+                    type="button"
+                    className={`menu-item ${activeTab === 'system-settings' ? 'active' : ''}`}
+                    onClick={() => onTabChange('system-settings')}
+                >
+                    <span className="material-symbols-outlined">settings</span>
+                    {!isCollapsed && <span>Cài đặt hệ thống</span>}
+                </button>
+
                 {canSeeUserMgmt && (
                     <button
                         type="button"

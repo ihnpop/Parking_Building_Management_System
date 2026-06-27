@@ -1,9 +1,11 @@
-const express = require('express');
+import express from 'express';
+import registrationController from '../controllers/parkingRegistrationController.js';
+import { verifyToken } from '../middlewares/auth.js';
+
+
 const router = express.Router();
-const registrationController = require('../controllers/parkingRegistrationController');
-const { verifyToken } = require('../middlewares/authMiddleware');
 
 // Router chạy toàn bộ luồng đăng ký khép kín
 router.post('/register-monthly', verifyToken, registrationController.registerMonthlyTicket);
 
-module.exports = router;
+export default router;

@@ -488,11 +488,6 @@ export const getMonthCards = async () => {
 
   return await Promise.all(
     data.map(async (card, i) => {
-      // const activeReg =
-      //   card.card_registrations?.find(
-      //     (r) => r.status === "Hoạt động"
-      //   ) || null;
-
       const activeReg =
         card.card_registrations?.find(
           (r) => r.status === "Hoạt động"

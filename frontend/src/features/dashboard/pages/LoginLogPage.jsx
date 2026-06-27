@@ -28,93 +28,172 @@ export default function LoginLogPage() {
         setLogs(filtered);
     };
 
+    
+    const totalLogins = logs.length;
+    const failedLogins = logs.filter(log => log.status === 'Failed').length;
+    const successLogins = logs.filter(log => log.status === 'Success').length;
+    const activeSessions = 42; // Giả lập dữ liệu
+
     return (
-        <div className="login-log-page">
+        <div className="lost-card-log-wrapper">
 
 
             {/* Stats Cards */}
-            <section className="log-stats-grid">
-                <article className="log-stat-card border-none">
-                    <div className="log-stat-header">
-                        <span className="badge-today">+12% so với hôm qua</span>
+            
+            <div className="lost-kpi-container" style={{marginBottom: "24px"}}>
+                <div className="lost-kpi-grid">
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-gray">
+                                <span className="material-symbols-outlined">login</span>
+                            </div>
+                            <span className="lost-kpi-title">Tổng đăng nhập</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value">{totalLogins}</div>
+                            <div className="lost-kpi-footer txt-gray">Hôm nay</div>
+                        </div>
                     </div>
-                    <div className="log-stat-body">
-                        <p className="log-stat-label">TOTAL LOGINS TODAY</p>
-                        <p className="log-stat-value">1,284</p>
-                    </div>
-                </article>
 
-                <article className="log-stat-card border-none">
-                    <div className="log-stat-header">
-                        <span className="log-stat-icon-top group-icon">
-                            <span className="material-symbols-outlined">groups</span>
-                        </span>
-                        <span className="badge-stable">Ổn định</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-green">
+                                <span className="material-symbols-outlined">check_circle</span>
+                            </div>
+                            <span className="lost-kpi-title">Thành công</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-green">{successLogins}</div>
+                            <div className="lost-kpi-footer txt-green">Truy cập hợp lệ</div>
+                        </div>
                     </div>
-                    <div className="log-stat-body">
-                        <p className="log-stat-label">ACTIVE SESSIONS</p>
-                        <p className="log-stat-value">42</p>
-                    </div>
-                </article>
 
-                <article className="log-stat-card border-none failed-card">
-                    <div className="log-stat-header">
-                        <span className="log-stat-icon-top alert-icon">
-                            <span className="material-symbols-outlined">error</span>
-                        </span>
-                        <span className="badge-alert">Cảnh báo</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-blue">
+                                <span className="material-symbols-outlined">groups</span>
+                            </div>
+                            <span className="lost-kpi-title">Phiên hoạt động</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-blue">{activeSessions}</div>
+                            <div className="lost-kpi-footer txt-blue">Đang online</div>
+                        </div>
                     </div>
-                    <div className="log-stat-body">
-                        <p className="log-stat-label">FAILED ATTEMPTS</p>
-                        <p className="log-stat-value text-red">15</p>
+
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-red">
+                                <span className="material-symbols-outlined">error</span>
+                            </div>
+                            <span className="lost-kpi-title">Thất bại</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-red">{failedLogins}</div>
+                            <div className="lost-kpi-footer txt-red">Cảnh báo</div>
+                        </div>
                     </div>
-                </article>
-            </section>
+                </div>
+
+                <div className="lost-dist-card">
+                    <div className="lost-dist-title">
+                        <span className="material-symbols-outlined">monitoring</span>
+                        Phân phối đăng nhập
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Mốc tổng đăng nhập</span>
+                            <span><span className="lost-dist-val">{totalLogins}</span> <span className="lost-dist-pct">(100%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-dark" style={{ width: '100%' }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thành công</span>
+                            <span><span className="lost-dist-val">{successLogins}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((successLogins / totalLogins) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-green" style={{ width: `${totalLogins > 0 ? (successLogins / totalLogins) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Phiên hoạt động</span>
+                            <span><span className="lost-dist-val">{activeSessions}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((activeSessions / totalLogins) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-blue" style={{ width: `${totalLogins > 0 ? (activeSessions / totalLogins) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thất bại</span>
+                            <span><span className="lost-dist-val">{failedLogins}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((failedLogins / totalLogins) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-red" style={{ width: `${totalLogins > 0 ? (failedLogins / totalLogins) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             {/* Filter Toolbar */}
-            <section className="log-toolbar">
-                <div className="log-filters">
-                    <div className="log-filter-group search-group">
-                        <label>Username / IP Address</label>
-                        <div className="search-input-wrapper">
-                            <span className="material-symbols-outlined">person</span>
-                            <input
-                                type="text"
-                                placeholder="Nhập tên hoặc IP..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                            />
-                        </div>
+            
+            {/* Filter Toolbar */}
+            <div className="lost-filter-card">
+                <div className="filter-block">
+                    <label className="filter-label">TÌM KIẾM NÂNG CAO</label>
+                    <div className="filter-input-wrapper">
+                        <span className="material-symbols-outlined icon-left">search</span>
+                        <input
+                            type="text"
+                            className="filter-input has-icon-left"
+                            placeholder="Nhập tên hoặc IP..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+                        />
                     </div>
+                </div>
 
-                    <div className="log-filter-group date-group">
-                        <label>Khoảng thời gian</label>
-                        <div className="date-input-wrapper">
-                            <span className="material-symbols-outlined">calendar_today</span>
-                            <input type="text" value="10/10/2023 - 11/10/2023" readOnly />
-                        </div>
+                <div className="filter-block">
+                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
+                    <div className="filter-input-wrapper">
+                        <span className="material-symbols-outlined icon-left">calendar_today</span>
+                        <input 
+                            type="text" 
+                            className="filter-input has-icon-left"
+                            value="10/10/2023 - 11/10/2023" 
+                            style={{ paddingLeft: '36px' }}
+                            readOnly 
+                        />
                     </div>
+                </div>
 
-                    <div className="log-filter-group dropdown-group">
-                        <label>Vai trò (Role)</label>
-                        <select
-                            className="log-select"
-                            value={roleFilter}
+                <div className="filter-block">
+                    <label className="filter-label">VAI TRÒ (ROLE)</label>
+                    <div className="filter-input-wrapper">
+                        <select 
+                            className="filter-select"
+                            value={roleFilter} 
                             onChange={(e) => setRoleFilter(e.target.value)}
                         >
                             <option value="Tất cả vai trò">Tất cả vai trò</option>
                             <option value="Admin">Admin</option>
                             <option value="Nhân viên">Nhân viên</option>
                         </select>
+                        <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
-
-                    <button type="button" className="log-filter-button" onClick={handleFilter}>
-                        <span className="material-symbols-outlined">filter_alt</span>
-                        Filter
-                    </button>
                 </div>
-            </section>
+            </div>
+
 
             {/* Table */}
             <section className="log-table-card">
