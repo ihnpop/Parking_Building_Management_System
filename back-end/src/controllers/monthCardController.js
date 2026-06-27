@@ -37,43 +37,61 @@ export const getVehicleTypes = async (req, res) => {
  * Lấy danh sách gói cước tháng từ Supabase (monthly_packages)
  * Nếu bảng chưa tồn tại, trả về dữ liệu tĩnh mặc định
  */
+// export const getPackages = async (req, res) => {
+//   try {
+//     const { data, error } = await supabase
+//       .from('package')
+//       .select('package_id, name, vehicle_type_id, duration_month, price')
+//       .order('vehicle_type_id', { ascending: true });
+
+//     if (error) {
+//       // Nếu bảng chưa tồn tại, trả về gói cứng theo loại xe
+//       console.warn('Bảng package chưa có, dùng dữ liệu tĩnh:', error.message);
+//       const { data: vtData } = await supabase
+//         .from('vehicle_type')
+//         .select('vehicle_type_id, name');
+
+//       const staticPackages = [];
+//       if (vtData && vtData.length > 0) {
+//         const priceMap = [
+//           { duration_month: 1, price: 200000, suffix: '1 tháng' },
+//           { duration_month: 3, price: 550000, suffix: '3 tháng' },
+//           { duration_month: 6, price: 1000000, suffix: '6 tháng' },
+//         ];
+//         vtData.forEach((vt, vIdx) => {
+//           priceMap.forEach((pkg, pIdx) => {
+//             staticPackages.push({
+//               package_id: `static-${vIdx}-${pIdx}`,
+//               name: `Gói ${pkg.suffix} - ${vt.name}`,
+//               vehicle_type_id: vt.vehicle_type_id,
+//               duration_month: pkg.duration_month,
+//               price: pkg.price
+//             });
+//           });
+//         });
+//       }
+//       return res.status(200).json(staticPackages);
+//     }
+
+//     return res.status(200).json(data || []);
+//   } catch (err) {
+//     return res.status(500).json({ error: err.message });
+//   }
+// };
+
 export const getPackages = async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('monthly_packages')
-      .select('package_id, name, vehicle_type_id, duration_month, price')
-      .order('vehicle_type_id', { ascending: true });
+      .from('package')
+      .select('*')
+      .eq('status', 'Hoạt động')
+      .order('vehicle_type_id');
 
     if (error) {
-      // Nếu bảng chưa tồn tại, trả về gói cứng theo loại xe
-      console.warn('Bảng monthly_packages chưa có, dùng dữ liệu tĩnh:', error.message);
-      const { data: vtData } = await supabase
-        .from('vehicle_type')
-        .select('vehicle_type_id, name');
-
-      const staticPackages = [];
-      if (vtData && vtData.length > 0) {
-        const priceMap = [
-          { duration_month: 1, price: 200000, suffix: '1 tháng' },
-          { duration_month: 3, price: 550000, suffix: '3 tháng' },
-          { duration_month: 6, price: 1000000, suffix: '6 tháng' },
-        ];
-        vtData.forEach((vt, vIdx) => {
-          priceMap.forEach((pkg, pIdx) => {
-            staticPackages.push({
-              package_id: `static-${vIdx}-${pIdx}`,
-              name: `Gói ${pkg.suffix} - ${vt.name}`,
-              vehicle_type_id: vt.vehicle_type_id,
-              duration_month: pkg.duration_month,
-              price: pkg.price
-            });
-          });
-        });
-      }
-      return res.status(200).json(staticPackages);
+      return res.status(500).json({ error: error.message });
     }
 
-    return res.status(200).json(data || []);
+    return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -275,7 +293,7 @@ export const verifyDocument = async (req, res) => {
     console.log("Đang upload ảnh mặt trước lên VNPT...");
     // Tách phần prefix base64 nếu có (e.g. data:image/jpeg;base64,...)
     const cleanFrontBase64 = front_base64.replace(/^data:image\/\w+;base64,/, "");
-    
+
     const frontHash = await uploadImageToVNPT(cleanFrontBase64, 'cccd_front');
     console.log("Upload mặt trước thành công, hash:", frontHash);
 
