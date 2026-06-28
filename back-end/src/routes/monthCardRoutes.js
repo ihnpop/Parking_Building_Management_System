@@ -72,5 +72,10 @@ router.put("/:id", monthCardController.updateMonthCard);
 router.post("/create", monthCardController.createMonthCard);
 
 
+/**
+ * DELETE /api/month-card/:id
+ * Xóa mềm thẻ tháng (đánh dấu deleted_at, chuyển status sang "Đã khóa")
+ */
+router.delete("/:id", monthCardController.deleteMonthCard);
 
 export default router;

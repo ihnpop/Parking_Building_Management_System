@@ -529,8 +529,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Đang chờ">Đang chờ</option>
                         <option value="Đã khóa">Đã khóa</option>
-                        <option value="Hết hạn">Hết hạn</option>
-                        <option value="Đã xóa">Đã xóa</option>
                     </select>
                 </div>
                 <div className="cp-action-buttons">

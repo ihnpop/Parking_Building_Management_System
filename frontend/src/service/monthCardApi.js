@@ -94,4 +94,14 @@ export const createMonthCard = async (payload) => {
     return response.data;
 };
 
-
+/**
+ * Xóa mềm thẻ tháng theo ID
+ * @param {string} id - card_id của thẻ cần xóa
+ * @returns {Promise<object>} Kết quả trả về từ server
+ */
+export const deleteMonthCard = async (id) => {
+    const response = await API.delete(`/${id}`, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};

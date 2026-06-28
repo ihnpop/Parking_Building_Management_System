@@ -63,6 +63,64 @@ export const updateCardExpirationDate = async (cardId, newExpiredDate) => {
 };
 
 /**
+ * Tìm thẻ theo card_id (chỉ lấy thẻ chưa bị xóa)
+ * @param {string} cardId
+ * @returns {Promise<object|null>}
+ */
+export const findById = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select('*')
+    .eq('card_id', cardId)
+    .is('deleted_at', null)
+    .single();
+
+  if (error) return null;
+  return data;
+};
+
+/**
+ * Xóa mềm một thẻ (đánh dấu deleted_at, deleted_by, chuyển status sang Đã khóa)
+ * @param {string} cardId
+ * @param {string} performedBy
+ * @returns {Promise<object>}
+ */
+export const softDelete = async (cardId, performedBy) => {
+  const { data, error } = await supabase
+    .from('card')
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: performedBy,
+      status: 'Đã khóa',
+    })
+    .eq('card_id', cardId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Ghi log hoạt động đơn giản cho thẻ (dùng riêng cho xóa thẻ)
+ * @param {object} payload - { card_id, action, performed_by, note }
+ * @returns {Promise<void>}
+ */
+export const logActivity = async ({ card_id, action, performed_by, note }) => {
+  const { error } = await supabase
+    .from('card_activity_logs')
+    .insert({
+      card_id,
+      action,
+      performed_by,
+      note: note || null,
+      performed_at: new Date().toISOString(),
+    });
+
+  if (error) throw new Error(error.message);
+};
+
+/**
  * Chèn một bản ghi hoạt động thẻ mới vào card_activity_logs
  * @param {object} logPayload
  * @returns {Promise<object>}

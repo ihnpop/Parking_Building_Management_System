@@ -224,6 +224,27 @@ export const updateMonthCard = async (req, res) => {
 };
 
 /**
+ * Xóa mềm thẻ tháng theo ID
+ * DELETE /api/month-card/:id
+ * - Lấy id từ params, performedBy từ JWT user
+ * - Ủy quyền xử lý nghiệp vụ cho monthCardService.deleteMonthCard
+ * - Trả về HTTP 200 khi thành công, 404/500 khi thất bại
+ */
+export const deleteMonthCard = async (req, res) => {
+  try {
+    const { id } = req.params;                 // ID thẻ tháng cần xóa
+    const performedBy = req.user?.id;          // ID người thực hiện (từ JWT middleware)
+
+    const result = await monthCardService.deleteMonthCard(id, performedBy);
+    return res.status(200).json({ message: 'Xóa vé tháng thành công', data: result });
+  } catch (err) {
+    console.error('deleteMonthCard error:', err);
+    // Dùng err.statusCode (do service tự đặt) nếu có, fallback về 500
+    return res.status(err.statusCode || 500).json({ message: err.message || 'Lỗi server' });
+  }
+};
+
+/**
  * Lấy danh sách thẻ tháng
  */
 export const getMonthCards = async (req, res) => {

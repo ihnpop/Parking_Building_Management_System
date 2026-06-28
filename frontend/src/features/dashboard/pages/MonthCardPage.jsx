@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getMonthCards } from '../../../service/monthCardApi';
+import { getMonthCards, deleteMonthCard } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
 import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
@@ -120,6 +120,49 @@ export default function MonthCardPage() {
         setSearch('');
         setVehicleTypeFilter('Tất cả loại xe');
         setStatusFilter('Tất cả trạng thái');
+    };
+
+    // ── Trạng thái xóa thẻ tháng ──────────────────────────────────────────────
+    const [deletingCard, setDeletingCard] = useState(null);   // Thẻ đang được chọn để xóa (null = không hiện modal)
+    const [isDeleting, setIsDeleting] = useState(false);      // Khóa nút trong khi đang gửi request xóa
+    const [deleteError, setDeleteError] = useState(null);     // Lưu thông báo lỗi riêng cho modal xóa
+
+    // ── Toast thông báo kết quả (dùng chung cho mọi hành động) ─────────────────
+    // state lưu nội dung & loại toast (success | error)
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    // Hiện toast trong 3 giây rồi tự ẩn
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    };
+
+    // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
+    const handleDelete = async () => {
+        if (!deletingCard) return; // Bảo vệ: không làm gì nếu chưa chọn thẻ
+        try {
+            setIsDeleting(true);
+            setDeleteError(null);
+
+            // Gọi API xóa mềm: cập nhật deleted_at + status → "Đã khóa"
+            await deleteMonthCard(deletingCard.card_id);
+
+            setDeletingCard(null);  // Đóng modal xác nhận
+            showToast(`Xóa thẻ ${deletingCard.cardNo} thành công!`, 'success'); // Hiện toast xanh
+            fetchMonthCards(); // Tải lại danh sách để phản ánh thay đổi
+        } catch (err) {
+            console.error("Error deleting month card:", err);
+            // Ưu tiên lấy message từ response của server, fallback về err.message
+            setDeleteError(err.response?.data?.message || err.message || "Xóa vé tháng thất bại. Vui lòng thử lại!");
+        } finally {
+            setIsDeleting(false); // Luôn mở khóa nút dù thành công hay thất bại
+        }
+    };
+
+    // Đóng modal xác nhận xóa và reset lỗi (tránh lỗi cũ hiện lại lần sau)
+    const closeDeleteModal = () => {
+        setDeletingCard(null);
+        setDeleteError(null);
     };
 
     return (
@@ -332,6 +375,13 @@ export default function MonthCardPage() {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
                                                     </button>
+                                                    <button type="button" className="cp-delete-btn"
+                                                        style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        onClick={() => setDeletingCard(row)}
+                                                        title="Xóa thẻ"
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))
@@ -407,6 +457,42 @@ export default function MonthCardPage() {
                 cardData={editingCard}
                 onSuccess={fetchMonthCards}
             />
+
+            {deletingCard && (
+                <div className="mc-confirm-overlay">
+                    <div className="mc-confirm-box">
+                        <p>Bạn chắc chắn muốn xóa thẻ <b>{deletingCard.cardNo}</b>?</p>
+                        <p style={{ fontSize: '13px', color: '#999' }}>
+                            Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.
+                        </p>
+
+                        {deleteError && (
+                            <p style={{ color: '#ff6b6b', fontSize: '13px', marginTop: '8px' }}>
+                                {deleteError}
+                            </p>
+                        )}
+
+                        <div className="mc-confirm-actions">
+                            <button onClick={closeDeleteModal} disabled={isDeleting}>Hủy</button>
+                            <button onClick={handleDelete} disabled={isDeleting} className="mc-btn-danger">
+                                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Toast thông báo kết quả (hiện 3 giây rồi tự ẩn) ── */}
+            {/* Dùng class CSS `custom-toast success` hoặc `custom-toast error` để đổi màu */}
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    {/* Icon: check_circle khi thành công, error khi thất bại */}
+                    <span className="material-symbols-outlined">
+                        {toast.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="toast-text">{toast.message}</span>
+                </div>
+            )}
         </div>
     );
 }

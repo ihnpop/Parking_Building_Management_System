@@ -508,6 +508,37 @@ export const updateMonthCard = async (cardId, payload) => {
   return { success: true };
 };
 
+/**
+ * Xóa mềm một thẻ tháng:
+ * - Kiểm tra thẻ tồn tại và chưa bị xóa
+ * - Đánh dấu deleted_at, deleted_by và chuyển status → "Đã khóa"
+ * - Ghi log hoạt động để theo dõi lịch sử
+ * @param {string} cardId - ID thẻ cần xóa
+ * @param {string} performedBy - ID người thực hiện (lấy từ JWT token)
+ */
+export const deleteMonthCard = async (cardId, performedBy) => {
+  // Kiểm tra thẻ có tồn tại và chưa bị xóa trước đó
+  const card = await monthCardRepository.findById(cardId);
+  if (!card) {
+    const e = new Error('Không tìm thấy vé tháng hoặc đã bị xóa');
+    e.statusCode = 404; // Trả về HTTP 404 để frontend xử lý đúng
+    throw e;
+  }
+
+  // Thực hiện xóa mềm: ghi deleted_at + deleted_by + đổi status
+  const result = await monthCardRepository.softDelete(cardId, performedBy);
+
+  // Ghi log hoạt động để kiểm tra lịch sử về sau
+  await monthCardRepository.logActivity({
+    card_id: cardId,
+    action: 'Xóa thẻ',
+    performed_by: performedBy,
+    note: `Thẻ ${card.code} đã bị xóa`,
+  });
+
+  return result;
+};
+
 export const getMonthCards = async () => {
   const { data, error } = await supabase
     .from("card")
