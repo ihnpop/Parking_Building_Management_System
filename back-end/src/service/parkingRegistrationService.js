@@ -40,8 +40,7 @@ class ParkingRegistrationService {
                 full_name: fullName,
                 phone: customer_info.phone || null,
                 email: customer_info.email || null,
-                status: 'Hoạt động',
-                is_verified: isVerified
+                status: 'Hoạt động'
             }])
             .select().single();
         if (cError) throw new Error("Lỗi tạo Customer: " + cError.message);
@@ -58,12 +57,21 @@ class ParkingRegistrationService {
         if (kycError) throw new Error("Lỗi lưu log KYC: " + kycError.message);
 
         // 2.3. Tạo Vehicle (Xe) liên kết với Customer
+        const rawPlate = (vehicle_info.plate_number || '').replace(/[\s\.\-]/g, '').toUpperCase();
+        const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+        if (!rawPlate) {
+            throw new Error("Biển số xe không được để trống.");
+        }
+        if (!plateRegex.test(rawPlate)) {
+            throw new Error("Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).");
+        }
+
         const { data: vehicle, error: vError } = await supabase
             .from('vehicle')
             .insert([{
                 customer_id: customer.customer_id,
                 vehicle_type_id: vehicle_info.vehicle_type_id,
-                plate_number: vehicle_info.plate_number.replace(/[\s\.\-]/g, '').toUpperCase(),
+                plate_number: rawPlate,
                 brand: vehicle_info.brand || null,
                 color: vehicle_info.color || null,
                 status: 'Hoạt động'
@@ -106,25 +114,62 @@ class ParkingRegistrationService {
         if (vpError) throw new Error("Lỗi gán gói cước cho xe: " + vpError.message);
 
         // 2.5. Kiểm tra và Kích hoạt thẻ RFID (Card & Card Registrations)
-        const { data: card, error: cardError } = await supabase
+        let cardId = null;
+        const { data: existingCard, error: cardError } = await supabase
             .from('card')
-            .select('card_id')
+            .select('card_id, status')
             .eq('code', card_code)
-            .single();
+            .maybeSingle();
 
-        if (cardError || !card) throw new Error(`Mã thẻ RFID "${card_code}" không tồn tại trong kho hệ thống.`);
+        if (cardError) throw new Error("Lỗi kiểm tra thẻ RFID: " + cardError.message);
 
-        // Cập nhật trạng thái thẻ sang hoạt động
         const expiredDateStr = endDate.toISOString().split('T')[0];
-        await supabase.from('card')
-            .update({ status: 'Hoạt động', expired_date: expiredDateStr })
-            .eq('card_id', card.card_id);
+
+        if (!existingCard) {
+            // Trường hợp 2: sinh mã thẻ tháng mới
+            // Kiểm tra xem đã vượt quá 50 thẻ tháng chưa
+            const { count, error: countErr } = await supabase
+                .from('card')
+                .select('card_id', { count: 'exact', head: true })
+                .eq('type', 'Thẻ tháng')
+                .not('status', 'eq', 'Đã xóa');
+
+            if (countErr) throw new Error("Lỗi đếm số lượng thẻ tháng: " + countErr.message);
+
+            if (count >= 50) {
+                throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.");
+            }
+
+            // Tạo thẻ mới
+            const { data: newCard, error: createCardErr } = await supabase
+                .from('card')
+                .insert([{
+                    code: card_code,
+                    type: 'Thẻ tháng',
+                    status: 'Hoạt động',
+                    expired_date: expiredDateStr
+                }])
+                .select()
+                .single();
+
+            if (createCardErr) throw new Error("Lỗi tạo thẻ tháng mới: " + createCardErr.message);
+            cardId = newCard.card_id;
+        } else {
+            // Trường hợp 1: sử dụng thẻ đang chờ
+            // Cập nhật trạng thái thẻ sang hoạt động
+            const { error: updateErr } = await supabase.from('card')
+                .update({ status: 'Hoạt động', expired_date: expiredDateStr })
+                .eq('card_id', existingCard.card_id);
+
+            if (updateErr) throw new Error("Lỗi cập nhật trạng thái thẻ: " + updateErr.message);
+            cardId = existingCard.card_id;
+        }
 
         // Tạo liên kết Thẻ - Xe trong bảng card_registrations
         const { data: registration, error: regError } = await supabase
             .from('card_registrations')
             .insert([{
-                card_id: card.card_id,
+                card_id: cardId,
                 vehicle_id: vehicle.vehicle_id,
                 status: 'Hoạt động'
             }])

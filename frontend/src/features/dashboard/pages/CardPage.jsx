@@ -313,6 +313,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const handleCreate = async (e) => {
         e.preventDefault();
         setFormError(null);
+
+        // Kiểm tra định dạng biển số xe
+        if (formData.plate && formData.plate.trim() !== '') {
+            const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
+            const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+            if (!plateRegex.test(rawPlate)) {
+                setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
+                return;
+            }
+        }
+
         try {
             setSubmitting(true);
             await createCard({

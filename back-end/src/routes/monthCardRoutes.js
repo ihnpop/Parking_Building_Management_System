@@ -22,6 +22,12 @@ router.get("/packages", monthCardController.getPackages);
 router.get("/next-code", monthCardController.getNextMonthCode);
 
 /**
+ * POST /api/month-card/check-plate
+ * Kiểm tra trạng thái biển số xe trước khi đi tiếp
+ */
+router.post("/check-plate", monthCardController.checkPlateStatus);
+
+/**
  * GET /api/month-card
  * Lấy danh sách thẻ tháng
  */

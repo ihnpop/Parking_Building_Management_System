@@ -89,6 +89,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         if (step === 4 && !formData.card_code) {
             const fetchNextCode = async () => {
                 setCodeLoading(true);
+                setError(null);
                 try {
                     const token = localStorage.getItem('token');
                     const res = await axios.get('http://localhost:3636/api/month-card/next-code', {
@@ -99,6 +100,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     }
                 } catch (err) {
                     console.error('Lỗi sinh mã thẻ:', err);
+                    setError(err.response?.data?.error || "Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký).");
                 } finally {
                     setCodeLoading(false);
                 }
@@ -174,6 +176,46 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         reader.readAsDataURL(file);
     };
 
+    // Xử lý đi tiếp các bước, kiểm tra biển số xe ở bước 2
+    const handleNextStep = async () => {
+        if (step === 2) {
+            setError(null);
+
+            // Kiểm tra định dạng biển số xe trước khi gọi API
+            const rawPlate = (formData.plate_number || '').replace(/[\s.\-]/g, '').toUpperCase();
+            const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+            if (!rawPlate) {
+                setError('Vui lòng nhập biển số xe.');
+                return;
+            }
+            if (!plateRegex.test(rawPlate)) {
+                setError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.post('http://localhost:3636/api/month-card/check-plate', 
+                    { plate: formData.plate_number }, 
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                if (res.data.allowed) {
+                    setStep(prev => prev + 1);
+                } else {
+                    setError(res.data.message || "Biển số xe này không được phép đăng ký.");
+                }
+            } catch (err) {
+                console.error("Lỗi kiểm tra biển số xe:", err);
+                setError(err.response?.data?.error || err.response?.data?.message || "Không thể kiểm tra trạng thái biển số xe.");
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            setStep(prev => prev + 1);
+        }
+    };
+
     // Hàm submit luồng tổng gửi lên Backend Node.js
     const handleFinalSubmit = async (e) => {
         if (e) e.preventDefault();
@@ -205,7 +247,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             };
 
             const token = localStorage.getItem('token');
-            const response = await axios.post('/api/parking/register-monthly', payload, {
+            const response = await axios.post('http://localhost:3636/api/parking/register-monthly', payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -530,7 +572,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     <div className="renew-modal-actions" style={{ padding: '16px 24px', borderTop: '1px solid #e1e1ee', marginTop: 'auto' }}>
                         <div>
                             {step > 1 && (
-                                <button type="button" className="renew-btn secondary" onClick={() => setStep(prev => prev - 1)} disabled={loading}>
+                                <button type="button" className="renew-btn secondary" onClick={() => { setError(null); setStep(prev => prev - 1); }} disabled={loading}>
                                     Quay lại
                                 </button>
                             )}
@@ -546,20 +588,20 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     className="renew-btn primary"
                                     disabled={
                                         (step === 1 && (!frontImg || !backImg || !formData.full_name || !formData.phone || !verifyResult || !verifyResult.isReal)) ||
-                                        (step === 2 && (!formData.vehicle_type_id || !formData.plate_number)) ||
+                                        (step === 2 && (!formData.vehicle_type_id || !formData.plate_number || loading)) ||
                                         (step === 3 && !formData.package_id)
                                     }
 
-                                    onClick={() => setStep(prev => prev + 1)}
+                                    onClick={handleNextStep}
                                 >
-                                    Tiếp theo
+                                    {loading && step === 2 ? "Đang kiểm tra..." : "Tiếp theo"}
                                 </button>
                             ) : (
                                 <button
                                     type="submit"
                                     className="renew-btn primary"
                                     style={{ backgroundColor: '#006d38', borderColor: '#006d38' }}
-                                    disabled={!formData.card_code || loading}
+                                    disabled={!formData.card_code || loading || error}
                                 >
                                     {loading ? "Đang đồng bộ luồng eKYC..." : "Hoàn tất đăng ký"}
                                 </button>

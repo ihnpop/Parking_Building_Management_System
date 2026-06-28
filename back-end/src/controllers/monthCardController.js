@@ -9,10 +9,24 @@ import { uploadImageToVNPT, checkDocumentLiveness } from "../service/ekycService
  */
 export const getNextMonthCode = async (req, res) => {
   try {
-    const code = await generateNextMonthCode();
-    return res.status(200).json({ code });
+    const result = await monthCardService.getNextMonthCode();
+    return res.status(200).json(result);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(400).json({ error: err.message });
+  }
+};
+
+/**
+ * Kiểm tra trạng thái biển số xe trước khi đi tiếp
+ * POST /api/month-card/check-plate
+ */
+export const checkPlateStatus = async (req, res) => {
+  try {
+    const { plate } = req.body;
+    const result = await monthCardService.checkPlateStatus(plate);
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
   }
 };
 
@@ -32,52 +46,6 @@ export const getVehicleTypes = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
-
-/**
- * Lấy danh sách gói cước tháng từ Supabase (monthly_packages)
- * Nếu bảng chưa tồn tại, trả về dữ liệu tĩnh mặc định
- */
-// export const getPackages = async (req, res) => {
-//   try {
-//     const { data, error } = await supabase
-//       .from('package')
-//       .select('package_id, name, vehicle_type_id, duration_month, price')
-//       .order('vehicle_type_id', { ascending: true });
-
-//     if (error) {
-//       // Nếu bảng chưa tồn tại, trả về gói cứng theo loại xe
-//       console.warn('Bảng package chưa có, dùng dữ liệu tĩnh:', error.message);
-//       const { data: vtData } = await supabase
-//         .from('vehicle_type')
-//         .select('vehicle_type_id, name');
-
-//       const staticPackages = [];
-//       if (vtData && vtData.length > 0) {
-//         const priceMap = [
-//           { duration_month: 1, price: 200000, suffix: '1 tháng' },
-//           { duration_month: 3, price: 550000, suffix: '3 tháng' },
-//           { duration_month: 6, price: 1000000, suffix: '6 tháng' },
-//         ];
-//         vtData.forEach((vt, vIdx) => {
-//           priceMap.forEach((pkg, pIdx) => {
-//             staticPackages.push({
-//               package_id: `static-${vIdx}-${pIdx}`,
-//               name: `Gói ${pkg.suffix} - ${vt.name}`,
-//               vehicle_type_id: vt.vehicle_type_id,
-//               duration_month: pkg.duration_month,
-//               price: pkg.price
-//             });
-//           });
-//         });
-//       }
-//       return res.status(200).json(staticPackages);
-//     }
-
-//     return res.status(200).json(data || []);
-//   } catch (err) {
-//     return res.status(500).json({ error: err.message });
-//   }
-// };
 
 export const getPackages = async (req, res) => {
   try {

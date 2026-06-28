@@ -214,19 +214,63 @@ export const createMonthCard = async ({
   const expiredDateObj = addMonthsSafely(start, Number(durationMonths));
   const expiredDateStr = expiredDateObj.toISOString().split("T")[0];
 
-  // 6. Sinh mã thẻ tự động (MT000001, MT000002, ...)
-  const totalCards = await monthCardRepository.countCards();
-  const code = `MONTH${String(totalCards + 1).padStart(4, "0")}`;
-
   const cardStatus = status || "Hoạt động";
+  let card = null;
 
-  // 7. Tạo thẻ
-  const card = await monthCardRepository.createCard({
-    code,
-    type: "Thẻ tháng",
-    status: cardStatus,
-    expiredDate: expiredDateStr
-  });
+  // 6. Tìm thẻ tháng có trạng thái 'Đang chờ'
+  const { data: pendingCard, error: pendingErr } = await supabase
+    .from('card')
+    .select('*')
+    .eq('type', 'Thẻ tháng')
+    .eq('status', 'Đang chờ')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (pendingErr) {
+    throw new Error("Lỗi tìm thẻ đang chờ: " + pendingErr.message);
+  }
+
+  let code = "";
+  if (pendingCard) {
+    // Trường hợp 1: Sử dụng thẻ đang chờ
+    code = pendingCard.code;
+    const { data: updatedCard, error: updateErr } = await supabase
+      .from('card')
+      .update({
+        status: cardStatus,
+        expired_date: expiredDateStr
+      })
+      .eq('card_id', pendingCard.card_id)
+      .select()
+      .single();
+
+    if (updateErr) throw new Error("Lỗi cập nhật thẻ đang chờ: " + updateErr.message);
+    card = updatedCard;
+  } else {
+    // Trường hợp 2: Không còn thẻ đang chờ -> đếm và sinh mã mới
+    const { count, error: countErr } = await supabase
+      .from('card')
+      .select('card_id', { count: 'exact', head: true })
+      .eq('type', 'Thẻ tháng')
+      .not('status', 'eq', 'Đã xóa');
+
+    if (countErr) throw new Error("Lỗi kiểm tra giới hạn thẻ tháng: " + countErr.message);
+
+    if (count >= 50) {
+      throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký).");
+    }
+
+    code = await monthCardRepository.generateNextMonthCode();
+
+    // Tạo thẻ mới
+    card = await monthCardRepository.createCard({
+      code,
+      type: "Thẻ tháng",
+      status: cardStatus,
+      expiredDate: expiredDateStr
+    });
+  }
 
   // 8. Tạo đăng ký thẻ (liên kết thẻ với xe)
   const registration = await monthCardRepository.createRegistration({
@@ -671,4 +715,110 @@ export const getMonthCardLogs = async () => {
     };
   });
 };
+
+/**
+ * Kiểm tra trạng thái biển số xe phục vụ bước 2 đăng ký
+ * @param {string} plate
+ * @returns {Promise<{ allowed: boolean, message?: string }>}
+ */
+export const checkPlateStatus = async (plate) => {
+  if (!plate || !plate.trim()) {
+    throw new Error("Biển số xe không được để trống.");
+  }
+  const cleanPlate = plate.replace(/[\s\.\-]/g, '').toUpperCase();
+
+  // Tìm xe theo biển số cùng thẻ đang liên kết hoạt động
+  const { data: vehicle, error } = await supabase
+    .from('vehicle')
+    .select(`
+      vehicle_id,
+      vehicle_type_id,
+      card_registrations (
+        registration_id,
+        status,
+        card (
+          card_id,
+          code,
+          type
+        )
+      )
+    `)
+    .eq('plate_number', cleanPlate)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Lỗi truy vấn biển số xe: " + error.message);
+  }
+
+  if (!vehicle) {
+    // Trường hợp 2: chưa gán xe (vì chưa tồn tại) và chưa gán thẻ -> Được đi tiếp
+    return { allowed: true };
+  }
+
+  // Tìm đăng ký thẻ đang hoạt động liên kết với xe
+  const activeReg = vehicle.card_registrations?.find(r => r.status === 'Hoạt động');
+  const cardType = activeReg?.card?.type; // 'Thẻ tháng' hoặc 'Thẻ lượt'
+
+  if (cardType) {
+    // Có thẻ liên kết
+    if (vehicle.vehicle_type_id) {
+      // Trường hợp 1: Đã gắn loại xe AND đã gắn với 1 loại thẻ -> KHÔNG ĐƯỢC đi tiếp
+      return {
+        allowed: false,
+        message: `Biển số xe ${cleanPlate} đã được gắn với loại xe và đang liên kết với ${cardType} (${activeReg.card?.code || ''}). Không thể tiếp tục đăng ký.`
+      };
+    } else {
+      // Trường hợp 2: Chưa gắn loại xe AND đã gắn với 1 loại thẻ -> ĐƯỢC đi tiếp
+      return { allowed: true };
+    }
+  }
+
+  // Xe tồn tại nhưng chưa có thẻ liên kết -> Được đi tiếp
+  return { allowed: true };
+};
+
+/**
+ * Lấy mã thẻ tháng tiếp theo (Tìm thẻ 'Đang chờ' hoặc tự động sinh mới)
+ * @returns {Promise<{ code: string }>}
+ */
+export const getNextMonthCode = async () => {
+  // 1. Tìm thẻ tháng có trạng thái 'Đang chờ'
+  const { data: pendingCard, error: pendingErr } = await supabase
+    .from('card')
+    .select('code')
+    .eq('type', 'Thẻ tháng')
+    .eq('status', 'Đang chờ')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (pendingErr) {
+    throw new Error("Lỗi tìm thẻ đang chờ: " + pendingErr.message);
+  }
+
+  if (pendingCard) {
+    // Trường hợp 1: có thẻ đang chờ thì sử dụng mã thẻ đó
+    return { code: pendingCard.code };
+  }
+
+  // Trường hợp 2: không còn thẻ đang chờ -> đếm số lượng thẻ hiện tại để kiểm tra giới hạn 50
+  const { count, error: countErr } = await supabase
+    .from('card')
+    .select('card_id', { count: 'exact', head: true })
+    .eq('type', 'Thẻ tháng')
+    .not('status', 'eq', 'Đã xóa');
+
+  if (countErr) {
+    throw new Error("Lỗi đếm số lượng thẻ tháng: " + countErr.message);
+  }
+
+  if (count >= 50) {
+    throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.");
+  }
+
+  // Tự sinh mã mới
+  const nextCode = await monthCardRepository.generateNextMonthCode();
+  return { code: nextCode };
+};
+
 
