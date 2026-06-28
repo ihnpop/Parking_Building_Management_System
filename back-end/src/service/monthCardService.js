@@ -524,6 +524,12 @@ export const deleteMonthCard = async (cardId, performedBy) => {
     e.statusCode = 404; // Trả về HTTP 404 để frontend xử lý đúng
     throw e;
   }
+  // Chặn xóa nếu thẻ đang ở trạng thái Hoạt động
+  if (card.status === 'Hoạt động') {
+    const e = new Error('Không thể xóa thẻ đang ở trạng thái Hoạt động');
+    e.statusCode = 400;
+    throw e;
+  }
 
   // Thực hiện xóa mềm: ghi deleted_at + deleted_by + đổi status
   const result = await monthCardRepository.softDelete(cardId, performedBy);
