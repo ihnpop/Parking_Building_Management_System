@@ -157,37 +157,73 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     }
   }
 
-  // Generate a random unique code
-  const generateCode = async () => {
-    const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
-    const { data: existing } = await supabase.from('card').select('code').eq('code', random).maybeSingle();
-    if (existing) return generateCode();
-    return random;
-  };
-  const code = await generateCode();
+  let cardToUse = null;
 
-  // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
-  let expiredDate = null;
-  if (type === 'Thẻ tháng') {
-    const months = parseInt(durationMonths) || 1;
-    const start = new Date(startDate);
-    start.setMonth(start.getMonth() + months);
-    expiredDate = start.toISOString().split('T')[0];
+  if (type === 'Thẻ lượt') {
+    // Tìm thẻ lượt có trạng thái "Đang chờ" để tái sử dụng
+    const { data: waitingCard, error: waitingCardErr } = await supabase
+      .from('card')
+      .select('*')
+      .eq('type', 'Thẻ lượt')
+      .eq('status', 'Đang chờ')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (waitingCardErr) throw new Error(waitingCardErr.message);
+
+    if (waitingCard) {
+      // Trường hợp 1: Tái sử dụng thẻ đang chờ, cập nhật lại trạng thái và ngày tạo
+      const { data: updatedCard, error: updateErr } = await supabase
+        .from('card')
+        .update({
+          status: 'Hoạt động',
+          created_at: startDate || new Date().toISOString()
+        })
+        .eq('card_id', waitingCard.card_id)
+        .select()
+        .single();
+
+      if (updateErr) throw new Error(updateErr.message);
+      cardToUse = updatedCard;
+    }
   }
 
-  const { data: newCard, error: cardError } = await supabase
-    .from('card')
-    .insert({
-      code,
-      type,
-      created_at: startDate,
-      expired_date: expiredDate,
-      status: 'Hoạt động',
-    })
-    .select()
-    .single();
+  // Trường hợp 2 hoặc khi không phải Thẻ lượt hoặc không tìm thấy thẻ đang chờ
+  if (!cardToUse) {
+    // Generate a random unique code
+    const generateCode = async () => {
+      const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
+      const { data: existing } = await supabase.from('card').select('code').eq('code', random).maybeSingle();
+      if (existing) return generateCode();
+      return random;
+    };
+    const code = await generateCode();
 
-  if (cardError) throw new Error(cardError.message);
+    // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
+    let expiredDate = null;
+    if (type === 'Thẻ tháng') {
+      const months = parseInt(durationMonths) || 1;
+      const start = new Date(startDate);
+      start.setMonth(start.getMonth() + months);
+      expiredDate = start.toISOString().split('T')[0];
+    }
+
+    const { data: newCard, error: cardError } = await supabase
+      .from('card')
+      .insert({
+        code,
+        type,
+        created_at: startDate,
+        expired_date: expiredDate,
+        status: 'Hoạt động',
+      })
+      .select()
+      .single();
+
+    if (cardError) throw new Error(cardError.message);
+    cardToUse = newCard;
+  }
 
   // Link to vehicle if plate is provided
   if (cleanPlate) {
@@ -253,7 +289,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     const { error: regErr } = await supabase
       .from('card_registrations')
       .insert({
-        card_id: newCard.card_id,
+        card_id: cardToUse.card_id,
         vehicle_id: vehicle.vehicle_id,
         status: 'Hoạt động',
         created_at: startDate
@@ -262,7 +298,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     if (regErr) throw new Error(regErr.message);
   }
 
-  return newCard;
+  return cardToUse;
 };
 
 export const deleteCard = async (cardId, currentUserId) => {

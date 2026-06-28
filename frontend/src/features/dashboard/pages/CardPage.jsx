@@ -51,7 +51,7 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                             id="plate"
                             name="plate"
                             type="text"
-                            placeholder="Ví dụ: 30K-12345"
+                            placeholder="Ví dụ: 30K12345"
                             className="cp-input"
                             value={formData.plate}
                             onChange={onChange}
