@@ -236,47 +236,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }, 3000);
     };
 
-    // Handle Edit Card
-    const handleEdit = (card) => {
-        setEditingCard(card);
-        setFormData({
-            type: 'Thẻ lượt',
-            plate: card.plate || '',
-            checkInTime: card.check_in_time
-                ? new Date(card.check_in_time)
-                    .toISOString()
-                    .slice(0, 16)
-                : '',
-            checkOutTime: card.check_out_time
-                ? new Date(card.check_out_time)
-                    .toISOString()
-                    .slice(0, 16)
-                : '',
-            status: card.status || 'Hoạt động'
-        });
-        setShowModal(true);
-    };
-
-    // Handle Delete Card
-    const handleDelete = async (row) => {
-        if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) {
-            return;
-        }
-        try {
-            const res = await deleteCard(row.card_id, user?.id);
-            if (res.success) {
-                showToast(res.message || "Xóa thẻ thành công", "success");
-                await fetchCards();
-            } else {
-                showToast(res.message || "Xóa thẻ thất bại", "error");
-            }
-        } catch (err) {
-            console.error("Error deleting card:", err);
-            const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
-            showToast(errMsg, "error");
-        }
-    };
-
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
     const getRoleLabel = (r) => {
         switch (r) {

@@ -239,3 +239,41 @@ export const verifyDocument = async (req, res) => {
     return res.status(500).json({ error: err.message || "Lỗi xác thực giấy tờ từ VNPT eKYC" });
   }
 };
+
+/**
+ * Đăng ký thẻ tháng mới
+ */
+export const createMonthCard = async (req, res) => {
+  try {
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          currentUserId = user.id;
+        }
+      } catch (authErr) {
+        console.error("Lỗi giải mã token:", authErr);
+      }
+    }
+
+    if (!currentUserId) {
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
+      if (profiles && profiles.length > 0) {
+        currentUserId = profiles[0].id;
+      }
+    }
+
+    const result = await monthCardService.createMonthCard({
+      ...req.body,
+      currentUserId
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Lỗi Controller tạo thẻ tháng:", err);
+    return res.status(400).json({ error: err.message });
+  }
+};
+
