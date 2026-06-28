@@ -289,6 +289,10 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         });
     }, [cards, search, statusFilter]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
+
     const handleEdit = (card) => {
         setEditingCard(card);
         setFormData({
@@ -406,19 +410,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }
     };
 
-    // ── Filters & pagination (giữ nguyên) ────
-
-    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
-
-    const filteredCards = useMemo(() => cards.filter(card => {
-        const matchesSearch = search === '' ||
-            (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
-            (card.plate || '').toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    }), [cards, search, statusFilter]);
-
-    useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
@@ -474,10 +465,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setEditingCard(null);
     };
 
-    // Handle form change
-    const handleFormChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
 
     const hasPlate = formData.plate && formData.plate.trim() !== '';
 
