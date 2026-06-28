@@ -287,22 +287,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setShowEditModal(true);
     };
 
-    // const handleDelete = async (row) => {
-    //     if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) return;
-    //     try {
-    //         const res = await deleteCard(row.card_id, user?.id);
-    //         if (res.success) {
-    //             showToast(res.message || "Xóa thẻ thành công", "success");
-    //             await fetchCards();
-    //         } else {
-    //             showToast(res.message || "Xóa thẻ thất bại", "error");
-    //         }
-    //     } catch (err) {
-    //         const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
-    //         showToast(errMsg, "error");
-    //     }
-    // }; 
-
     const [deletingCard, setDeletingCard] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState(null);
@@ -617,12 +601,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
-                                                    {/* <button type="button" className="cp-delete-btn"
-                                                        style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
-                                                        onClick={() => handleDelete(row)} title="Xóa thẻ"
-                                                    >
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
-                                                    </button> */}
 
                                                     {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ ở trạng thái "Đang chờ" */}
                                                     <button type="button" className="cp-delete-btn"

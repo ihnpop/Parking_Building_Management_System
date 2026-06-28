@@ -301,61 +301,6 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
   return cardToUse;
 };
 
-// export const deleteCard = async (cardId, currentUserId) => {
-//   // 1. Kiểm tra card tồn tại
-//   const card = await cardRepository.findById(cardId);
-//   if (!card) {
-//     throw new Error("Không tìm thấy card");
-//   }
-
-//   // 2. Kiểm tra status của card
-//   const statusUpper = (card.status || '').toUpperCase();
-
-//   if (
-//     statusUpper === 'HOẠT ĐỘNG' ||
-//     card.status === 'Hoạt động'
-//   ) {
-//     throw new Error(
-//       "Không thể xóa card hoạt động"
-//     );
-//   }
-
-//   if (
-//     statusUpper === 'ĐÃ XÓA' ||
-//     card.status === 'Đã xóa'
-//   ) {
-//     throw new Error(
-//       "Card đã bị xóa"
-//     );
-//   }
-//   if (
-//     statusUpper === 'ĐÃ KHÓA'
-//   ) {
-//     throw new Error(
-//       "Không thể xóa thẻ đã khóa"
-//     );
-//   }
-
-//   const allowedStatuses = [
-//     // 'CHƯA SỬ DỤNG',
-//     // 'ĐÃ HẾT HẠN' 
-//     'ĐANG CHỜ'
-//     // 'HẾT HẠN'
-//   ];
-
-//   if (
-//     !allowedStatuses.includes(statusUpper)
-//   ) {
-//     throw new Error(
-//       "Chỉ có thể xóa card chưa sử dụng hoặc đã hết hạn"
-//     );
-//   }
-
-//   // 3. Thực hiện Soft Delete thông qua Repository
-//   await cardRepository.softDelete(cardId, currentUserId);
-//   return { success: true };
-// };
-
 export const deleteCard = async (cardId, currentUserId) => {
   // 1. Kiểm tra card tồn tại
   const card = await cardRepository.findById(cardId);
