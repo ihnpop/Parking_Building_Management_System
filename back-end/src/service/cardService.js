@@ -368,18 +368,21 @@ export const getLostCards = async () => {
     const handlerName = log.profiles?.full_name || "---";
 
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
-    let statusText = 'Đang xử lý';
+    let statusText = 'Đang xử lý'; // Giá trị mặc định: áp dụng cho trường hợp đã có handled_by nhưng chưa hoàn tất
+
     if (log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
+      // Nhân viên đã xử lý xong báo cáo mất thẻ
       statusText = 'Đã xong';
-    } else if (!log.status) {
-      if (!log.handled_by) {
-        statusText = 'Chờ xử lý';
-      } else {
-        statusText = 'Đang xử lý';
-      }
     } else if (log.status === 'Đã hủy thẻ') {
+      // Báo cáo mất thẻ đã dẫn đến việc hủy/khóa thẻ
       statusText = 'Đã hủy thẻ';
+    } else if (log.status === 'Chờ xử lý' && !log.handled_by) {
+      // Vừa tạo mới (status mặc định khi insert) và chưa có ai nhận xử lý
+      // -> giữ đúng trạng thái ban đầu, không để rơi về "Đang xử lý"
+      statusText = 'Chờ xử lý';
     }
+    // Trường hợp còn lại: status vẫn là 'Chờ xử lý' nhưng đã có handled_by
+    // (nhân viên đã bắt đầu xử lý) -> giữ giá trị default 'Đang xử lý' ở trên
 
     return {
       // Khớp hoàn toàn cả định dạng trường cũ (Dự phòng cho UI)
@@ -432,10 +435,10 @@ export const createLostCard = async ({
   }
 
   // 2. Tìm thẻ đang gắn với xe qua bảng card_registrations
-  //    Ưu tiên thẻ ACTIVE / Hoạt động, nếu không có thì lấy bất kỳ thẻ nào đã đăng ký
+  //    Ưu tiên thẻ Hoạt động, nếu không có thì lấy bất kỳ thẻ nào đã đăng ký
   let finalCardId = null;
 
-  // 2a. Tìm thẻ có trạng thái ACTIVE hoặc Hoạt động
+  // 2a. Tìm thẻ có trạng thái Hoạt động
   const { data: activeReg, error: activeErr } = await supabase
     .from('card_registrations')
     .select('card_id')
