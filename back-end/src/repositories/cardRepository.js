@@ -26,7 +26,7 @@ export const softDelete = async (cardId, currentUserId) => {
   const { data, error } = await supabase
     .from('card')
     .update({
-      status: 'Đã xóa',
+      status: 'Đã khóa',
       deleted_at: new Date().toISOString(),
       deleted_by: currentUserId || null
     })

@@ -287,20 +287,58 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setShowEditModal(true);
     };
 
-    const handleDelete = async (row) => {
-        if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) return;
+    // const handleDelete = async (row) => {
+    //     if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) return;
+    //     try {
+    //         const res = await deleteCard(row.card_id, user?.id);
+    //         if (res.success) {
+    //             showToast(res.message || "Xóa thẻ thành công", "success");
+    //             await fetchCards();
+    //         } else {
+    //             showToast(res.message || "Xóa thẻ thất bại", "error");
+    //         }
+    //     } catch (err) {
+    //         const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
+    //         showToast(errMsg, "error");
+    //     }
+    // }; 
+
+    const [deletingCard, setDeletingCard] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
+    // Mở modal xác nhận, không xóa ngay
+    const handleDelete = (row) => {
+        if (row.status !== 'Đang chờ') return; // Chỉ cho mở modal nếu thẻ ở trạng thái được phép xóa
+        setDeletingCard(row);
+        setDeleteError(null);
+    };
+
+    // Xác nhận xóa thật trong modal
+    const confirmDelete = async () => {
+        if (!deletingCard) return;
         try {
-            const res = await deleteCard(row.card_id, user?.id);
+            setIsDeleting(true);
+            setDeleteError(null);
+            const res = await deleteCard(deletingCard.card_id, user?.id);
             if (res.success) {
                 showToast(res.message || "Xóa thẻ thành công", "success");
+                setDeletingCard(null);
                 await fetchCards();
             } else {
-                showToast(res.message || "Xóa thẻ thất bại", "error");
+                setDeleteError(res.message || "Xóa thẻ thất bại");
             }
         } catch (err) {
             const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
-            showToast(errMsg, "error");
+            setDeleteError(errMsg);
+        } finally {
+            setIsDeleting(false);
         }
+    };
+
+    // Đóng modal, reset trạng thái lỗi
+    const closeDeleteModal = () => {
+        setDeletingCard(null);
+        setDeleteError(null);
     };
 
     const handleCloseCreate = () => { setShowCreateModal(false); setFormError(null); };
@@ -579,9 +617,27 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
-                                                    <button type="button" className="cp-delete-btn"
+                                                    {/* <button type="button" className="cp-delete-btn"
                                                         style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
                                                         onClick={() => handleDelete(row)} title="Xóa thẻ"
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                                                    </button> */}
+
+                                                    {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ ở trạng thái "Đang chờ" */}
+                                                    <button type="button" className="cp-delete-btn"
+                                                        style={{
+                                                            color: '#ba1a1a',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: row.status !== 'Đang chờ' ? 'not-allowed' : 'pointer',
+                                                            opacity: row.status !== 'Đang chờ' ? 0.4 : 1,
+                                                        }}
+                                                        onClick={() => handleDelete(row)}
+                                                        disabled={row.status !== 'Đang chờ'}
+                                                        title={row.status !== 'Đang chờ'
+                                                            ? 'Chỉ có thể xóa thẻ ở trạng thái Đang chờ'
+                                                            : 'Xóa thẻ'}
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
                                                     </button>
@@ -650,6 +706,30 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     onSubmit={handleUpdate}
                     onClose={handleCloseEdit}
                 />
+            )}
+
+            {deletingCard && (
+                <div className="mc-confirm-overlay">
+                    <div className="mc-confirm-box">
+                        <p>Bạn chắc chắn muốn xóa thẻ <b>{deletingCard.cardNo || deletingCard.code}</b>?</p>
+                        <p style={{ fontSize: '13px', color: '#999' }}>
+                            Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.
+                        </p>
+
+                        {deleteError && (
+                            <p style={{ color: '#ff6b6b', fontSize: '13px', marginTop: '8px' }}>
+                                {deleteError}
+                            </p>
+                        )}
+
+                        <div className="mc-confirm-actions">
+                            <button onClick={closeDeleteModal} disabled={isDeleting}>Hủy</button>
+                            <button onClick={confirmDelete} disabled={isDeleting} className="mc-btn-danger">
+                                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Toast */}

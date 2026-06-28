@@ -301,6 +301,61 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
   return cardToUse;
 };
 
+// export const deleteCard = async (cardId, currentUserId) => {
+//   // 1. Kiểm tra card tồn tại
+//   const card = await cardRepository.findById(cardId);
+//   if (!card) {
+//     throw new Error("Không tìm thấy card");
+//   }
+
+//   // 2. Kiểm tra status của card
+//   const statusUpper = (card.status || '').toUpperCase();
+
+//   if (
+//     statusUpper === 'HOẠT ĐỘNG' ||
+//     card.status === 'Hoạt động'
+//   ) {
+//     throw new Error(
+//       "Không thể xóa card hoạt động"
+//     );
+//   }
+
+//   if (
+//     statusUpper === 'ĐÃ XÓA' ||
+//     card.status === 'Đã xóa'
+//   ) {
+//     throw new Error(
+//       "Card đã bị xóa"
+//     );
+//   }
+//   if (
+//     statusUpper === 'ĐÃ KHÓA'
+//   ) {
+//     throw new Error(
+//       "Không thể xóa thẻ đã khóa"
+//     );
+//   }
+
+//   const allowedStatuses = [
+//     // 'CHƯA SỬ DỤNG',
+//     // 'ĐÃ HẾT HẠN' 
+//     'ĐANG CHỜ'
+//     // 'HẾT HẠN'
+//   ];
+
+//   if (
+//     !allowedStatuses.includes(statusUpper)
+//   ) {
+//     throw new Error(
+//       "Chỉ có thể xóa card chưa sử dụng hoặc đã hết hạn"
+//     );
+//   }
+
+//   // 3. Thực hiện Soft Delete thông qua Repository
+//   await cardRepository.softDelete(cardId, currentUserId);
+//   return { success: true };
+// };
+
 export const deleteCard = async (cardId, currentUserId) => {
   // 1. Kiểm tra card tồn tại
   const card = await cardRepository.findById(cardId);
@@ -308,50 +363,24 @@ export const deleteCard = async (cardId, currentUserId) => {
     throw new Error("Không tìm thấy card");
   }
 
-  // 2. Kiểm tra status của card
   const statusUpper = (card.status || '').toUpperCase();
 
-  if (
-    statusUpper === 'HOẠT ĐỘNG' ||
-    card.status === 'Hoạt động'
-  ) {
-    throw new Error(
-      "Không thể xóa card hoạt động"
-    );
+  // 2. Chặn xóa nếu thẻ đang hoạt động
+  if (statusUpper === 'HOẠT ĐỘNG') {
+    throw new Error("Không thể xóa card hoạt động");
   }
 
-  if (
-    statusUpper === 'ĐÃ XÓA' ||
-    card.status === 'Đã xóa'
-  ) {
-    throw new Error(
-      "Card đã bị xóa"
-    );
-  }
-  if (
-    statusUpper === 'ĐÃ KHÓA'
-  ) {
-    throw new Error(
-      "Không thể xóa thẻ đã khóa"
-    );
+  // 3. Chặn xóa nếu thẻ đã bị khóa (đã từng xóa mềm trước đó)
+  if (statusUpper === 'ĐÃ KHÓA') {
+    throw new Error("Không thể xóa thẻ đã khóa");
   }
 
-  const allowedStatuses = [
-    // 'CHƯA SỬ DỤNG',
-    // 'ĐÃ HẾT HẠN' 
-    'ĐANG CHỜ'
-    // 'HẾT HẠN'
-  ];
-
-  if (
-    !allowedStatuses.includes(statusUpper)
-  ) {
-    throw new Error(
-      "Chỉ có thể xóa card chưa sử dụng hoặc đã hết hạn"
-    );
+  // 4. Chỉ còn lại trạng thái "Đang chờ" được phép xóa
+  if (statusUpper !== 'ĐANG CHỜ') {
+    throw new Error("Chỉ có thể xóa thẻ ở trạng thái Đang chờ");
   }
 
-  // 3. Thực hiện Soft Delete thông qua Repository
+  // 5. Thực hiện Soft Delete thông qua Repository
   await cardRepository.softDelete(cardId, currentUserId);
   return { success: true };
 };
