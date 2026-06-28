@@ -1,4 +1,4 @@
-﻿CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
 -- ROLE
@@ -35,8 +35,9 @@ CREATE TABLE vehicle_type (
 
     name VARCHAR(255) NOT NULL,
 
+    description TEXT,
 
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 -- ==========================================
@@ -70,7 +71,7 @@ CREATE TABLE building (
 
     address TEXT,
 
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 
@@ -168,7 +169,7 @@ CREATE TABLE slot (
 
     slot_code VARCHAR(100) NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'Sẵn sàng',
+    status VARCHAR(50) DEFAULT 'AVAILABLE',
 
     distance_to_gate INT,
 
@@ -190,7 +191,7 @@ CREATE TABLE gate (
 
     gate_type VARCHAR(50) NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 -- ==========================================
@@ -201,17 +202,13 @@ CREATE TABLE card (
 
     code VARCHAR(100) UNIQUE NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'Đang chờ',
-
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-
     type VARCHAR(50) NOT NULL,
 
     expired_date DATE,
 
-    deleted_at TIMESTAMPTZ,
+    status VARCHAR(50) DEFAULT 'Đang chờ',
 
-    deleted_by UUID
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 
@@ -223,7 +220,7 @@ CREATE TABLE card_registrations (
 
     vehicle_id UUID NOT NULL,
 
-    status VARCHAR(20) DEFAULT 'Hoạt động',
+    status VARCHAR(20) DEFAULT 'ACTIVE',
 
     created_at TIMESTAMPTZ DEFAULT NOW(),
 
@@ -253,7 +250,7 @@ CREATE TABLE price_table (
 
     description TEXT,
 
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 create table public.card_lost_log (
@@ -303,7 +300,7 @@ CREATE TABLE package (
 
     price NUMERIC(18,2) NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 -- ==========================================
@@ -321,7 +318,7 @@ CREATE TABLE vehicle_package (
 
     end_date DATE NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+    status VARCHAR(50) DEFAULT 'ACTIVE'
 );
 
 -- ==========================================
@@ -345,15 +342,15 @@ CREATE TABLE parking_order (
 
     staff_out_id UUID REFERENCES profiles(id),
 
-    time_in TIMESTAMPTZ DEFAULT NOW(),
+    time_in TIMESTAMP DEFAULT NOW(),
 
-    time_out TIMESTAMPTZ,
+    time_out TIMESTAMP,
 
     estimated_fee NUMERIC(18,2) DEFAULT 0,
 
     final_fee NUMERIC(18,2) DEFAULT 0,
 
-    status VARCHAR(50) DEFAULT 'Đang gửi xe'
+    status VARCHAR(50) DEFAULT 'PARKING'
 );
 
 CREATE TABLE parking_sessions (
@@ -369,8 +366,8 @@ CREATE TABLE parking_sessions (
     plate_number VARCHAR(20) NOT NULL,
 
     -- Thời gian
-    entry_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    exit_time TIMESTAMPTZ,
+    entry_time TIMESTAMP NOT NULL DEFAULT NOW(),
+    exit_time TIMESTAMP,
 
     -- Ảnh khi vào
     entry_vehicle_image TEXT,
@@ -399,7 +396,7 @@ CREATE TABLE parking_sessions (
     -- Trạng thái phiên gửi xe
     status VARCHAR(20)
         DEFAULT 'Đang gửi xe'
-        CHECK (status IN ('Đang gửi xe', 'Hoàn thành', 'Mất thẻ', 'Đã hủy')),\
+        CHECK (status IN ('Đang gửi xe', 'Hoàn thành', 'Mất thẻ', 'Đã hủy'))
 
     -- created_at TIMESTAMPTZ DEFAULT NOW(),
     -- updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -418,12 +415,30 @@ CREATE TABLE payment (
 
     payment_method VARCHAR(50),
 
-    payment_time TIMESTAMPTZ DEFAULT NOW(),
+    payment_time TIMESTAMP DEFAULT NOW(),
 
-    status VARCHAR(50) DEFAULT 'Đã trả'
+    status VARCHAR(50) DEFAULT 'PAID'
 );
 
------------------------------------
+-- ==========================================
+-- RESERVATION
+-- ==========================================
+
+CREATE TABLE reservation (
+    reservation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
+
+    slot_id UUID NOT NULL REFERENCES slot(slot_id),
+
+    start_time TIMESTAMP NOT NULL,
+
+    end_time TIMESTAMP NOT NULL,
+
+    status VARCHAR(50) DEFAULT 'RESERVED',
+
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
 -- ==========================================
 -- INCIDENT REPORT
@@ -442,11 +457,11 @@ CREATE TABLE incident_report (
 
     handled_by UUID REFERENCES profiles(id),
 
-    status VARCHAR(50) DEFAULT 'Đang xử lý',
+    status VARCHAR(50) DEFAULT 'OPEN',
 
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW(),
 
-    resolved_at TIMESTAMPTZ
+    resolved_at TIMESTAMP
 );
 
 -- ==========================================
@@ -492,7 +507,7 @@ CREATE TABLE feedback (
 
     rating INT,
 
-    status VARCHAR(50) DEFAULT 'Mới',
+    status VARCHAR(50) DEFAULT 'NEW',
 
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -678,3 +693,12 @@ CREATE INDEX idx_incident_order ON incident_report(parking_order_id);
 
 CREATE INDEX idx_allocation_order ON slot_allocation_log(parking_order_id);
 
+-- ==========================================
+-- SEED ROLE
+-- ==========================================
+
+INSERT INTO role(role_name, description)
+VALUES
+('ADMIN', 'Administrator'),
+('MANAGER', 'Parking Manager'),
+('STAFF', 'Parking Staff');

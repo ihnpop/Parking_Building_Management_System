@@ -40,24 +40,15 @@ router.get("/", monthCardController.getMonthCards);
 router.get("/logs", monthCardController.getMonthCardLogs);
 
 /**
- * GET /api/month-card/renew-packages
  * Lấy danh sách các gói gia hạn thẻ tháng khả dụng
  */
 router.get("/renew-packages", monthCardController.getRenewPackages);
-
 
 /**
  * POST /api/month-card/renew
  * Thực hiện gia hạn thẻ tháng
  */
 router.post("/renew", monthCardController.renewMonthlyCard);
-
-/**
- * POST /api/month-card/verify-document
- * Xác thực giấy tờ thật/giả bằng VNPT eKYC
- */
-router.post("/verify-document", monthCardController.verifyDocument);
-
 
 /**
  * PUT /api/month-card/:id
