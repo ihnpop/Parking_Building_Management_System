@@ -609,7 +609,7 @@ export default function SystemOperations() {
                                 padding: '10px 16px',
                                 borderRadius: '10px',
                                 border: 'none',
-                                background: mode === 'IN' ? '#fb923c' : '#f3f4f6',
+                                background: mode === 'IN' ? '#2563eb' : '#f3f4f6',
                                 color: mode === 'IN' ? 'white' : '#4b5563',
                                 fontWeight: 'bold',
                                 cursor: 'pointer',
@@ -631,7 +631,7 @@ export default function SystemOperations() {
                                 padding: '10px 16px',
                                 borderRadius: '10px',
                                 border: 'none',
-                                background: mode === 'OUT' ? '#fb923c' : '#f3f4f6',
+                                background: mode === 'OUT' ? '#2563eb' : '#f3f4f6',
                                 color: mode === 'OUT' ? 'white' : '#4b5563',
                                 fontWeight: 'bold',
                                 cursor: 'pointer',
@@ -663,7 +663,7 @@ export default function SystemOperations() {
                             disabled={loading}
                             style={{
                                 width: '100%',
-                                border: '2px dashed #fb923c',
+                                border: '2px dashed #3b82f6',
                                 outline: 'none',
                                 textAlign: 'center',
                                 textTransform: 'uppercase',
@@ -676,13 +676,13 @@ export default function SystemOperations() {
                             <div style={{ marginTop: '16px', textAlign: 'left' }}>
                                 {mode === 'IN' ? (
                                     preCheckResult.vehicleType === 'VISITOR' ? (
-                                        <div style={{ padding: '12px', background: '#fff7ed', borderRadius: '10px', border: '1px solid #ffedd5' }}>
-                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#ea580c', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <span className="material-symbols-outlined">directions_car</span>
                                                 Visitor Vehicle
                                             </p>
                                             <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                                                Biển số: <strong style={{ color: '#ea580c' }}>{preCheckResult.plateNumber}</strong>
+                                                Biển số: <strong style={{ color: '#1d4ed8' }}>{preCheckResult.plateNumber}</strong>
                                             </p>
 
                                             <div style={{ marginTop: '10px' }}>
@@ -746,8 +746,8 @@ export default function SystemOperations() {
                                     )
                                 ) : (
                                     preCheckResult.vehicleType === 'VISITOR' ? (
-                                        <div style={{ padding: '12px', background: '#fff7ed', borderRadius: '10px', border: '1px solid #ffedd5' }}>
-                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#ea580c', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
+                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 <span className="material-symbols-outlined">exit_to_app</span>
                                                 Visitor Vehicle
                                             </p>
@@ -767,9 +767,9 @@ export default function SystemOperations() {
                                                 <span>Thời gian:</span>
                                                 <strong>{preCheckResult.duration}</strong>
                                             </p>
-                                            <p style={{ margin: '8px 0 4px', fontSize: '15px', display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #ffedd5', color: '#1e293b' }}>
+                                            <p style={{ margin: '8px 0 4px', fontSize: '15px', display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #bfdbfe', color: '#1e293b' }}>
                                                 <span>Phí gửi:</span>
-                                                <strong style={{ color: '#ea580c', fontSize: '16px' }}>{preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ</strong>
+                                                <strong style={{ color: '#1d4ed8', fontSize: '16px' }}>{preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ</strong>
                                             </p>
                                         </div>
                                     ) : (
@@ -816,9 +816,9 @@ export default function SystemOperations() {
                                             flex: 1,
                                             padding: '10px 12px',
                                             borderRadius: '10px',
-                                            border: vehicleType === 'Xe máy' ? '2px solid #fb923c' : '1px solid #e5e7eb',
-                                            background: vehicleType === 'Xe máy' ? '#fff7ed' : 'white',
-                                            color: vehicleType === 'Xe máy' ? '#ea580c' : '#4b5563',
+                                            border: vehicleType === 'Xe máy' ? '2px solid #2563eb' : '1px solid #e5e7eb',
+                                            background: vehicleType === 'Xe máy' ? '#eff6ff' : 'white',
+                                            color: vehicleType === 'Xe máy' ? '#1d4ed8' : '#4b5563',
                                             fontWeight: '600',
                                             cursor: 'pointer',
                                             display: 'flex',
@@ -838,9 +838,9 @@ export default function SystemOperations() {
                                             flex: 1,
                                             padding: '10px 12px',
                                             borderRadius: '10px',
-                                            border: vehicleType === 'Ô tô' ? '2px solid #fb923c' : '1px solid #e5e7eb',
-                                            background: vehicleType === 'Ô tô' ? '#fff7ed' : 'white',
-                                            color: vehicleType === 'Ô tô' ? '#ea580c' : '#4b5563',
+                                            border: vehicleType === 'Ô tô' ? '2px solid #2563eb' : '1px solid #e5e7eb',
+                                            background: vehicleType === 'Ô tô' ? '#eff6ff' : 'white',
+                                            color: vehicleType === 'Ô tô' ? '#1d4ed8' : '#4b5563',
                                             fontWeight: '600',
                                             cursor: 'pointer',
                                             display: 'flex',
