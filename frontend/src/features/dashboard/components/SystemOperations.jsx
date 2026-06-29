@@ -73,6 +73,10 @@ export default function SystemOperations() {
     const [showEntryModal, setShowEntryModal] = useState(false);
     const [showExitModal, setShowExitModal] = useState(false);
 
+    // ── Ảnh check-in để hiển thị trên Camera 1 & 2 khi check-out ─────────────
+    const [entryVehicleImageDisplay, setEntryVehicleImageDisplay] = useState(null);
+    const [entryPlateImageDisplay, setEntryPlateImageDisplay] = useState(null);
+
     // ── UI States ────────────────────────────────────────────────────────────
     const [loading, setLoading] = useState(false);
     const [hoveredCamera, setHoveredCamera] = useState(null);
@@ -112,7 +116,6 @@ export default function SystemOperations() {
         setExitPlateImage(null);
         setExitVehiclePreview(null);
         setExitPlatePreview(null);
-        // Xóa preview camera IN để camera 1&2 trở về ảnh mặc định sau khi check-out xong
         setVehiclePreview(null);
         setPlatePreview(null);
         setPreCheckResult(null);
@@ -120,6 +123,9 @@ export default function SystemOperations() {
         setExitVehicleUrl('');
         setExitPlateUrl('');
         setVehicleType('Xe máy');
+        // Xóa ảnh check-in hiển thị trên camera 1&2
+        setEntryVehicleImageDisplay(null);
+        setEntryPlateImageDisplay(null);
     };
 
     const handlePreCheck = async (plate) => {
@@ -146,6 +152,9 @@ export default function SystemOperations() {
             } else {
                 const res = await preCheckExitGate(plate);
                 setPreCheckResult(res);
+                // Lưu riêng ảnh check-in để hiển thị trực tiếp lên camera 1 & 2
+                setEntryVehicleImageDisplay(res.entryVehicleImage || null);
+                setEntryPlateImageDisplay(res.entryPlateImage || null);
             }
         } catch (err) {
             console.error("Precheck error:", err);
@@ -467,14 +476,20 @@ export default function SystemOperations() {
                         let isSelected = false;
 
                         if (camera.id === 'vehicleImage') {
-                            bgImage = (mode === 'OUT' && preCheckResult?.entryVehicleImage)
-                                ? preCheckResult.entryVehicleImage
-                                : vehiclePreview || camera.image;
+                            // Khi check-out: ưu tiên dùng ảnh xe check-in đã lưu riêng
+                            if (mode === 'OUT' && entryVehicleImageDisplay) {
+                                bgImage = entryVehicleImageDisplay;
+                            } else {
+                                bgImage = vehiclePreview || camera.image;
+                            }
                             isSelected = !!vehicleImage;
                         } else if (camera.id === 'plateImage') {
-                            bgImage = (mode === 'OUT' && preCheckResult?.entryPlateImage)
-                                ? preCheckResult.entryPlateImage
-                                : platePreview || camera.image;
+                            // Khi check-out: ưu tiên dùng ảnh biển số check-in đã lưu riêng
+                            if (mode === 'OUT' && entryPlateImageDisplay) {
+                                bgImage = entryPlateImageDisplay;
+                            } else {
+                                bgImage = platePreview || camera.image;
+                            }
                             isSelected = !!plateImage;
                         } else if (camera.id === 'camera3') {
                             bgImage = exitVehiclePreview || camera.image;
@@ -502,8 +517,8 @@ export default function SystemOperations() {
                                     onClick={() => {
                                         // Camera 1 & 2 ở mode OUT khi đã có ảnh check-in: không cho upload
                                         const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
-                                        const hasEntryImage = isEntryCamera && mode === 'OUT' && preCheckResult &&
-                                            (camera.id === 'vehicleImage' ? preCheckResult.entryVehicleImage : preCheckResult.entryPlateImage);
+                                        const hasEntryImage = isEntryCamera && mode === 'OUT' &&
+                                            (camera.id === 'vehicleImage' ? entryVehicleImageDisplay : entryPlateImageDisplay);
                                         if (!hasEntryImage) {
                                             handleCameraClick(camera.id);
                                         }
@@ -518,32 +533,32 @@ export default function SystemOperations() {
                                     {(() => {
                                         const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
                                         const entryImgUrl = camera.id === 'vehicleImage'
-                                            ? preCheckResult?.entryVehicleImage
-                                            : preCheckResult?.entryPlateImage;
+                                            ? entryVehicleImageDisplay
+                                            : entryPlateImageDisplay;
                                         if (isEntryCamera && mode === 'OUT' && entryImgUrl) {
-                                            return (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    bottom: 8,
-                                                    left: '50%',
-                                                    transform: 'translateX(-50%)',
-                                                    background: 'rgba(234, 88, 12, 0.92)',
-                                                    color: 'white',
-                                                    fontSize: 11,
-                                                    fontWeight: 'bold',
-                                                    padding: '3px 10px',
-                                                    borderRadius: 20,
-                                                    letterSpacing: '0.05em',
-                                                    whiteSpace: 'nowrap',
-                                                    zIndex: 15,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 4
-                                                }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>history</span>
-                                                    ẢNH CHECK-IN
-                                                </div>
-                                            );
+                                            // return (
+                                            // <div style={{
+                                            //     position: 'absolute',
+                                            //     bottom: 8,
+                                            //     left: '50%',
+                                            //     transform: 'translateX(-50%)',
+                                            //     background: 'rgba(234, 88, 12, 0.92)',
+                                            //     color: 'white',
+                                            //     fontSize: 11,
+                                            //     fontWeight: 'bold',
+                                            //     padding: '3px 10px',
+                                            //     borderRadius: 20,
+                                            //     letterSpacing: '0.05em',
+                                            //     whiteSpace: 'nowrap',
+                                            //     zIndex: 15,
+                                            //     display: 'flex',
+                                            //     alignItems: 'center',
+                                            //     gap: 4
+                                            // }}>
+                                            //     {/* <span className="material-symbols-outlined" style={{ fontSize: 13 }}>history</span>
+                                            //     ẢNH CHECK-IN */}
+                                            // </div>
+                                            // );
                                         }
                                         return null;
                                     })()}
@@ -552,8 +567,8 @@ export default function SystemOperations() {
                                     {(() => {
                                         const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
                                         const entryImgUrl = camera.id === 'vehicleImage'
-                                            ? preCheckResult?.entryVehicleImage
-                                            : preCheckResult?.entryPlateImage;
+                                            ? entryVehicleImageDisplay
+                                            : entryPlateImageDisplay;
                                         const isReadOnly = isEntryCamera && mode === 'OUT' && entryImgUrl;
                                         if (isReadOnly) return null;
                                         return (
@@ -604,11 +619,13 @@ export default function SystemOperations() {
                             type="button"
                             onClick={() => {
                                 setMode('IN');
-                                // Khi chuyển về mode IN: xóa preCheck và preview EXIT để camera 3&4 sạch
+                                // Khi chuyển về mode IN: xóa preCheck, preview EXIT và ảnh check-in hiển thị
                                 setPreCheckResult(null);
                                 setExitVehiclePreview(null);
                                 setExitPlatePreview(null);
                                 setPlateNumber('');
+                                setEntryVehicleImageDisplay(null);
+                                setEntryPlateImageDisplay(null);
                             }}
                             style={{
                                 flex: 1,
@@ -633,12 +650,14 @@ export default function SystemOperations() {
                             type="button"
                             onClick={() => {
                                 setMode('OUT');
-                                // Khi chuyển sang mode OUT: xóa preCheck và preview IN để camera 1&2 sạch,
+                                // Khi chuyển sang mode OUT: xóa preCheck, preview IN và ảnh check-in cũ
                                 // sau đó khi preCheckResult được set thì camera 1&2 sẽ hiển thị ảnh check-in
                                 setPreCheckResult(null);
                                 setVehiclePreview(null);
                                 setPlatePreview(null);
                                 setPlateNumber('');
+                                setEntryVehicleImageDisplay(null);
+                                setEntryPlateImageDisplay(null);
                             }}
                             style={{
                                 flex: 1,
