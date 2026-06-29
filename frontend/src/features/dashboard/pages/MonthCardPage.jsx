@@ -171,43 +171,55 @@ export default function MonthCardPage() {
             <div className="mc-stats-row">
                 <div className="mc-stats-grid">
                     {/* Tổng số vé */}
-                    <div className="mc-stat-card">
-                        <div className="mc-stat-icon mc-stat-icon-primary">
-                            <span className="material-symbols-outlined">confirmation_number</span>
+                    <div className="mc-stat-card mc-stat-primary">
+                        <div className="mc-stat-card-header">
+                            <div className="mc-stat-icon">
+                                <span className="material-symbols-outlined">credit_card</span>
+                            </div>
+                            <span className="mc-stat-badge">Tổng</span>
                         </div>
-                        <div>
-                            <p className="mc-stat-label">Tổng số vé</p>
+                        <div className="mc-stat-body">
                             <p className="mc-stat-value">{loading ? '...' : total}</p>
+                            <p className="mc-stat-label">Tổng số thẻ</p>
                         </div>
                     </div>
                     {/* Đang hoạt động */}
-                    <div className="mc-stat-card">
-                        <div className="mc-stat-icon mc-stat-icon-secondary">
-                            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                    <div className="mc-stat-card mc-stat-success">
+                        <div className="mc-stat-card-header">
+                            <div className="mc-stat-icon">
+                                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                            </div>
+                            <span className="mc-stat-badge">Hoạt động</span>
                         </div>
-                        <div>
-                            <p className="mc-stat-label">Đang hoạt động</p>
+                        <div className="mc-stat-body">
                             <p className="mc-stat-value">{loading ? '...' : active}</p>
+                            <p className="mc-stat-label">Đang hoạt động</p>
                         </div>
                     </div>
-                    {/* Sắp hết hạn */}
-                    <div className="mc-stat-card">
-                        <div className="mc-stat-icon mc-stat-icon-warning">
-                            <span className="material-symbols-outlined">warning</span>
+                    {/* Đã khóa */}
+                    <div className="mc-stat-card mc-stat-danger">
+                        <div className="mc-stat-card-header">
+                            <div className="mc-stat-icon">
+                                <span className="material-symbols-outlined">gpp_bad</span>
+                            </div>
+                            <span className="mc-stat-badge">Đã khóa</span>
                         </div>
-                        <div>
-                            <p className="mc-stat-label">Đang chờ</p>
-                            <p className="mc-stat-value">{loading ? '...' : expiring}</p>
-                        </div>
-                    </div>
-                    {/* Đã hết hạn */}
-                    <div className="mc-stat-card">
-                        <div className="mc-stat-icon mc-stat-icon-error">
-                            <span className="material-symbols-outlined">schedule</span>
-                        </div>
-                        <div>
-                            <p className="mc-stat-label">Hết hạn</p>
+                        <div className="mc-stat-body">
                             <p className="mc-stat-value">{loading ? '...' : expired}</p>
+                            <p className="mc-stat-label">Đã khóa</p>
+                        </div>
+                    </div>
+                    {/* Đang chờ */}
+                    <div className="mc-stat-card mc-stat-warning">
+                        <div className="mc-stat-card-header">
+                            <div className="mc-stat-icon">
+                                <span className="material-symbols-outlined">schedule</span>
+                            </div>
+                            <span className="mc-stat-badge">Đang chờ</span>
+                        </div>
+                        <div className="mc-stat-body">
+                            <p className="mc-stat-value">{loading ? '...' : expiring}</p>
+                            <p className="mc-stat-label">Thẻ đang chờ</p>
                         </div>
                     </div>
                 </div>
@@ -253,11 +265,11 @@ export default function MonthCardPage() {
                         </div>
                         <div className="mc-legend-item">
                             <div className="mc-legend-dot mc-legend-expiring"></div>
-                            <span>Sắp hết hạn</span>
+                            <span>Đang chờ</span>
                         </div>
                         <div className="mc-legend-item">
                             <div className="mc-legend-dot mc-legend-expired"></div>
-                            <span>Hết hạn</span>
+                            <span>Đã khóa</span>
                         </div>
                     </div>
                 </div>
@@ -306,11 +318,6 @@ export default function MonthCardPage() {
                     <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                         Đăng ký vé tháng
-
-                        {/* <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                        Thêm mới */}
-
 
                     </button>
                 </div>
