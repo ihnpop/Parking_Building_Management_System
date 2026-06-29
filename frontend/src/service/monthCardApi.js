@@ -44,6 +44,26 @@ export const updateMonthCard = async (id, payload) => {
     return response.data;
 };
 
+export const monthCardApi = {
+    // Hàm gửi dữ liệu ảnh Base64 lên Backend của bạn
+    verifyEkyc: async (frontBase64, backBase64) => {
+        const token = localStorage.getItem('supabase_token'); // Hoặc lấy từ AuthContext
+        const response = await axios.post(
+            `${API}/verify-ekyc`,
+            {
+                img_front_base64: frontBase64,
+                img_back_base64: backBase64
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        );
+        return response.data;
+    }
+};
+
 /**
  * Lấy danh sách thẻ tháng
  * @returns {Promise<Array>}
@@ -62,3 +82,26 @@ export const getMonthCardLogs = async () => {
     return response.data.data || response.data;
 };
 
+/**
+ * Tạo mới thẻ tháng (đăng ký mới)
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const createMonthCard = async (payload) => {
+    const response = await API.post("/create", payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};
+
+/**
+ * Xóa mềm thẻ tháng theo ID
+ * @param {string} id - card_id của thẻ cần xóa
+ * @returns {Promise<object>} Kết quả trả về từ server
+ */
+export const deleteMonthCard = async (id) => {
+    const response = await API.delete(`/${id}`, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};

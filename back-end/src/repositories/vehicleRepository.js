@@ -52,7 +52,7 @@ export const findActiveSessionByVehicleOrPlate = async (vehicleId, plateNumber) 
   let query = supabase
     .from('parking_sessions')
     .select('*')
-    .eq('status', 'PARKING');
+    .eq('status', 'Đang gửi xe');
 
   if (vehicleId) {
     query = query.eq('vehicle_id', vehicleId);

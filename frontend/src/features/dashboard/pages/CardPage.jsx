@@ -29,20 +29,7 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                 </div>
 
                 <form className="cp-modal-form" onSubmit={onSubmit}>
-                    {/* 1. Loại thẻ */}
-                    <div className="cp-form-group">
-                        <label htmlFor="type">Loại thẻ</label>
-                        <select
-                            id="type"
-                            name="type"
-                            className="cp-select"
-                            value={formData.type}
-                            onChange={onChange}
-                        >
-                            <option value="Thẻ lượt">Thẻ lượt</option>
-                            {/* <option value="Thẻ tháng">Thẻ tháng</option> */}
-                        </select>
-                    </div>
+                    {/* Loại thẻ mặc định là Thẻ lượt — không hiển thị dropdown vì form này chỉ dùng cho Thẻ lượt */}
 
                     {/* 2. Biển số xe */}
                     <div className="cp-form-group">
@@ -241,12 +228,26 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
     const [currentPage, setCurrentPage] = useState(1);
 
-    const fetchCards = async () => {
+    const fetchCards = async (pageOverride) => {
         try {
             setLoading(true);
             const data = await getCards();
-            setCards(data);
+            
+            // Sort data newest first
+            const sortedData = [...data].sort((a, b) => {
+                const dateA = a.created_at ? new Date(a.created_at) : 0;
+                const dateB = b.created_at ? new Date(b.created_at) : 0;
+                if (dateB.getTime() !== dateA.getTime()) {
+                    return dateB - dateA;
+                }
+                return (b.code || '').localeCompare(a.code || '');
+            });
+
+            setCards(sortedData);
             setError(null);
+            if (pageOverride !== undefined) {
+                setCurrentPage(pageOverride);
+            }
         } catch (err) {
             console.error("Error loading cards:", err);
             setError("Không thể tải danh sách thẻ. Vui lòng thử lại sau!");
@@ -313,6 +314,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const handleCreate = async (e) => {
         e.preventDefault();
         setFormError(null);
+
+        // Kiểm tra định dạng biển số xe
+        if (formData.plate && formData.plate.trim() !== '') {
+            const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
+            const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+            if (!plateRegex.test(rawPlate)) {
+                setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
+                return;
+            }
+        }
+
         try {
             setSubmitting(true);
             await createCard({
@@ -322,7 +334,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             });
             showToast("Đăng ký thẻ mới thành công", "success");
             setShowCreateModal(false);
-            await fetchCards();
+            setCurrentPage(1); // Task 2: Reset về trang 1 để item mới đứng đầu danh sách
+            await fetchCards(1);
         } catch (err) {
             setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
         } finally {
@@ -509,7 +522,11 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <select className="cp-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <select
+                        className="cp-filter-select"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                    >
                         <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Đang chờ">Đang chờ</option>

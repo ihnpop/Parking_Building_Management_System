@@ -6,21 +6,13 @@ import supabase from "../config/supabaseClient.js";
  * @returns {Promise<object|null>}
  */
 export const findRegistrationWithCard = async (registrationId) => {
-  const { data, error } = await supabase
+  const { data: reg, error } = await supabase
     .from('card_registrations')
     .select(`
       registration_id,
       status,
       created_at,
       card_id,
-      card (
-        card_id,
-        code,
-        type,
-        expired_date,
-        status,
-        created_at
-      ),
       vehicle (
         plate_number,
         customer (
@@ -32,7 +24,24 @@ export const findRegistrationWithCard = async (registrationId) => {
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at
+    `)
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**
@@ -54,6 +63,64 @@ export const updateCardExpirationDate = async (cardId, newExpiredDate) => {
 };
 
 /**
+ * Tìm thẻ theo card_id (chỉ lấy thẻ chưa bị xóa)
+ * @param {string} cardId
+ * @returns {Promise<object|null>}
+ */
+export const findById = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select('*')
+    .eq('card_id', cardId)
+    .is('deleted_at', null)
+    .single();
+
+  if (error) return null;
+  return data;
+};
+
+/**
+ * Xóa mềm một thẻ (đánh dấu deleted_at, deleted_by, chuyển status sang Đã khóa)
+ * @param {string} cardId
+ * @param {string} performedBy
+ * @returns {Promise<object>}
+ */
+export const softDelete = async (cardId, performedBy) => {
+  const { data, error } = await supabase
+    .from('card')
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: performedBy,
+      status: 'Đã khóa',
+    })
+    .eq('card_id', cardId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Ghi log hoạt động đơn giản cho thẻ (dùng riêng cho xóa thẻ)
+ * @param {object} payload - { card_id, action, performed_by, note }
+ * @returns {Promise<void>}
+ */
+export const logActivity = async ({ card_id, action, performed_by, note }) => {
+  const { error } = await supabase
+    .from('card_activity_logs')
+    .insert({
+      card_id,
+      action,
+      performed_by,
+      note: note || null,
+      performed_at: new Date().toISOString(),
+    });
+
+  if (error) throw new Error(error.message);
+};
+
+/**
  * Chèn một bản ghi hoạt động thẻ mới vào card_activity_logs
  * @param {object} logPayload
  * @returns {Promise<object>}
@@ -62,6 +129,12 @@ export const createActivityLog = async ({
   cardId,
   registrationId,
   action,
+  plateNumber,
+  customerName,
+  durationMonths,
+  amount,
+  expiredDateBefore,
+  expiredDateAfter,
   oldData,
   newData,
   note,
@@ -73,10 +146,16 @@ export const createActivityLog = async ({
       card_id: cardId,
       registration_id: registrationId,
       action,
-      old_data: oldData,
-      new_data: newData,
-      note,
-      performed_by: performedBy,
+      plate_number: plateNumber || null,
+      customer_name: customerName || null,
+      duration_months: durationMonths || null,
+      amount: amount || null,
+      expired_date_before: expiredDateBefore || null,
+      expired_date_after: expiredDateAfter || null,
+      old_data: oldData || null,
+      new_data: newData || null,
+      note: note || null,
+      performed_by: performedBy || null,
       performed_at: new Date().toISOString()
     })
     .select()
@@ -145,20 +224,6 @@ export const findVehicleByPlate = async (plate) => {
  * @param {object} payload - { plate, customerId }
  * @returns {Promise<object>}
  */
-// export const createVehicle = async ({ plate, customerId }) => {
-//   const { data, error } = await supabase
-//     .from('vehicle')
-//     .insert({
-//       plate_number: plate,
-//       customer_id: customerId
-//     })
-//     .select()
-//     .single();
-
-//   if (error) throw new Error(error.message);
-//   return data;
-// };  
-
 export const createVehicle = async ({ plate, customerId, vehicleTypeId }) => {
   const { data, error } = await supabase
     .from('vehicle')
@@ -180,19 +245,28 @@ export const createVehicle = async ({ plate, customerId, vehicleTypeId }) => {
  * @returns {Promise<object|null>}
  */
 export const findActiveRegistrationByVehicle = async (vehicleId) => {
-  const { data, error } = await supabase
+  const { data: reg, error } = await supabase
     .from('card_registrations')
     .select(`
       registration_id,
-      card_id,
-      card ( code )
+      card_id
     `)
     .eq('vehicle_id', vehicleId)
     .in('status', ['Hoạt động'])
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  return data;
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select('code')
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**
@@ -247,4 +321,54 @@ export const countCards = async () => {
 
   if (error) throw new Error(error.message);
   return count || 0;
+};
+
+/**
+ * Sinh mã thẻ MONTH tiếp theo đảm bảo không trùng trong DB
+ * Định dạng: MONTH0001 → MONTH9999 rồi MONTH10000 → MONTH99999
+ * @returns {Promise<string>}
+ */
+export const generateNextMonthCode = async () => {
+  // Lấy tất cả mã MONTH hiện có, sắp xếp để tìm số lớn nhất
+  const { data, error } = await supabase
+    .from('card')
+    .select('code')
+    .like('code', 'MONTH%')
+    .order('code', { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  let maxNumber = 0;
+  if (data && data.length > 0) {
+    for (const row of data) {
+      const numPart = row.code.replace(/^MONTH/, '');
+      const num = parseInt(numPart, 10);
+      if (!isNaN(num) && num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+
+  // Thử tìm mã chưa tồn tại bắt đầu từ maxNumber + 1
+  let candidate = maxNumber + 1;
+  let attempts = 0;
+  while (attempts < 100) {
+    // Dùng 4 chữ số nếu <= 9999, ngược lại dùng 5 chữ số
+    const padded = candidate <= 9999
+      ? String(candidate).padStart(4, '0')
+      : String(candidate).padStart(5, '0');
+    const code = `MONTH${padded}`;
+
+    const { data: existing } = await supabase
+      .from('card')
+      .select('code')
+      .eq('code', code)
+      .maybeSingle();
+
+    if (!existing) return code;
+    candidate++;
+    attempts++;
+  }
+
+  throw new Error('Không thể sinh mã thẻ MONTH duy nhất sau nhiều lần thử.');
 };

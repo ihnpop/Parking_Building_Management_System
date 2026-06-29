@@ -78,15 +78,25 @@ export const updateStatus = async (cardId, status) => {
  * @returns {Promise<object|null>}
  */
 export const findActiveRegistrationByVehicle = async (vehicleId) => {
-  const { data, error } = await supabase
+  const { data: reg, error: regError } = await supabase
     .from('card_registrations')
-    .select('*, card(*)')
+    .select('*')
     .eq('vehicle_id', vehicleId)
     .eq('status', 'Hoạt động')
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
-  return data;
+  if (regError) throw new Error(regError.message);
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select('*')
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**
@@ -98,14 +108,25 @@ export const findActiveRegistrationByVehicle = async (vehicleId) => {
 export const findActiveRegistrationByVehicleAny = async (vehicleId) => {
   const { data, error } = await supabase
     .from('card_registrations')
-    .select('*, card(*)')
+    .select('*')
     .eq('vehicle_id', vehicleId)
     .in('status', ['Hoạt động'])
     .order('created_at', { ascending: false })
     .limit(1);
 
   if (error) throw new Error(error.message);
-  return data && data.length > 0 ? data[0] : null;
+  const reg = data && data.length > 0 ? data[0] : null;
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select('*')
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**
@@ -117,13 +138,24 @@ export const findActiveRegistrationByVehicleAny = async (vehicleId) => {
 export const findLatestRegistrationByVehicle = async (vehicleId) => {
   const { data, error } = await supabase
     .from('card_registrations')
-    .select('*, card(*)')
+    .select('*')
     .eq('vehicle_id', vehicleId)
     .order('created_at', { ascending: false })
     .limit(1);
 
   if (error) throw new Error(error.message);
-  return data && data.length > 0 ? data[0] : null;
+  const reg = data && data.length > 0 ? data[0] : null;
+  if (!reg) return null;
+
+  const { data: card, error: cardError } = await supabase
+    .from('card')
+    .select('*')
+    .eq('card_id', reg.card_id)
+    .maybeSingle();
+
+  if (cardError) throw new Error(cardError.message);
+  reg.card = card;
+  return reg;
 };
 
 /**

@@ -104,7 +104,13 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
     registrationId: registration.registration_id,
-    action: 'CARD_RENEWED',
+    action: 'Gia hạn',
+    plateNumber: registration.vehicle?.plate_number || null,
+    customerName: registration.vehicle?.customer?.full_name || null,
+    durationMonths: pkg.months,
+    amount: pkg.price,
+    expiredDateBefore: currentExpiryStr || null,
+    expiredDateAfter: newExpiryDateStr,
     oldData: oldDataLog,
     newData: newDataLog,
     note: note || `Gia hạn ${pkg.months} tháng`,
@@ -208,19 +214,64 @@ export const createMonthCard = async ({
   const expiredDateObj = addMonthsSafely(start, Number(durationMonths));
   const expiredDateStr = expiredDateObj.toISOString().split("T")[0];
 
-  // 6. Sinh mã thẻ tự động (MT000001, MT000002, ...)
-  const totalCards = await monthCardRepository.countCards();
-  const code = `MONTH${String(totalCards + 1).padStart(4, "0")}`;
-
   const cardStatus = status || "Hoạt động";
+  let card = null;
 
-  // 7. Tạo thẻ
-  const card = await monthCardRepository.createCard({
-    code,
-    type: "Thẻ tháng",
-    status: cardStatus,
-    expiredDate: expiredDateStr
-  });
+  // 6. Tìm thẻ tháng có trạng thái 'Đang chờ'
+  const { data: pendingCard, error: pendingErr } = await supabase
+    .from('card')
+    .select('*')
+    .eq('type', 'Thẻ tháng')
+    .eq('status', 'Đang chờ')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (pendingErr) {
+    throw new Error("Lỗi tìm thẻ đang chờ: " + pendingErr.message);
+  }
+
+  let code = "";
+  if (pendingCard) {
+    // Trường hợp 1: Sử dụng thẻ đang chờ
+    code = pendingCard.code;
+    const { data: updatedCard, error: updateErr } = await supabase
+      .from('card')
+      .update({
+        status: cardStatus,
+        expired_date: expiredDateStr,
+        created_at: startDate || new Date().toISOString()
+      })
+      .eq('card_id', pendingCard.card_id)
+      .select()
+      .single();
+
+    if (updateErr) throw new Error("Lỗi cập nhật thẻ đang chờ: " + updateErr.message);
+    card = updatedCard;
+  } else {
+    // Trường hợp 2: Không còn thẻ đang chờ -> đếm và sinh mã mới
+    const { count, error: countErr } = await supabase
+      .from('card')
+      .select('card_id', { count: 'exact', head: true })
+      .eq('type', 'Thẻ tháng')
+      .not('status', 'eq', 'Đã xóa');
+
+    if (countErr) throw new Error("Lỗi kiểm tra giới hạn thẻ tháng: " + countErr.message);
+
+    if (count >= 50) {
+      throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký).");
+    }
+
+    code = await monthCardRepository.generateNextMonthCode();
+
+    // Tạo thẻ mới
+    card = await monthCardRepository.createCard({
+      code,
+      type: "Thẻ tháng",
+      status: cardStatus,
+      expiredDate: expiredDateStr
+    });
+  }
 
   // 8. Tạo đăng ký thẻ (liên kết thẻ với xe)
   const registration = await monthCardRepository.createRegistration({
@@ -233,7 +284,13 @@ export const createMonthCard = async ({
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
     registrationId: registration.registration_id,
-    action: "Tạo thẻ tháng mới",
+    action: "Cấp mới",
+    plateNumber: cleanPlate,
+    customerName: fullName.trim(),
+    durationMonths: Number(durationMonths),
+    amount: null,
+    expiredDateBefore: null,
+    expiredDateAfter: expiredDateStr,
     oldData: null,
     newData: {
       code,
@@ -270,6 +327,45 @@ export const updateMonthCard = async (cardId, payload) => {
     checkOutTime
   } = payload;
 
+  const { data: currentCard, error: currentCardErr } = await supabase
+    .from("card")
+    .select("status")
+    .eq("card_id", cardId)
+    .single();
+
+  if (currentCardErr) {
+    throw new Error(currentCardErr.message);
+  }
+
+  // Không tìm thấy thẻ
+  if (!currentCard) {
+    throw new Error(`Không tìm thấy thẻ ${cardId}`);
+  }
+
+  // Thẻ đã khóa
+  if (currentCard.status === "Đã khóa") {
+
+    // Nếu trạng thái không thay đổi thì không cho sửa
+    if (status === currentCard.status) {
+      throw new Error(
+        "Thẻ đã khóa, không được phép chỉnh sửa thông tin."
+      );
+    }
+    // Chỉ cho cập nhật trạng thái
+    const { error: cardErr } = await supabase
+      .from("card")
+      .update({ status })
+      .eq("card_id", cardId);
+
+    if (cardErr) {
+      throw new Error(cardErr.message);
+    }
+
+    return {
+      success: true
+    };
+  }
+
   let cleanPlate = plate ? plate.trim() : undefined;
   if (cleanPlate) {
     cleanPlate = cleanPlate.replace(/[\s\.\-]/g, '').toUpperCase();
@@ -302,7 +398,7 @@ export const updateMonthCard = async (cardId, payload) => {
           )
         `)
         .eq('vehicle_id', existingVehicle.vehicle_id)
-        .in('status', ['Hoạt động', 'ACTIVE'])
+        .in('status', ['Hoạt động'])
         .maybeSingle();
 
       if (regCheckErr) throw new Error(regCheckErr.message);
@@ -413,6 +509,37 @@ export const updateMonthCard = async (cardId, payload) => {
   return { success: true };
 };
 
+/**
+ * Xóa mềm một thẻ tháng:
+ * - Kiểm tra thẻ tồn tại và chưa bị xóa
+ * - Đánh dấu deleted_at, deleted_by và chuyển status → "Đã khóa"
+ * - Ghi log hoạt động để theo dõi lịch sử
+ * @param {string} cardId - ID thẻ cần xóa
+ * @param {string} performedBy - ID người thực hiện (lấy từ JWT token)
+ */
+export const deleteMonthCard = async (cardId, performedBy) => {
+  // Kiểm tra thẻ có tồn tại và chưa bị xóa trước đó
+  const card = await monthCardRepository.findById(cardId);
+  if (!card) {
+    const e = new Error('Không tìm thấy vé tháng hoặc đã bị xóa');
+    e.statusCode = 404; // Trả về HTTP 404 để frontend xử lý đúng
+    throw e;
+  }
+
+  // Thực hiện xóa mềm: ghi deleted_at + deleted_by + đổi status
+  const result = await monthCardRepository.softDelete(cardId, performedBy);
+
+  // Ghi log hoạt động để kiểm tra lịch sử về sau
+  await monthCardRepository.logActivity({
+    card_id: cardId,
+    action: 'Xóa thẻ',
+    performed_by: performedBy,
+    note: `Thẻ ${card.code} đã bị xóa`,
+  });
+
+  return result;
+};
+
 export const getMonthCards = async () => {
   const { data, error } = await supabase
     .from("card")
@@ -443,34 +570,47 @@ export const getMonthCards = async () => {
       )
     `)
     .eq("type", "Thẻ tháng")
-    .not("status", "eq", "Đã xóa");
+    .not("status", "eq", "Đã xóa")
+    .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
 
   return await Promise.all(
     data.map(async (card, i) => {
-      // Tìm liên kết đăng ký đang hoạt động (Hoạt động hoặc ACTIVE)
-      const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động') || null;
+      const activeReg =
+        card.card_registrations?.find(
+          (r) => r.status === "Hoạt động"
+        ) ||
+        card.card_registrations?.[0] ||
+        null;
 
-      let statusText = "Hoạt động";
-      const expiredDate = card.expired_date ? new Date(card.expired_date) : null;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Mapping trạng thái hiển thị
+      // DB status -> Hiển thị
+      // 'Hoạt động'  -> 'Hoạt động'
+      // 'Đang chờ'   -> 'Sắp hết hạn'
+      // 'Đã khóa'    -> 'Hết hạn'
+      let statusText = card.status;
 
-      if (card.status === 'Hết hạn' || card.status === 'Đã hết hạn' || (expiredDate && expiredDate < today)) {
-        statusText = "Đã hết hạn";
-      } else if (card.status === 'Đã khóa') {
-        statusText = "Đã khóa";
-      } else if (expiredDate) {
-        expiredDate.setHours(0, 0, 0, 0);
-        const diffTime = expiredDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays <= 7) {
-          statusText = "Sắp hết hạn";
-        }
+      switch (card.status) {
+        case "Hoạt động":
+          statusText = "Hoạt động";
+          break;
+
+        case "Sắp hết hạn":
+          statusText = "Đang chờ";
+          break;
+
+        case "Hết hạn":
+          statusText = "Đã khóa";
+          break;
+
+        default:
+          statusText = card.status;
       }
 
+
       let latestSession = null;
+
       if (activeReg?.vehicle?.vehicle_id) {
         const { data: sessions } = await supabase
           .from("parking_sessions")
@@ -479,29 +619,70 @@ export const getMonthCards = async () => {
             entry_time,
             exit_time
           `)
-          .eq("vehicle_id", activeReg.vehicle.vehicle_id)
-          .order("entry_time", { ascending: false })
+          .eq(
+            "vehicle_id",
+            activeReg.vehicle.vehicle_id
+          )
+          .order("entry_time", {
+            ascending: false,
+          })
           .limit(1);
 
         latestSession = sessions?.[0] || null;
       }
 
       return {
-        id: String(i + 1).padStart(2, '0'),
+        id: String(i + 1).padStart(2, "0"),
+
         card_id: card.card_id,
-        registrationId: activeReg?.registration_id || null,
+
+        registrationId:
+          activeReg?.registration_id || null,
+
         cardNo: card.code,
-        plate: activeReg?.vehicle?.plate_number || "Chưa có",
-        customer: activeReg?.vehicle?.customer?.full_name || "Khách vãng lai",
-        phone: activeReg?.vehicle?.customer?.phone || "",
-        email: activeReg?.vehicle?.customer?.email || "",
-        type: activeReg?.vehicle?.vehicle_type?.name || "Xe máy",
-        startDate: card.created_at ? new Date(card.created_at).toLocaleDateString('vi-VN') : "Chưa có",
-        endDate: card.expired_date ? new Date(card.expired_date).toLocaleDateString('vi-VN') : "Không giới hạn",
+
+        plate:
+          activeReg?.vehicle?.plate_number ||
+          "Chưa có",
+
+        customer:
+          activeReg?.vehicle?.customer?.full_name ||
+          "",
+
+        phone:
+          activeReg?.vehicle?.customer?.phone ||
+          "",
+
+        email:
+          activeReg?.vehicle?.customer?.email ||
+          "",
+
+        type:
+          activeReg?.vehicle?.vehicle_type?.name ||
+          "",
+
+        startDate: card.created_at
+          ? new Date(card.created_at).toLocaleDateString(
+            "vi-VN"
+          )
+          : "Chưa có",
+
+        endDate: card.expired_date
+          ? new Date(card.expired_date).toLocaleDateString(
+            "vi-VN"
+          )
+          : "Không giới hạn",
+
         expiredDate: card.expired_date,
+        created_at: card.created_at,
+
         status: statusText,
-        check_in_time: latestSession?.entry_time || '',
-        check_out_time: latestSession?.exit_time || ''
+
+        check_in_time:
+          latestSession?.entry_time || "",
+
+        check_out_time:
+          latestSession?.exit_time || "",
       };
     })
   );
@@ -509,44 +690,169 @@ export const getMonthCards = async () => {
 
 export const getMonthCardLogs = async () => {
   const { data, error } = await supabase
-    .from("payment")
+    .from("card_activity_logs")
     .select(`
+      log_id,
+      card_id,
+      action,
+      plate_number,
+      customer_name,
       amount,
-      payment_time,
-      status,
-      parking_order (
-        card (code),
-        vehicle (
-          plate_number,
-          customer (full_name)
-        )
-      )
+      duration_months,
+      performed_at
     `)
-    .limit(50);
+    .order("performed_at", { ascending: false })
+    .limit(100);
 
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) return [];
+
+  // Manual join for card codes
+  const cardIds = [...new Set(data.map(item => item.card_id).filter(Boolean))];
+  let cardMap = {};
+  if (cardIds.length > 0) {
+    const { data: cards } = await supabase
+      .from('card')
+      .select('card_id, code')
+      .in('card_id', cardIds);
+    if (cards) {
+      cards.forEach(c => {
+        cardMap[c.card_id] = c.code;
+      });
+    }
+  }
 
   return data.map((item, idx) => {
-    const cardCode = item.parking_order?.card?.code || `CARD-${1000 + idx}`;
-    const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
-    const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
-    const time = new Date(item.payment_time).toLocaleString('vi-VN');
-    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
-    const status = item.status === 'Đã thanh toán'
-      ? 'Thành công'
-      : item.status === 'Chờ xử lý'
-        ? 'Đang xử lý'
-        : 'Thất bại';
 
+    const cardCode = cardMap[item.card_id] || `CARD${1000 + idx}`;
+    const plate = item.plate_number || "Chưa có";
+    const owner = item.customer_name || "Khách vãng lai";
+    const time = new Date(item.performed_at).toLocaleString('vi-VN');
+    const amountVal = item.amount ? Number(item.amount) : 0;
+    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal);
+    const status = "Thành công";
+
+    let type = item.action;
+    if (item.action === 'Đã gia hạn' || item.action === 'Gia hạn') {
+      type = 'Gia hạn';
+    } else if (item.action === 'Tạo thẻ tháng mới' || item.action === 'Cấp mới') {
+      type = 'Cấp mới';
+    }
     return {
       time,
       cardNo: cardCode,
       plate,
       owner,
-      type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
+      type,
       amount,
       status
     };
   });
 };
+
+/**
+ * Kiểm tra trạng thái biển số xe phục vụ bước 2 đăng ký
+ * @param {string} plate
+ * @returns {Promise<{ allowed: boolean, message?: string }>}
+ */
+export const checkPlateStatus = async (plate) => {
+  if (!plate || !plate.trim()) {
+    throw new Error("Biển số xe không được để trống.");
+  }
+  const cleanPlate = plate.replace(/[\s\.\-]/g, '').toUpperCase();
+
+  // Tìm xe theo biển số cùng thẻ đang liên kết hoạt động
+  const { data: vehicle, error } = await supabase
+    .from('vehicle')
+    .select(`
+      vehicle_id,
+      vehicle_type_id,
+      card_registrations (
+        registration_id,
+        status,
+        card (
+          card_id,
+          code,
+          type
+        )
+      )
+    `)
+    .eq('plate_number', cleanPlate)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Lỗi truy vấn biển số xe: " + error.message);
+  }
+
+  if (!vehicle) {
+    // Trường hợp 2: chưa gán xe (vì chưa tồn tại) và chưa gán thẻ -> Được đi tiếp
+    return { allowed: true };
+  }
+
+  // Tìm đăng ký thẻ đang hoạt động liên kết với xe
+  const activeReg = vehicle.card_registrations?.find(r => r.status === 'Hoạt động');
+  const cardType = activeReg?.card?.type; // 'Thẻ tháng' hoặc 'Thẻ lượt'
+
+  if (cardType) {
+    // Có thẻ liên kết
+    if (vehicle.vehicle_type_id) {
+      // Trường hợp 1: Đã gắn loại xe AND đã gắn với 1 loại thẻ -> KHÔNG ĐƯỢC đi tiếp
+      return {
+        allowed: false,
+        message: `Biển số xe ${cleanPlate} đã được gắn với loại xe và đang liên kết với ${cardType} (${activeReg.card?.code || ''}). Không thể tiếp tục đăng ký.`
+      };
+    } else {
+      // Trường hợp 2: Chưa gắn loại xe AND đã gắn với 1 loại thẻ -> ĐƯỢC đi tiếp
+      return { allowed: true };
+    }
+  }
+
+  // Xe tồn tại nhưng chưa có thẻ liên kết -> Được đi tiếp
+  return { allowed: true };
+};
+
+/**
+ * Lấy mã thẻ tháng tiếp theo (Tìm thẻ 'Đang chờ' hoặc tự động sinh mới)
+ * @returns {Promise<{ code: string }>}
+ */
+export const getNextMonthCode = async () => {
+  // 1. Tìm thẻ tháng có trạng thái 'Đang chờ'
+  const { data: pendingCard, error: pendingErr } = await supabase
+    .from('card')
+    .select('code')
+    .eq('type', 'Thẻ tháng')
+    .eq('status', 'Đang chờ')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (pendingErr) {
+    throw new Error("Lỗi tìm thẻ đang chờ: " + pendingErr.message);
+  }
+
+  if (pendingCard) {
+    // Trường hợp 1: có thẻ đang chờ thì sử dụng mã thẻ đó
+    return { code: pendingCard.code };
+  }
+
+  // Trường hợp 2: không còn thẻ đang chờ -> đếm số lượng thẻ hiện tại để kiểm tra giới hạn 50
+  const { count, error: countErr } = await supabase
+    .from('card')
+    .select('card_id', { count: 'exact', head: true })
+    .eq('type', 'Thẻ tháng')
+    .not('status', 'eq', 'Đã xóa');
+
+  if (countErr) {
+    throw new Error("Lỗi đếm số lượng thẻ tháng: " + countErr.message);
+  }
+
+  if (count >= 50) {
+    throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.");
+  }
+
+  // Tự sinh mã mới
+  const nextCode = await monthCardRepository.generateNextMonthCode();
+  return { code: nextCode };
+};
+
 

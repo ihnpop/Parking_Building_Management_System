@@ -167,6 +167,13 @@ export default function DashboardView() {
                 </div>
             )}
 
+            {/* VIEW CÀI ĐẶT HỆ THỐNG */}
+            {currentView === 'system-settings' && (
+                <div style={{ marginTop: '10px', padding: '24px' }}>
+                    <SystemSettingsPage />
+                </div>
+            )}
+
             {/* 5. MÀN HÌNH TỔNG QUAN – GIAO DIỆN XANH MỚI */}
             {currentView === 'dashboard' && (
                 <div className="db-page">

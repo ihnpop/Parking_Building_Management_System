@@ -1,6 +1,7 @@
 import express from "express";
 import upload from "../middlewares/upload.js";
 import * as gateController from "../controllers/gateController.js";
+import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.post("/entry/pre-check", gateController.preCheckEntry);
 /**
  * POST /api/gate/entry
  */
-router.post("/entry", gateController.entryTap);
+router.post("/entry", verifyToken, gateController.entryTap);
 
 /**
  * POST /api/gate/exit/pre-check
@@ -34,6 +35,6 @@ router.post("/exit/pre-check", gateController.preCheckExit);
 /**
  * POST /api/gate/exit
  */
-router.post("/exit", gateController.exitTap);
+router.post("/exit", verifyToken, gateController.exitTap);
 
 export default router;

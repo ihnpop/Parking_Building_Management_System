@@ -1,8 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function SystemSettingsPage() {
+
     const navigate = useNavigate();
+    const { user, userRole, logout } = useAuth();
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+    const userEmail = user?.email || 'admin@parkflow.com';
+    const userInitials = userEmail.charAt(0).toUpperCase();
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleLogout = async () => {
+        try { await logout(); navigate('/login'); } catch (err) { console.error(err); }
+    };
+
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
+        }
+    };
 
     // Section 1: Thông tin hệ thống
     const [cameraInPath, setCameraInPath] = useState('D:\\ParkingData\\Images\\IN');
@@ -49,7 +80,7 @@ export default function SystemSettingsPage() {
                 {/* 1. Thông tin hệ thống */}
                 <section className="settings-section-card">
                     <div className="settings-section-header">
-                        <div className="settings-section-icon orange-bg">
+                        <div className="settings-section-icon">
                             <span className="material-symbols-outlined text-orange">info</span>
                         </div>
                         <h2>Thông tin hệ thống</h2>
@@ -111,7 +142,7 @@ export default function SystemSettingsPage() {
                 {/* 2. Thiết bị ngoại vi */}
                 <section className="settings-section-card">
                     <div className="settings-section-header">
-                        <div className="settings-section-icon orange-bg">
+                        <div className="settings-section-icon">
                             <span className="material-symbols-outlined text-orange">devices</span>
                         </div>
                         <h2>Thiết bị ngoại vi</h2>
@@ -199,7 +230,7 @@ export default function SystemSettingsPage() {
                 {/* 3. Cấu hình vận hành */}
                 <section className="settings-section-card">
                     <div className="settings-section-header">
-                        <div className="settings-section-icon orange-bg">
+                        <div className="settings-section-icon">
                             <span className="material-symbols-outlined text-orange">settings_suggest</span>
                         </div>
                         <h2>Cấu hình vận hành</h2>
