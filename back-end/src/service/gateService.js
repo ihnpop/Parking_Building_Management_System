@@ -367,7 +367,9 @@ export const preCheckExit = async (plateNumber) => {
     cardCode: card ? card.code : "UNKNOWN",
     entryTime: formattedEntryTime,
     duration: durationStr,
-    fee
+    fee,
+    entryVehicleImage: activeSession.entry_vehicle_image,
+    entryPlateImage: activeSession.entry_plate_image
   };
 };
 

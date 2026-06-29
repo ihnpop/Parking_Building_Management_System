@@ -439,7 +439,7 @@ export default function SystemOperations() {
                 </section>
 
                 <section className="camera-grid">
-                    {[cameraCards[0], cameraCards[2], cameraCards[1], cameraCards[3]].map((camera) => {
+                    {[cameraCards[0], cameraCards[1], cameraCards[2], cameraCards[3]].map((camera) => {
                         const isCameraIn = camera.id === 'vehicleImage' || camera.id === 'plateImage';
                         const isCurrentlyActiveMode = (mode === 'IN' && isCameraIn) || (mode === 'OUT' && !isCameraIn);
 
@@ -447,10 +447,14 @@ export default function SystemOperations() {
                         let isSelected = false;
 
                         if (camera.id === 'vehicleImage') {
-                            bgImage = vehiclePreview || camera.image;
+                            bgImage = (mode === 'OUT' && preCheckResult?.entryVehicleImage)
+                                ? preCheckResult.entryVehicleImage
+                                : vehiclePreview || camera.image;
                             isSelected = !!vehicleImage;
                         } else if (camera.id === 'plateImage') {
-                            bgImage = platePreview || camera.image;
+                            bgImage = (mode === 'OUT' && preCheckResult?.entryPlateImage)
+                                ? preCheckResult.entryPlateImage
+                                : platePreview || camera.image;
                             isSelected = !!plateImage;
                         } else if (camera.id === 'camera3') {
                             bgImage = exitVehiclePreview || camera.image;
@@ -510,7 +514,7 @@ export default function SystemOperations() {
                                     </div>
 
                                     {/* Selected badge */}
-                                    {isSelected && (
+                                    {isSelected ? (
                                         <div style={{
                                             position: 'absolute',
                                             bottom: 12,
@@ -529,7 +533,26 @@ export default function SystemOperations() {
                                             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check_circle</span>
                                             Đã chọn ảnh
                                         </div>
-                                    )}
+                                    ) : (mode === 'OUT' && preCheckResult && (camera.id === 'vehicleImage' || camera.id === 'plateImage') && (camera.id === 'vehicleImage' ? preCheckResult.entryVehicleImage : preCheckResult.entryPlateImage)) ? (
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: 12,
+                                            left: 12,
+                                            background: '#2563eb',
+                                            color: 'white',
+                                            padding: '4px 8px',
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            zIndex: 5
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>login</span>
+                                            Ảnh lúc vào
+                                        </div>
+                                    ) : null}
                                 </div>
                             </article>
                         );
