@@ -35,6 +35,7 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             case 'user-management': return 'Quản lý Phân quyền';
             case 'card-management': return 'Quản lý Thẻ';
             case 'log-management': return 'Nhật ký vận hành';
+
             default: return 'Bảng điều khiển';
         }
     };
