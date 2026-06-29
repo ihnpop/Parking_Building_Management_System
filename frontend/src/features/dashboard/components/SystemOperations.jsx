@@ -112,6 +112,9 @@ export default function SystemOperations() {
         setExitPlateImage(null);
         setExitVehiclePreview(null);
         setExitPlatePreview(null);
+        // Xóa preview camera IN để camera 1&2 trở về ảnh mặc định sau khi check-out xong
+        setVehiclePreview(null);
+        setPlatePreview(null);
         setPreCheckResult(null);
         setSelectedCard('');
         setExitVehicleUrl('');
@@ -496,61 +499,91 @@ export default function SystemOperations() {
                                         backgroundImage: `url(${bgImage})`,
                                         cursor: 'pointer'
                                     }}
-                                    onClick={() => handleCameraClick(camera.id)}
+                                    onClick={() => {
+                                        // Camera 1 & 2 ở mode OUT khi đã có ảnh check-in: không cho upload
+                                        const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
+                                        const hasEntryImage = isEntryCamera && mode === 'OUT' && preCheckResult &&
+                                            (camera.id === 'vehicleImage' ? preCheckResult.entryVehicleImage : preCheckResult.entryPlateImage);
+                                        if (!hasEntryImage) {
+                                            handleCameraClick(camera.id);
+                                        }
+                                    }}
                                     onMouseEnter={() => setHoveredCamera(camera.id)}
                                     onMouseLeave={() => setHoveredCamera(null)}
                                 >
                                     <span className="camera-label">{camera.title}</span>
                                     {camera.badge && <span className={`camera-badge ${camera.badgeClass}`}>{camera.badge}</span>}
 
-                                    {/* Overlay showing upload message on hover */}
-                                    <div
-                                        style={{
-                                            position: 'absolute',
-                                            inset: 0,
-                                            backgroundColor: hoveredCamera === camera.id ? 'rgba(15, 23, 42, 0.6)' : 'rgba(0, 0, 0, 0)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            transition: 'all 0.2s ease',
-                                            opacity: hoveredCamera === camera.id ? 1 : 0,
-                                            pointerEvents: 'none',
-                                            color: 'white',
-                                            gap: '8px',
-                                            zIndex: 10
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: 40 }}>add_a_photo</span>
-                                        <span style={{ fontSize: 13, fontWeight: 'bold' }}>
-                                            {camera.id === 'vehicleImage' ? 'Click tải ảnh xe vào' :
-                                                camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
-                                                    camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
-                                                        'Click tải ảnh biển số ra'}
-                                        </span>
-                                    </div>
+                                    {/* Badge hiển thị "ẢNH CHECK-IN" khi camera 1&2 đang xem ảnh lịch sử */}
+                                    {(() => {
+                                        const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
+                                        const entryImgUrl = camera.id === 'vehicleImage'
+                                            ? preCheckResult?.entryVehicleImage
+                                            : preCheckResult?.entryPlateImage;
+                                        if (isEntryCamera && mode === 'OUT' && entryImgUrl) {
+                                            return (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: 8,
+                                                    left: '50%',
+                                                    transform: 'translateX(-50%)',
+                                                    background: 'rgba(234, 88, 12, 0.92)',
+                                                    color: 'white',
+                                                    fontSize: 11,
+                                                    fontWeight: 'bold',
+                                                    padding: '3px 10px',
+                                                    borderRadius: 20,
+                                                    letterSpacing: '0.05em',
+                                                    whiteSpace: 'nowrap',
+                                                    zIndex: 15,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 4
+                                                }}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>history</span>
+                                                    ẢNH CHECK-IN
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
 
-                                    {/* Selected badge */}
-                                    {isSelected ? (
-                                        <div style={{
-                                            position: 'absolute',
-                                            bottom: 12,
-                                            left: 12,
-                                            background: '#22c55e',
-                                            color: 'white',
-                                            padding: '4px 8px',
-                                            borderRadius: '8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            fontSize: '12px',
-                                            fontWeight: 'bold',
-                                            zIndex: 5
-                                        }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check_circle</span>
-                                            Đã chọn ảnh
-                                        </div>
-                                    ) : null}
+                                    {/* Overlay showing upload message on hover - chỉ hiện khi được phép upload */}
+                                    {(() => {
+                                        const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
+                                        const entryImgUrl = camera.id === 'vehicleImage'
+                                            ? preCheckResult?.entryVehicleImage
+                                            : preCheckResult?.entryPlateImage;
+                                        const isReadOnly = isEntryCamera && mode === 'OUT' && entryImgUrl;
+                                        if (isReadOnly) return null;
+                                        return (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    inset: 0,
+                                                    backgroundColor: hoveredCamera === camera.id ? 'rgba(15, 23, 42, 0.6)' : 'rgba(0, 0, 0, 0)',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    transition: 'all 0.2s ease',
+                                                    opacity: hoveredCamera === camera.id ? 1 : 0,
+                                                    pointerEvents: 'none',
+                                                    color: 'white',
+                                                    gap: '8px',
+                                                    zIndex: 10
+                                                }}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: 40 }}>add_a_photo</span>
+                                                <span style={{ fontSize: 13, fontWeight: 'bold' }}>
+                                                    {camera.id === 'vehicleImage' ? 'Click tải ảnh xe vào' :
+                                                        camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
+                                                            camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
+                                                                'Click tải ảnh biển số ra'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </article>
                         );
@@ -569,7 +602,14 @@ export default function SystemOperations() {
                     }}>
                         <button
                             type="button"
-                            onClick={() => setMode('IN')}
+                            onClick={() => {
+                                setMode('IN');
+                                // Khi chuyển về mode IN: xóa preCheck và preview EXIT để camera 3&4 sạch
+                                setPreCheckResult(null);
+                                setExitVehiclePreview(null);
+                                setExitPlatePreview(null);
+                                setPlateNumber('');
+                            }}
                             style={{
                                 flex: 1,
                                 padding: '10px 16px',
@@ -591,7 +631,15 @@ export default function SystemOperations() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setMode('OUT')}
+                            onClick={() => {
+                                setMode('OUT');
+                                // Khi chuyển sang mode OUT: xóa preCheck và preview IN để camera 1&2 sạch,
+                                // sau đó khi preCheckResult được set thì camera 1&2 sẽ hiển thị ảnh check-in
+                                setPreCheckResult(null);
+                                setVehiclePreview(null);
+                                setPlatePreview(null);
+                                setPlateNumber('');
+                            }}
                             style={{
                                 flex: 1,
                                 padding: '10px 16px',
