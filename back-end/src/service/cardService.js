@@ -308,50 +308,24 @@ export const deleteCard = async (cardId, currentUserId) => {
     throw new Error("Không tìm thấy card");
   }
 
-  // 2. Kiểm tra status của card
   const statusUpper = (card.status || '').toUpperCase();
 
-  if (
-    statusUpper === 'HOẠT ĐỘNG' ||
-    card.status === 'Hoạt động'
-  ) {
-    throw new Error(
-      "Không thể xóa card hoạt động"
-    );
+  // 2. Chặn xóa nếu thẻ đang hoạt động
+  if (statusUpper === 'HOẠT ĐỘNG') {
+    throw new Error("Không thể xóa card hoạt động");
   }
 
-  if (
-    statusUpper === 'ĐÃ XÓA' ||
-    card.status === 'Đã xóa'
-  ) {
-    throw new Error(
-      "Card đã bị xóa"
-    );
-  }
-  if (
-    statusUpper === 'ĐÃ KHÓA'
-  ) {
-    throw new Error(
-      "Không thể xóa thẻ đã khóa"
-    );
+  // 3. Chặn xóa nếu thẻ đã bị khóa (đã từng xóa mềm trước đó)
+  if (statusUpper === 'ĐÃ KHÓA') {
+    throw new Error("Không thể xóa thẻ đã khóa");
   }
 
-  const allowedStatuses = [
-    // 'CHƯA SỬ DỤNG',
-    // 'ĐÃ HẾT HẠN' 
-    'ĐANG CHỜ'
-    // 'HẾT HẠN'
-  ];
-
-  if (
-    !allowedStatuses.includes(statusUpper)
-  ) {
-    throw new Error(
-      "Chỉ có thể xóa card chưa sử dụng hoặc đã hết hạn"
-    );
+  // 4. Chỉ còn lại trạng thái "Đang chờ" được phép xóa
+  if (statusUpper !== 'ĐANG CHỜ') {
+    throw new Error("Chỉ có thể xóa thẻ ở trạng thái Đang chờ");
   }
 
-  // 3. Thực hiện Soft Delete thông qua Repository
+  // 5. Thực hiện Soft Delete thông qua Repository
   await cardRepository.softDelete(cardId, currentUserId);
   return { success: true };
 };
@@ -394,18 +368,21 @@ export const getLostCards = async () => {
     const handlerName = log.profiles?.full_name || "---";
 
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
-    let statusText = 'Đang xử lý';
+    let statusText = 'Đang xử lý'; // Giá trị mặc định: áp dụng cho trường hợp đã có handled_by nhưng chưa hoàn tất
+
     if (log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
+      // Nhân viên đã xử lý xong báo cáo mất thẻ
       statusText = 'Đã xong';
-    } else if (!log.status) {
-      if (!log.handled_by) {
-        statusText = 'Chờ xử lý';
-      } else {
-        statusText = 'Đang xử lý';
-      }
     } else if (log.status === 'Đã hủy thẻ') {
+      // Báo cáo mất thẻ đã dẫn đến việc hủy/khóa thẻ
       statusText = 'Đã hủy thẻ';
+    } else if (log.status === 'Chờ xử lý' && !log.handled_by) {
+      // Vừa tạo mới (status mặc định khi insert) và chưa có ai nhận xử lý
+      // -> giữ đúng trạng thái ban đầu, không để rơi về "Đang xử lý"
+      statusText = 'Chờ xử lý';
     }
+    // Trường hợp còn lại: status vẫn là 'Chờ xử lý' nhưng đã có handled_by
+    // (nhân viên đã bắt đầu xử lý) -> giữ giá trị default 'Đang xử lý' ở trên
 
     return {
       // Khớp hoàn toàn cả định dạng trường cũ (Dự phòng cho UI)

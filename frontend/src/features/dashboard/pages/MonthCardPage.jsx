@@ -381,10 +381,21 @@ export default function MonthCardPage() {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
                                                     </button>
+                                                    {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ KHÔNG ở trạng thái "Hoạt động" */}
                                                     <button type="button" className="cp-delete-btn"
-                                                        style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
-                                                        onClick={() => setDeletingCard(row)}
-                                                        title="Xóa thẻ"
+                                                        style={{
+                                                            color: '#ba1a1a',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: row.status === 'Hoạt động' ? 'not-allowed' : 'pointer',
+                                                            opacity: row.status === 'Hoạt động' ? 0.4 : 1,
+                                                        }}
+                                                        onClick={() => {
+                                                            if (row.status === 'Hoạt động') return;
+                                                            setDeletingCard(row);
+                                                        }}
+                                                        disabled={row.status === 'Hoạt động'}
+                                                        title={row.status === 'Hoạt động' ? 'Không thể xóa thẻ đang hoạt động' : 'Xóa thẻ'}
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
                                                     </button>

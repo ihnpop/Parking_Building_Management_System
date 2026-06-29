@@ -283,10 +283,11 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setShowEditModal(true);
     };
 
-    const handleDelete = async (row) => {
+const handleDelete = async (row) => {
+        if (row.status !== 'Đang chờ') return;
         showConfirm({
             title: "Xóa thẻ",
-            message: "Bạn có chắc muốn xóa thẻ này không? Hành động này không thể hoàn tác.",
+            message: `Bạn chắc chắn muốn xóa thẻ ${row.code}? Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.`,
             confirmText: "Xóa thẻ",
             cancelText: "Hủy",
             isDangerous: true,
@@ -585,9 +586,21 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
+
+                                                    {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ ở trạng thái "Đang chờ" */}
                                                     <button type="button" className="cp-delete-btn"
-                                                        style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
-                                                        onClick={() => handleDelete(row)} title="Xóa thẻ"
+                                                        style={{
+                                                            color: '#ba1a1a',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: row.status !== 'Đang chờ' ? 'not-allowed' : 'pointer',
+                                                            opacity: row.status !== 'Đang chờ' ? 0.4 : 1,
+                                                        }}
+                                                        onClick={() => handleDelete(row)}
+                                                        disabled={row.status !== 'Đang chờ'}
+                                                        title={row.status !== 'Đang chờ'
+                                                            ? 'Chỉ có thể xóa thẻ ở trạng thái Đang chờ'
+                                                            : 'Xóa thẻ'}
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
                                                     </button>
@@ -657,6 +670,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     onClose={handleCloseEdit}
                 />
             )}
+
         </div>
     );
 }
