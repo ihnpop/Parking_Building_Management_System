@@ -24031,4 +24031,139 @@ td {
     gap: 6px;
   }
 }
+
+/* Floating Animated Toast Alert - Custom Card Design */
+.parking-alert-container {
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+}
+
+.parking-alert {
+  width: auto !important;
+  min-width: 320px !important;
+  max-width: 480px !important;
+  margin: 0 !important;
+  padding: 14px 20px 14px 18px !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid #f1f5f9 !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  animation: slideInToast 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes slideInToast {
+  from {
+    opacity: 0;
+    transform: translateX(60px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .parking-alert-container {
+    top: 16px !important;
+    right: 16px !important;
+    left: 16px !important;
+  }
+  .parking-alert {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+.parking-alert::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 6px !important;
+}
+
+.parking-alert-success::before {
+  background-color: #10b981 !important;
+}
+
+.parking-alert-error::before {
+  background-color: #ef4444 !important;
+}
+
+.parking-alert-body {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+.parking-alert-icon-bg {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.parking-alert-success .parking-alert-icon-bg {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+.parking-alert-error .parking-alert-icon-bg {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+.parking-alert-icon-bg .material-symbols-outlined {
+  font-size: 22px !important;
+}
+
+.parking-alert-text {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+.parking-alert-success .parking-alert-text {
+  color: #14532d !important;
+}
+
+.parking-alert-error .parking-alert-text {
+  color: #7f1d1d !important;
+}
+
+.parking-alert-close {
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  color: #94a3b8 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.parking-alert-close:hover {
+  color: #64748b !important;
+  background-color: #f8fafc !important;
+}
+
+
 

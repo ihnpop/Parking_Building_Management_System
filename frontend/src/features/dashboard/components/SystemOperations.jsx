@@ -8,6 +8,8 @@ import {
     exitGate
 } from '../../../service/parkingApi';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import supabase from '../../../config/supabaseClient';
 
 const cameraCards = [
     {
@@ -87,11 +89,38 @@ export default function SystemOperations() {
     const exitPlateInputRef = useRef(null);
 
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        const checkBuildingAssignment = async () => {
+            if (!user) return;
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('building_id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                if (data && !data.building_id) {
+                    setToast({
+                        show: true,
+                        message: 'Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out.',
+                        type: 'error'
+                    });
+                }
+            } catch (err) {
+                console.error("Error checking building assignment:", err);
+            }
+        };
+        checkBuildingAssignment();
+    }, [user]);
 
     // ── Helpers ──────────────────────────────────────────────────────────────
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3500);
+        if (type !== 'error') {
+            setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 5000);
+        }
     };
 
     const resetInForm = () => {
@@ -410,6 +439,28 @@ export default function SystemOperations() {
                 accept="image/*"
                 style={{ display: 'none' }}
             />
+
+            {toast.show && (
+                <div className="parking-alert-container">
+                    <div className={`parking-alert parking-alert-${toast.type}`}>
+                        <div className="parking-alert-body">
+                            <div className="parking-alert-icon-bg">
+                                <span className="material-symbols-outlined">
+                                    {toast.type === 'error' ? 'error' : 'check_circle'}
+                                </span>
+                            </div>
+                            <span className="parking-alert-text">{toast.message}</span>
+                        </div>
+                        <button
+                            type="button"
+                            className="parking-alert-close"
+                            onClick={() => setToast({ show: false, message: '', type: 'success' })}
+                        >
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <main className="system-content">
                 <section className="stats-grid">
@@ -1241,16 +1292,6 @@ export default function SystemOperations() {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Toast notifications */}
-            {toast.show && (
-                <div className={`custom-toast ${toast.type}`} style={{ zIndex: 9999 }}>
-                    <span className="material-symbols-outlined">
-                        {toast.type === 'success' ? 'check_circle' : 'error'}
-                    </span>
-                    <span className="toast-text">{toast.message}</span>
                 </div>
             )}
         </div>
