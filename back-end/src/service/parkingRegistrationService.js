@@ -81,20 +81,26 @@ class ParkingRegistrationService {
 
         // 2.4. Đăng ký gói tháng (Vehicle Package)
         let durationMonth = 1;
+        let price = 0;
         if (String(package_id).startsWith('static-')) {
             const parts = package_id.split('-');
             const pIdx = parseInt(parts[2], 10);
             const durations = [1, 3, 6];
             durationMonth = durations[pIdx] || 1;
+            if (durationMonth === 1) price = 300000;
+            else if (durationMonth === 3) price = 850000;
+            else if (durationMonth === 6) price = 1650000;
+            else price = durationMonth * 300000;
         } else {
-            // Lấy thông tin duration_month từ bảng package để tính end_date
+            // Lấy thông tin duration_month và price từ bảng package để tính end_date
             const { data: pkg, error: pFetchError } = await supabase
                 .from('package')
-                .select('duration_month')
+                .select('duration_month, price')
                 .eq('package_id', package_id)
                 .single();
             if (pFetchError || !pkg) throw new Error("Không tìm thấy gói cước đã chọn.");
             durationMonth = pkg.duration_month;
+            price = Number(pkg.price) || 0;
         }
 
         const startDate = new Date();
@@ -112,6 +118,38 @@ class ParkingRegistrationService {
             }])
             .select().single();
         if (vpError) throw new Error("Lỗi gán gói cước cho xe: " + vpError.message);
+
+        // Tạo payment record cho đăng ký mới (MONTHLY_NEW)
+        if (vehiclePackage) {
+            try {
+                const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+                const { data: dupPayment } = await supabase
+                    .from('payment')
+                    .select('payment_id')
+                    .eq('vehicle_package_id', vehiclePackage.vehicle_package_id)
+                    .eq('payment_type', 'MONTHLY_NEW')
+                    .gte('payment_time', oneMinuteAgo)
+                    .maybeSingle();
+
+                if (!dupPayment) {
+                    const { error: paymentErr } = await supabase
+                        .from('payment')
+                        .insert({
+                            vehicle_package_id: vehiclePackage.vehicle_package_id,
+                            amount: price,
+                            payment_method: 'E-Wallet',
+                            status: 'PAID',
+                            payment_time: new Date().toISOString(),
+                            payment_type: 'MONTHLY_NEW'
+                        });
+                    if (paymentErr) {
+                        console.error("Lỗi insert payment khi đăng ký online:", paymentErr.message);
+                    }
+                }
+            } catch (payEx) {
+                console.error("Exception insert payment khi đăng ký online:", payEx);
+            }
+        }
 
         // 2.5. Kiểm tra và Kích hoạt thẻ RFID (Card & Card Registrations)
         let cardId = null;

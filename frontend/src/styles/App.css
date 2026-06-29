@@ -23606,3 +23606,429 @@ td {
     padding: 12px !important;
   }
 }
+
+.db-kpi {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+.db-kpi-clickable-cue,
+.db-kpi-status-cue {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  margin-top: auto !important;
+  padding-top: 12px !important;
+  font-size: 0.81rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+.db-kpi-clickable-cue {
+  color: #2563eb !important;
+}
+
+.db-kpi--clickable:hover .db-kpi-clickable-cue {
+  color: #1d4ed8 !important;
+}
+
+
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   B2B REVENUE DASHBOARD MODAL SYSTEM (Clean, Modern, Premium UI/UX)
+   ───────────────────────────────────────────────────────────────────────────── */
+.revenue-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.revenue-modal {
+  width: min(860px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.revenue-modal--month {
+  width: min(960px, calc(100vw - 48px));
+}
+
+/* Header */
+.revenue-modal-header {
+  padding: 22px 28px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.revenue-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.revenue-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.revenue-modal-icon--today {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.revenue-modal-icon--month {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.revenue-modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.revenue-modal-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.revenue-modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.revenue-modal-close-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Body & Custom Scrollbar */
+.revenue-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.revenue-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.revenue-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.revenue-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.revenue-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Summary Card Banner */
+.revenue-summary-card {
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.revenue-summary-card--today {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+}
+
+.revenue-summary-card--month {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.revenue-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.revenue-summary-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.revenue-summary-card--today .revenue-summary-label { color: #166534; }
+.revenue-summary-card--month .revenue-summary-label { color: #1e40af; }
+
+.revenue-summary-amount {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.revenue-summary-card--today .revenue-summary-amount { color: #15803d; }
+.revenue-summary-card--month .revenue-summary-amount { color: #1d4ed8; }
+
+.revenue-summary-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.revenue-chip {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.revenue-chip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.revenue-chip-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Sections */
+.revenue-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+.revenue-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.revenue-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.revenue-section-amount {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.revenue-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.revenue-box-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+}
+
+.revenue-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+
+.revenue-empty-text {
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Accordion Week Item */
+.revenue-accordion-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.revenue-accordion-item--active {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+
+.revenue-accordion-header {
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.revenue-accordion-item--active .revenue-accordion-header {
+  background-color: #eff6ff;
+}
+
+.revenue-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.revenue-accordion-item--active .revenue-accordion-title {
+  color: #1e40af;
+}
+
+.revenue-accordion-amount {
+  font-weight: 700;
+  font-size: 16px;
+  color: #334155;
+}
+
+.revenue-accordion-item--active .revenue-accordion-amount {
+  color: #1d4ed8;
+}
+
+.revenue-accordion-content {
+  padding: 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #dbeafe;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Footer */
+.revenue-modal-footer {
+  padding: 14px 28px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.revenue-modal-btn-close {
+  padding: 9px 24px;
+  border-radius: 10px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.revenue-modal-btn-close:hover {
+  background-color: #1e293b;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .revenue-modal {
+    width: calc(100vw - 32px);
+  }
+  .revenue-summary-chips {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .revenue-modal-overlay {
+    padding: 12px;
+  }
+  .revenue-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    border-radius: 16px;
+  }
+  .revenue-modal-header {
+    padding: 16px 20px;
+  }
+  .revenue-modal-body {
+    padding: 16px 20px;
+    gap: 16px;
+  }
+  .revenue-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .revenue-summary-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
