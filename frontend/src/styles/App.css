@@ -23435,3 +23435,174 @@ td {
 .custom-modal-btn.confirm.dangerous:hover {
   background: #DC2626 !important;
 }
+
+/* =========================================================================
+   ADDITIONAL RESPONSIVE OVERRIDES (MOBILE & TABLET FIXES)
+   ========================================================================= */
+
+@media (max-width: 768px) {
+  /* 1. Force the layout flow to remain horizontal, preserving sidebar layout */
+  .layout {
+    flex-direction: row !important;
+  }
+
+  /* 2. Style the sidebar as a vertical sticky collapsed column (64px width) */
+  .sidebar {
+    width: 64px !important;
+    min-width: 64px !important;
+    height: 100vh !important;
+    position: sticky !important;
+    top: 0 !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    border-right: 1px solid var(--db-border) !important;
+    border-bottom: none !important;
+    padding: 0 4px 24px !important;
+    transition: width 0.22s cubic-bezier(.4, 0, .2, 1), min-width 0.22s cubic-bezier(.4, 0, .2, 1) !important;
+    overflow: hidden !important;
+  }
+
+  /* 3. Override global padding on icons within the sidebar to prevent right overflow */
+  .sidebar .material-symbols-outlined {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 4. Center and space collapsed sidebar items properly */
+  .sidebar .menu {
+    padding: 12px 4px !important;
+  }
+
+  .sidebar .menu-item {
+    padding: 10px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  .sidebar .sidebar-footer {
+    padding: 8px 4px 12px !important;
+  }
+
+  .sidebar .sidebar-account-card {
+    padding: 8px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .sidebar .logout {
+    padding: 10px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 4px 0 !important;
+  }
+
+  .sidebar .brand {
+    padding: 0 !important;
+    justify-content: center !important;
+    margin: 0 0 8px !important;
+  }
+
+  .sidebar .brand-logo-zone {
+    justify-content: center !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+
+  /* 5. Hide labels and toggle icons on mobile/tablet sidebar */
+  .sidebar .brand-text-group,
+  .sidebar .sidebar-gemini-toggle-expanded,
+  .sidebar .sidebar-gemini-toggle-collapsed,
+  .sidebar .menu-item span:not(.material-symbols-outlined),
+  .sidebar .account-info-details,
+  .sidebar .logout span:not(.material-symbols-outlined) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  /* 1. Header spacing and title adjustments */
+  .header {
+    padding: 0 12px !important;
+  }
+
+  .header .page-title {
+    font-size: 16px !important;
+  }
+
+  /* 2. Status badge text hidden on mobile, converting it to a green dot badge */
+  .db-status-badge {
+    font-size: 0 !important;
+    padding: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+
+  .db-status-badge span {
+    margin: 0 !important;
+  }
+
+  /* 3. Dashboard title row wrapping and font size scaling */
+  .db-title-row {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .db-h1 {
+    font-size: 18px !important;
+  }
+
+  .db-sub {
+    font-size: 11px !important;
+  }
+
+  /* 4. Convert the dashboard 'Refresh' button into a circular icon-only button */
+  .db-refresh-btn {
+    font-size: 0 !important;
+    padding: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .db-refresh-btn .material-symbols-outlined {
+    margin: 0 !important;
+    font-size: 20px !important;
+  }
+
+  /* 5. Reduce padding of table headers and cells to avoid text clipping */
+  .content th,
+  .content td {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 1. KPI cards, legends, and summary sections in 1-column layouts */
+  .db-kpis,
+  .db-legend,
+  .stats-grid,
+  .lost-stats-grid,
+  .log-stats-grid,
+  .cp-stats-grid,
+  .mc-stats-grid,
+  .cardpage-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 2. Compact padding inside the dashboard page */
+  .db-page {
+    padding: 12px !important;
+  }
+}
