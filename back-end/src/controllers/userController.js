@@ -1,4 +1,5 @@
 import supabase from "../config/supabaseClient.js";
+import { inviteStaff } from "../service/userService.js";
 
 /**
  * GET /api/users
@@ -30,6 +31,45 @@ export const getUsers = async (req, res) => {
         return res.json({ data });
     } catch (err) {
         return res.status(500).json({ message: err.message });
+    }
+};
+
+export const inviteUserController = async (req, res) => {
+    try {
+        const { email, username, full_name, phone, role_id, building_id } =
+            req.body;
+
+        if (!email || !username || !full_name || !role_id) {
+            return res.status(400).json({
+                success: false,
+                message: "Thiếu thông tin bắt buộc (email, username, full_name, role_id)",
+            });
+        }
+
+        // URL trang custom đặt password trong frontend (đổi domain theo môi trường thực tế)
+        const redirectTo = `${process.env.FRONTEND_URL}/set-password`;
+
+        const profile = await inviteStaff({
+            email,
+            username,
+            full_name,
+            phone,
+            role_id,
+            building_id,
+            redirectTo,
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: `Đã gửi lời mời tới email ${email}`,
+            data: profile,
+        });
+    } catch (error) {
+        console.error("inviteUserController error:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Lỗi server khi tạo lời mời",
+        });
     }
 };
 
@@ -82,24 +122,24 @@ export const updateUserRole = async (req, res) => {
 };
 
 const getInitials = (name) => {
-  if (!name) return "UK";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
+    if (!name) return "UK";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
 };
 
 const getDeviceIcon = (device) => {
-  if (!device) return 'public';
-  const dLower = device.toLowerCase();
-  if (dLower.includes('ios') || dLower.includes('android') || dLower.includes('phone') || dLower.includes('iphone')) {
-    return 'phone_iphone';
-  }
-  if (dLower.includes('windows') || dLower.includes('mac') || dLower.includes('linux')) {
-    return 'desktop_windows';
-  }
-  return 'public';
+    if (!device) return 'public';
+    const dLower = device.toLowerCase();
+    if (dLower.includes('ios') || dLower.includes('android') || dLower.includes('phone') || dLower.includes('iphone')) {
+        return 'phone_iphone';
+    }
+    if (dLower.includes('windows') || dLower.includes('mac') || dLower.includes('linux')) {
+        return 'desktop_windows';
+    }
+    return 'public';
 };
 
 export const getLoginLogs = async (req, res) => {

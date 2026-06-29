@@ -39,3 +39,16 @@ export const updateCard = async (id, payload) => {
 
     return response.data.data || response.data;
 };
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const inviteUser = async (payload) => {
+    // payload: { email, username, full_name, phone, role_id, building_id }
+    const response = await API.post(`/users/invite`, payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data.data || response.data;
+};

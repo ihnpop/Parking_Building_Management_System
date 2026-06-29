@@ -1,17 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
+import { getUsers, updateUserRole } from '../../../service/userApi';
+import { inviteUser } from '../../../service/cardApi';
+import supabase from '../../../config/supabaseClient';
 
 export default function UserManagementPage() {
     const { userRole } = useAuth();
     const { showConfirm, showToast } = useNotification();
 
-    // Bảo toàn 100% dữ liệu mẫu và cấu trúc của bạn
-    const [users, setUsers] = useState([
-        { id: 1, name: 'Nguyễn Văn A', username: 'manager', email: 'manager@gmail.com', phone: '0912345678', status: 'Không hoạt động', role: 'Manager' },
-        { id: 2, name: 'Trần Văn B', username: 'staff', email: 'staff@gmail.com', phone: '0987654321', status: 'Không hoạt động', role: 'Staff' },
-        { id: 3, name: 'Nguyễn Anh Tuấn', username: 'admin', email: 'admin@gmail.com', phone: '0909090909', status: 'Không hoạt động', role: 'Admin' }
-    ]);
+    const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]);
+    const [buildings, setBuildings] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // States for Invite Modal
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [inviteData, setInviteData] = useState({
+        email: '',
+        username: '',
+        full_name: '',
+        phone: '',
+        role_id: '',
+        building_id: ''
+    });
 
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả');
@@ -26,6 +38,56 @@ export default function UserManagementPage() {
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+
+    const fetchUsers = async () => {
+        try {
+            setIsLoading(true);
+            const data = await getUsers();
+            const formatted = data.map(u => ({
+                id: u.id,
+                name: u.full_name || '',
+                username: u.username || '',
+                email: u.email || '',
+                phone: u.phone || '',
+                status: u.status || 'Không hoạt động',
+                role: u.role?.role_name ? (u.role.role_name.charAt(0) + u.role.role_name.slice(1).toLowerCase()) : 'Staff'
+            }));
+            setUsers(formatted);
+        } catch (error) {
+            console.error("Lỗi lấy danh sách user:", error);
+            showToast("Không thể tải danh sách người dùng", "error");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchRolesAndBuildings = async () => {
+        try {
+            const { data: roleList, error: roleError } = await supabase.from('role').select('*');
+            if (roleError) throw roleError;
+            setRoles(roleList || []);
+
+            const { data: buildingList, error: buildingError } = await supabase.from('building').select('*');
+            if (buildingError) throw buildingError;
+            setBuildings(buildingList || []);
+
+            // Set default roles and buildings in form
+            if (roleList && roleList.length > 0) {
+                const defaultRole = roleList.find(r => r.role_name.toUpperCase() === 'STAFF') || roleList[0];
+                setInviteData(prev => ({ ...prev, role_id: defaultRole.role_id }));
+            }
+            if (buildingList && buildingList.length > 0) {
+                setInviteData(prev => ({ ...prev, building_id: buildingList[0].building_id }));
+            }
+        } catch (error) {
+            console.error("Lỗi tải thông tin role/building:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers();
+        fetchRolesAndBuildings();
+    }, []);
 
     // Xử lý đóng các menu khi click ra ngoài vùng tương tác
     useEffect(() => {
@@ -44,9 +106,9 @@ export default function UserManagementPage() {
     }, []);
 
     const filteredUsers = users.filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(search.toLowerCase()) ||
-            user.email.toLowerCase().includes(search.toLowerCase()) ||
-            user.username.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = (user.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+            (user.email?.toLowerCase() || '').includes(search.toLowerCase()) ||
+            (user.username?.toLowerCase() || '').includes(search.toLowerCase());
         const matchesRole = roleFilter === 'Tất cả' || user.role === roleFilter;
         return matchesSearch && matchesRole;
     });
@@ -57,12 +119,52 @@ export default function UserManagementPage() {
         setActiveMenuId(null);
     };
 
-    const handleSaveEdit = (e) => {
+    const handleSaveEdit = async (e) => {
         e.preventDefault();
-        setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
-        setIsEditModalOpen(false);
-        setEditingUser(null);
-        showToast("Đã lưu thông tin người dùng thành công!", "success");
+        try {
+            setIsLoading(true);
+            const roleNameUpper = editingUser.role.toUpperCase(); // e.g. "ADMIN", "MANAGER", "STAFF"
+            await updateUserRole(editingUser.id, roleNameUpper);
+            
+            setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
+            setIsEditModalOpen(false);
+            setEditingUser(null);
+            showToast("Đã lưu thông tin người dùng thành công!", "success");
+        } catch (error) {
+            console.error("Lỗi cập nhật vai trò:", error);
+            showToast("Lỗi khi cập nhật vai trò: " + (error.response?.data?.message || error.message), "error");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleInviteSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            setIsLoading(true);
+            const response = await inviteUser(inviteData);
+            showToast(response.message || "Đã gửi lời mời thành công!", "success");
+            
+            // Reload user list to show the new user
+            fetchUsers();
+            
+            // Close modal and reset form
+            setIsInviteModalOpen(false);
+            setInviteData({
+                email: '',
+                username: '',
+                full_name: '',
+                phone: '',
+                role_id: roles.find(r => r.role_name.toUpperCase() === 'STAFF')?.role_id || roles[0]?.role_id || '',
+                building_id: buildings[0]?.building_id || ''
+            });
+        } catch (error) {
+            console.error("Lỗi khi thêm nhân viên:", error);
+            const errMsg = error.response?.data?.message || error.message || "Lỗi khi gửi lời mời";
+            showToast(errMsg, "error");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleDeleteUser = (userId) => {
@@ -153,6 +255,23 @@ export default function UserManagementPage() {
                         )}
                     </div>
 
+                    {/* NÚT THÊM NHÂN VIÊN (CHỈ HIỂN THỊ VỚI ADMIN) */}
+                    {userRole === 'ADMIN' && (
+                        <button
+                            type="button"
+                            onClick={() => setIsInviteModalOpen(true)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
+                                border: 'none', borderRadius: '6px', background: 'linear-gradient(135deg, #e65c00, #ff8c1a)',
+                                color: '#fff', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease',
+                                boxShadow: '0 2px 4px rgba(230, 92, 0, 0.2)'
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px', padding: 0 }}>person_add</span>
+                            Thêm nhân viên
+                        </button>
+                    )}
+
                 </div>
             </div>
 
@@ -178,7 +297,7 @@ export default function UserManagementPage() {
                                             color: user.role === 'Admin' ? '#0f5132' : user.role === 'Manager' ? '#842029' : '#333',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem'
                                         }}>
-                                            {user.name.split(' ').pop().substring(0, 2).toUpperCase()}
+                                            {(user.name || '').split(' ').pop().substring(0, 2).toUpperCase()}
                                         </div>
                                         <div>
                                             <div style={{ fontWeight: '600', color: '#333' }}>{user.name}</div>
@@ -317,6 +436,110 @@ export default function UserManagementPage() {
                                 </button>
                                 <button type="submit" className="user-modal-btn submit">
                                     Xác nhận lưu
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Hộp thoại Modal Popup thêm nhân viên mới */}
+            {isInviteModalOpen && (
+                <div className="user-management-modal-overlay" onClick={() => setIsInviteModalOpen(false)}>
+                    <div className="user-management-modal-box" onClick={(e) => e.stopPropagation()}>
+                        <div className="user-modal-header">
+                            <h3>Thêm nhân viên mới</h3>
+                            <button type="button" className="modal-close-x-btn" onClick={() => setIsInviteModalOpen(false)}>
+                                <span className="material-symbols-outlined" style={{ padding: 0 }}>close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleInviteSubmit} className="user-modal-form-body">
+                            <div className="user-modal-input-group">
+                                <label>Họ và tên</label>
+                                <input
+                                    type="text"
+                                    placeholder="Nhập họ và tên..."
+                                    value={inviteData.full_name}
+                                    onChange={(e) => setInviteData(prev => ({ ...prev, full_name: e.target.value }))}
+                                    required
+                                />
+                            </div>
+
+                            <div className="user-modal-input-group">
+                                <label>Tên đăng nhập (Username)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Nhập tên đăng nhập..."
+                                    value={inviteData.username}
+                                    onChange={(e) => setInviteData(prev => ({ ...prev, username: e.target.value }))}
+                                    required
+                                />
+                            </div>
+
+                            <div className="user-modal-input-group">
+                                <label>Địa chỉ Email</label>
+                                <input
+                                    type="email"
+                                    placeholder="Nhập email để gửi mã mời..."
+                                    value={inviteData.email}
+                                    onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
+                                    required
+                                />
+                            </div>
+
+                            <div className="user-modal-input-group">
+                                <label>Số điện thoại</label>
+                                <input
+                                    type="text"
+                                    placeholder="Nhập số điện thoại..."
+                                    value={inviteData.phone}
+                                    onChange={(e) => setInviteData(prev => ({ ...prev, phone: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="user-modal-input-group">
+                                <label>Vai trò (Role)</label>
+                                <div className="modal-select-styled-wrapper">
+                                    <select
+                                        value={inviteData.role_id}
+                                        onChange={(e) => setInviteData(prev => ({ ...prev, role_id: e.target.value }))}
+                                        required
+                                    >
+                                        <option value="" disabled>-- Chọn vai trò --</option>
+                                        {roles.map(r => (
+                                            <option key={r.role_id} value={r.role_id}>
+                                                {r.role_name} ({r.description || ''})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="user-modal-input-group">
+                                <label>Tòa nhà trực thuộc (Building)</label>
+                                <div className="modal-select-styled-wrapper">
+                                    <select
+                                        value={inviteData.building_id}
+                                        onChange={(e) => setInviteData(prev => ({ ...prev, building_id: e.target.value }))}
+                                        required
+                                    >
+                                        <option value="" disabled>-- Chọn tòa nhà --</option>
+                                        {buildings.map(b => (
+                                            <option key={b.building_id} value={b.building_id}>
+                                                {b.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="user-modal-footer-actions">
+                                <button type="button" className="user-modal-btn cancel" onClick={() => setIsInviteModalOpen(false)} disabled={isLoading}>
+                                    Hủy bỏ
+                                </button>
+                                <button type="submit" className="user-modal-btn submit" disabled={isLoading}>
+                                    {isLoading ? 'Đang gửi lời mời...' : 'Gửi lời mời'}
                                 </button>
                             </div>
                         </form>

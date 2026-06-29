@@ -1,6 +1,6 @@
 import express from "express";
-import { getUsers, updateUserRole, getLoginLogs } from "../controllers/userController.js";
-import { verifyToken } from "../middlewares/auth.js";
+import { getUsers, updateUserRole, getLoginLogs, inviteUserController } from "../controllers/userController.js";
+import { verifyToken, authorize } from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -21,5 +21,8 @@ router.patch("/:id/role", updateUserRole);
  * Lấy danh sách nhật ký đăng nhập
  */
 router.get("/login-logs", verifyToken, getLoginLogs);
+
+// Chỉ admin mới được tạo user mới
+router.post("/invite", verifyToken, authorize("ADMIN"), inviteUserController);
 
 export default router;

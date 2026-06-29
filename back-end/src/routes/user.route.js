@@ -1,5 +1,4 @@
 import express from "express";
-
 const router = express.Router();
 
 
@@ -34,5 +33,7 @@ router.delete(
     ),
     deleteUser
 );
+
+
 
 export default router;
