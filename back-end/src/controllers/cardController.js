@@ -9,24 +9,6 @@ export const getCards = async (req, res) => {
   }
 };
 
-export const getMonthCards = async (req, res) => {
-  try {
-    const monthCards = await cardService.getMonthCards();
-    res.status(200).json(monthCards);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export const getMonthCardLogs = async (req, res) => {
-  try {
-    const logs = await cardService.getMonthCardLogs();
-    res.status(200).json(logs);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
 export const getLostCards = async (req, res) => {
   try {
     const lostCards = await cardService.getLostCards();
@@ -66,7 +48,7 @@ export const deleteCard = async (req, res) => {
     await cardService.deleteCard(id, deleted_by);
     res.status(200).json({
       success: true,
-      message: "Card deleted successfully"
+      message: "Xóa card thành công"
     });
   } catch (err) {
     res.status(400).json({
@@ -75,11 +57,21 @@ export const deleteCard = async (req, res) => {
     });
   }
 };
-
 // Create a new card
 export const createCard = async (req, res) => {
   try {
     const { type, startDate, plate, fullName, phone, email, durationMonths } = req.body;
+
+    // Kiểm tra định dạng biển số xe nếu có nhập
+    if (plate && plate.trim() !== '') {
+      const rawPlate = plate.replace(/[\s.\-]/g, '').toUpperCase();
+      const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+      if (!plateRegex.test(rawPlate)) {
+        return res.status(400).json({
+          error: 'Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).'
+        });
+      }
+    }
     const newCard = await cardService.createCard({
       type,
       startDate,

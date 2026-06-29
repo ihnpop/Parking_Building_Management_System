@@ -158,13 +158,13 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     exit_time: exitTime.toISOString(),
     exit_vehicle_image: exitVehicleUrl,
     exit_plate_image: exitPlateUrl,
-    status: "COMPLETED",
+    status: "Hoàn thành",
   });
 
-  return { 
-    success: true, 
-    message: "Check out successfully", 
-    session: updatedSession, 
-    fee 
+  return {
+    success: true,
+    message: "Check out successfully",
+    session: updatedSession,
+    fee
   };
 };

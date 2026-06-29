@@ -1,229 +1,334 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const initialLogs = [
-    { timestamp: '2023-11-24 14:32:01', username: 'nguyen.lam', initials: 'NL', role: 'Nhân viên', ip: '192.168.1.45', device: 'Chrome / macOS', deviceIcon: 'desktop_windows', location: 'Hà Nội, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:30:15', username: 'unknown_user', initials: 'UK', role: 'Nhân viên', ip: '45.12.8.212', device: 'Unknown / Bot', deviceIcon: 'public', location: 'Kyiv, UA', status: 'Failed' },
-    { timestamp: '2023-11-24 14:28:44', username: 'tran.hoang', initials: 'TH', role: 'Nhân viên', ip: '115.23.45.98', device: 'Safari / iOS', deviceIcon: 'tablet_mac', location: 'TP.HCM, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:15:22', username: 'admin_main', initials: 'AD', role: 'Admin', ip: '10.0.0.5', device: 'Firefox / Windows', deviceIcon: 'laptop', location: 'Hà Nội, VN', status: 'Success' },
-    { timestamp: '2023-11-24 14:10:05', username: 'le.van.an', initials: 'LV', role: 'Nhân viên', ip: '172.16.0.12', device: 'Edge / Windows', deviceIcon: 'desktop_windows', location: 'Đà Nẵng, VN', status: 'Success' },
-];
+import { getLoginLogs } from '../../../service/userApi';
 
 export default function LoginLogPage() {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
-    const [logs, setLogs] = useState(initialLogs);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const [rawLogs, setRawLogs] = useState([]);
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadLogs = async () => {
+        setLoading(true);
+        try {
+            const data = await getLoginLogs();
+            setRawLogs(data || []);
+            setLogs(data || []);
+        } catch (err) {
+            console.error("Lỗi lấy nhật ký đăng nhập:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadLogs();
+    }, []);
 
     const handleFilter = () => {
-        let filtered = initialLogs.filter((log) => {
-            const matchesSearch = log.username.toLowerCase().includes(search.toLowerCase()) ||
-                log.ip.toLowerCase().includes(search.toLowerCase()) ||
-                log.location.toLowerCase().includes(search.toLowerCase());
+        let filtered = rawLogs.filter((log) => {
+            const matchesSearch = (log.username || '').toLowerCase().includes(search.toLowerCase()) ||
+                (log.ip || '').toLowerCase().includes(search.toLowerCase()) ||
+                (log.location || '').toLowerCase().includes(search.toLowerCase());
 
             const matchesRole = roleFilter === 'Tất cả vai trò' || log.role === roleFilter;
 
-            return matchesSearch && matchesRole;
+            let matchesDate = true;
+            if (startDate || endDate) {
+                const logDateStr = log.login_time || log.timestamp;
+                if (logDateStr) {
+                    const logDate = new Date(logDateStr);
+                    if (!isNaN(logDate.getTime())) {
+                        logDate.setHours(0, 0, 0, 0);
+
+                        if (startDate) {
+                            const sDate = new Date(startDate);
+                            sDate.setHours(0, 0, 0, 0);
+                            if (logDate < sDate) matchesDate = false;
+                        }
+                        if (endDate) {
+                            const eDate = new Date(endDate);
+                            eDate.setHours(23, 59, 59, 999);
+                            if (logDate > eDate) matchesDate = false;
+                        }
+                    }
+                }
+            }
+
+            return matchesSearch && matchesRole && matchesDate;
         });
         setLogs(filtered);
     };
 
+    useEffect(() => {
+        handleFilter();
+    }, [search, roleFilter, startDate, endDate, rawLogs]);
+
+    const getStatusClass = (status) => {
+        if (status === 'Thành công') return 'success';
+        if (status === 'Thất bại' || status === 'Tài khoản bị khóa') return 'failed';
+        return status?.toLowerCase() || '';
+    };
+
+    const totalLogins = logs.length;
+    const failedLogins = logs.filter(log => log.status === 'Thất bại' || log.status === 'Tài khoản bị khóa').length;
+    const successLogins = logs.filter(log => log.status === 'Thành công').length;
+    const activeSessions = successLogins; // Giả lập số phiên hoạt động dựa trên số lần đăng nhập thành công gần đây
+
     return (
-        <div className="login-log-page">
-
-
+        <div className="lost-card-log-wrapper">
             {/* Stats Cards */}
-            <section className="log-stats-grid">
-                <article className="log-stat-card border-none">
-                    <div className="log-stat-header">
-                        <span className="badge-today">+12% so với hôm qua</span>
+            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
+                <div className="lost-kpi-grid">
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-gray">
+                                <span className="material-symbols-outlined">login</span>
+                            </div>
+                            <span className="lost-kpi-title">Tổng đăng nhập</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value">{totalLogins}</div>
+                            <div className="lost-kpi-footer txt-gray">Ghi nhận</div>
+                        </div>
                     </div>
-                    <div className="log-stat-body">
-                        <p className="log-stat-label">TOTAL LOGINS TODAY</p>
-                        <p className="log-stat-value">1,284</p>
-                    </div>
-                </article>
 
-                <article className="log-stat-card border-none">
-                    <div className="log-stat-header">
-                        <span className="log-stat-icon-top group-icon">
-                            <span className="material-symbols-outlined">groups</span>
-                        </span>
-                        <span className="badge-stable">Ổn định</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-green">
+                                <span className="material-symbols-outlined">check_circle</span>
+                            </div>
+                            <span className="lost-kpi-title">Thành công</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-green">{successLogins}</div>
+                            <div className="lost-kpi-footer txt-green">Truy cập hợp lệ</div>
+                        </div>
                     </div>
-                    <div className="log-stat-body">
-                        <p className="log-stat-label">ACTIVE SESSIONS</p>
-                        <p className="log-stat-value">42</p>
-                    </div>
-                </article>
 
-                <article className="log-stat-card border-none failed-card">
-                    <div className="log-stat-header">
-                        <span className="log-stat-icon-top alert-icon">
-                            <span className="material-symbols-outlined">error</span>
-                        </span>
-                        <span className="badge-alert">Cảnh báo</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-blue">
+                                <span className="material-symbols-outlined">groups</span>
+                            </div>
+                            <span className="lost-kpi-title">Phiên hoạt động</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-blue">{activeSessions}</div>
+                            <div className="lost-kpi-footer txt-blue">Đang online</div>
+                        </div>
                     </div>
-                    <div className="log-stat-body">
-                        <p className="log-stat-label">FAILED ATTEMPTS</p>
-                        <p className="log-stat-value text-red">15</p>
+
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-red">
+                                <span className="material-symbols-outlined">error</span>
+                            </div>
+                            <span className="lost-kpi-title">Thất bại / Khóa</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-red">{failedLogins}</div>
+                            <div className="lost-kpi-footer txt-red">Cảnh báo bảo mật</div>
+                        </div>
                     </div>
-                </article>
-            </section>
+                </div>
+
+                <div className="lost-dist-card">
+                    <div className="lost-dist-title">
+                        <span className="material-symbols-outlined">monitoring</span>
+                        Phân phối đăng nhập
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Mốc tổng đăng nhập</span>
+                            <span><span className="lost-dist-val">{totalLogins}</span> <span className="lost-dist-pct">(100%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-dark" style={{ width: '100%' }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thành công</span>
+                            <span><span className="lost-dist-val">{successLogins}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((successLogins / totalLogins) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-green" style={{ width: `${totalLogins > 0 ? (successLogins / totalLogins) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Phiên hoạt động</span>
+                            <span><span className="lost-dist-val">{activeSessions}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((activeSessions / totalLogins) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-blue" style={{ width: `${totalLogins > 0 ? (activeSessions / totalLogins) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thất bại</span>
+                            <span><span className="lost-dist-val">{failedLogins}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((failedLogins / totalLogins) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-red" style={{ width: `${totalLogins > 0 ? (failedLogins / totalLogins) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Filter Toolbar */}
-            <section className="log-toolbar">
-                <div className="log-filters">
-                    <div className="log-filter-group search-group">
-                        <label>Username / IP Address</label>
-                        <div className="search-input-wrapper">
-                            <span className="material-symbols-outlined">person</span>
+            <div className="lost-filter-card">
+                <div className="filter-block">
+                    <label className="filter-label">TÌM KIẾM NÂNG CAO</label>
+                    <div className="filter-input-wrapper">
+                        <span className="material-symbols-outlined icon-left">search</span>
+                        <input
+                            type="text"
+                            className="filter-input has-icon-left"
+                            placeholder="Nhập tên, IP hoặc vị trí..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="filter-block">
+                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
+                    <div className="filter-input-wrapper">
+                        <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
                             <input
-                                type="text"
-                                placeholder="Nhập tên hoặc IP..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
+                            />
+                            <span style={{ color: '#94a3b8', fontSize: '13px' }}>đến</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
                             />
                         </div>
                     </div>
+                </div>
 
-                    <div className="log-filter-group date-group">
-                        <label>Khoảng thời gian</label>
-                        <div className="date-input-wrapper">
-                            <span className="material-symbols-outlined">calendar_today</span>
-                            <input type="text" value="10/10/2023 - 11/10/2023" readOnly />
-                        </div>
-                    </div>
-
-                    <div className="log-filter-group dropdown-group">
-                        <label>Vai trò (Role)</label>
-                        <select
-                            className="log-select"
-                            value={roleFilter}
+                <div className="filter-block">
+                    <label className="filter-label">VAI TRÒ (ROLE)</label>
+                    <div className="filter-input-wrapper">
+                        <select 
+                            className="filter-select"
+                            value={roleFilter} 
                             onChange={(e) => setRoleFilter(e.target.value)}
                         >
                             <option value="Tất cả vai trò">Tất cả vai trò</option>
                             <option value="Admin">Admin</option>
+                            <option value="Quản lý">Quản lý</option>
                             <option value="Nhân viên">Nhân viên</option>
                         </select>
+                        <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
-
-                    <button type="button" className="log-filter-button" onClick={handleFilter}>
-                        <span className="material-symbols-outlined">filter_alt</span>
-                        Filter
-                    </button>
                 </div>
-            </section>
+            </div>
 
             {/* Table */}
             <section className="log-table-card">
-                <table className="log-table">
-                    <thead>
-                        <tr>
-                            <th>TIMESTAMP</th>
-                            <th>USERNAME</th>
-                            <th>ROLE</th>
-                            <th>IP ADDRESS</th>
-                            <th>DEVICE/BROWSER</th>
-                            <th>LOCATION</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {logs.length > 0 ? (
-                            logs.map((log, index) => (
-                                <tr key={index}>
-                                    <td className="log-timestamp">{log.timestamp}</td>
-                                    <td>
-                                        <div className="log-user-cell">
-                                            <div className={`user-avatar-circle initials-${log.initials}`}>
-                                                {log.initials}
-                                            </div>
-                                            <span className="username-text">{log.username}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`role-badge ${log.role === 'Admin' ? 'admin' : 'staff'}`}>
-                                            {log.role}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
-                                    </td>
-                                    <td>
-                                        <div className="log-device-cell">
-                                            <span className={`material-symbols-outlined device-icon ${log.status === 'Failed' ? 'text-red' : ''}`}>
-                                                {log.deviceIcon}
-                                            </span>
-                                            <span>{log.device}</span>
-                                        </div>
-                                    </td>
-                                    <td>{log.location}</td>
-                                    <td>
-                                        <span className={`status-badge-log ${log.status.toLowerCase()}`}>
-                                            {log.status}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button type="button" className="log-action-btn">
-                                            <span className="material-symbols-outlined">visibility</span>
-                                        </button>
-                                    </td>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
+                        Đang tải dữ liệu nhật ký đăng nhập...
+                    </div>
+                ) : (
+                    <>
+                        <table className="log-table">
+                            <thead>
+                                <tr>
+                                    <th>THỜI GIAN</th>
+                                    <th>HỌ TÊN</th>
+                                    <th>VAI TRÒ</th>
+                                    <th>ĐỊA CHỈ IP</th>
+                                    <th>THIẾT BỊ/TRÌNH DUYỆT</th>
+                                    <th>VỊ TRÍ</th>
+                                    <th>TRẠNG THÁI</th>
+                                    <th>HÀNH ĐỘNG</th>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                    Không có dữ liệu nhật ký phù hợp
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                {logs.length > 0 ? (
+                                    logs.map((log, index) => (
+                                        <tr key={index}>
+                                            <td className="log-timestamp">{log.timestamp}</td>
+                                            <td>
+                                                <div className="log-user-cell">
+                                                    <div className={`user-avatar-circle initials-${log.initials || 'UK'}`}>
+                                                        {log.initials || 'UK'}
+                                                    </div>
+                                                    <span className="username-text">{log.username}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className={`role-badge ${log.role === 'Admin' ? 'admin' : log.role === 'Quản lý' ? 'manager' : 'staff'}`}>
+                                                    {log.role}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
+                                            </td>
+                                            <td>
+                                                <div className="log-device-cell">
+                                                    <span className={`material-symbols-outlined device-icon ${log.status !== 'Thành công' ? 'text-red' : ''}`}>
+                                                        {log.deviceIcon || 'public'}
+                                                    </span>
+                                                    <span>{log.device}</span>
+                                                </div>
+                                            </td>
+                                            <td>{log.location}</td>
+                                            <td>
+                                                <span className={`status-badge-log ${getStatusClass(log.status)}`}>
+                                                    {log.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button type="button" className="log-action-btn">
+                                                    <span className="material-symbols-outlined">visibility</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                            Không có dữ liệu nhật ký phù hợp
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
 
-                {/* Footer */}
-                <div className="log-table-footer">
-                    <span className="footer-info">Đang hiển thị 1 - {logs.length} của 256 bản ghi</span>
-                    <div className="log-pagination">
-                        <button type="button" className="page-btn">
-                            <span className="material-symbols-outlined">chevron_left</span>
-                        </button>
-                        <button type="button" className="page-btn active">1</button>
-                        <button type="button" className="page-btn">2</button>
-                        <button type="button" className="page-btn">3</button>
-                        <span className="pagination-dots">...</span>
-                        <button type="button" className="page-btn">52</button>
-                        <button type="button" className="page-btn">
-                            <span className="material-symbols-outlined">chevron_right</span>
-                        </button>
-                    </div>
-                </div>
+                        {/* Footer */}
+                        <div className="log-table-footer">
+                            <span className="footer-info">Đang hiển thị 1 - {logs.length} của {logs.length} bản ghi</span>
+                            <div className="log-pagination">
+                                <button type="button" className="page-btn" disabled>
+                                    <span className="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <button type="button" className="page-btn active">1</button>
+                                <button type="button" className="page-btn" disabled>
+                                    <span className="material-symbols-outlined">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </section>
-
-            {/* Bottom Section widgets */}
-            {/* <section className="log-bottom-widgets">
-                <article className="widget-card security-report">
-                    <div className="widget-content">
-                        <h3>Báo cáo bảo mật hàng tuần</h3>
-                        <p>Tóm tắt các nỗ lực truy cập bất hợp pháp và phân tích rủi ro hệ thống.</p>
-                    </div>
-                    <button type="button" className="widget-action-btn">
-                        <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
-                </article>
-
-                <article className="widget-card system-status">
-                    <div className="widget-content">
-                        <h3>Tình trạng hệ thống</h3>
-                        <p>Tất cả các dịch vụ xác thực đang hoạt động bình thường ở mức hiệu năng tối ưu.</p>
-                    </div>
-                    <div className="status-indicator-circle">
-                        <span className="material-symbols-outlined">check</span>
-                    </div>
-                </article>
-            </section> */}
         </div>
     );
 }

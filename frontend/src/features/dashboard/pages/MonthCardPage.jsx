@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getMonthCards } from '../../../service/cardApi';
+import { getMonthCards, deleteMonthCard } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
+import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -11,6 +12,7 @@ export default function MonthCardPage() {
     const [error, setError] = useState(null);
     const [renewingCard, setRenewingCard] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -35,6 +37,7 @@ export default function MonthCardPage() {
     };
 
     useEffect(() => {
+        document.title = "Quản lý vé tháng | Parking Building Management System";
         fetchMonthCards();
     }, []);
 
@@ -89,8 +92,8 @@ export default function MonthCardPage() {
     // Stats
     const total = monthCards.length;
     const active = monthCards.filter(c => c.status === 'Hoạt động').length;
-    const expiring = monthCards.filter(c => c.status === 'Sắp hết hạn').length;
-    const expired = monthCards.filter(c => c.status === 'Đã hết hạn').length;
+    const expiring = monthCards.filter(c => c.status === 'Đang chờ').length;
+    const expired = monthCards.filter(c => c.status === 'Đã khóa').length;
 
     const activePercent = total > 0 ? Math.round((active / total) * 100) : 0;
     const expiringPercent = total > 0 ? Math.round((expiring / total) * 100) : 0;
@@ -105,8 +108,8 @@ export default function MonthCardPage() {
     const getStatusBadgeClass = (status) => {
         switch (status) {
             case 'Hoạt động': return 'mc-status-badge mc-status-active';
-            case 'Sắp hết hạn': return 'mc-status-badge mc-status-expiring';
-            case 'Đã hết hạn': return 'mc-status-badge mc-status-expired';
+            case 'Đang chờ': return 'mc-status-badge mc-status-expiring';
+            case 'Đã khóa': return 'mc-status-badge mc-status-expired';
             default: return 'mc-status-badge mc-status-active';
         }
     };
@@ -117,12 +120,49 @@ export default function MonthCardPage() {
         setStatusFilter('Tất cả trạng thái');
     };
 
+    // ── Trạng thái xóa thẻ tháng ──────────────────────────────────────────────
+    const [deletingCard, setDeletingCard] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
+
+    // ── Toast thông báo kết quả ─────────────────
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    };
+
+    // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
+    const handleDelete = async () => {
+        if (!deletingCard) return;
+        try {
+            setIsDeleting(true);
+            setDeleteError(null);
+
+            await deleteMonthCard(deletingCard.card_id);
+
+            setDeletingCard(null);
+            showToast(`Xóa thẻ ${deletingCard.cardNo} thành công!`, 'success');
+            fetchMonthCards();
+        } catch (err) {
+            console.error("Error deleting month card:", err);
+            setDeleteError(err.response?.data?.message || err.message || "Xóa vé tháng thất bại. Vui lòng thử lại!");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const closeDeleteModal = () => {
+        setDeletingCard(null);
+        setDeleteError(null);
+    };
+
     return (
         <div className="mc-page">
             {/* Stats Row */}
             <div className="mc-stats-row">
                 <div className="mc-stats-grid">
-                    {/* Tổng số vé */}
                     <div className="mc-stat-card">
                         <div className="mc-stat-icon mc-stat-icon-primary">
                             <span className="material-symbols-outlined">confirmation_number</span>
@@ -132,7 +172,6 @@ export default function MonthCardPage() {
                             <p className="mc-stat-value">{loading ? '...' : total}</p>
                         </div>
                     </div>
-                    {/* Đang hoạt động */}
                     <div className="mc-stat-card">
                         <div className="mc-stat-icon mc-stat-icon-secondary">
                             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
@@ -142,17 +181,15 @@ export default function MonthCardPage() {
                             <p className="mc-stat-value">{loading ? '...' : active}</p>
                         </div>
                     </div>
-                    {/* Sắp hết hạn */}
                     <div className="mc-stat-card">
                         <div className="mc-stat-icon mc-stat-icon-warning">
                             <span className="material-symbols-outlined">warning</span>
                         </div>
                         <div>
-                            <p className="mc-stat-label">Sắp hết hạn</p>
+                            <p className="mc-stat-label">Đang chờ</p>
                             <p className="mc-stat-value">{loading ? '...' : expiring}</p>
                         </div>
                     </div>
-                    {/* Đã hết hạn */}
                     <div className="mc-stat-card">
                         <div className="mc-stat-icon mc-stat-icon-error">
                             <span className="material-symbols-outlined">schedule</span>
@@ -170,14 +207,12 @@ export default function MonthCardPage() {
                     <div className="mc-donut-wrapper">
                         <svg className="mc-donut-svg" viewBox="0 0 36 36">
                             <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#e1e1ee" strokeWidth="3" />
-                            {/* Active */}
                             <circle cx="18" cy="18" r="15.915" fill="transparent"
                                 stroke="#006d38"
                                 strokeWidth="3"
                                 strokeDasharray={`${activeStroke} ${circumference - activeStroke}`}
                                 strokeDashoffset="25"
                             />
-                            {/* Expiring */}
                             {expiringPercent > 0 && (
                                 <circle cx="18" cy="18" r="15.915" fill="transparent"
                                     stroke="#d0c715ff"
@@ -186,7 +221,6 @@ export default function MonthCardPage() {
                                     strokeDashoffset={25 - activeStroke}
                                 />
                             )}
-                            {/* Expired */}
                             {expiredPercent > 0 && (
                                 <circle cx="18" cy="18" r="15.915" fill="transparent"
                                     stroke="#ba1a1a"
@@ -247,8 +281,8 @@ export default function MonthCardPage() {
                     >
                         <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                         <option value="Hoạt động">Hoạt động</option>
-                        <option value="Sắp hết hạn">Sắp hết hạn</option>
-                        <option value="Đã hết hạn">Đã hết hạn</option>
+                        <option value="Đang chờ">Đang chờ</option>
+                        <option value="Đã khóa">Đã khóa</option>
                     </select>
                 </div>
                 <div className="mc-action-buttons">
@@ -256,22 +290,16 @@ export default function MonthCardPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
                         Làm mới
                     </button>
-                    {/* <button type="button" className="mc-btn mc-btn-outline" onClick={() => alert("Vui lòng chọn nút Gia hạn ở cột Thao tác của từng thẻ tháng trong danh sách bên dưới.")}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
-                        Gia hạn
-                    </button> */}
-                    <button type="button" className="mc-btn mc-btn-primary">
+                    <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                        Thêm mới
+                        Đăng ký vé tháng
                     </button>
                 </div>
             </div>
 
             {/* Data Table */}
             <div className="mc-table-card">
-                {error && (
-                    <div className="mc-error-message">{error}</div>
-                )}
+                {error && <div className="mc-error-message">{error}</div>}
 
                 {loading ? (
                     <div className="mc-loading-message">Đang tải danh sách vé tháng...</div>
@@ -299,8 +327,8 @@ export default function MonthCardPage() {
                                                 <td>{String((currentPage - 1) * ITEMS_PER_PAGE + index + 1).padStart(2, '0')}</td>
                                                 <td className="mc-td-bold">{row.cardNo}</td>
                                                 <td>{row.plate || '---'}</td>
-                                                <td>{row.customer || 'Khách vãng lai'}</td>
-                                                <td>{row.type || 'Xe máy'}</td>
+                                                <td>{row.customer || '---'}</td>
+                                                <td>{row.type || '---'}</td>
                                                 <td>{row.startDate || 'Chưa có'}</td>
                                                 <td>{row.endDate || 'Không giới hạn'}</td>
                                                 <td>
@@ -327,6 +355,13 @@ export default function MonthCardPage() {
                                                         disabled={!row.registrationId || row.status === 'Đã khóa'}
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
+                                                    </button>
+                                                    <button type="button" className="cp-delete-btn"
+                                                        style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        onClick={() => setDeletingCard(row)}
+                                                        title="Xóa thẻ"
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
                                                     </button>
                                                 </td>
                                             </tr>
@@ -381,6 +416,16 @@ export default function MonthCardPage() {
                 )}
             </div>
 
+            {/* COMPONENT DIALOG TẠO MỚI THEO LUỒNG EKYC ĐÃ BỔ SUNG */}
+            <CreateMonthCardDialog
+                isOpen={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                onSuccess={() => {
+                    setIsCreateOpen(false);
+                    fetchMonthCards();
+                }}
+            />
+
             <RenewCardDialog
                 isOpen={!!renewingCard}
                 onClose={() => setRenewingCard(null)}
@@ -393,6 +438,39 @@ export default function MonthCardPage() {
                 cardData={editingCard}
                 onSuccess={fetchMonthCards}
             />
+
+            {deletingCard && (
+                <div className="mc-confirm-overlay">
+                    <div className="mc-confirm-box">
+                        <p>Bạn chắc chắn muốn xóa thẻ <b>{deletingCard.cardNo}</b>?</p>
+                        <p style={{ fontSize: '13px', color: '#999' }}>
+                            Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.
+                        </p>
+
+                        {deleteError && (
+                            <p style={{ color: '#ff6b6b', fontSize: '13px', marginTop: '8px' }}>
+                                {deleteError}
+                            </p>
+                        )}
+
+                        <div className="mc-confirm-actions">
+                            <button onClick={closeDeleteModal} disabled={isDeleting}>Hủy</button>
+                            <button onClick={handleDelete} disabled={isDeleting} className="mc-btn-danger">
+                                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    <span className="material-symbols-outlined">
+                        {toast.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="toast-text">{toast.message}</span>
+                </div>
+            )}
         </div>
     );
 }

@@ -10,6 +10,7 @@ import MonthCardLogPage from './MonthCardLogPage';
 import LoginLogPage from './LoginLogPage';
 import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
+import SystemSettingsPage from './SystemSettingsPage';
 
 // ─── Mock hourly traffic data ───────────────────────────────────────────────
 const HOURLY_DATA = [0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 8, 10, 12, 9, 7, 6, 14, 22, 28, 30, 18, 10, 4, 1];
@@ -133,7 +134,7 @@ export default function DashboardView() {
             {currentView === 'log-management' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
-                        {renderTabButton('Nhật ký quẹt thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
+                        {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
                         {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
                         {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
                     </div>
@@ -156,6 +157,13 @@ export default function DashboardView() {
             {currentView === 'revenue-traffic' && (
                 <div style={{ marginTop: '10px', padding: '24px' }}>
                     <RevenueTrafficPage />
+                </div>
+            )}
+
+            {/* VIEW CÀI ĐẶT HỆ THỐNG */}
+            {currentView === 'system-settings' && (
+                <div style={{ marginTop: '10px', padding: '24px' }}>
+                    <SystemSettingsPage />
                 </div>
             )}
 

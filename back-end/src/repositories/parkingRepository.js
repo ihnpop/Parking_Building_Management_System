@@ -28,7 +28,7 @@ export const createParkingSession = async ({
       entry_vehicle_image,
       entry_plate_image,
       entry_time: new Date().toISOString(),
-      status: "PARKING",
+      status: "Đang gửi xe",
       card_id,
     })
     .select()
@@ -48,7 +48,7 @@ export const findActiveSessionByPlate = async (plateNumber) => {
     .from("parking_sessions")
     .select("*")
     .eq("plate_number", plateNumber)
-    .eq("status", "PARKING")
+    .eq("status", "Đang gửi xe")
     .order("entry_time", { ascending: false })
     .limit(1)
     .maybeSingle();

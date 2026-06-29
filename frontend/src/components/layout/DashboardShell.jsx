@@ -35,6 +35,7 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             case 'user-management': return 'Quản lý Phân quyền';
             case 'card-management': return 'Quản lý Thẻ';
             case 'log-management': return 'Nhật ký vận hành';
+            case 'system-settings': return 'Cài đặt hệ thống';
             default: return 'Bảng điều khiển';
         }
     };
@@ -43,7 +44,7 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
 
     return (
         <div className={`layout ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}>
-            {activeViewTab !== 'system' && (
+            {role !== 'STAFF' && (
                 <Sidebar
                     activeTab={activeViewTab}
                     onTabChange={handleTabChange}
@@ -53,11 +54,13 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             )}
 
             <div className="main">
-                <Topbar
-                    title={getTopbarTitle()}
-                    showExtras={activeViewTab === 'system' || activeViewTab === 'user-management'}
-                    currentTab={activeViewTab}
-                />
+                {activeViewTab !== 'settings' && (
+                    <Topbar
+                        title={getTopbarTitle()}
+                        showExtras={activeViewTab === 'system' || activeViewTab === 'user-management'}
+                        currentTab={activeViewTab}
+                    />
+                )}
 
                 <main className="content">
                     {activeTab === 'system' ? <SystemOperations /> : children}

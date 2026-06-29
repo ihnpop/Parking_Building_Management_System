@@ -1,4 +1,4 @@
-﻿CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
 -- ROLE
@@ -493,7 +493,6 @@ CREATE TABLE feedback (
     rating INT,
 
     status VARCHAR(50) DEFAULT 'Mới',
-
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -592,20 +591,6 @@ CREATE TABLE public.entry_exit_log (
         REFERENCES vehicle_type(vehicle_type_id)
 );
 
-
-create table public.login_logs (
-  log_id uuid not null default gen_random_uuid (),
-  profiles_id uuid null,
-  username character varying(255) not null,
-  ip_address character varying(50) null,
-  device_browser text null,
-  location character varying(255) null,
-  status character varying(50) not null,
-  login_time timestamptz null default now(),
-  constraint login_logs_pkey primary key (log_id),
-  constraint login_logs_profiles_id_fkey foreign KEY (profiles_id) references profiles (id)
-) TABLESPACE pg_default;
-
 CREATE TABLE public.card_activity_logs (
     log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
@@ -634,6 +619,32 @@ CREATE TABLE public.card_activity_logs (
     performed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Staff thực hiện
     performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),                     -- Thời gian thực hiện
     note TEXT                                                            -- Ghi chú/Lý do
+);
+
+CREATE TABLE public.login_logs (
+
+    log_id UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    profiles_id UUID,
+
+    username VARCHAR(255) NOT NULL,
+
+    ip_address VARCHAR(50),
+
+    device_browser TEXT,
+
+    location VARCHAR(255),
+
+    status VARCHAR(50) NOT NULL,
+
+    login_time TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+    CONSTRAINT fk_login_logs_profiles
+        FOREIGN KEY (profiles_id)
+        REFERENCES profiles(id)
+        ON DELETE CASCADE
 );
 
 -- ==========================================
