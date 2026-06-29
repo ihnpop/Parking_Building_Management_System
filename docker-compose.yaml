@@ -33,3 +33,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
+  ai-service:
+    build: ./ai-services
+    ports:
+      - "8000:8000"
