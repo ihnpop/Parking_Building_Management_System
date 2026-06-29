@@ -1,36 +1,235 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getCards, createCard } from '../../../service/cardApi';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getCards, createCard, deleteCard, updateCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
+import { getVNDateTimeLocal } from '../../../utils/dateUtils';
 
-/**
- * CardPage displays a centralized card management workspace.
- * Fetching data dynamically from Supabase via backend API.
- */
+const ITEMS_PER_PAGE = 8;
 
 const INITIAL_FORM = {
     type: 'Thẻ lượt',
     plate: '',
-    fullName: '',
-    phone: '',
-    email: '',
-    durationMonths: '1',
-    startDate: new Date().toISOString().split('T')[0],
+    checkInTime: '',
+    checkOutTime: '',
+    status: 'Hoạt động'
 };
 
+// ─────────────────────────────────────────────
+// Modal 1: Tạo thẻ mới
+// ─────────────────────────────────────────────
+function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
+    return (
+        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="cp-modal">
+                <div className="cp-modal-header">
+                    <h2>Đăng ký thẻ mới</h2>
+                    <button type="button" className="cp-modal-close" onClick={onClose}>
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form className="cp-modal-form" onSubmit={onSubmit}>
+                    {/* 1. Loại thẻ */}
+                    <div className="cp-form-group">
+                        <label htmlFor="type">Loại thẻ</label>
+                        <select
+                            id="type"
+                            name="type"
+                            className="cp-select"
+                            value={formData.type}
+                            onChange={onChange}
+                        >
+                            <option value="Thẻ lượt">Thẻ lượt</option>
+                            {/* <option value="Thẻ tháng">Thẻ tháng</option> */}
+                        </select>
+                    </div>
+
+                    {/* 2. Biển số xe */}
+                    <div className="cp-form-group">
+                        <label htmlFor="plate">Biển số xe</label>
+                        <input
+                            id="plate"
+                            name="plate"
+                            type="text"
+                            placeholder="Ví dụ: 30K12345"
+                            className="cp-input"
+                            value={formData.plate}
+                            onChange={onChange}
+                        />
+                    </div>
+
+                    {/* 3. Ngày bắt đầu */}
+                    <div className="cp-form-group">
+                        <label htmlFor="startDate">Ngày bắt đầu</label>
+                        <input
+                            id="startDate"
+                            name="startDate"
+                            type="datetime-local"
+                            className="cp-input"
+                            value={formData.startDate}
+                            onChange={onChange}
+                        />
+                    </div>
+
+                    {/* 4. Trạng thái — readonly, luôn là "Hoạt động" khi tạo mới */}
+                    <div className="cp-form-group">
+                        <label htmlFor="status">Trạng thái</label>
+                        <input
+                            id="status"
+                            name="status"
+                            type="text"
+                            className="cp-input"
+                            value={formData.status}
+                            readOnly
+                        />
+                    </div>
+
+                    {formError && <p className="cp-form-error">{formError}</p>}
+
+                    <div className="cp-modal-actions">
+                        <button
+                            type="button"
+                            className="cp-btn cp-btn-outline"
+                            onClick={onClose}
+                            disabled={submitting}
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            className="cp-btn cp-btn-primary"
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Đang lưu...' : 'Đăng ký'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// Modal 2: Cập nhật thẻ
+// ─────────────────────────────────────────────
+function EditCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
+    const hasPlate = formData.plate && formData.plate.trim() !== '';
+
+    return (
+        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="cp-modal">
+                <div className="cp-modal-header">
+                    <h2>Cập nhật thẻ</h2>
+                    <button type="button" className="cp-modal-close" onClick={onClose}>
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form className="cp-modal-form" onSubmit={onSubmit}>
+                    <div className="cp-form-group">
+                        <label htmlFor="plate">Biển số xe</label>
+                        <input
+                            id="plate"
+                            name="plate"
+                            type="text"
+                            // readOnly
+                            placeholder="Ví dụ: 59G112345 (Nếu có)"
+                            className="cp-input"
+                            value={formData.plate}
+                            onChange={onChange}
+                        />
+                    </div>
+
+                    <div className="cp-form-group">
+                        <label>Thời gian vào</label>
+                        <input
+                            type="datetime-local"
+                            name="checkInTime"
+                            value={formData.checkInTime}
+                            onChange={onChange}
+                            className="cp-input"
+                            disabled={!hasPlate}
+                        />
+                    </div>
+
+                    <div className="cp-form-group">
+                        <label>Thời gian ra</label>
+                        <input
+                            type="datetime-local"
+                            name="checkOutTime"
+                            value={formData.checkOutTime}
+                            onChange={onChange}
+                            className="cp-input"
+                            disabled={!hasPlate}
+                        />
+                    </div>
+
+                    <div className="cp-form-group">
+                        <label>Trạng thái</label>
+                        <select
+                            name="status"
+                            value={formData.status}
+                            onChange={onChange}
+                            className="cp-select"
+                            disabled={!hasPlate}
+                        >
+                            <option value="Hoạt động">Hoạt động</option>
+                            <option value="Đang chờ">Đang chờ</option>
+                            <option value="Đã khóa">Đã khóa</option>
+                            <option value="Hết hạn">Hết hạn</option>
+                        </select>
+                    </div>
+
+                    {formError && <p className="cp-form-error">{formError}</p>}
+
+                    {!hasPlate && (
+                        <p style={{ color: '#f59e0b', fontSize: '14px', marginTop: '8px' }}>
+                            Thẻ chưa có biển số nên không thể chỉnh sửa thời gian vào, thời gian ra và trạng thái.
+                        </p>
+                    )}
+
+                    <div className="cp-modal-actions">
+                        <button
+                            type="button"
+                            className="cp-btn cp-btn-outline"
+                            onClick={onClose}
+                            disabled={submitting}
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            className="cp-btn cp-btn-primary"
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Đang lưu...' : 'Cập nhật'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const navigate = useNavigate();
-    const { userRole } = useAuth();
+    const { userRole, user } = useAuth();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Modal state
-    const [showModal, setShowModal] = useState(false);
+    // Modal state — tách biệt create / edit
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+    const [editingCard, setEditingCard] = useState(null);
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    
     const getRoleLabel = (r) => {
         switch (r) {
             case 'ADMIN': return 'Admin';
@@ -40,13 +239,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }
     };
 
-    // Filters - Tự động nhận defaultType từ Tab lớn hệ thống
-    const [typeFilter, setTypeFilter] = useState(defaultType);
-    const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
+    // Toast
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    };
 
-    useEffect(() => {
-        setTypeFilter(defaultType);
-    }, [defaultType]);
+    // Filters
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
+    const [currentPage, setCurrentPage] = useState(1);
 
     const fetchCards = async () => {
         try {
@@ -62,397 +265,412 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }
     };
 
-    useEffect(() => {
-        fetchCards();
-    }, []);
+    useEffect(() => { fetchCards(); }, []);
 
-    // Reset filters
-    const handleResetFilters = () => {
-        setTypeFilter(defaultType);
-        setStatusFilter('Tất cả trạng thái');
-    };
+    // ── Handlers ──────────────────────────────
 
-    // Filter logic
-    const filteredCards = cards.filter(card => {
-        const matchesType = typeFilter === 'Tất cả loại thẻ' || card.type === typeFilter;
-        const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
-        return matchesType && matchesStatus;
-    });
-
-    // Stats
-    const totalCards = cards.length;
-    const activeCards = cards.filter(c => c.status === 'Hoạt động').length;
-    const lockedCards = cards.filter(c => c.status === 'Đã khóa').length;
-
-    const summaryItems = [
-        { label: 'TỔNG SỐ THẺ', value: totalCards, note: 'Tất cả các thẻ đang quản lý' },
-        { label: 'ĐANG HOẠT ĐỘNG', value: activeCards, note: 'Thẻ hiện đang sử dụng được' },
-        { label: 'ĐÃ KHÓA', value: lockedCards, note: 'Thẻ bị chặn hoặc vô hiệu' },
-    ];
-
-    // Open modal
     const handleCreateCard = () => {
-        setFormData({ ...INITIAL_FORM, type: defaultType === 'Tất cả loại thẻ' ? 'Thẻ tháng' : defaultType });
+        setFormData({
+            type: 'Thẻ lượt',
+            plate: '',
+            startDate: getVNDateTimeLocal(),
+            status: 'Hoạt động'
+        });
         setFormError(null);
-        setShowModal(true);
+        setShowCreateModal(true);
     };
 
-    // Close modal
-    const handleCloseModal = () => {
-        setShowModal(false);
+    const handleEdit = (card) => {
+        setEditingCard(card);
+        setFormData({
+            type: 'Thẻ lượt',
+            plate: card.plate || '',
+            checkInTime: card.check_in_time
+                ? new Date(card.check_in_time).toISOString().slice(0, 16)
+                : '',
+            checkOutTime: card.check_out_time
+                ? new Date(card.check_out_time).toISOString().slice(0, 16)
+                : '',
+            status: card.status || 'Hoạt động'
+        });
         setFormError(null);
+        setShowEditModal(true);
     };
 
-    // Handle form field change
+    const handleDelete = async (row) => {
+        if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) return;
+        try {
+            const res = await deleteCard(row.card_id, user?.id);
+            if (res.success) {
+                showToast(res.message || "Xóa thẻ thành công", "success");
+                await fetchCards();
+            } else {
+                showToast(res.message || "Xóa thẻ thất bại", "error");
+            }
+        } catch (err) {
+            const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
+            showToast(errMsg, "error");
+        }
+    };
+
+    const handleCloseCreate = () => { setShowCreateModal(false); setFormError(null); };
+    const handleCloseEdit = () => { setShowEditModal(false); setFormError(null); setEditingCard(null); };
+
     const handleFormChange = (e) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleCreate = async (e) => {
         e.preventDefault();
         setFormError(null);
 
-        if (!formData.startDate) {
-            setFormError('Vui lòng chọn ngày bắt đầu.');
-            return;
-        }
-
-        if (formData.type === 'Thẻ tháng') {
-            if (!formData.plate || !formData.fullName || !formData.phone || !formData.email) {
-                setFormError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe cho Thẻ tháng.');
+        // Kiểm tra định dạng biển số xe
+        if (formData.plate && formData.plate.trim() !== '') {
+            const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
+            const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+            if (!plateRegex.test(rawPlate)) {
+                setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
                 return;
             }
         }
 
         try {
             setSubmitting(true);
-
-            // Đóng gói dữ liệu (Mã thẻ UID tự sinh ngẫu nhiên hoặc xử lý ngầm ở backend nếu bỏ nhập tay)
-            const payload = {
-                type: formData.type,
+            await createCard({
+                type: 'Thẻ lượt',
                 startDate: formData.startDate,
-                plate: formData.plate.trim() || undefined,
-                fullName: formData.type === 'Thẻ tháng' ? formData.fullName : undefined,
-                phone: formData.type === 'Thẻ tháng' ? formData.phone : undefined,
-                email: formData.type === 'Thẻ tháng' ? formData.email : undefined,
-                durationMonths: formData.type === 'Thẻ tháng' ? formData.durationMonths : undefined,
-            };
-
-            await createCard(payload);
-            setShowModal(false);
+                plate: formData.plate.trim() || undefined
+            });
+            showToast("Đăng ký thẻ mới thành công", "success");
+            setShowCreateModal(false);
             await fetchCards();
         } catch (err) {
-            console.error('Error creating card:', err);
             setFormError(err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
         } finally {
             setSubmitting(false);
         }
     };
 
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        setFormError(null);
+        const hasPlate = formData.plate && formData.plate.trim() !== '';
+        try {
+            setSubmitting(true);
+            await updateCard(editingCard.card_id, {
+                type: 'Thẻ lượt',
+                plate: formData.plate,
+                checkInTime: hasPlate ? formData.checkInTime : null,
+                checkOutTime: hasPlate ? formData.checkOutTime : null,
+                status: hasPlate ? formData.status : editingCard.status
+            });
+            showToast("Cập nhật thẻ thành công", "success");
+            setShowEditModal(false);
+            setEditingCard(null);
+            await fetchCards();
+        } catch (err) {
+            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // ── Filters & pagination (giữ nguyên) ────
+
+    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
+
+    const filteredCards = useMemo(() => cards.filter(card => {
+        const matchesSearch = search === '' ||
+            (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
+            (card.plate || '').toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    }), [cards, search, statusFilter]);
+
+    useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
+
+    const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
+    const paginatedCards = filteredCards.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (currentPage > 3) pages.push('...');
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (currentPage < totalPages - 2) pages.push('...');
+            pages.push(totalPages);
+        }
+        return pages;
+    };
+
+    // ── Stats & donut (giữ nguyên) ────────────
+
+    const total = cards.length;
+    const active = cards.filter(c => c.status === 'Hoạt động').length;
+    const locked = cards.filter(c => c.status === 'Đã khóa').length;
+    const inactiveCount = total - active - locked;
+
+    const activePercent = total > 0 ? Math.round((active / total) * 100) : 0;
+    const lockedPercent = total > 0 ? Math.round((locked / total) * 100) : 0;
+    const inactivePercent = total > 0 ? Math.round((inactiveCount / total) * 100) : 0;
+
+    const circumference = 2 * Math.PI * 15.915;
+    const activeStroke = (activePercent / 100) * circumference;
+    const lockedStroke = (lockedPercent / 100) * circumference;
+    const inactiveStroke = (inactivePercent / 100) * circumference;
+
+    const getStatusBadgeClass = (status) => {
+        if (status === 'Hoạt động') return 'cp-status-badge cp-status-active';
+        if (status === 'Đã khóa') return 'cp-status-badge cp-status-locked';
+        return 'cp-status-badge cp-status-inactive';
+    };
+
+    // ── Render ────────────────────────────────
+
     return (
-        <main className="card-page" style={{ width: '100%' }}>
-            {/* Khối thống kê */}
-            <section className="cardpage-summary-grid" style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                {summaryItems.map((item) => (
-                    <article key={item.label} className="cardpage-summary-card" style={{ flex: 1, padding: '15px', border: '1px solid #eee', borderRadius: '8px', background: '#fff' }}>
-                        <p className="summary-label" style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#666', fontWeight: '600' }}>{item.label}</p>
-                        <p className="summary-value" style={{ margin: '0 0 5px 0', fontSize: '1.8rem', fontWeight: 'bold' }}>{loading ? '...' : item.value}</p>
-                        <p className="summary-note" style={{ margin: 0, fontSize: '0.75rem', color: '#999' }}>{item.note}</p>
-                    </article>
-                ))}
-            </section>
-
-            {/* Thanh công cụ / bộ lọc */}
-            <section className="cardpage-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px', flexWrap: 'wrap' }}>
-                <div className="cardpage-filters" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                    <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#555', fontWeight: '500' }}>Loại thẻ</label>
-                        <select
-                            className="cardpage-select"
-                            value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
-                        >
-                            <option value="Tất cả loại thẻ">Tất cả loại thẻ</option>
-                            <option value="Thẻ tháng">Thẻ tháng</option>
-                            <option value="Thẻ lượt">Thẻ lượt</option>
-                        </select>
+        <div className="cp-page">
+            {/* Stats Row */}
+            <div className="cp-stats-row">
+                <div className="cp-stats-grid">
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-primary">
+                            <span className="material-symbols-outlined">credit_card</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Tổng số thẻ</p>
+                            <p className="cp-stat-value">{loading ? '...' : total}</p>
+                        </div>
                     </div>
-
-                    <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#555', fontWeight: '500' }}>Trạng thái</label>
-                        <select
-                            className="cardpage-select"
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
-                        >
-                            <option value="Tất cả trạng thái">Tất cả trạng thái</option>
-                            <option value="Hoạt động">Hoạt động</option>
-                            <option value="Đã khóa">Đã khóa</option>
-                        </select>
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-secondary">
+                            <span className="material-symbols-outlined">check_circle</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Đang hoạt động</p>
+                            <p className="cp-stat-value">{loading ? '...' : active}</p>
+                        </div>
                     </div>
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-error">
+                            <span className="material-symbols-outlined">block</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Đã khóa</p>
+                            <p className="cp-stat-value">{loading ? '...' : locked}</p>
+                        </div>
+                    </div>
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-warning">
+                            <span className="material-symbols-outlined">date_range</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Thẻ đang chờ</p>
+                            <p className="cp-stat-value">{loading ? '...' : inactiveCount}</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <button
-                        type="button"
-                        className="cardpage-button secondary"
-                        onClick={handleResetFilters}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', marginTop: '22px', fontSize: '0.9rem' }}
+                {/* Donut Chart */}
+                <div className="cp-donut-card">
+                    <h3 className="cp-donut-title">TỶ LỆ TRẠNG THÁI THẺ</h3>
+                    <div className="cp-donut-wrapper">
+                        <svg className="cp-donut-svg" viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#f3f4f6" strokeWidth="3" />
+                            <circle cx="18" cy="18" r="15.915" fill="transparent"
+                                stroke="#006d38" strokeWidth="3"
+                                strokeDasharray={`${activeStroke} ${circumference - activeStroke}`}
+                                strokeDashoffset="25"
+                            />
+                            {lockedPercent > 0 && (
+                                <circle cx="18" cy="18" r="15.915" fill="transparent"
+                                    stroke="#ba1a1a" strokeWidth="3"
+                                    strokeDasharray={`${lockedStroke} ${circumference - lockedStroke}`}
+                                    strokeDashoffset={25 - activeStroke}
+                                />
+                            )}
+                            {inactivePercent > 0 && (
+                                <circle cx="18" cy="18" r="15.915" fill="transparent"
+                                    stroke="hsla(54, 89%, 49%, 1.00)" strokeWidth="3"
+                                    strokeDasharray={`${inactiveStroke} ${circumference - inactiveStroke}`}
+                                    strokeDashoffset={25 - activeStroke - lockedStroke}
+                                />
+                            )}
+                        </svg>
+                        <div className="cp-donut-center">
+                            <span className="cp-donut-percent">{loading ? '...' : `${activePercent}%`}</span>
+                            <span className="cp-donut-sub">Hoạt động</span>
+                        </div>
+                    </div>
+                    <div className="cp-donut-legend">
+                        <div className="cp-legend-item"><div className="cp-legend-dot cp-legend-active"></div><span>Hoạt động</span></div>
+                        <div className="cp-legend-item"><div className="cp-legend-dot cp-legend-locked"></div><span>Đã khóa</span></div>
+                        <div className="cp-legend-item"><div className="cp-legend-dot cp-legend-inactive"></div><span>Đang chờ</span></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="cp-action-bar">
+                <div className="cp-filters">
+                    <div className="cp-search-wrapper">
+                        <span className="material-symbols-outlined cp-search-icon">search</span>
+                        <input
+                            type="text"
+                            className="cp-search-input"
+                            placeholder="Tìm theo mã thẻ, biển số..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <select
+                        className="cp-filter-select"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                        Làm mới bộ lọc
+                        <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+                        <option value="Hoạt động">Hoạt động</option>
+                        <option value="Đang chờ">Đang chờ</option>
+                        <option value="Đã khóa">Đã khóa</option>
+                    </select>
+                </div>
+                <div className="cp-action-buttons">
+                    <button type="button" className="cp-btn cp-btn-outline" onClick={handleResetFilters}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
+                        Làm mới
+                    </button>
+                    <button type="button" className="cp-btn cp-btn-primary" onClick={handleCreateCard}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                        Đăng ký thẻ mới
                     </button>
                 </div>
+            </div>
 
-                <div className="cardpage-actions" style={{ display: 'flex', gap: '10px', marginTop: '22px' }}>
-                    <button type="button" className="cardpage-button outline" onClick={fetchCards} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '0.9rem' }}>
-                        Tải lại dữ liệu
-                    </button>
-                    <button type="button" className="cardpage-button primary" onClick={handleCreateCard} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                        + Đăng ký thẻ mới
-                    </button>
-                </div>
-            </section>
-
-            {/* Bảng danh sách */}
-            <section className="cardpage-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px', background: '#fff' }}>
-                <div className="cardpage-table-header" style={{ marginBottom: '15px' }}>
-                    <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', fontWeight: '600' }}>Danh sách thẻ</h2>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Quản lý thông tin thẻ, loại thẻ, trạng thái và hành động.</p>
-                </div>
-
-                {error && (
-                    <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
-                        {error}
-                    </div>
-                )}
+            {/* Data Table */}
+            <div className="cp-table-card">
+                {error && <div className="cp-error-message">{error}</div>}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-                        Đang tải danh sách thẻ...
-                    </div>
+                    <div className="cp-loading-message">Đang tải danh sách thẻ...</div>
                 ) : (
                     <>
-                        <table className="cardpage-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left', color: '#666', fontSize: '0.85rem' }}>
-                                    <th style={{ padding: '12px' }}>MÃ THẺ</th>
-                                    <th style={{ padding: '12px' }}>LOẠI</th>
-                                    <th style={{ padding: '12px' }}>BIỂN SỐ</th>
-                                    <th style={{ padding: '12px' }}>TRẠNG THÁI</th>
-                                    <th style={{ padding: '12px' }}>THAO TÁC</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCards.length > 0 ? (
-                                    filteredCards.map((row) => (
-                                        <tr key={row.card_id || row.code} style={{ borderBottom: '1px solid #eee', fontSize: '0.95rem' }}>
-                                            <td style={{ padding: '12px', fontWeight: '600' }}>{row.code}</td>
-                                            <td style={{ padding: '12px' }}>{row.type}</td>
-                                            <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
-                                            <td style={{ padding: '12px' }}>
-                                                <span className={`cardpage-status ${row.status === 'Hoạt động' ? 'active' : 'locked'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '12px', color: row.status === 'Hoạt động' ? '#4caf50' : '#f44336' }}>circle</span>
-                                                    {row.status}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <button type="button" className="cardpage-icon-button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
+                        <div className="cp-table-scroll">
+                            <table className="cp-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                            Không tìm thấy thẻ phù hợp
-                                        </td>
+                                        <th>STT</th>
+                                        <th>Mã thẻ</th>
+                                        <th>Biển số</th>
+                                        <th>Trạng thái</th>
+                                        <th className="cp-th-center">Thao tác</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </>
-                )}
-            </section>
-
-            {/* ===== MODAL ĐĂNG KÝ THÈ MỚI ĐÃ LOẠI BỎ HOÀN TOÀN TRƯỜNG UID ===== */}
-            {showModal && (
-                <div
-                    className="cardpage-modal-overlay"
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}
-                    onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}
-                >
-                    <div className="cardpage-modal" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', width: '480px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                        <div className="cardpage-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600' }}>Đăng ký thẻ mới</h2>
-                            <button type="button" className="cardpage-modal-close" onClick={handleCloseModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
+                                </thead>
+                                <tbody>
+                                    {paginatedCards.length > 0 ? (
+                                        paginatedCards.map((row, index) => (
+                                            <tr key={row.code || index} className="cp-table-row">
+                                                <td>{String((currentPage - 1) * ITEMS_PER_PAGE + index + 1).padStart(2, '0')}</td>
+                                                <td className="cp-td-bold">{row.code}</td>
+                                                <td>{row.plate || '---'}</td>
+                                                <td>
+                                                    <span className={getStatusBadgeClass(row.status)}>{row.status}</span>
+                                                </td>
+                                                <td className="cp-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    <button type="button" className="cp-edit-btn"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        onClick={() => handleEdit(row)} title="Chỉnh sửa"
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
+                                                    </button>
+                                                    <button type="button" className="cp-delete-btn"
+                                                        style={{ color: '#ba1a1a', background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        onClick={() => handleDelete(row)} title="Xóa thẻ"
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="cp-empty-row">Không tìm thấy thẻ phù hợp</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
 
-                        <form className="cardpage-modal-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-                            {/* 1. Loại thẻ */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="type" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Loại thẻ</label>
-                                <select
-                                    id="type"
-                                    name="type"
-                                    className="cardpage-select"
-                                    value={formData.type}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
-                                    required
-                                >
-                                    <option value="Thẻ tháng">Thẻ tháng</option>
-                                    <option value="Thẻ lượt">Thẻ lượt</option>
-                                </select>
-                            </div>
-
-                            {/* 2. Biển số xe */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="plate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Biển số xe {formData.type === 'Thẻ tháng' && <span style={{ color: 'red' }}>*</span>}</label>
-                                <input
-                                    id="plate"
-                                    name="plate"
-                                    placeholder={formData.type === 'Thẻ tháng' ? "Ví dụ: 30K-12345" : "Ví dụ: 59G1-12345 (Nếu có)"}
-                                    className="cardpage-input"
-                                    value={formData.plate}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                    required={formData.type === 'Thẻ tháng'}
-                                />
-                            </div>
-
-                            {/* 3. Ngày bắt đầu */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label htmlFor="startDate" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Ngày bắt đầu</label>
-                                <input
-                                    id="startDate"
-                                    name="startDate"
-                                    type="date"
-                                    className="cardpage-input"
-                                    value={formData.startDate}
-                                    onChange={handleFormChange}
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                    required
-                                />
-                            </div>
-
-                            {/* ─── KHỐI HIỂN THỊ ĐỘNG THEO THỨ TỰ ẢNH MẪU KHI CHỌN THỂ THÁNG ─── */}
-                            {formData.type === 'Thẻ tháng' && (
-                                <>
-                                    {/* 4. Thời hạn đăng ký */}
-                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="durationMonths" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Thời hạn đăng ký</label>
-                                        <select
-                                            id="durationMonths"
-                                            name="durationMonths"
-                                            className="cardpage-select"
-                                            value={formData.durationMonths}
-                                            onChange={handleFormChange}
-                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}
-                                            required
+                        {/* Pagination */}
+                        <div className="cp-pagination-footer">
+                            <p className="cp-pagination-info">
+                                Hiển thị {filteredCards.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredCards.length)} của {filteredCards.length} kết quả
+                            </p>
+                            <div className="cp-pagination-controls">
+                                <button className="cp-page-nav" disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>
+                                    <span className="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                {getPageNumbers().map((page, i) =>
+                                    page === '...' ? (
+                                        <span key={`dots-${i}`} className="cp-page-dots">...</span>
+                                    ) : (
+                                        <button key={page}
+                                            className={`cp-page-btn ${currentPage === page ? 'cp-page-btn-active' : ''}`}
+                                            onClick={() => setCurrentPage(page)}
                                         >
-                                            <option value="1">1 tháng</option>
-                                            <option value="3">3 tháng</option>
-                                            <option value="6">6 tháng</option>
-                                            <option value="9">9 tháng</option>
-                                            <option value="12">12 tháng</option>
-                                        </select>
-                                    </div>
-
-                                    {/* 5. Tên khách hàng */}
-                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="fullName" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Tên khách hàng <span style={{ color: 'red' }}>*</span></label>
-                                        <input
-                                            id="fullName"
-                                            name="fullName"
-                                            type="text"
-                                            placeholder="Ví dụ: Nguyễn Văn A"
-                                            className="cardpage-input"
-                                            value={formData.fullName}
-                                            onChange={handleFormChange}
-                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* 6. Số điện thoại */}
-                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="phone" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Số điện thoại <span style={{ color: 'red' }}>*</span></label>
-                                        <input
-                                            id="phone"
-                                            name="phone"
-                                            type="tel"
-                                            placeholder="Ví dụ: 0987654321"
-                                            className="cardpage-input"
-                                            value={formData.phone}
-                                            onChange={handleFormChange}
-                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* 7. Email */}
-                                    <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        <label htmlFor="email" style={{ fontWeight: '500', fontSize: '0.9rem' }}>Email <span style={{ color: 'red' }}>*</span></label>
-                                        <input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            placeholder="Ví dụ: vana@gmail.com"
-                                            className="cardpage-input"
-                                            value={formData.email}
-                                            onChange={handleFormChange}
-                                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                            required
-                                        />
-                                    </div>
-                                </>
-                            )}
-
-                            {/* 8. Trạng thái */}
-                            <div className="cardpage-form-group" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                <label style={{ fontWeight: '500', fontSize: '0.9rem' }}>Trạng thái</label>
-                                <input
-                                    type="text"
-                                    className="cardpage-input"
-                                    value="Hoạt động"
-                                    disabled
-                                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', opacity: 0.6, cursor: 'not-allowed', backgroundColor: '#f5f5f5' }}
-                                />
-                            </div>
-
-                            {formError && (
-                                <p style={{ color: '#ff4d4d', fontSize: '0.875rem', margin: '4px 0', fontWeight: '500' }}>
-                                    {formError}
-                                </p>
-                            )}
-
-                            <div className="cardpage-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                                <button
-                                    type="button"
-                                    className="cardpage-button secondary"
-                                    onClick={handleCloseModal}
-                                    disabled={submitting}
-                                    style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', fontSize: '0.9rem' }}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="cardpage-button primary"
-                                    disabled={submitting}
-                                    style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
-                                >
-                                    {submitting ? 'Đang lưu...' : 'Đăng ký'}
+                                            {page}
+                                        </button>
+                                    )
+                                )}
+                                <button className="cp-page-nav" disabled={currentPage === totalPages || totalPages === 0}
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>
+                                    <span className="material-symbols-outlined">chevron_right</span>
                                 </button>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* ── Modals ── */}
+            {showCreateModal && (
+                <CreateCardModal
+                    formData={formData}
+                    formError={formError}
+                    submitting={submitting}
+                    onChange={handleFormChange}
+                    onSubmit={handleCreate}
+                    onClose={handleCloseCreate}
+                />
+            )}
+
+            {showEditModal && (
+                <EditCardModal
+                    formData={formData}
+                    formError={formError}
+                    submitting={submitting}
+                    onChange={handleFormChange}
+                    onSubmit={handleUpdate}
+                    onClose={handleCloseEdit}
+                />
+            )}
+
+            {/* Toast */}
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    <span className="material-symbols-outlined">
+                        {toast.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="toast-text">{toast.message}</span>
                 </div>
             )}
-        </main>
-    )
+        </div>
+    );
 }

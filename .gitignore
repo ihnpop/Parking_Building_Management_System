@@ -26,3 +26,12 @@ dist-ssr
 # pnpm store cache (binary files, should never be committed)
 .pnpm-store/
 back-end/.pnpm-store/
+
+# Environment variables
+.env
+
+# Các file env khác
+.env.local
+.env.development
+.env.production
+.env.test
