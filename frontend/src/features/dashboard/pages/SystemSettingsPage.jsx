@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useNotification } from '../../../context/NotificationContext';
 
 export default function SystemSettingsPage() {
-
+    const { showToast } = useNotification();
     const navigate = useNavigate();
     const { user, userRole, logout } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
@@ -58,7 +59,7 @@ export default function SystemSettingsPage() {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
-                alert("Kích thước ảnh vượt quá dung lượng cho phép 2MB!");
+                showToast("Kích thước ảnh vượt quá dung lượng cho phép 2MB!", "error");
                 return;
             }
             const url = URL.createObjectURL(file);
@@ -67,7 +68,7 @@ export default function SystemSettingsPage() {
     };
 
     const handleSave = () => {
-        alert("Đã lưu các thay đổi cấu hình hệ thống thành công!");
+        showToast("Đã lưu các thay đổi cấu hình hệ thống thành công!", "success");
         navigate('/login/dashboard');
     };
 

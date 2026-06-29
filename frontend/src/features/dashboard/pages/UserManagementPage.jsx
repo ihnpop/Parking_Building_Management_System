@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { useNotification } from '../../../context/NotificationContext';
 
 export default function UserManagementPage() {
     const { userRole } = useAuth();
+    const { showConfirm, showToast } = useNotification();
 
     // Bảo toàn 100% dữ liệu mẫu và cấu trúc của bạn
     const [users, setUsers] = useState([
@@ -60,13 +62,22 @@ export default function UserManagementPage() {
         setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
         setIsEditModalOpen(false);
         setEditingUser(null);
+        showToast("Đã lưu thông tin người dùng thành công!", "success");
     };
 
     const handleDeleteUser = (userId) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này không?")) {
-            setUsers(prev => prev.filter(u => u.id !== userId));
-            setActiveMenuId(null);
-        }
+        showConfirm({
+            title: "Xóa người dùng",
+            message: "Bạn có chắc chắn muốn xóa người dùng này không? Hành động này không thể hoàn tác.",
+            confirmText: "Xóa bỏ",
+            cancelText: "Hủy bỏ",
+            isDangerous: true,
+            onConfirm: () => {
+                setUsers(prev => prev.filter(u => u.id !== userId));
+                setActiveMenuId(null);
+                showToast("Đã xóa người dùng thành công!", "success");
+            }
+        });
     };
 
     return (

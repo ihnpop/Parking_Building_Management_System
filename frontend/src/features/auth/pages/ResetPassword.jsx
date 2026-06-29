@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useNotification } from "../../../context/NotificationContext";
 
 export default function ResetPassword() {
 
     const navigate = useNavigate();
+    const { showToast } = useNotification();
 
     const { updatePassword } = useAuth();
 
@@ -30,8 +32,9 @@ export default function ResetPassword() {
 
             await updatePassword(password);
 
-            alert(
-                "Password updated successfully"
+            showToast(
+                "Password updated successfully",
+                "success"
             );
 
             navigate("/login");

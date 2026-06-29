@@ -186,6 +186,7 @@ export function AuthProvider({ children }) {
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("userRole");
+                localStorage.removeItem("dashboard_current_view");
                 // signOut() xóa key nội bộ Supabase (sb-*-auth-token) trong localStorage
                 await supabase.auth.signOut().catch(() => {});
             }
@@ -223,6 +224,7 @@ export function AuthProvider({ children }) {
                 localStorage.removeItem("accessToken");
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("userRole");
+                localStorage.removeItem("dashboard_current_view");
             } else if (session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
@@ -309,6 +311,7 @@ export function AuthProvider({ children }) {
             localStorage.removeItem("accessToken");
             localStorage.removeItem("access_token");
             localStorage.removeItem("userRole");
+            localStorage.removeItem("dashboard_current_view");
         }
     };
 

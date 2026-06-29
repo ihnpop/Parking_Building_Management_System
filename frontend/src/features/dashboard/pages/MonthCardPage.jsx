@@ -3,6 +3,7 @@ import { getMonthCards, deleteMonthCard } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
 import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
+import { useNotification } from '../../../context/NotificationContext';
 
 
 const ITEMS_PER_PAGE = 8;
@@ -140,15 +141,7 @@ export default function MonthCardPage() {
     const [isDeleting, setIsDeleting] = useState(false);      // Khóa nút trong khi đang gửi request xóa
     const [deleteError, setDeleteError] = useState(null);     // Lưu thông báo lỗi riêng cho modal xóa
 
-    // ── Toast thông báo kết quả (dùng chung cho mọi hành động) ─────────────────
-    // state lưu nội dung & loại toast (success | error)
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
-    // Hiện toast trong 3 giây rồi tự ẩn
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-    };
+    const { showToast } = useNotification();
 
     // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
     const handleDelete = async () => {
@@ -496,17 +489,7 @@ export default function MonthCardPage() {
                 </div>
             )}
 
-            {/* ── Toast thông báo kết quả (hiện 3 giây rồi tự ẩn) ── */}
-            {/* Dùng class CSS `custom-toast success` hoặc `custom-toast error` để đổi màu */}
-            {toast.show && (
-                <div className={`custom-toast ${toast.type}`}>
-                    {/* Icon: check_circle khi thành công, error khi thất bại */}
-                    <span className="material-symbols-outlined">
-                        {toast.type === 'success' ? 'check_circle' : 'error'}
-                    </span>
-                    <span className="toast-text">{toast.message}</span>
-                </div>
-            )}
+
         </div>
     );
 }

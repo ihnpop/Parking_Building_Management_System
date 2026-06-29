@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardShell from '../../../components/layout/DashboardShell';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -12,81 +12,111 @@ import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
 import SystemSettingsPage from './SystemSettingsPage';
 
-// ─── Mock hourly traffic data ───────────────────────────────────────────────
-const HOURLY_DATA = [0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 8, 10, 12, 9, 7, 6, 14, 22, 28, 30, 18, 10, 4, 1];
+// ─── Dashboard service ────────────────────────────────────────────────────────
+import {
+    fetchAllDashboardData,
+    formatVND,
+    dashboardFallbackData,
+} from '../../../service/dashboardService';
 
-// ─── Mock floor occupancy ────────────────────────────────────────────────────
-const FLOOR_DATA = [
-    { name: 'Tầng hầm (B1)', used: 1, total: 3 },
-    { name: 'Tầng trệt (G1)', used: 1, total: 4 },
-    { name: 'Khu phụ chính', used: 1, total: 1 },
-];
-
-// ─── Mock vehicle types ──────────────────────────────────────────────────────
-const VEHICLE_TYPES = [
-    { label: 'Xe tải nhẹ', count: 1, pct: 33, color: '#f97316' },
-    { label: 'SUV', count: 1, pct: 33, color: '#2563EB' },
-    { label: 'Sedan', count: 1, pct: 34, color: '#10b981' },
-];
-
-// ─── Mock recent vehicles ────────────────────────────────────────────────────
-const RECENT_IN = [
-    { plate: '61A 660-770', slot: 'L-301', time: '21:47' },
-    { plate: '30F-999.99', slot: 'A-202', time: '20:04' },
-    { plate: '29A-888.88', slot: 'V-102', time: '18:04' },
-];
-
-// ─── Mock incidents ───────────────────────────────────────────────────────────
-const INCIDENTS = [
-    { id: '29A-888.88', type: 'MẤT VÉ', status: 'ĐANG CHỜ', statusClass: 'db-badge--waiting' },
-    { id: 'TH-19283', type: 'THIẾT BỊ LỖI', status: 'HOÀN THÀNH', statusClass: 'db-badge--done' },
-];
-
-// ─── Weekly revenue bars ──────────────────────────────────────────────────────
-const WEEK_BARS = [
-    { label: 'T2', h: 120 },
-    { label: 'T3', h: 170 },
-    { label: 'T4', h: 95 },
-    { label: 'T5', h: 140 },
-    { label: 'T6', h: 210 },
-    { label: 'T7', h: 230, peak: true },
-    { label: 'CN', h: 150 },
-];
-
-const MAX_BAR = 230;
+// ─── Fallback mock – chỉ dùng cho chart "Xu hướng doanh thu" khi payment chưa có seed ──
+// TODO: replace with real database field when available (payment chưa có dữ liệu seed)
+const WEEK_BARS = dashboardFallbackData.revenueTrendBars;
+const MAX_BAR = dashboardFallbackData.revenueTrendMaxBar;
 
 export default function DashboardView() {
     const { userRole, user } = useAuth();
+    // eslint-disable-next-line no-unused-vars
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
-    const [currentView, setCurrentView] = useState('dashboard');
+    const [currentView, setCurrentView] = useState(() => {
+        const savedView = localStorage.getItem('dashboard_current_view');
+        return savedView || 'dashboard';
+    });
+
+    // Update localStorage when view changes
+    useEffect(() => {
+        if (currentView) {
+            localStorage.setItem('dashboard_current_view', currentView);
+        }
+    }, [currentView]);
+
+    // Force role boundary checks
+    useEffect(() => {
+        if (!userRole) return;
+        const normalizedRole = userRole.toUpperCase();
+        if (normalizedRole === 'STAFF' && currentView !== 'system') {
+            setCurrentView('system');
+        } else if (normalizedRole === 'MANAGER' && currentView === 'user-management') {
+            setCurrentView('dashboard');
+        }
+    }, [userRole, currentView]);
+
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
     const [selectedPeriod, setSelectedPeriod] = useState('30 ngày qua');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // ─── KPI state ────────────────────────────────────────────────────────────
     const [stats, setStats] = useState({
-        activeSessions: 3,
-        emptySlots: 5,
-        usedSlots: 3,
-        incidents: 1,
-        revenueToday: '$14.00',
-        revenueMonth: '$14.00',
+        activeSessions: 0,
+        emptySlots: 0,
+        usedSlots: 0,
+        incidents: 0,
+        revenueToday: 0,
+        revenueMonth: 0,
     });
+
+    // ─── Chart / table state ──────────────────────────────────────────────────
+    const [hourlyData, setHourlyData] = useState(Array(24).fill(0));
+    const [floorData, setFloorData] = useState([]);
+    const [vehicleTypes, setVehicleTypes] = useState([]);
+    const [recentIn, setRecentIn] = useState([]);
+    const [recentOut, setRecentOut] = useState([]);
+    const [incidents, setIncidents] = useState([]);
+
+    // ─── Load data từ Supabase ────────────────────────────────────────────────
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await fetchAllDashboardData();
+
+            setStats({
+                activeSessions: data.activeSessions,
+                emptySlots: data.availableSlots,
+                usedSlots: data.occupiedSlots,
+                incidents: data.todayIncidents,
+                revenueToday: data.todayRevenue,
+                revenueMonth: data.monthRevenue,
+            });
+            setHourlyData(data.hourlyTraffic);
+            setFloorData(data.floorOccupancy);
+            setVehicleTypes(data.vehicleTypeDistribution);
+            setRecentIn(data.recentEntries);
+            setRecentOut(data.recentExits);
+            setIncidents(data.recentIncidents);
+        } catch (err) {
+            // Không crash Dashboard dù lỗi bất ngờ
+            console.error('[DashboardView] loadData error:', err);
+        } finally {
+            setIsLoading(false);
+            setIsRefreshing(false);
+        }
+    }, []);
+
+    // Load khi mở tab dashboard
+    useEffect(() => {
+        if (currentView === 'dashboard') {
+            loadData();
+        }
+    }, [currentView, loadData]);
 
     const handleRefresh = () => {
         setIsRefreshing(true);
-        setTimeout(() => {
-            setIsRefreshing(false);
-            setStats({
-                activeSessions: Math.floor(Math.random() * 5) + 2,
-                emptySlots: Math.floor(Math.random() * 4) + 4,
-                usedSlots: Math.floor(Math.random() * 4) + 2,
-                incidents: Math.random() > 0.7 ? 2 : 1,
-                revenueToday: `$${(Math.random() * 20 + 10).toFixed(2)}`,
-                revenueMonth: `$${(Math.random() * 20 + 10).toFixed(2)}`,
-            });
-        }, 800);
+        loadData();
     };
 
     const renderTabButton = (label, isActive, onClickAction) => {
@@ -112,7 +142,7 @@ export default function DashboardView() {
         );
     };
 
-    const maxHourly = Math.max(...HOURLY_DATA, 1);
+    const maxHourly = Math.max(...hourlyData, 1);
 
     return (
         <DashboardShell currentTab={currentView} onTabSelect={(tab) => setCurrentView(tab)}>
@@ -188,7 +218,7 @@ export default function DashboardView() {
                             type="button"
                             className={`db-refresh-btn${isRefreshing ? ' db-refresh-btn--spinning' : ''}`}
                             onClick={handleRefresh}
-                            disabled={isRefreshing}
+                            disabled={isRefreshing || isLoading}
                         >
                             <span className="material-symbols-outlined">refresh</span>
                             {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
@@ -197,10 +227,11 @@ export default function DashboardView() {
 
                     {/* ── KPI Cards ── */}
                     <div className="db-kpis">
+                        {/* Phiên đang hoạt động – từ parking_sessions / parking_order */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>PHIÊN ĐANG HOẠT ĐỘNG</span>
-                                <span className="db-kpi-icon" style={{ color: '#f97316' }}>
+                                <span className="db-kpi-icon" style={{ color: '#3B82F6' }}>
                                     <span className="material-symbols-outlined">directions_car</span>
                                 </span>
                             </div>
@@ -208,6 +239,7 @@ export default function DashboardView() {
                             <div className="db-kpi-note">Xe hiện đang trong bãi</div>
                         </div>
 
+                        {/* Chỗ trống – từ slot.status = 'Sẵn sàng' */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>CHỖ TRỐNG KHẢ DỤNG</span>
@@ -219,10 +251,11 @@ export default function DashboardView() {
                             <div className="db-kpi-note">Sẵn sàng cấp phát khi xe vào</div>
                         </div>
 
+                        {/* Chỗ đã sử dụng – từ slot.status / parking_order active */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>CHỖ ĐÃ SỬ DỤNG</span>
-                                <span className="db-kpi-icon" style={{ color: '#f59e0b' }}>
+                                <span className="db-kpi-icon" style={{ color: '#60A5FA' }}>
                                     <span className="material-symbols-outlined">event_seat</span>
                                 </span>
                             </div>
@@ -230,6 +263,7 @@ export default function DashboardView() {
                             <div className="db-kpi-note">Các chỗ đang được sử dụng</div>
                         </div>
 
+                        {/* Sự cố hôm nay – từ card_lost_log + incident_report */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>SỰ CỐ HÔM NAY</span>
@@ -241,6 +275,7 @@ export default function DashboardView() {
                             <div className="db-kpi-note">Các trường hợp ngoại lệ đã ghi nhận</div>
                         </div>
 
+                        {/* Doanh thu hôm nay – từ payment.status = 'Đã trả' */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>DOANH THU HÔM NAY</span>
@@ -248,18 +283,19 @@ export default function DashboardView() {
                                     <span className="material-symbols-outlined">payments</span>
                                 </span>
                             </div>
-                            <div className="db-kpi-value">{stats.revenueToday}</div>
+                            <div className="db-kpi-value">{formatVND(stats.revenueToday)}</div>
                             <div className="db-kpi-note">Tiền mặt &amp; QR ngân hàng đã thu</div>
                         </div>
 
+                        {/* Doanh thu tháng – từ payment.status = 'Đã trả' tháng này */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>DOANH THU THÁNG</span>
-                                <span className="db-kpi-icon" style={{ color: '#f97316' }}>
+                                <span className="db-kpi-icon" style={{ color: '#1D4ED8' }}>
                                     <span className="material-symbols-outlined">trending_up</span>
                                 </span>
                             </div>
-                            <div className="db-kpi-value">{stats.revenueMonth}</div>
+                            <div className="db-kpi-value">{formatVND(stats.revenueMonth)}</div>
                             <div className="db-kpi-note">Tổng doanh thu 30 ngày gần nhất</div>
                         </div>
                     </div>
@@ -267,7 +303,7 @@ export default function DashboardView() {
                     {/* ── Charts grid (2 columns) ── */}
                     <div className="db-grid2">
 
-                        {/* Lượt xe theo giờ */}
+                        {/* Lượt xe theo giờ – từ entry_exit_log / parking_sessions */}
                         <div className="db-card db-chart-card">
                             <div className="db-card-head">
                                 <p className="db-card-title">Lượt xe theo giờ</p>
@@ -275,11 +311,11 @@ export default function DashboardView() {
                             </div>
                             <div className="db-card-body">
                                 <div className="db-bar-chart">
-                                    {HOURLY_DATA.map((val, idx) => (
+                                    {hourlyData.map((val, idx) => (
                                         <div className="db-bar-wrap" key={idx}>
                                             <div
                                                 className="db-bar"
-                                                style={{ height: `${Math.max(2, (val / maxHourly) * 100)}px` }}
+                                                style={{ height: `${Math.max(5, (val / maxHourly) * 90)}%` }}
                                             />
                                             <span className="db-x">
                                                 {String(idx).padStart(2, '0')}h
@@ -290,31 +326,34 @@ export default function DashboardView() {
                             </div>
                         </div>
 
-                        {/* Tỷ lệ lấp đầy theo tầng */}
+                        {/* Tỷ lệ lấp đầy theo tầng – từ slot → area → floor */}
                         <div className="db-card db-chart-card">
                             <div className="db-card-head">
                                 <p className="db-card-title">Tỷ lệ lấp đầy theo tầng</p>
                                 <p className="db-card-desc">Mức sử dụng công suất theo từng tầng</p>
                             </div>
                             <div className="db-card-body">
-                                {FLOOR_DATA.map((floor) => {
-                                    const pct = Math.round((floor.used / floor.total) * 100);
-                                    return (
-                                        <div className="db-floor" key={floor.name}>
+                                {isLoading ? (
+                                    <div style={{ color: '#999', fontSize: '0.85rem' }}>Đang tải…</div>
+                                ) : floorData.length === 0 ? (
+                                    <div className="db-empty">Chưa có dữ liệu tầng.</div>
+                                ) : (
+                                    floorData.map((floor) => (
+                                        <div className="db-floor" key={floor.floorId}>
                                             <div className="db-floor-top">
-                                                <span>▧ {floor.name}</span>
-                                                <span>{floor.used} / {floor.total} slots ({pct}%)</span>
+                                                <span>▧ {floor.floorName}</span>
+                                                <span>{floor.occupiedSlots} / {floor.totalSlots} slots ({floor.percentage}%)</span>
                                             </div>
                                             <div className="db-track">
-                                                <div className="db-fill" style={{ width: `${pct}%` }} />
+                                                <div className="db-fill" style={{ width: `${floor.percentage}%` }} />
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                    ))
+                                )}
                             </div>
                         </div>
 
-                        {/* Xu hướng doanh thu */}
+                        {/* Xu hướng doanh thu – TODO: replace when payment has seed data */}
                         <div className="db-card db-chart-card">
                             <div className="db-card-head">
                                 <div className="db-card-head-row">
@@ -341,6 +380,7 @@ export default function DashboardView() {
                                         <span>25%</span>
                                     </div>
                                     <div className="db-rev-bars">
+                                        {/* TODO: replace with real database field when available */}
                                         {WEEK_BARS.map((b) => (
                                             <div className="db-rev-bar-group" key={b.label}>
                                                 <div
@@ -357,31 +397,37 @@ export default function DashboardView() {
                             </div>
                         </div>
 
-                        {/* Phân loại phương tiện */}
+                        {/* Phân loại phương tiện – từ parking_order / parking_sessions → vehicle_type */}
                         <div className="db-card db-chart-card">
                             <div className="db-card-head">
                                 <p className="db-card-title">Phân loại phương tiện</p>
                                 <p className="db-card-desc">Tỷ lệ các loại phương tiện đang đỗ trong bãi</p>
                             </div>
                             <div className="db-card-body">
-                                <div className="db-stack">
-                                    {VEHICLE_TYPES.map((v) => (
-                                        <div
-                                            key={v.label}
-                                            className="db-stack-seg"
-                                            style={{ width: `${v.pct}%`, background: v.color }}
-                                        />
-                                    ))}
-                                </div>
-                                <div className="db-legend">
-                                    {VEHICLE_TYPES.map((v) => (
-                                        <div className="db-legend-item" key={v.label}>
-                                            <span className="db-dot" style={{ background: v.color }} />
-                                            <span>{v.label}</span>
-                                            <b>{v.count} ({v.pct}%)</b>
+                                {vehicleTypes.length === 0 ? (
+                                    <div className="db-empty">Không có xe nào đang trong bãi.</div>
+                                ) : (
+                                    <>
+                                        <div className="db-stack">
+                                            {vehicleTypes.map((v) => (
+                                                <div
+                                                    key={v.vehicleTypeName}
+                                                    className="db-stack-seg"
+                                                    style={{ width: `${v.percentage}%`, background: v.color }}
+                                                />
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="db-legend">
+                                            {vehicleTypes.map((v) => (
+                                                <div className="db-legend-item" key={v.vehicleTypeName}>
+                                                    <span className="db-dot" style={{ background: v.color }} />
+                                                    <span>{v.vehicleTypeName}</span>
+                                                    <b>{v.count} ({v.percentage}%)</b>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -389,45 +435,73 @@ export default function DashboardView() {
                     {/* ── Data tables (3 columns) ── */}
                     <div className="db-tables">
 
-                        {/* Xe vào gần đây */}
+                        {/* Xe vào gần đây – từ entry_exit_log / parking_sessions */}
                         <div className="db-card db-table-card">
                             <div className="db-card-head">
                                 <p className="db-card-title">Xe vào gần đây</p>
                                 <p className="db-card-desc">Các lượt xe mới vào bãi</p>
                             </div>
-                            <table className="db-table">
-                                <thead>
-                                    <tr>
-                                        <th>BIỂN SỐ</th>
-                                        <th>VỊ TRÍ</th>
-                                        <th>THỜI GIAN</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {RECENT_IN.map((row) => (
-                                        <tr key={row.plate}>
-                                            <td className="db-td-bold">{row.plate}</td>
-                                            <td>{row.slot}</td>
-                                            <td className="db-td-time">
-                                                <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>schedule</span>
-                                                {' '}{row.time}
-                                            </td>
+                            {recentIn.length === 0 ? (
+                                <div className="db-empty">Chưa có dữ liệu xe vào.</div>
+                            ) : (
+                                <table className="db-table">
+                                    <thead>
+                                        <tr>
+                                            <th>BIỂN SỐ</th>
+                                            <th>VỊ TRÍ</th>
+                                            <th>THỜI GIAN</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {recentIn.map((row) => (
+                                            <tr key={row.id}>
+                                                <td className="db-td-bold">{row.plate}</td>
+                                                <td>{row.slot}</td>
+                                                <td className="db-td-time">
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>schedule</span>
+                                                    {' '}{row.time}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
 
-                        {/* Xe ra gần đây */}
+                        {/* Xe ra gần đây – từ entry_exit_log / parking_sessions */}
                         <div className="db-card db-table-card">
                             <div className="db-card-head">
                                 <p className="db-card-title">Xe ra gần đây</p>
                                 <p className="db-card-desc">Các lượt xe hoàn tất và rời cổng</p>
                             </div>
-                            <div className="db-empty">Chưa có dữ liệu xe ra.</div>
+                            {recentOut.length === 0 ? (
+                                <div className="db-empty">Chưa có dữ liệu xe ra.</div>
+                            ) : (
+                                <table className="db-table">
+                                    <thead>
+                                        <tr>
+                                            <th>BIỂN SỐ</th>
+                                            <th>VỊ TRÍ</th>
+                                            <th>THỜI GIAN</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {recentOut.map((row) => (
+                                            <tr key={row.id}>
+                                                <td className="db-td-bold">{row.plate}</td>
+                                                <td>{row.slot}</td>
+                                                <td className="db-td-time">
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>schedule</span>
+                                                    {' '}{row.time}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
 
-                        {/* Sự cố gần đây */}
+                        {/* Sự cố gần đây – từ card_lost_log + incident_report */}
                         <div className="db-card db-table-card">
                             <div className="db-card-head">
                                 <div className="db-card-head-row">
@@ -437,26 +511,30 @@ export default function DashboardView() {
                                     </div>
                                 </div>
                             </div>
-                            <table className="db-table">
-                                <thead>
-                                    <tr>
-                                        <th>BIỂN SỐ/TICKET</th>
-                                        <th>SỰ CỐ</th>
-                                        <th>TRẠNG THÁI</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {INCIDENTS.map((inc) => (
-                                        <tr key={inc.id}>
-                                            <td className="db-td-bold">{inc.id}</td>
-                                            <td>{inc.type}</td>
-                                            <td>
-                                                <span className={`db-badge ${inc.statusClass}`}>{inc.status}</span>
-                                            </td>
+                            {incidents.length === 0 ? (
+                                <div className="db-empty">Chưa có sự cố nào.</div>
+                            ) : (
+                                <table className="db-table">
+                                    <thead>
+                                        <tr>
+                                            <th>BIỂN SỐ/TICKET</th>
+                                            <th>SỰ CỐ</th>
+                                            <th>TRẠNG THÁI</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {incidents.map((inc) => (
+                                            <tr key={inc.id}>
+                                                <td className="db-td-bold">{inc.identifier}</td>
+                                                <td>{inc.type}</td>
+                                                <td>
+                                                    <span className={`db-badge ${inc.statusClass}`}>{inc.status}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
                             <div className="db-view-all-row">
                                 <button
                                     type="button"

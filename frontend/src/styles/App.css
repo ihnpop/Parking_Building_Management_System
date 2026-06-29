@@ -19509,7 +19509,7 @@ body {
 }
 
 .db-chart-card {
-  min-height: 220px;
+  min-height: auto;
 }
 
 /* â”€â”€ Hourly bar chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -20253,7 +20253,7 @@ body {
 
 /* â”€â”€ 8. BAR CHART â€” Refined bars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .db-bar-chart {
-  height: 110px !important;
+  height: 220px !important;
   gap: 2px !important;
 }
 
@@ -20303,7 +20303,7 @@ body {
 
 /* â”€â”€ 10. REVENUE CHART â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .db-revenue-chart {
-  height: 150px !important;
+  height: 220px !important;
 }
 
 .db-rev-y-axis {
@@ -20438,9 +20438,14 @@ body {
 
 /* â”€â”€ 14. EMPTY STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .db-empty {
-  height: 100px !important;
+  min-height: 48px !important;
+  height: auto !important;
   color: #CBD5E1 !important;
   font-size: 12.5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px 16px !important;
 }
 
 /* â”€â”€ 15. VIEW ALL BUTTON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -21982,7 +21987,7 @@ td {
 .db-revenue-chart {
   display: flex !important;
   gap: 8px !important;
-  height: 150px !important;
+  height: 220px !important;
   background: transparent !important;
   overflow: visible !important;
 }
@@ -23086,4 +23091,347 @@ td {
 .mc-confirm-actions button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* =========================================================================
+   CUSTOM GLOBAL NOTIFICATIONS, TOASTS & MODALS
+   ========================================================================= */
+
+/* Toast container positioning */
+.custom-toast-container {
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  pointer-events: none !important;
+  width: 380px !important;
+  max-width: calc(100vw - 32px) !important;
+}
+
+/* Responsive mobile: full width, margin 16px */
+@media (max-width: 576px) {
+  .custom-toast-container {
+    top: 16px !important;
+    right: 16px !important;
+    left: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
+/* Toast animations & look */
+.custom-toast {
+  pointer-events: auto !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid transparent !important;
+  animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  transition: all 0.25s ease !important;
+  overflow: hidden !important;
+}
+
+@keyframes slideInToast {
+  from {
+    transform: translateX(100%) translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Accent Line */
+.toast-accent-line {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 4px !important;
+}
+
+/* Icon wrapper */
+.toast-icon-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  border-radius: 999px !important;
+}
+
+.toast-icon {
+  font-size: 18px !important;
+  display: block !important;
+}
+
+/* Content wrapper */
+.toast-content {
+  flex: 1 !important;
+  padding-top: 6px !important;
+}
+
+.toast-text {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  word-break: break-word !important;
+}
+
+/* Close button style */
+.toast-close-btn {
+  background: none !important;
+  border: none !important;
+  color: #94A3B8 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  margin-top: 2px !important;
+}
+
+.toast-close-btn:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #475569 !important;
+}
+
+/* Success Toast Colors */
+.custom-toast.success {
+  background: #FFFFFF !important;
+  border-color: #BBF7D0 !important;
+}
+.custom-toast.success .toast-accent-line {
+  background: #22C55E !important;
+}
+.custom-toast.success .toast-icon-wrapper {
+  background: #DCFCE7 !important;
+}
+.custom-toast.success .toast-icon {
+  color: #16A34A !important;
+}
+.custom-toast.success .toast-text {
+  color: #14532D !important;
+}
+
+/* Error Toast Colors */
+.custom-toast.error {
+  background: #FFFFFF !important;
+  border-color: #FECACA !important;
+}
+.custom-toast.error .toast-accent-line {
+  background: #EF4444 !important;
+}
+.custom-toast.error .toast-icon-wrapper {
+  background: #FEE2E2 !important;
+}
+.custom-toast.error .toast-icon {
+  color: #DC2626 !important;
+}
+.custom-toast.error .toast-text {
+  color: #7F1D1D !important;
+}
+
+/* Warning Toast Colors */
+.custom-toast.warning {
+  background: #FFFFFF !important;
+  border-color: #FDE68A !important;
+}
+.custom-toast.warning .toast-accent-line {
+  background: #F59E0B !important;
+}
+.custom-toast.warning .toast-icon-wrapper {
+  background: #FEF3C7 !important;
+}
+.custom-toast.warning .toast-icon {
+  color: #D97706 !important;
+}
+.custom-toast.warning .toast-text {
+  color: #78350F !important;
+}
+
+/* Info Toast Colors */
+.custom-toast.info {
+  background: #FFFFFF !important;
+  border-color: #BFDBFE !important;
+}
+.custom-toast.info .toast-accent-line {
+  background: #2563EB !important;
+}
+.custom-toast.info .toast-icon-wrapper {
+  background: #DBEAFE !important;
+}
+.custom-toast.info .toast-icon {
+  color: #2563EB !important;
+}
+.custom-toast.info .toast-text {
+  color: #1E3A8A !important;
+}
+
+/* Global Modal Overlay */
+.custom-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 99998 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  animation: fadeInModalBg 0.2s ease-out forwards !important;
+}
+
+@keyframes fadeInModalBg {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal Content Box */
+.custom-modal-box {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  overflow: hidden !important;
+  animation: scaleUpModal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+@keyframes scaleUpModal {
+  from {
+    transform: scale(0.92) translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.custom-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 18px 24px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+}
+
+.custom-modal-header h3 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+  margin: 0 !important;
+}
+
+.modal-close-x-btn {
+  background: none !important;
+  border: none !important;
+  color: #94A3B8 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  border-radius: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+.modal-close-x-btn:hover {
+  background: #F1F5F9 !important;
+  color: #64748B !important;
+}
+
+.custom-modal-body {
+  padding: 24px !important;
+}
+
+.confirm-message, .prompt-message {
+  font-size: 14.5px !important;
+  color: #334155 !important;
+  line-height: 1.6 !important;
+  margin: 0 !important;
+}
+
+.prompt-input {
+  margin-top: 16px !important;
+  width: 100% !important;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  border: 1px solid #CBD5E1 !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.prompt-input:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+}
+
+.custom-modal-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #F1F5F9 !important;
+  background: #F8FAFC !important;
+}
+
+/* Modal Actions Buttons */
+.custom-modal-btn {
+  padding: 9px 16px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease !important;
+}
+
+.custom-modal-btn.cancel {
+  background: #ffffff !important;
+  border-color: #CBD5E1 !important;
+  color: #475569 !important;
+}
+
+.custom-modal-btn.cancel:hover {
+  background: #F1F5F9 !important;
+  color: #1E293B !important;
+}
+
+.custom-modal-btn.confirm.primary {
+  background: #2563EB !important;
+  color: #ffffff !important;
+}
+
+.custom-modal-btn.confirm.primary:hover {
+  background: #1D4ED8 !important;
+}
+
+.custom-modal-btn.confirm.dangerous {
+  background: #EF4444 !important;
+  color: #ffffff !important;
+}
+
+.custom-modal-btn.confirm.dangerous:hover {
+  background: #DC2626 !important;
 }

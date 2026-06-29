@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { createLostCard } from "../../../service/cardApi"
+import { createLostCard } from "../../../service/cardApi";
+import { useNotification } from '../../../context/NotificationContext';
 export default function LostCardLogPage() {
+    const { showToast } = useNotification();
     const navigate = useNavigate();
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
@@ -41,11 +43,11 @@ export default function LostCardLogPage() {
                 ? { ...card, ...editingCard } : card
             ));
             
-            alert('Đã lưu thay đổi thành công!');
+            showToast('Đã lưu thay đổi thành công!', 'success');
             setEditingCard(null);
         } catch (err) {
             console.error(err);
-            alert('Lỗi khi lưu thay đổi!');
+            showToast('Lỗi khi lưu thay đổi!', 'error');
         }
     };
     const handleCreateLostCard = async () => {
@@ -70,7 +72,7 @@ export default function LostCardLogPage() {
             console.error(err);
             // Hiển thị thông báo lỗi chi tiết từ Server nếu có
             const message = err.response?.data?.message || err.message || 'Không thể tạo báo mất';
-            alert(message);
+            showToast(message, 'error');
         }
     };
     const fetchLostCards = async () => {

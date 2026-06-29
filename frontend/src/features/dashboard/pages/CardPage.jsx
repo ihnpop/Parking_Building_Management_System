@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCards, createCard, deleteCard, updateCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
 import { getVNDateTimeLocal } from '../../../utils/dateUtils';
+import { useNotification } from '../../../context/NotificationContext';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -204,6 +205,7 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const navigate = useNavigate();
     const { userRole, user } = useAuth();
+    const { showToast, showConfirm } = useNotification();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -215,13 +217,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
-
-    // Toast
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-    };
 
     // Filters
     const [search, setSearch] = useState('');
@@ -289,19 +284,27 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     };
 
     const handleDelete = async (row) => {
-        if (!window.confirm("Bạn có chắc muốn xóa thẻ này không?")) return;
-        try {
-            const res = await deleteCard(row.card_id, user?.id);
-            if (res.success) {
-                showToast(res.message || "Xóa thẻ thành công", "success");
-                await fetchCards();
-            } else {
-                showToast(res.message || "Xóa thẻ thất bại", "error");
+        showConfirm({
+            title: "Xóa thẻ",
+            message: "Bạn có chắc muốn xóa thẻ này không? Hành động này không thể hoàn tác.",
+            confirmText: "Xóa thẻ",
+            cancelText: "Hủy",
+            isDangerous: true,
+            onConfirm: async () => {
+                try {
+                    const res = await deleteCard(row.card_id, user?.id);
+                    if (res.success) {
+                        showToast(res.message || "Xóa thẻ thành công", "success");
+                        await fetchCards();
+                    } else {
+                        showToast(res.message || "Xóa thẻ thất bại", "error");
+                    }
+                } catch (err) {
+                    const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
+                    showToast(errMsg, "error");
+                }
             }
-        } catch (err) {
-            const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
-            showToast(errMsg, "error");
-        }
+        });
     };
 
     const handleCloseCreate = () => { setShowCreateModal(false); setFormError(null); };
@@ -653,16 +656,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     onSubmit={handleUpdate}
                     onClose={handleCloseEdit}
                 />
-            )}
-
-            {/* Toast */}
-            {toast.show && (
-                <div className={`custom-toast ${toast.type}`}>
-                    <span className="material-symbols-outlined">
-                        {toast.type === 'success' ? 'check_circle' : 'error'}
-                    </span>
-                    <span className="toast-text">{toast.message}</span>
-                </div>
             )}
         </div>
     );
