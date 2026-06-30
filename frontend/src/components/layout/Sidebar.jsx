@@ -48,7 +48,7 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             }}
                             title="Mở rộng"
                         >
-                            <span className="material-symbols-outlined">menu</span>
+                            <span className="material-symbols-outlined">chevron_right</span>
                         </button>
                     )}
                 </div>
@@ -70,7 +70,7 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             }}
                             title="Thu nhỏ"
                         >
-                            <span className="material-symbols-outlined">menu_open</span>
+                            <span className="material-symbols-outlined">chevron_left</span>
                         </button>
                     </>
                 )}
