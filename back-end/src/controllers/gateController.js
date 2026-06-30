@@ -175,3 +175,19 @@ export const exitTap = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /api/gate/stats
+ */
+export const getStats = async (req, res) => {
+  try {
+    const stats = await gateService.getStats();
+    return res.status(200).json(stats);
+  } catch (err) {
+    console.error("gateController.getStats error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Lỗi lấy thống kê bãi xe."
+    });
+  }
+};

@@ -5,7 +5,8 @@ import {
     preCheckEntryGate,
     entryGate,
     preCheckExitGate,
-    exitGate
+    exitGate,
+    getParkingStats
 } from '../../../service/parkingApi';
 import { useNavigate } from 'react-router-dom';
 
@@ -82,6 +83,22 @@ export default function SystemOperations() {
     const [hoveredCamera, setHoveredCamera] = useState(null);
     const [lastSession, setLastSession] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const [stats, setStats] = useState({ insideCount: 0, inCount: 0, outCount: 0 });
+
+    const fetchStats = async () => {
+        try {
+            const data = await getParkingStats();
+            if (data.success) {
+                setStats({
+                    insideCount: data.insideCount,
+                    inCount: data.inCount,
+                    outCount: data.outCount
+                });
+            }
+        } catch (err) {
+            console.error("Error fetching stats:", err);
+        }
+    };
 
     // Input Refs for programmatic clicks
     const vehicleInputRef = useRef(null);
@@ -227,6 +244,7 @@ export default function SystemOperations() {
                     type: 'IN'
                 });
                 resetInForm();
+                fetchStats();
             } else {
                 showToast(result.message || 'Check in thất bại.', 'error');
             }
@@ -278,6 +296,7 @@ export default function SystemOperations() {
                     status: 'Hoàn thành'
                 });
                 resetOutForm();
+                fetchStats();
             } else {
                 showToast(result.message || 'Check out thất bại.', 'error');
             }
@@ -307,6 +326,9 @@ export default function SystemOperations() {
         // Bước 1: Chưa precheck -> gọi precheck để hiện thông tin
         await handlePreCheck(plateNumber);
     };
+    useEffect(() => {
+        fetchStats();
+    }, []);
     useEffect(() => {
         const handleKeyDown = (event) => {
 
@@ -439,7 +461,7 @@ export default function SystemOperations() {
                     <article className="stat-card">
                         <div className="stat-card-text">
                             <p className="stat-label">Số lượng xe trong bãi</p>
-                            <p className="stat-value">142</p>
+                            <p className="stat-value">{stats.insideCount}</p>
                         </div>
                         <div className="stat-icon stat-icon-primary">
                             <span className="material-symbols-outlined">local_parking</span>
@@ -448,7 +470,7 @@ export default function SystemOperations() {
                     <article className="stat-card">
                         <div className="stat-card-text">
                             <p className="stat-label">Xe đã vào</p>
-                            <p className="stat-value">350</p>
+                            <p className="stat-value">{stats.inCount}</p>
                         </div>
                         <div className="stat-icon stat-icon-secondary">
                             <span className="material-symbols-outlined">login</span>
@@ -457,7 +479,7 @@ export default function SystemOperations() {
                     <article className="stat-card">
                         <div className="stat-card-text">
                             <p className="stat-label">Xe đã ra</p>
-                            <p className="stat-value">208</p>
+                            <p className="stat-value">{stats.outCount}</p>
                         </div>
                         <div className="stat-icon stat-icon-tertiary">
                             <span className="material-symbols-outlined">logout</span>

@@ -683,3 +683,49 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 
   return { success: true, message: cardCode ? "Check out thẻ lượt thành công. Cổng ra mở." : "Check out Monthly thành công. Cổng ra mở.", session };
 };
+
+/**
+ * Lấy thống kê bãi xe hôm nay (múi giờ GMT+7)
+ */
+export const getStats = async () => {
+  const tzOffset = 7 * 60; // Offset in minutes for GMT+7
+  const now = new Date();
+  const localTime = new Date(now.getTime() + tzOffset * 60 * 1000);
+  const startOfToday = new Date(Date.UTC(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate()));
+  startOfToday.setTime(startOfToday.getTime() - tzOffset * 60 * 1000);
+
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+  // 1. Số lượng xe trong bãi (status = 'Đang gửi xe')
+  const { count: insideCount, error: err1 } = await supabase
+    .from("parking_sessions")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "Đang gửi xe");
+
+  if (err1) throw new Error("Lỗi đếm số xe trong bãi: " + err1.message);
+
+  // 2. Xe đã vào hôm nay
+  const { count: inCount, error: err2 } = await supabase
+    .from("parking_sessions")
+    .select("*", { count: "exact", head: true })
+    .gte("entry_time", startOfToday.toISOString())
+    .lt("entry_time", endOfToday.toISOString());
+
+  if (err2) throw new Error("Lỗi đếm số xe đã vào: " + err2.message);
+
+  // 3. Xe đã ra hôm nay
+  const { count: outCount, error: err3 } = await supabase
+    .from("parking_sessions")
+    .select("*", { count: "exact", head: true })
+    .gte("exit_time", startOfToday.toISOString())
+    .lt("exit_time", endOfToday.toISOString());
+
+  if (err3) throw new Error("Lỗi đếm số xe đã ra: " + err3.message);
+
+  return {
+    success: true,
+    insideCount: insideCount || 0,
+    inCount: inCount || 0,
+    outCount: outCount || 0,
+  };
+};

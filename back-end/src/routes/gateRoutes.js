@@ -37,4 +37,9 @@ router.post("/exit/pre-check", gateController.preCheckExit);
  */
 router.post("/exit", verifyToken, gateController.exitTap);
 
+/**
+ * GET /api/gate/stats
+ */
+router.get("/stats", verifyToken, gateController.getStats);
+
 export default router;

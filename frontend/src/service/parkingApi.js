@@ -125,3 +125,13 @@ export const exitGate = async (payload) => {
   });
   return response.data;
 };
+
+/**
+ * Lấy thống kê bãi xe thực tế
+ */
+export const getParkingStats = async () => {
+  const response = await API.get("/gate/stats", {
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};

@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import axios from "axios";
@@ -147,9 +149,11 @@ app.post(
   }
 );
 
+
+const PORT = process.env.PORT;
 app.listen(
-  3636,
+  PORT,
   () => {
-    console.log("Server running at 3636")
+    console.log(`Server running at ${PORT}`)
   }
 );
