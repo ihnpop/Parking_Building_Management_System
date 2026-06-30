@@ -4556,6 +4556,15 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
+.stats-top-bar-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 .stats-back-btn {
   display: flex;
   align-items: center;

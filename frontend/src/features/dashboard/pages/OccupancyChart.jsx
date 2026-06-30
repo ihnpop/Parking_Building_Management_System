@@ -151,44 +151,12 @@ export default function OccupancyChart() {
 
     return (
         <section className="stats-dashboard-page">
-            {/* Top Navigation Header */}
             <header className="stats-top-bar">
                 <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
                     <span className="material-symbols-outlined">arrow_back</span>
                     Thoát
                 </button>
-                <h1 className="stats-page-title">Thống kê tổng quát</h1>
-                <div className="stats-header-right">
-                    <button className="stats-bell-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                    </button>
-
-                    <div className="avatar-wrapper" ref={dropdownRef}>
-                        <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
-                            <div className="profile-text">
-                                <span className="profile-name">{userEmail}</span>
-                            </div>
-                            <div className="profile-avatar">{userInitials[0]}</div>
-                        </div>
-
-                        {showDropdown && (
-                            <div className="user-dropdown" style={{ top: '50px' }}>
-                                <div className="user-dropdown-info">
-                                    <div className="user-dropdown-email">{userEmail}</div>
-                                    <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="user-dropdown-item"
-                                    onClick={handleLogout}
-                                >
-                                    <span className="material-symbols-outlined">logout</span>
-                                    Đăng xuất
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <span className="stats-top-bar-title">Thống kê tổng quát</span>
             </header>
 
 

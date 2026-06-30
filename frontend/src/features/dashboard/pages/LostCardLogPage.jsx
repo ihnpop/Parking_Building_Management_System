@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createLostCard } from "../../../service/cardApi"
-export default function LostCardLogPage() {
+export default function LostCardLogPage({ showBackButton = false }) {
     const navigate = useNavigate();
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
@@ -206,13 +206,17 @@ export default function LostCardLogPage() {
 
     return (
         <section className="stats-dashboard-page">
-            {/* Top Navigation Header */}
-            <header className="stats-top-bar">
-                <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
-                    <span className="material-symbols-outlined">arrow_back</span>
-                    Thoát
-                </button>
-            </header>
+            {/* Top Navigation Header - chỉ hiển thị khi truy cập qua route riêng */}
+            {showBackButton && (
+                <header className="stats-top-bar">
+                    <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
+                        <span className="material-symbols-outlined">arrow_back</span>
+                        Thoát
+                    </button>
+                    <span className="stats-top-bar-title">Nhật ký mất thẻ</span>
+                </header>
+            )}
+
 
             <div className="lost-card-log-wrapper">
                 <div className="lost-kpi-container">
