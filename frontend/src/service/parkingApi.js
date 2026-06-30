@@ -1,8 +1,9 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:3636/api",
-});
+  // baseURL: "http://localhost:3636/api"     //sửa chỗ này
+  baseURL: import.meta.env.VITE_API_URL
+})
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");

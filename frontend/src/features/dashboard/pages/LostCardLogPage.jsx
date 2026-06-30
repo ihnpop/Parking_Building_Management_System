@@ -30,7 +30,8 @@ export default function LostCardLogPage() {
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get('http://localhost:3636/api/cards/lost-card');
+            // const response = await axios.get('http://localhost:3636/api/cards/lost-card'); đổi dòng này*********
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/cards/lost-card`);
             const data = response.data.data || response.data;
 
             if (Array.isArray(data)) {
@@ -55,15 +56,15 @@ export default function LostCardLogPage() {
     const handleUpdateLostCard = async () => {
         try {
             // Tạm thời update local state
-            setLostCards(prev => prev.map(card => 
-                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id) 
-                ? { ...card, ...editingCard } : card
+            setLostCards(prev => prev.map(card =>
+                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id)
+                    ? { ...card, ...editingCard } : card
             ));
-            setFilteredCards(prev => prev.map(card => 
-                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id) 
-                ? { ...card, ...editingCard } : card
+            setFilteredCards(prev => prev.map(card =>
+                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id)
+                    ? { ...card, ...editingCard } : card
             ));
-            
+
             alert('Đã lưu thay đổi thành công!');
             setEditingCard(null);
         } catch (err) {
@@ -448,7 +449,7 @@ export default function LostCardLogPage() {
                         <div className="lost-modal-header">
                             <h2>Chỉnh sửa báo mất</h2>
                         </div>
-                        
+
                         <div className="lost-modal-body">
                             <div className="lost-form-group">
                                 <label>Mã thẻ</label>
@@ -458,7 +459,7 @@ export default function LostCardLogPage() {
                                     onChange={(e) => setEditingCard({ ...editingCard, card_code: e.target.value })}
                                 />
                             </div>
-                            
+
                             <div className="lost-form-group">
                                 <label>Biển số xe</label>
                                 <input
@@ -467,10 +468,10 @@ export default function LostCardLogPage() {
                                     onChange={(e) => setEditingCard({ ...editingCard, plate_number: e.target.value })}
                                 />
                             </div>
-                            
+
                             <div className="lost-form-group">
                                 <label>Loại thẻ</label>
-                                <select 
+                                <select
                                     value={editingCard.card_type || 'Thẻ lượt'}
                                     onChange={(e) => setEditingCard({ ...editingCard, card_type: e.target.value })}
                                 >
@@ -479,10 +480,10 @@ export default function LostCardLogPage() {
                                     <option value="Thẻ vãng lai">Thẻ vãng lai</option>
                                 </select>
                             </div>
-                            
+
                             <div className="lost-form-group">
                                 <label>Trạng thái</label>
-                                <select 
+                                <select
                                     value={editingCard.status || 'Chờ xử lý'}
                                     onChange={(e) => setEditingCard({ ...editingCard, status: e.target.value })}
                                 >
@@ -521,7 +522,7 @@ export default function LostCardLogPage() {
                     </div>
                 </div>
             )}
-    
+
             {showCreateModal && (
                 <div className="lost-modal-overlay">
                     <div className="lost-modal">
@@ -559,7 +560,7 @@ export default function LostCardLogPage() {
                                 />
                             </div>
                         </div>
-                        
+
                         <div className="lost-modal-actions">
                             <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Hủy</button>
                             <button type="button" className="btn-save" onClick={handleCreateLostCard}>Lưu</button>

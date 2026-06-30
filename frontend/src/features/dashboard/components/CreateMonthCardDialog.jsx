@@ -43,8 +43,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     const headers = { Authorization: `Bearer ${token}` };
 
                     const [resType, resPkg] = await Promise.all([
-                        axios.get('http://localhost:3636/api/month-card/vehicle-types', { headers }),
-                        axios.get('http://localhost:3636/api/month-card/packages', { headers })
+                        // axios.get('http://localhost:3636/api/month-card/vehicle-types', { headers }), đổi dòng này**************
+                        // axios.get('http://localhost:3636/api/month-card/packages', { headers }) 
+                        axios.get(`${import.meta.env.VITE_API_URL}/month-card/vehicle-types`, { headers }),
+                        axios.get(`${import.meta.env.VITE_API_URL}/month-card/packages`, { headers })
                     ]);
 
                     const types = Array.isArray(resType.data) ? resType.data : [];
@@ -92,7 +94,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 setError(null);
                 try {
                     const token = localStorage.getItem('token');
-                    const res = await axios.get('http://localhost:3636/api/month-card/next-code', {
+                    // const res = await axios.get('http://localhost:3636/api/month-card/next-code', { đổi dòng này*******************
+                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/month-card/next-code`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (res.data?.code) {
@@ -131,7 +134,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             const backBase64 = backImg ? await convertToBase64(backImg) : null;
 
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:3636/api/month-card/verify-document',
+            // const res = await axios.post('http://localhost:3636/api/month-card/verify-document', đổi dòng này *********
+            const res = await axios.post(`${import.meta.env.VITE_API_URL}/month-card/verify-document`,
                 { front_base64: frontBase64, back_base64: backBase64 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -196,8 +200,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const res = await axios.post('http://localhost:3636/api/month-card/check-plate', 
-                    { plate: formData.plate_number }, 
+                // const res = await axios.post('http://localhost:3636/api/month-card/check-plate', dổi dòng này*************88
+                const res = await axios.post(`${import.meta.env.VITE_API_URL}/month-card/check-plate`,
+                    { plate: formData.plate_number },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 if (res.data.allowed) {
@@ -247,7 +252,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             };
 
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:3636/api/parking/register-monthly', payload, {
+            // const response = await axios.post('http://localhost:3636/api/parking/register-monthly', payload, { đổi dòng này**************
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/parking/register-monthly`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
