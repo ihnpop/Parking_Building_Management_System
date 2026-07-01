@@ -11,17 +11,17 @@ class ParkingRegistrationService {
             package_id,
             card_code
         } = payload;
-
+        // Kiểm tra dữ liệu khách hàng trước khi gọi eKYC
         const phone = (customer_info.phone || '').trim();
         const email = (customer_info.email || '').trim().toLowerCase();
 
         const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+        // Kiểm tra định dạng số điện thoại Việt Nam
         if (!phoneRegex.test(phone)) {
             throw new Error('Số điện thoại không hợp lệ.');
         }
-
+        // Kiểm tra định dạng email
         if (!emailRegex.test(email)) {
             throw new Error('Email không hợp lệ.');
         }

@@ -178,6 +178,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
 
     // Xử lý đi tiếp các bước, kiểm tra biển số xe ở bước 2
     const handleNextStep = async () => {
+        // Kiểm tra định dạng số điện thoại và email trước khi chuyển bước
         if (step === 1) {
             const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
