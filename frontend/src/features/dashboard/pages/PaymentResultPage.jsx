@@ -1,14 +1,27 @@
+/**
+ * PaymentResultPage.jsx
+ * Trang hiển thị hóa đơn kết quả sau khi khách hàng thực hiện thanh toán qua cổng VNPay.
+ * 
+ * Luồng hoạt động:
+ * 1. Nhận các tham số truy vấn `orderCode` và `status` từ URL redirect (vnpayReturn).
+ * 2. Gọi API công khai `getPaymentByOrderCode` để truy xuất chi tiết giao dịch từ database.
+ * 3. Hiển thị thông tin biên lai (mã giao dịch, loại vé, số tiền thực thu, ngân hàng, thời gian thanh toán).
+ * 4. Hỗ trợ chuyển hướng người dùng quay lại Dashboard hoặc thực hiện thanh toán lại nếu thất bại.
+ */
+
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { getPaymentByOrderCode } from "../../../service/paymentApi";
 
-// Inline SVG icons — không cần lucide-react
+// Thành phần icon SVG biểu thị trạng thái giao dịch (Xanh lá - Thành công)
 const IconSuccess = () => (
     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
         <polyline points="9 12 11 14 15 10" />
     </svg>
 );
+
+// Thành phần icon SVG biểu thị trạng thái giao dịch (Đỏ - Thất bại/Hủy bỏ)
 const IconFail = () => (
     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />
@@ -16,12 +29,15 @@ const IconFail = () => (
         <line x1="9" y1="9" x2="15" y2="15" />
     </svg>
 );
+
+// Thành phần icon xoay (Spinner) biểu thị trạng thái đang truy vấn dữ liệu từ API
 const IconSpinner = () => (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" style={{ animation: "spin 1s linear infinite" }}>
         <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0" strokeDasharray="60" strokeDashoffset="20" />
     </svg>
 );
 
+// Helper: Format tiền tệ sang định dạng VNĐ (VD: 20000 -> "20.000 ₫")
 function formatCurrency(amount) {
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
@@ -29,17 +45,20 @@ function formatCurrency(amount) {
     }).format(amount || 0);
 }
 
+// Helper: Chuyển đổi định dạng thời gian ISO sang giờ Việt Nam dễ đọc
 function formatDateTime(iso) {
     if (!iso) return "—";
     return new Date(iso).toLocaleString("vi-VN");
 }
 
+// Map nhãn hiển thị mô tả cho từng loại hình dịch vụ thanh toán
 const PAYMENT_TYPE_LABEL = {
     "Vé lượt": "Thanh toán gửi xe",
     "Đăng ký vé tháng": "Đăng ký vé tháng",
     "Gia hạn vé tháng": "Gia hạn vé tháng",
 };
 
+// Định nghĩa hệ thống CSS trong code (inline styles) vì ứng dụng không sử dụng Tailwind CSS
 const styles = {
     page: {
         minHeight: "100vh",
@@ -145,13 +164,15 @@ export default function PaymentResultPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
+    // Lấy thông tin orderCode và status (success/failed) từ URL query
     const orderCode = searchParams.get("orderCode");
-    const status = searchParams.get("status"); // 'success' | 'failed'
+    const status = searchParams.get("status"); 
 
     const [payment, setPayment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Truy vấn thông tin chi tiết hóa đơn từ DB bằng API khi màn hình được load
     useEffect(() => {
         if (!orderCode) {
             setError("Thiếu mã giao dịch");
@@ -170,11 +191,12 @@ export default function PaymentResultPage() {
     return (
         <div style={styles.page}>
             <div style={styles.card}>
-                {/* Icon trạng thái */}
+                {/* 1. Hiển thị Icon trạng thái */}
                 <div style={styles.iconWrap}>
                     {isSuccess ? <IconSuccess /> : <IconFail />}
                 </div>
 
+                {/* 2. Tiêu đề trạng thái giao dịch */}
                 <h1 style={styles.title}>
                     {isSuccess ? "Thanh toán thành công" : "Thanh toán thất bại"}
                 </h1>
@@ -184,16 +206,19 @@ export default function PaymentResultPage() {
                         : "Giao dịch không thành công hoặc đã bị hủy. Vui lòng thử lại."}
                 </p>
 
+                {/* Loading indicator */}
                 {loading && (
                     <div style={styles.spinnerWrap}>
                         <IconSpinner />
                     </div>
                 )}
 
+                {/* Thông báo lỗi nếu xảy ra sự cố */}
                 {!loading && error && (
                     <p style={styles.errorText}>{error}</p>
                 )}
 
+                {/* 3. Khối hiển thị chi tiết hóa đơn thanh toán */}
                 {!loading && payment && (
                     <div style={styles.infoBox}>
                         <div style={styles.row}>
@@ -229,6 +254,7 @@ export default function PaymentResultPage() {
                     </div>
                 )}
 
+                {/* 4. Khối nút hành động */}
                 <div style={styles.actions}>
                     <button
                         style={styles.btnSecondary}
@@ -251,6 +277,7 @@ export default function PaymentResultPage() {
                 </div>
             </div>
 
+            {/* Khai báo keyframes CSS cho hiệu ứng xoay tròn icon loading */}
             <style>{`
                 @keyframes spin {
                     from { transform: rotate(0deg); }

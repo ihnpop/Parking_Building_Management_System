@@ -1,5 +1,14 @@
-import supabase from "../config/supabaseClient.js"; // sửa đúng đường dẫn thật của bạn
+/**
+ * paymentRepository.js
+ * Lớp truy xuất cơ sở dữ liệu (Repository) cho thực thể Hóa đơn thanh toán (payment table).
+ * Làm việc trực tiếp với Supabase Client để tạo mới, truy vấn, và cập nhật giao dịch.
+ */
 
+import supabase from "../config/supabaseClient.js";
+
+/**
+ * Thêm mới một bản ghi hóa đơn tạm (trạng thái 'Chờ thanh toán') vào bảng payment
+ */
 export async function create(data) {
     const { data: result, error } = await supabase
         .from("payment")
@@ -10,6 +19,9 @@ export async function create(data) {
     return result;
 }
 
+/**
+ * Tìm kiếm chi tiết thông tin hóa đơn bằng mã đơn hàng duy nhất (order_code)
+ */
 export async function findByOrderCode(orderCode) {
     const { data, error } = await supabase
         .from("payment")
@@ -20,6 +32,9 @@ export async function findByOrderCode(orderCode) {
     return data;
 }
 
+/**
+ * Cập nhật trạng thái và kết quả giao dịch thực tế sau khi nhận thông tin phản hồi từ cổng VNPay
+ */
 export async function updateStatus(orderCode, updates) {
     const { data, error } = await supabase
         .from("payment")
