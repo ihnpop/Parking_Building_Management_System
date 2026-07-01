@@ -7,6 +7,7 @@ import {
     preCheckExitGate,
     exitGate
 } from '../../../service/parkingApi';
+import { createCheckoutPayment } from '../../../service/paymentApi';
 import { useNavigate } from 'react-router-dom';
 
 const cameraCards = [
@@ -270,6 +271,32 @@ export default function SystemOperations() {
             }
         } catch (err) {
             const msg = err?.response?.data?.message || err.message || 'Đã xảy ra lỗi khi check out.';
+            showToast(msg, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVnpayCheckout = async () => {
+        if (!preCheckResult || !preCheckResult.sessionId) {
+            showToast('Không tìm thấy thông tin phiên gửi xe.', 'error');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await createCheckoutPayment(preCheckResult.sessionId, preCheckResult.fee);
+            if (response.data?.payUrl) {
+                showToast("Đang chuyển hướng sang VNPAY...", "success");
+                setTimeout(() => {
+                    window.location.href = response.data.payUrl;
+                }, 1000);
+            } else {
+                throw new Error("Không khởi tạo được đường dẫn thanh toán");
+            }
+        } catch (err) {
+            console.error("Lỗi khởi tạo thanh toán VNPAY:", err);
+            const msg = err.response?.data?.message || err.message || "Đã xảy ra lỗi khi khởi tạo thanh toán VNPAY.";
             showToast(msg, 'error');
         } finally {
             setLoading(false);
@@ -1228,6 +1255,18 @@ export default function SystemOperations() {
                                 >
                                     Hủy
                                 </button>
+                                {preCheckResult.vehicleType === 'VISITOR' && preCheckResult.fee > 0 && (
+                                    <button
+                                        onClick={async () => {
+                                            setShowExitModal(false);
+                                            await handleVnpayCheckout();
+                                        }}
+                                        className="cardpage-button primary"
+                                        style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#0068ff', color: 'white' }}
+                                    >
+                                        Thanh toán VNPAY
+                                    </button>
+                                )}
                                 <button
                                     onClick={async () => {
                                         setShowExitModal(false);

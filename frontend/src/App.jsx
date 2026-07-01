@@ -15,6 +15,7 @@ import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import ResetPassword from "./features/auth/pages/ResetPassword";
 import "./styles/App.css";
 import SetPasswordPage from './features/auth/pages/Setpasswordpage';
+import PaymentResultPage from './features/dashboard/pages/PaymentResultPage';
 
 export default function App() {
   return (
@@ -99,6 +100,8 @@ export default function App() {
       } />
 
       <Route path="/set-password" element={<SetPasswordPage />} />
+
+      <Route path="/payment-result" element={<PaymentResultPage />} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />

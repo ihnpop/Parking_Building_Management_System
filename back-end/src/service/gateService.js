@@ -469,7 +469,8 @@ export const preCheckExit = async (plateNumber) => {
     cardCode: card ? card.code : "UNKNOWN",
     entryTime: formattedEntryTime,
     duration: durationStr,
-    fee
+    fee,
+    sessionId: activeSession.session_id
   };
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getRenewPackages, renewMonthCard } from '../../../service/monthCardApi';
+import { createPackagePayment } from '../../../service/paymentApi';
 
 export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }) {
     const [packages, setPackages] = useState([]);
@@ -86,23 +87,18 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
         setIsSubmitting(true);
 
         try {
-            const payload = {
-                registrationId: cardData.registrationId,
-                months: parseInt(selectedMonths, 10),
-                note: note.trim()
-            };
-
-            await renewMonthCard(payload);
-            setSuccessMessage("Gia hạn thẻ tháng thành công!");
-            
-            // Gọi callback reload dữ liệu ở component cha sau 1 giây
-            setTimeout(() => {
-                onSuccess();
-                onClose();
-            }, 1000);
+            const response = await createPackagePayment(cardData.registrationId, price, true);
+            if (response.data?.payUrl) {
+                setSuccessMessage("Đang chuyển hướng sang cổng thanh toán VNPAY...");
+                setTimeout(() => {
+                    window.location.href = response.data.payUrl;
+                }, 1000);
+            } else {
+                throw new Error("Không khởi tạo được đường dẫn thanh toán");
+            }
         } catch (err) {
-            console.error("Lỗi gia hạn thẻ tháng:", err);
-            const msg = err.response?.data?.error || "Đã xảy ra lỗi trong quá trình gia hạn.";
+            console.error("Lỗi khởi tạo thanh toán VNPAY:", err);
+            const msg = err.response?.data?.message || err.message || "Đã xảy ra lỗi trong quá trình khởi tạo thanh toán.";
             setError(msg);
         } finally {
             setIsSubmitting(false);

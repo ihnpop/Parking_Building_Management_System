@@ -9,6 +9,7 @@ import parkingRouter from "./src/routes/parkingRoutes.js";
 import registrationRouter from "./src/routes/parkingRegistrationRoutes.js";
 import gateRouter from "./src/routes/gateRoutes.js";
 import monthCardRouter from "./src/routes/monthCardRoutes.js";
+import paymentRoutes from "./src/routes/paymentRoutes.js";
 
 const app = express();
 
@@ -79,6 +80,7 @@ const getConsecutiveFailures = async (email) => {
   return count;
 };
 
+app.use("/api/payments", paymentRoutes);
 app.post(
   "/api/login",
   async (req, res) => {
