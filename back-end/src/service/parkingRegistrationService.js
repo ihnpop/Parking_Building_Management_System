@@ -12,6 +12,20 @@ class ParkingRegistrationService {
             card_code
         } = payload;
 
+        const phone = (customer_info.phone || '').trim();
+        const email = (customer_info.email || '').trim().toLowerCase();
+
+        const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!phoneRegex.test(phone)) {
+            throw new Error('Số điện thoại không hợp lệ.');
+        }
+
+        if (!emailRegex.test(email)) {
+            throw new Error('Email không hợp lệ.');
+        }
+
         console.log("eKYC: Đang xác thực giấy tờ cho khách hàng:", customer_info.full_name);
 
         // BƯỚC 1: Gọi sang dịch vụ VNPT eKYC bóc tách giấy tờ trước khi tác động DB
@@ -38,8 +52,8 @@ class ParkingRegistrationService {
             .from('customer')
             .insert([{
                 full_name: fullName,
-                phone: customer_info.phone || null,
-                email: customer_info.email || null,
+                phone: phone,
+                email: email,
                 status: 'Hoạt động'
             }])
             .select().single();
@@ -158,8 +172,8 @@ class ParkingRegistrationService {
             // Trường hợp 1: sử dụng thẻ đang chờ
             // Cập nhật trạng thái thẻ sang hoạt động
             const { error: updateErr } = await supabase.from('card')
-                .update({ 
-                    status: 'Hoạt động', 
+                .update({
+                    status: 'Hoạt động',
                     expired_date: expiredDateStr,
                     created_at: new Date().toISOString()
                 })

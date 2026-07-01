@@ -178,6 +178,20 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
 
     // Xử lý đi tiếp các bước, kiểm tra biển số xe ở bước 2
     const handleNextStep = async () => {
+        if (step === 1) {
+            const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!phoneRegex.test(formData.phone)) {
+                setError("Số điện thoại không hợp lệ.");
+                return;
+            }
+
+            if (!emailRegex.test(formData.email)) {
+                setError("Email không hợp lệ.");
+                return;
+            }
+        }
         if (step === 2) {
             setError(null);
 
@@ -587,7 +601,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     type="button"
                                     className="cp-btn cp-btn-primary"
                                     disabled={
-                                        (step === 1 && (!frontImg || !backImg || !formData.full_name || !formData.phone || !verifyResult || !verifyResult.isReal)) ||
+                                        (step === 1 && (!frontImg || !backImg || !formData.full_name || !/^(03|05|07|08|09)\d{8}$/.test(formData.phone) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) || !verifyResult || !verifyResult.isReal)) ||
                                         (step === 2 && (!formData.vehicle_type_id || !formData.plate_number || loading)) ||
                                         (step === 3 && !formData.package_id)
                                     }
