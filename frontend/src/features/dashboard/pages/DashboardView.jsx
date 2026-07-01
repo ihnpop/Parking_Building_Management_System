@@ -275,7 +275,7 @@ export default function DashboardView() {
                             <div className="db-kpi-note">Các trường hợp ngoại lệ đã ghi nhận</div>
                         </div>
 
-                        {/* Doanh thu hôm nay – từ payment.status = 'Đã trả' */}
+                        {/* Doanh thu hôm nay – từ payment.status = 'Đã thanh toán' */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>DOANH THU HÔM NAY</span>
@@ -287,7 +287,7 @@ export default function DashboardView() {
                             <div className="db-kpi-note">Tiền mặt &amp; QR ngân hàng đã thu</div>
                         </div>
 
-                        {/* Doanh thu tháng – từ payment.status = 'Đã trả' tháng này */}
+                        {/* Doanh thu tháng – từ payment.status = 'Đã thanh toán' tháng này */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>DOANH THU THÁNG</span>

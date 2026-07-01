@@ -235,13 +235,13 @@ export async function fetchTodayIncidents() {
 }
 
 // ─── 5. Doanh thu hôm nay ────────────────────────────────────────────────────
-// Nguồn: payment.amount where status='Đã trả' and payment_time hôm nay
+// Nguồn: payment.amount where status = 'Đã thanh toán' and payment_time hôm nay
 export async function fetchTodayRevenue() {
     try {
         const { data, error } = await supabase
             .from('payment')
             .select('amount')
-            .eq('status', 'Đã trả')
+            .eq('status', 'Đã thanh toán')
             .gte('payment_time', startOfToday())
             .lte('payment_time', endOfToday());
         if (error) throw error;
@@ -253,13 +253,13 @@ export async function fetchTodayRevenue() {
 }
 
 // ─── 6. Doanh thu tháng ──────────────────────────────────────────────────────
-// Nguồn: payment.amount where status='Đã trả' and payment_time tháng này
+// Nguồn: payment.amount where status = 'Đã thanh toán' and payment_time tháng này
 export async function fetchMonthRevenue() {
     try {
         const { data, error } = await supabase
             .from('payment')
             .select('amount')
-            .eq('status', 'Đã trả')
+            .eq('status', 'Đã thanh toán')
             .gte('payment_time', startOfCurrentMonth())
             .lte('payment_time', endOfCurrentMonth());
         if (error) throw error;

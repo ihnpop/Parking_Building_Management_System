@@ -81,7 +81,7 @@ export async function handleIpn(query) {
     const success = query.vnp_ResponseCode === "00" && query.vnp_TransactionStatus === "00";
 
     const updated = await paymentRepository.updateStatus(orderCode, {
-        status: success ? "Đã trả" : "Thất bại",
+        status: success ? "Đã thanh toán" : "Thất bại",
         transaction_no: query.vnp_TransactionNo,
         bank_code: query.vnp_BankCode,
         paid_at: success ? new Date().toISOString() : null,

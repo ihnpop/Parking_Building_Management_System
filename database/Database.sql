@@ -1,4 +1,4 @@
-﻿CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
 -- ROLE
@@ -405,22 +405,24 @@ CREATE TABLE parking_sessions (
     -- updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ==========================================
--- PAYMENT
--- ==========================================
-
 CREATE TABLE payment (
     payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    parking_order_id UUID NOT NULL REFERENCES parking_order(parking_order_id),
-
+    vehicle_package_id UUID REFERENCES vehicle_package(vehicle_package_id),
+    session_id UUID REFERENCES parking_sessions(session_id),
+    parking_order_id UUID, -- Giữ lại nếu cần liên kết cũ hoặc để null
+    payment_type VARCHAR(100) NOT NULL CHECK (payment_type IN ('Vé lượt', 'Đăng ký vé tháng', 'Gia hạn vé tháng')),
     amount NUMERIC(18,2) NOT NULL,
-
     payment_method VARCHAR(50),
-
+    provider VARCHAR(50) DEFAULT 'VNPay',
+    order_code VARCHAR(100) UNIQUE,
+    transaction_no VARCHAR(100),
+    bank_code VARCHAR(50),
+    paid_at TIMESTAMPTZ,
     payment_time TIMESTAMPTZ DEFAULT NOW(),
-
-    status VARCHAR(50) DEFAULT 'Đã trả'
+    status VARCHAR(50) DEFAULT 'Chờ thanh toán',
+    note TEXT,
+    created_by UUID REFERENCES profiles(id),
+    raw_response JSONB
 );
 
 -----------------------------------

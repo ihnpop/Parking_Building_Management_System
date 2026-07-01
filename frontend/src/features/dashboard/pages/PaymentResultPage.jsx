@@ -222,7 +222,7 @@ export default function PaymentResultPage() {
                         </div>
                         <div style={styles.rowLast}>
                             <span style={styles.label}>Trạng thái</span>
-                            <span style={payment.status === "Đã trả" ? styles.valueSuccess : styles.valueFail}>
+                            <span style={payment.status === "Đã thanh toán" ? styles.valueSuccess : styles.valueFail}>
                                 {payment.status || "—"}
                             </span>
                         </div>
