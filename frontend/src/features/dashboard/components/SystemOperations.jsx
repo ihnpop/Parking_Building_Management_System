@@ -84,7 +84,6 @@ export default function SystemOperations() {
     const [lastSession, setLastSession] = useState(null);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [stats, setStats] = useState({ insideCount: 0, inCount: 0, outCount: 0 });
-
     const fetchStats = async () => {
         try {
             const data = await getParkingStats();
@@ -99,6 +98,8 @@ export default function SystemOperations() {
             console.error("Error fetching stats:", err);
         }
     };
+
+
 
     // Input Refs for programmatic clicks
     const vehicleInputRef = useRef(null);
@@ -486,6 +487,7 @@ export default function SystemOperations() {
                         </div>
                     </article>
                 </section>
+
 
                 <section className="camera-grid">
                     {[cameraCards[0], cameraCards[1], cameraCards[2], cameraCards[3]].map((camera) => {

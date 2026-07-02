@@ -40,6 +40,11 @@ router.post("/exit", verifyToken, gateController.exitTap);
 /**
  * GET /api/gate/stats
  */
-router.get("/stats", verifyToken, gateController.getStats);
+router.get("/stats", gateController.getStats);
+
+/**
+ * GET /api/gate/sessions
+ */
+router.get("/sessions", gateController.getSessions);
 
 export default router;

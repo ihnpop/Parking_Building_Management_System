@@ -24217,3 +24217,187 @@ body,
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ============================================================
+   System Operations Sessions Table & Real-time Timer Styles
+   ============================================================ */
+
+.system-sessions-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.system-sessions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.system-sessions-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-sessions-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.system-sessions-filters .filter-btn {
+  padding: 8px 16px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.system-sessions-filters .filter-btn:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.system-sessions-filters .filter-btn.active {
+  background-color: #ea580c;
+  border-color: #ea580c;
+  color: #ffffff;
+}
+
+.system-sessions-table-wrapper {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.system-sessions-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.system-sessions-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.system-sessions-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.system-sessions-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Badge Trạng thái */
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.session-status-badge.inside {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.session-status-badge.out {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.session-status-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.session-status-badge.inside .badge-dot {
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* Realtime timer cell styling */
+.realtime-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ea580c;
+}
+
+.realtime-timer.stopped {
+  font-family: inherit;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.realtime-timer span.timer-icon {
+  font-size: 16px;
+  color: #ea580c;
+  animation: rotate-timer 2s linear infinite;
+}
+
+.realtime-timer.stopped span.timer-icon {
+  color: #94a3b8;
+  animation: none;
+}
+
+@keyframes pulse-dot {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes rotate-timer {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+

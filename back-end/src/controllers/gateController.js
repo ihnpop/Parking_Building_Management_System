@@ -191,3 +191,20 @@ export const getStats = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /api/gate/sessions
+ */
+export const getSessions = async (req, res) => {
+  try {
+    const sessions = await gateService.getSessions();
+    return res.status(200).json(sessions);
+  } catch (err) {
+    console.error("gateController.getSessions error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Lỗi lấy danh sách phiên gửi xe."
+    });
+  }
+};
+

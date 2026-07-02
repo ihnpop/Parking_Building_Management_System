@@ -729,3 +729,55 @@ export const getStats = async () => {
     outCount: outCount || 0,
   };
 };
+
+/**
+ * Lấy danh sách tất cả phiên gửi xe, kèm thông tin card
+ */
+export const getSessions = async () => {
+  const { data: sessions, error: sessionsErr } = await supabase
+    .from("parking_sessions")
+    .select(`
+      session_id,
+      vehicle_id,
+      plate_number,
+      entry_time,
+      exit_time,
+      status,
+      card_id
+    `)
+    .order("entry_time", { ascending: false });
+
+  if (sessionsErr) throw new Error("Lỗi lấy danh sách phiên gửi xe: " + sessionsErr.message);
+
+  if (!sessions || sessions.length === 0) {
+    return { success: true, sessions: [] };
+  }
+
+  // Lấy danh sách card_id duy nhất để query thông tin thẻ
+  const cardIds = [...new Set(sessions.map(s => s.card_id).filter(id => !!id))];
+  let cardsMap = {};
+  
+  if (cardIds.length > 0) {
+    const { data: cards, error: cardsErr } = await supabase
+      .from("card")
+      .select("card_id, code, type")
+      .in("card_id", cardIds);
+
+    if (cardsErr) {
+      console.error("Lỗi lấy thông tin thẻ trong getSessions:", cardsErr.message);
+    } else if (cards) {
+      cards.forEach(c => {
+        cardsMap[c.card_id] = { code: c.code, type: c.type };
+      });
+    }
+  }
+
+  // Ghép thông tin card vào session bằng Javascript
+  const mappedSessions = sessions.map(s => ({
+    ...s,
+    card: s.card_id ? (cardsMap[s.card_id] || null) : null
+  }));
+
+  return { success: true, sessions: mappedSessions };
+};
+
