@@ -58,6 +58,23 @@ router.post("/renew", monthCardController.renewMonthlyCard);
  */
 router.post("/verify-document", monthCardController.verifyDocument);
 
+/**
+ * POST /api/month-card/initiate-payment
+ * BƯỚC 4: Tạo Customer/Vehicle/Package + khởi tạo giao dịch VNPay
+ */
+router.post("/initiate-payment", monthCardController.initiatePayment);
+
+/**
+ * GET /api/month-card/payment-status/:orderCode
+ * BƯỚC 4: Kiểm tra trạng thái thanh toán VNPay
+ */
+router.get("/payment-status/:orderCode", monthCardController.getPaymentStatus);
+
+/**
+ * POST /api/month-card/finalize-registration
+ * BƯỚC 5: Cấp thẻ RFID + Kích hoạt gói tháng
+ */
+router.post("/finalize-registration", monthCardController.finalizeRegistration);
 
 /**
  * PUT /api/month-card/:id

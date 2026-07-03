@@ -1,7 +1,9 @@
 import * as monthCardService from "../service/monthCardService.js";
 import supabase from "../config/supabaseClient.js";
 import { generateNextMonthCode } from "../repositories/monthCardRepository.js";
-import { uploadImageToVNPT, checkDocumentLiveness } from "../service/ekycService.js";
+import { uploadImageToVNPT, checkDocumentLiveness, ocrIdentityCard } from "../service/ekycService.js";
+import registrationService from '../service/parkingRegistrationService.js';
+import * as paymentRepository from '../repositories/paymentRepository.js';
 
 /**
  * Sinh mã thẻ MONTH tiếp theo chưa tồn tại trong DB
@@ -226,20 +228,16 @@ export const updateMonthCard = async (req, res) => {
 /**
  * Xóa mềm thẻ tháng theo ID
  * DELETE /api/month-card/:id
- * - Lấy id từ params, performedBy từ JWT user
- * - Ủy quyền xử lý nghiệp vụ cho monthCardService.deleteMonthCard
- * - Trả về HTTP 200 khi thành công, 404/500 khi thất bại
  */
 export const deleteMonthCard = async (req, res) => {
   try {
-    const { id } = req.params;                 // ID thẻ tháng cần xóa
-    const performedBy = req.user?.id;          // ID người thực hiện (từ JWT middleware)
+    const { id } = req.params;
+    const performedBy = req.user?.id;
 
     const result = await monthCardService.deleteMonthCard(id, performedBy);
     return res.status(200).json({ message: 'Xóa vé tháng thành công', data: result });
   } catch (err) {
     console.error('deleteMonthCard error:', err);
-    // Dùng err.statusCode (do service tự đặt) nếu có, fallback về 500
     return res.status(err.statusCode || 500).json({ message: err.message || 'Lỗi server' });
   }
 };
@@ -280,9 +278,7 @@ export const verifyDocument = async (req, res) => {
     }
 
     console.log("Đang upload ảnh mặt trước lên VNPT...");
-    // Tách phần prefix base64 nếu có (e.g. data:image/jpeg;base64,...)
     const cleanFrontBase64 = front_base64.replace(/^data:image\/\w+;base64,/, "");
-
     const frontHash = await uploadImageToVNPT(cleanFrontBase64, 'cccd_front');
     console.log("Upload mặt trước thành công, hash:", frontHash);
 
@@ -298,6 +294,22 @@ export const verifyDocument = async (req, res) => {
       console.log("Upload mặt sau thành công, hash:", backHash);
     }
 
+    // Nếu giấy tờ hợp lệ → gọi thêm OCR để bóc tách tên & số CCCD
+    let ocrData = null;
+    if (livenessResult.isReal && frontHash && backHash) {
+      try {
+        console.log("Đang OCR bóc tách thông tin CCCD...");
+        const ocrResult = await ocrIdentityCard(frontHash, backHash);
+        if (ocrResult.success) {
+          ocrData = ocrResult.data;
+          console.log("OCR thành công:", { name: ocrData?.name, id: ocrData?.id });
+        }
+      } catch (ocrErr) {
+        // OCR thất bại không được chặn kết quả liveness — chỉ log warning
+        console.warn("OCR thất bại (bỏ qua):", ocrErr.message);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       frontHash,
@@ -306,7 +318,17 @@ export const verifyDocument = async (req, res) => {
       liveness: livenessResult.liveness,
       liveness_msg: livenessResult.liveness_msg,
       face_swapping: livenessResult.face_swapping,
-      fake_liveness: livenessResult.fake_liveness
+      fake_liveness: livenessResult.fake_liveness,
+      // Dữ liệu OCR từ CCCD (tên, số ID, ngày sinh, địa chỉ...)
+      ocrData: ocrData ? {
+        name: ocrData.name || ocrData.full_name || null,
+        id: ocrData.id || ocrData.id_card_number || null,
+        birth_day: ocrData.birth_day || ocrData.dob || null,
+        sex: ocrData.sex || ocrData.gender || null,
+        address: ocrData.address || null,
+        issue_date: ocrData.issue_date || null,
+        issue_place: ocrData.issue_place || null
+      } : null
     });
   } catch (err) {
     console.error("Lỗi xác thực giấy tờ:", err);
@@ -314,3 +336,54 @@ export const verifyDocument = async (req, res) => {
   }
 };
 
+/**
+ * BƯỚC 4: Khởi tạo đăng ký + Tạo giao dịch VNPay (hoặc ghi nhận tiền mặt)
+ * POST /api/month-card/initiate-payment
+ * Body: { customer_info, vehicle_info, package_id, payment_method }
+ */
+export const initiatePayment = async (req, res) => {
+  try {
+    const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
+
+    const result = await registrationService.initiateRegistration({
+      ...req.body,
+      ip_addr: ipAddrClean
+    });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    console.error("Lỗi initiatePayment:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * BƯỚC 4: Kiểm tra trạng thái thanh toán VNPay theo orderCode
+ * GET /api/month-card/payment-status/:orderCode
+ */
+export const getPaymentStatus = async (req, res) => {
+  try {
+    const { orderCode } = req.params;
+    const payment = await paymentRepository.findByOrderCode(orderCode);
+    if (!payment) return res.status(404).json({ error: 'Không tìm thấy giao dịch.' });
+    return res.status(200).json({ status: payment.status, orderCode });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * BƯỚC 5: Cấp thẻ RFID + Kích hoạt gói tháng + Hoàn tất đăng ký
+ * POST /api/month-card/finalize-registration
+ * Body: { vehiclePackageId, card_code, payment_method, orderCode }
+ */
+export const finalizeRegistration = async (req, res) => {
+  try {
+    const result = await registrationService.finalizeRegistration(req.body);
+    return res.status(200).json({ success: true, message: 'Đăng ký thẻ tháng hoàn tất!', data: result });
+  } catch (err) {
+    console.error("Lỗi finalizeRegistration:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
