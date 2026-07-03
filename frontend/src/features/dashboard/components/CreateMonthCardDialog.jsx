@@ -33,7 +33,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         color: '',
         package_id: '',
         card_code: '',
-        cccd_number: ''
+        cccd_number: '' // Số CCCD/CMND (tự động điền sau khi eKYC thành công hoặc nhập tay)
     });
 
     // ── Bước 4: Thanh toán ────────────────────────────────────────
@@ -95,7 +95,18 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         setContractAccepted(false); setPaymentMethod('vnpay');
         setPaymentStatus(null); setPaymentOrderCode(null); setVehiclePackageId(null);
         setInitiating(false); setChecking(false);
-        setFormData({ full_name: '', phone: '', email: '', vehicle_type_id: '', plate_number: '', brand: '', color: '', package_id: '', card_code: '', cccd_number: '' });
+        setFormData({ 
+            full_name: '', 
+            phone: '', 
+            email: '', 
+            vehicle_type_id: '', 
+            plate_number: '', 
+            brand: '', 
+            color: '', 
+            package_id: '', 
+            card_code: '', 
+            cccd_number: '' // Reset thông tin CCCD
+        });
     };
 
     // ── Helpers ───────────────────────────────────────────────────
@@ -126,7 +137,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     const ocr = res.data.ocrData;
                     setFormData(prev => ({
                         ...prev,
-                        // Chỉ điền nếu trường đang trống (không ghi đè dữ liệu người dùng đã nhập)
+                        // Tự động điền Họ tên và Số CCCD từ kết quả OCR (chỉ điền nếu trường hiện tại đang trống)
                         full_name: prev.full_name || ocr.name || prev.full_name,
                         cccd_number: prev.cccd_number || ocr.id || prev.cccd_number,
                     }));
@@ -280,6 +291,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     if (!isOpen) return null;
 
     // ── Nút Tiếp theo bị disabled? ────────────────────────────────
+    // Lưu ý: Không kiểm tra định dạng regex (phone, email) ở đây để tránh làm nút bị khóa cứng (disabled)
+    // mà không có phản hồi. Định dạng sẽ được kiểm tra và hiển thị thông báo lỗi tại handleNextStep khi click.
     const isNextDisabled =
         (step === 1 && (!frontImg || !backImg || !formData.full_name || !formData.phone || !formData.email || !verifyResult?.isReal)) ||
         (step === 2 && (!formData.vehicle_type_id || !formData.plate_number || loading)) ||
