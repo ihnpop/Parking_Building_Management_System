@@ -374,6 +374,21 @@ export const getPaymentStatus = async (req, res) => {
 };
 
 /**
+ * BƯỚC 4: Xác nhận thu tiền mặt cho thẻ tháng
+ * POST /api/month-card/confirm-cash-payment/:orderCode
+ */
+export const confirmCashPayment = async (req, res) => {
+  try {
+    const { orderCode } = req.params;
+    const result = await registrationService.confirmCashPayment(orderCode);
+    return res.status(200).json({ success: true, message: 'Xác nhận thu tiền mặt thành công!', data: result });
+  } catch (err) {
+    console.error("Lỗi confirmCashPayment:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
  * BƯỚC 5: Cấp thẻ RFID + Kích hoạt gói tháng + Hoàn tất đăng ký
  * POST /api/month-card/finalize-registration
  * Body: { vehiclePackageId, card_code, payment_method, orderCode }

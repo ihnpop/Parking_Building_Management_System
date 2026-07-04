@@ -206,7 +206,7 @@ class ParkingRegistrationService {
     }   // end processFullMonthlyRegistration
 
     // ─────────────────────────────────────────────────────────────────────────
-    // GIAI ĐOẠN 1: Tạo dữ liệu nền (Chỉ lưu vào payment note với VNPay, Cash không ghi gì)
+    // GIAI ĐOẠN 1: Tạo dữ liệu nền (Chỉ lưu vào payment note tạm với VNPay/Cash)
     // Được gọi ở Bước 4 (Xác nhận & Thanh toán)
     // ─────────────────────────────────────────────────────────────────────────
     async initiateRegistration(payload) {
@@ -254,11 +254,10 @@ class ParkingRegistrationService {
         let payUrl = null;
         let orderCode = null;
 
-        if (payment_method === 'vnpay') {
+        if (payment_method === 'vnpay' || payment_method === 'cash') {
             const ipAddrClean = ip_addr || '127.0.0.1';
-            orderCode = `PK${Date.now()}`;
+            orderCode = payment_method === 'vnpay' ? `PK${Date.now()}` : `PK_CASH_${Date.now()}`;
             
-            // Lưu trữ payload tạm thời vào note của payment để không tạo bản ghi Customer/Vehicle/Vehicle Package trước
             const savedPayload = {
                 customer_info: {
                     full_name: customer_info.full_name,
@@ -283,15 +282,18 @@ class ParkingRegistrationService {
                 amount: packagePrice,
                 order_code: orderCode,
                 status: 'Chờ thanh toán',
+                payment_method: payment_method,
                 note: JSON.stringify(savedPayload)
             });
 
-            payUrl = vnpayService.createPaymentUrl({
-                orderCode,
-                amount: packagePrice,
-                orderInfo: `Dang ky ve thang ${rawPlate}`,
-                ipAddr: ipAddrClean
-            });
+            if (payment_method === 'vnpay') {
+                payUrl = vnpayService.createPaymentUrl({
+                    orderCode,
+                    amount: packagePrice,
+                    orderInfo: `Dang ky ve thang ${rawPlate}`,
+                    ipAddr: ipAddrClean
+                });
+            }
         }
 
         return {
@@ -302,26 +304,43 @@ class ParkingRegistrationService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // HÀM PHỤ TRỢ: Xác nhận nhận tiền mặt từ khách hàng
+    // Cập nhật trạng thái payment từ 'Chờ thanh toán' sang 'Đã thanh toán'
+    // ─────────────────────────────────────────────────────────────────────────
+    async confirmCashPayment(orderCode) {
+        const payment = await paymentRepository.findByOrderCode(orderCode);
+        if (!payment) throw new Error('Không tìm thấy giao dịch.');
+        if (payment.payment_method !== 'cash') throw new Error('Giao dịch không phải thanh toán tiền mặt.');
+        if (payment.status !== 'Chờ thanh toán') throw new Error('Giao dịch đã được xác nhận hoặc thất bại trước đó.');
+
+        const updated = await paymentRepository.updateStatus(orderCode, {
+            status: 'Đã thanh toán',
+            paid_at: new Date().toISOString(),
+        });
+        return updated;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // GIAI ĐOẠN 2: Cấp thẻ RFID + Ghi nhận toàn bộ dữ liệu xuống database
-    // Được gọi ở Bước 5 (Cấp RFID) sau khi thanh toán thành công hoặc chọn cash
+    // Được gọi ở Bước 5 (Cấp RFID) sau khi thanh toán thành công (VNPay hoặc Cash)
     // ─────────────────────────────────────────────────────────────────────────
     async finalizeRegistration(payload) {
-        const { vehiclePackageId, card_code, payment_method, orderCode, customer_info, vehicle_info, package_id } = payload;
+        const { card_code, payment_method, orderCode } = payload;
 
         let registrationData = null;
         let paymentRecord = null;
 
         // 1. Nhận thông tin đăng ký dựa trên phương thức thanh toán
-        if (payment_method === 'vnpay') {
+        if (payment_method === 'vnpay' || payment_method === 'cash') {
             if (!orderCode) {
-                throw new Error('Thiếu mã đơn hàng VNPay.');
+                throw new Error('Thiếu mã đơn hàng.');
             }
             paymentRecord = await paymentRepository.findByOrderCode(orderCode);
             if (!paymentRecord) {
-                throw new Error('Không tìm thấy giao dịch VNPay tương ứng.');
+                throw new Error('Không tìm thấy giao dịch tương ứng.');
             }
             if (paymentRecord.status !== 'Đã thanh toán') {
-                throw new Error('Giao dịch VNPay chưa được xác nhận thanh toán. Vui lòng thanh toán rồi thử lại.');
+                throw new Error('Giao dịch chưa được xác nhận thanh toán. Vui lòng hoàn tất thanh toán rồi thử lại.');
             }
 
             try {
@@ -329,15 +348,6 @@ class ParkingRegistrationService {
             } catch (e) {
                 throw new Error('Dữ liệu lưu trữ giao dịch không hợp lệ.');
             }
-        } else if (payment_method === 'cash') {
-            if (!customer_info || !vehicle_info || !package_id) {
-                throw new Error('Thiếu thông tin đăng ký để hoàn tất thanh toán tiền mặt.');
-            }
-            registrationData = {
-                customer_info,
-                vehicle_info,
-                package_id
-            };
         } else {
             throw new Error('Phương thức thanh toán không hợp lệ.');
         }
@@ -505,30 +515,13 @@ class ParkingRegistrationService {
         if (regError) throw new Error('Lỗi liên kết thẻ với xe: ' + regError.message);
 
         // 10. Xử lý bản ghi thanh toán (Payment)
-        if (payment_method === 'vnpay' && paymentRecord) {
+        if (paymentRecord) {
             // Liên kết payment record với vehicle_package_id mới tạo
             const { error: paymentUpdateErr } = await supabase
                 .from('payment')
                 .update({ vehicle_package_id: vehiclePackage.vehicle_package_id })
                 .eq('payment_id', paymentRecord.payment_id);
             if (paymentUpdateErr) throw new Error('Lỗi liên kết hóa đơn thanh toán: ' + paymentUpdateErr.message);
-        } else if (payment_method === 'cash') {
-            // Tạo bản ghi thanh toán tiền mặt với trạng thái 'Đã thanh toán'
-            const cashOrderCode = `PK_CASH_${Date.now()}`;
-            const { error: cashPaymentErr } = await supabase
-                .from('payment')
-                .insert([{
-                    vehicle_package_id: vehiclePackage.vehicle_package_id,
-                    payment_type: 'Đăng ký vé tháng',
-                    amount: packagePrice,
-                    payment_method: 'cash',
-                    provider: 'Tiền mặt',
-                    order_code: cashOrderCode,
-                    status: 'Đã thanh toán',
-                    paid_at: new Date().toISOString(),
-                    note: 'Đăng ký vé tháng thu tiền mặt tại quầy'
-                }]);
-            if (cashPaymentErr) throw new Error('Lỗi ghi hóa đơn tiền mặt: ' + cashPaymentErr.message);
         }
 
         // 11. Ghi log hoạt động thẻ
@@ -542,7 +535,7 @@ class ParkingRegistrationService {
                 duration_months: durationMonth,
                 amount: packagePrice,
                 expired_date_after: expiredDateStr,
-                note: payment_method === 'vnpay' ? `Cấp mới qua cổng VNPay - Đơn: ${orderCode}` : 'Cấp mới thu tiền mặt',
+                note: payment_method === 'vnpay' ? `Cấp mới qua cổng VNPay - Đơn: ${orderCode}` : `Cấp mới thu tiền mặt - Đơn: ${orderCode}`,
                 performed_at: new Date().toISOString()
             }]);
         if (logErr) console.warn('Lỗi ghi log hoạt động thẻ (bỏ qua):', logErr.message);

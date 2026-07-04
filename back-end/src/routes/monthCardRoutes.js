@@ -71,6 +71,12 @@ router.post("/initiate-payment", monthCardController.initiatePayment);
 router.get("/payment-status/:orderCode", monthCardController.getPaymentStatus);
 
 /**
+ * POST /api/month-card/confirm-cash-payment/:orderCode
+ * BƯỚC 4: Xác nhận thu tiền mặt cho thẻ tháng
+ */
+router.post("/confirm-cash-payment/:orderCode", monthCardController.confirmCashPayment);
+
+/**
  * POST /api/month-card/finalize-registration
  * BƯỚC 5: Cấp thẻ RFID + Kích hoạt gói tháng
  */

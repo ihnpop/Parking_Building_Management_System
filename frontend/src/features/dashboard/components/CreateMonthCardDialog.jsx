@@ -222,15 +222,12 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
 
             const { data } = res.data;
             setVehiclePackageId(data.vehiclePackageId);
+            setPaymentOrderCode(data.orderCode);
+            setPaymentStatus('pending');
 
             if (paymentMethod === 'vnpay') {
-                setPaymentOrderCode(data.orderCode);
-                setPaymentStatus('pending');
                 // Mở trang VNPay trong tab mới
                 window.open(data.payUrl, '_blank');
-            } else {
-                // Tiền mặt: chuyển thẳng sang bước 5
-                setStep(5);
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Lỗi khởi tạo thanh toán. Vui lòng thử lại.');
@@ -249,13 +246,30 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             );
             if (res.data.status === 'Đã thanh toán') {
                 setPaymentStatus('paid');
-                setTimeout(() => setStep(5), 600);
+                setTimeout(() => setStep(5), 1000);
             } else {
                 setPaymentStatus('pending');
                 setError('Giao dịch VNPay chưa được xác nhận. Vui lòng hoàn tất thanh toán rồi thử lại.');
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Không thể kiểm tra trạng thái thanh toán.');
+        } finally {
+            setChecking(false);
+        }
+    };
+
+    // ── Bước 4: Xác nhận đã nhận tiền mặt từ khách hàng ──────────
+    const handleConfirmCashPayment = async () => {
+        if (!paymentOrderCode) return;
+        setChecking(true); setError(null);
+        try {
+            await axios.post(`${API}/month-card/confirm-cash-payment/${paymentOrderCode}`, {}, {
+                headers: authHeaders()
+            });
+            setPaymentStatus('paid');
+            setTimeout(() => setStep(5), 1000);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Không thể xác nhận thanh toán tiền mặt.');
         } finally {
             setChecking(false);
         }
@@ -517,6 +531,12 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                             <tr><td>Tên gói</td><td>{selectedPackage?.name || '—'}</td></tr>
                                             <tr><td>Thời hạn</td><td>{selectedPackage?.duration_month || '—'} tháng</td></tr>
                                             <tr><td>Phí dịch vụ</td><td style={{ fontWeight: 700, color: '#006d38', fontSize: 15 }}>{selectedPackage ? Number(selectedPackage.price).toLocaleString('vi-VN') + ' ₫' : '—'}</td></tr>
+                                            <tr>
+                                                <td>Trạng thái thanh toán</td>
+                                                <td style={{ fontWeight: 600, color: paymentStatus === 'paid' ? '#059669' : paymentStatus === 'pending' ? '#d97706' : '#6b7280' }}>
+                                                    {paymentStatus === 'paid' ? 'Đã thanh toán' : paymentStatus === 'pending' ? 'Chờ thanh toán' : 'Chưa thanh toán'}
+                                                </td>
+                                            </tr>
                                         </tbody>
                                     </table>
 
@@ -556,8 +576,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     </div>
                                 </div>
 
-                                {/* Trạng thái VNPay sau khi mở tab */}
-                                {paymentStatus === 'pending' && (
+                                {/* Trạng thái VNPay/Tiền mặt sau khi mở tab / khởi tạo */}
+                                {paymentStatus === 'pending' && paymentMethod === 'vnpay' && (
                                     <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: 8, padding: '14px 16px' }}>
                                         <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 6 }}>⏳ Đang chờ xác nhận thanh toán VNPay</div>
                                         <div style={{ fontSize: 13, color: '#78350f', marginBottom: 10 }}>Cửa sổ VNPay đã được mở. Sau khi hoàn tất thanh toán, bấm nút bên dưới để tiếp tục.</div>
@@ -574,9 +594,23 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                         </div>
                                     </div>
                                 )}
+                                {paymentStatus === 'pending' && paymentMethod === 'cash' && (
+                                    <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: 8, padding: '14px 16px' }}>
+                                        <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 6 }}>💵 Đang chờ xác nhận thu tiền mặt</div>
+                                        <div style={{ fontSize: 13, color: '#78350f', marginBottom: 10 }}>Vui lòng thu tiền trực tiếp từ khách hàng. Sau khi nhận đủ tiền mặt, bấm xác nhận bên dưới.</div>
+                                        <div style={{ display: 'flex', gap: 10 }}>
+                                            <button type="button" onClick={handleConfirmCashPayment} disabled={checking}
+                                                style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: checking ? '#e0e0e0' : '#059669', color: checking ? '#888' : '#fff', fontWeight: 600, cursor: checking ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+                                                {checking ? <><span className="material-symbols-outlined animate-spin" style={{ fontSize: 16 }}>sync</span>Đang xác nhận...</> : <><span className="material-symbols-outlined" style={{ fontSize: 16 }}>payments</span>Xác nhận đã nhận tiền mặt</>}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                                 {paymentStatus === 'paid' && (
                                     <div style={{ background: '#ecfdf5', border: '1px solid #34d399', borderRadius: 8, padding: 14, fontWeight: 700, color: '#065f46' }}>
-                                        ✅ Thanh toán VNPay xác nhận thành công! Đang chuyển sang Bước 5...
+                                        {paymentMethod === 'vnpay' 
+                                            ? '✅ Thanh toán VNPay xác nhận thành công! Vui lòng bấm Tiếp theo để qua Bước 5.'
+                                            : '✅ Đã xác nhận thu tiền mặt thành công! Vui lòng bấm Tiếp theo để qua Bước 5.'}
                                     </div>
                                 )}
 
@@ -586,7 +620,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                         style={{ padding: '12px 20px', borderRadius: 8, border: 'none', background: (!contractAccepted || initiating) ? '#e0e0e0' : paymentMethod === 'vnpay' ? 'linear-gradient(135deg,#004bca,#002d80)' : 'linear-gradient(135deg,#059669,#065f46)', color: (!contractAccepted || initiating) ? '#888' : '#fff', fontWeight: 700, cursor: (!contractAccepted || initiating) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15 }}>
                                         {initiating ? <><span className="material-symbols-outlined animate-spin" style={{ fontSize: 20 }}>sync</span>Đang xử lý...</> :
                                             paymentMethod === 'vnpay' ? <><span className="material-symbols-outlined" style={{ fontSize: 20 }}>open_in_new</span>Thanh toán qua VNPay — {selectedPackage ? Number(selectedPackage.price).toLocaleString('vi-VN') + ' ₫' : '—'}</> :
-                                                <><span className="material-symbols-outlined" style={{ fontSize: 20 }}>payments</span>Xác nhận thu tiền mặt — tiếp tục</>}
+                                                <><span className="material-symbols-outlined" style={{ fontSize: 20 }}>payments</span>Khởi tạo thu tiền mặt — {selectedPackage ? Number(selectedPackage.price).toLocaleString('vi-VN') + ' ₫' : '—'}</>}
                                     </button>
                                 )}
                             </div>
@@ -658,7 +692,12 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                 </button>
                             )}
 
-                            {/* Bước 4: KHÔNG có nút Tiếp theo (nút thanh toán nằm trong body) */}
+                            {/* Bước 4: Nút Tiếp theo (BR-PAY-04: bị vô hiệu hóa khi khác "Đã thanh toán") */}
+                            {step === 4 && (
+                                <button type="button" className="cp-btn cp-btn-primary" disabled={paymentStatus !== 'paid'} onClick={() => setStep(5)}>
+                                    Tiếp theo
+                                </button>
+                            )}
 
                             {/* Bước 5: Hoàn tất */}
                             {step === 5 && (
