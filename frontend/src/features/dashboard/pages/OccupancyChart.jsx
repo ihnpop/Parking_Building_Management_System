@@ -15,6 +15,9 @@ export default function OccupancyChart() {
     const [filterType, setFilterType] = useState('ALL'); // 'ALL', 'INSIDE', 'OUT'
     const [now, setNow] = useState(new Date());
     const [loading, setLoading] = useState(false);
+    // selectedDate: 'YYYY-MM-DD' theo giờ địa phương GMT+7
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const [selectedDate, setSelectedDate] = useState(todayStr);
 
     const getRoleLabel = (r) => {
         if (!r) return 'Nhân viên';
@@ -26,9 +29,9 @@ export default function OccupancyChart() {
         }
     };
 
-    const fetchStats = async () => {
+    const fetchStats = async (dateStr) => {
         try {
-            const statsRes = await getParkingStats();
+            const statsRes = await getParkingStats(dateStr);
             console.log('[OccupancyChart] statsRes:', statsRes);
             if (statsRes.success) {
                 setStats({
@@ -42,9 +45,9 @@ export default function OccupancyChart() {
         }
     };
 
-    const fetchSessions = async () => {
+    const fetchSessions = async (dateStr) => {
         try {
-            const sessionsRes = await getParkingSessions();
+            const sessionsRes = await getParkingSessions(dateStr);
             console.log('[OccupancyChart] sessionsRes:', sessionsRes);
             if (sessionsRes.success) {
                 setSessions(sessionsRes.sessions || []);
@@ -54,21 +57,21 @@ export default function OccupancyChart() {
         }
     };
 
-    const fetchData = async () => {
+    const fetchData = async (dateStr) => {
         setLoading(true);
-        await Promise.allSettled([fetchStats(), fetchSessions()]);
+        await Promise.allSettled([fetchStats(dateStr), fetchSessions(dateStr)]);
         setLoading(false);
     };
 
-    // Mount logic: load data + set up auto-refresh polling every 5s + clock every 1s + refresh on tab focus
+    // Mount logic: load data + auto-refresh polling every 30s + clock every 1s + refresh on tab focus
     useEffect(() => {
-        fetchData();
+        fetchData(selectedDate);
 
-        // Auto-refresh every 5 seconds
+        // Auto-refresh mỗi 30 giây với ngày đang chọn
         const dataPoll = setInterval(() => {
-            fetchSessions();
-            fetchStats();
-        }, 5000);
+            fetchSessions(selectedDate);
+            fetchStats(selectedDate);
+        }, 30000);
 
         // Clock tick every 1 second
         const clockTick = setInterval(() => {
@@ -78,7 +81,7 @@ export default function OccupancyChart() {
         // Refresh immediately when user returns to this tab/page
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                fetchData();
+                fetchData(selectedDate);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -88,7 +91,7 @@ export default function OccupancyChart() {
             clearInterval(clockTick);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, []);
+    }, [selectedDate]); // Re-run khi ngày thay đổi
 
 
     // Close dropdown on click outside
@@ -129,7 +132,40 @@ export default function OccupancyChart() {
                 </button>
                 <h1 className="stats-page-title">Thống kê hoạt động bãi xe</h1>
                 <div className="stats-header-right">
-                    <button className="stats-bell-btn" onClick={fetchData} title="Làm mới dữ liệu">
+                    {/* Date Picker */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '6px 12px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'inherit', opacity: 0.85 }}>calendar_today</span>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            max={todayStr}
+                            onChange={(e) => {
+                                if (e.target.value) setSelectedDate(e.target.value);
+                            }}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                color: 'inherit',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                colorScheme: 'dark'
+                            }}
+                        />
+                        {selectedDate !== todayStr && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedDate(todayStr)}
+                                title="Quay về hôm nay"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
+                            </button>
+                        )}
+                    </div>
+
+                    <button className="stats-bell-btn" onClick={() => fetchData(selectedDate)} title="Làm mới dữ liệu">
                         <span className="material-symbols-outlined" style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>refresh</span>
                     </button>
 

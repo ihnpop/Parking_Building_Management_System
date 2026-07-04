@@ -177,11 +177,12 @@ export const exitTap = async (req, res) => {
 };
 
 /**
- * GET /api/gate/stats
+ * GET /api/gate/stats?date=YYYY-MM-DD
  */
 export const getStats = async (req, res) => {
   try {
-    const stats = await gateService.getStats();
+    const dateStr = req.query.date || null; // 'YYYY-MM-DD' hoặc null (hôm nay)
+    const stats = await gateService.getStats(dateStr);
     return res.status(200).json(stats);
   } catch (err) {
     console.error("gateController.getStats error:", err);
@@ -193,11 +194,12 @@ export const getStats = async (req, res) => {
 };
 
 /**
- * GET /api/gate/sessions
+ * GET /api/gate/sessions?date=YYYY-MM-DD
  */
 export const getSessions = async (req, res) => {
   try {
-    const sessions = await gateService.getSessions();
+    const dateStr = req.query.date || null; // 'YYYY-MM-DD' hoặc null (hôm nay)
+    const sessions = await gateService.getSessions(dateStr);
     return res.status(200).json(sessions);
   } catch (err) {
     console.error("gateController.getSessions error:", err);

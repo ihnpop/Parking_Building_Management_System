@@ -102,7 +102,7 @@ async def ocr_read(file: UploadFile = File(...)):
             
         try:
             # Chạy nhận diện bằng đường dẫn file (khớp với test.py hoạt động ổn định)
-            result = ocr.ocr(temp_file_path, cls=True)
+            result = ocr.ocr(temp_file_path)
         finally:
             # Luôn dọn dẹp file tạm sau khi chạy xong
             if os.path.exists(temp_file_path):

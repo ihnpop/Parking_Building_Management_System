@@ -685,55 +685,87 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 };
 
 /**
- * Lấy thống kê bãi xe hôm nay (múi giờ GMT+7)
+ * Tính startOfDay / endOfDay cho một ngày cụ thể theo GMT+7.
+ * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD' (GMT+7). Nếu null thì dùng hôm nay.
  */
-export const getStats = async () => {
-  const tzOffset = 7 * 60; // Offset in minutes for GMT+7
-  const now = new Date();
-  const localTime = new Date(now.getTime() + tzOffset * 60 * 1000);
-  const startOfToday = new Date(Date.UTC(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate()));
-  startOfToday.setTime(startOfToday.getTime() - tzOffset * 60 * 1000);
+const getDayRange = (dateStr = null) => {
+  const tzOffset = 7 * 60; // GMT+7 in minutes
+  let start;
+  if (dateStr) {
+    // Parse ngày theo giờ địa phương GMT+7
+    const [year, month, day] = dateStr.split('-').map(Number);
+    // Tạo thời điểm 00:00:00 GMT+7 = UTC - 7h
+    start = new Date(Date.UTC(year, month - 1, day) - tzOffset * 60 * 1000);
+  } else {
+    const now = new Date();
+    const localTime = new Date(now.getTime() + tzOffset * 60 * 1000);
+    start = new Date(Date.UTC(localTime.getUTCFullYear(), localTime.getUTCMonth(), localTime.getUTCDate()));
+    start.setTime(start.getTime() - tzOffset * 60 * 1000);
+  }
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { startOfDay: start, endOfDay: end };
+};
 
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+/**
+ * Lấy thống kê bãi xe theo ngày (mặc định hôm nay, GMT+7)
+ * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì dùng hôm nay.
+ */
+export const getStats = async (dateStr = null) => {
+  const { startOfDay, endOfDay } = getDayRange(dateStr);
+  const isToday = !dateStr;
 
-  // 1. Số lượng xe trong bãi (status = 'Đang gửi xe')
-  const { count: insideCount, error: err1 } = await supabase
-    .from("parking_sessions")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "Đang gửi xe");
+  // 1. Số lượng xe trong bãi (status = 'Đang gửi xe') — chỉ có nghĩa khi xem hôm nay
+  let insideCount = 0;
+  if (isToday) {
+    const { count, error: err1 } = await supabase
+      .from("parking_sessions")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "Đang gửi xe");
+    if (err1) throw new Error("Lỗi đếm số xe trong bãi: " + err1.message);
+    insideCount = count || 0;
+  } else {
+    // Với ngày trong quá khứ: đếm xe đang ở trong bãi tại thời điểm cuối ngày đó
+    // (xe đã vào trước endOfDay và chưa ra hoặc ra sau endOfDay)
+    const { count, error: err1 } = await supabase
+      .from("parking_sessions")
+      .select("*", { count: "exact", head: true })
+      .lt("entry_time", endOfDay.toISOString())
+      .or(`exit_time.is.null,exit_time.gte.${endOfDay.toISOString()}`);
+    if (err1) throw new Error("Lỗi đếm số xe trong bãi: " + err1.message);
+    insideCount = count || 0;
+  }
 
-  if (err1) throw new Error("Lỗi đếm số xe trong bãi: " + err1.message);
-
-  // 2. Xe đã vào hôm nay
+  // 2. Xe đã vào trong ngày
   const { count: inCount, error: err2 } = await supabase
     .from("parking_sessions")
     .select("*", { count: "exact", head: true })
-    .gte("entry_time", startOfToday.toISOString())
-    .lt("entry_time", endOfToday.toISOString());
-
+    .gte("entry_time", startOfDay.toISOString())
+    .lt("entry_time", endOfDay.toISOString());
   if (err2) throw new Error("Lỗi đếm số xe đã vào: " + err2.message);
 
-  // 3. Xe đã ra hôm nay
+  // 3. Xe đã ra trong ngày
   const { count: outCount, error: err3 } = await supabase
     .from("parking_sessions")
     .select("*", { count: "exact", head: true })
-    .gte("exit_time", startOfToday.toISOString())
-    .lt("exit_time", endOfToday.toISOString());
-
+    .gte("exit_time", startOfDay.toISOString())
+    .lt("exit_time", endOfDay.toISOString());
   if (err3) throw new Error("Lỗi đếm số xe đã ra: " + err3.message);
 
   return {
     success: true,
-    insideCount: insideCount || 0,
+    insideCount,
     inCount: inCount || 0,
     outCount: outCount || 0,
   };
 };
 
 /**
- * Lấy danh sách tất cả phiên gửi xe, kèm thông tin card
+ * Lấy danh sách phiên gửi xe theo ngày (mặc định hôm nay, GMT+7), kèm thông tin card
+ * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì dùng hôm nay.
  */
-export const getSessions = async () => {
+export const getSessions = async (dateStr = null) => {
+  const { startOfDay, endOfDay } = getDayRange(dateStr);
+
   const { data: sessions, error: sessionsErr } = await supabase
     .from("parking_sessions")
     .select(`
@@ -745,6 +777,8 @@ export const getSessions = async () => {
       status,
       card_id
     `)
+    .gte("entry_time", startOfDay.toISOString())
+    .lt("entry_time", endOfDay.toISOString())
     .order("entry_time", { ascending: false });
 
   if (sessionsErr) throw new Error("Lỗi lấy danh sách phiên gửi xe: " + sessionsErr.message);

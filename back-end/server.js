@@ -14,6 +14,8 @@ import monthCardRouter from "./src/routes/monthCardRoutes.js";
 
 const app = express();
 
+app.set('trust proxy', true);   //thêm chỗ này*************************
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -50,7 +52,7 @@ const getIPLocation = async (ip) => {
     return "Hà Nội, Việt Nam";
   }
   try {
-    const res = await axios.get(`http://ip-api.com/json/${ip}`);
+    const res = await axios.get(`https://ip-api.com/json/${ip}`);     //đổi http thành https đổi chổ này*****************88
     if (res.data && res.data.status === 'success') {
       return `${res.data.city}, ${res.data.country}`;
     }

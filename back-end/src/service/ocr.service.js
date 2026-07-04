@@ -1,5 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
+import dotenv from "dotenv";
+dotenv.config();
 
 /**
  * Gửi file ảnh biển số xe lên FastAPI server để nhận dạng bằng PaddleOCR.

@@ -148,17 +148,21 @@ export const exitGate = async (payload) => {
 
 /**
  * Lấy thống kê bãi xe thực tế
+ * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì lấy hôm nay.
  */
-export const getParkingStats = async () => {
-  const response = await API.get("/gate/stats");
+export const getParkingStats = async (dateStr = null) => {
+  const params = dateStr ? { date: dateStr } : {};
+  const response = await API.get("/gate/stats", { params });
   return response.data;
 };
 
 /**
  * Lấy danh sách tất cả phiên gửi xe
+ * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì lấy hôm nay.
  */
-export const getParkingSessions = async () => {
-  const response = await API.get("/gate/sessions");
+export const getParkingSessions = async (dateStr = null) => {
+  const params = dateStr ? { date: dateStr } : {};
+  const response = await API.get("/gate/sessions", { params });
   return response.data;
 };
 

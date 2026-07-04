@@ -11,9 +11,6 @@ __pycache__/
 *.pyd
 .Python
 
-# Environment variables
-.env
-.env.*
 
 # Git
 .git/
