@@ -530,6 +530,22 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                         <tbody>
                                             <tr><td>Tên gói</td><td>{selectedPackage?.name || '—'}</td></tr>
                                             <tr><td>Thời hạn</td><td>{selectedPackage?.duration_month || '—'} tháng</td></tr>
+                                            <tr>
+                                                <td>Ngày bắt đầu</td>
+                                                <td>{new Date().toLocaleDateString('vi-VN')}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Ngày kết thúc</td>
+                                                <td>
+                                                    {selectedPackage?.duration_month
+                                                        ? (() => {
+                                                            const d = new Date();
+                                                            d.setMonth(d.getMonth() + Number(selectedPackage.duration_month));
+                                                            return d.toLocaleDateString('vi-VN');
+                                                        })()
+                                                        : '—'}
+                                                </td>
+                                            </tr>
                                             <tr><td>Phí dịch vụ</td><td style={{ fontWeight: 700, color: '#006d38', fontSize: 15 }}>{selectedPackage ? Number(selectedPackage.price).toLocaleString('vi-VN') + ' ₫' : '—'}</td></tr>
                                             <tr>
                                                 <td>Trạng thái thanh toán</td>
