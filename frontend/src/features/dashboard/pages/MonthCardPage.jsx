@@ -1,31 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react';
 import { getMonthCards } from '../../../service/cardApi';
-import { useAuth } from '../../../context/AuthContext';
-
-/**
- * MonthCardPage displays monthly card management interface.
- * Features stats, search, filters, and a detailed data table connected to Supabase.
- */
 
 export default function MonthCardPage() {
-    const navigate = useNavigate();
-    const { userRole } = useAuth();
     const [monthCards, setMonthCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const role = userRole ? userRole.toUpperCase() : 'STAFF';
-    const getRoleLabel = (r) => {
-        switch (r) {
-            case 'ADMIN': return 'Admin';
-            case 'MANAGER': return 'Manager';
-            case 'STAFF': return 'Staff';
-            default: return r;
-        }
-    };
-
-    // Filters & Search
+    // Filters & Search (Giữ nguyên logic xử lý gốc)
     const [search, setSearch] = useState('');
     const [vehicleTypeFilter, setVehicleTypeFilter] = useState('Tất cả loại xe');
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
@@ -48,26 +29,7 @@ export default function MonthCardPage() {
         fetchMonthCards();
     }, []);
 
-    // Filter Logic
-    // const filteredData = monthCards.filter((row) => {
-    //     const matchesSearch =
-    //         row.cardNo.toLowerCase().includes(search.toLowerCase()) ||
-    //         row.plate.toLowerCase().includes(search.toLowerCase()) ||
-    //         row.customer.toLowerCase().includes(search.toLowerCase());
-
-    //     const matchesType =
-    //         vehicleTypeFilter === 'Tất cả loại xe' ||
-    //         row.type.toLowerCase().includes(vehicleTypeFilter.toLowerCase()) ||
-    //         (vehicleTypeFilter === 'Ô tô' && row.type.toLowerCase().includes('ô tô')) ||
-    //         (vehicleTypeFilter === 'Xe máy' && row.type.toLowerCase().includes('xe máy'));
-
-    //     const matchesStatus =
-    //         statusFilter === 'Tất cả trạng thái' ||
-    //         row.status === statusFilter;
-
-    //     return matchesSearch && matchesType && matchesStatus;
-    // });
-
+    // Filter Logic dựa trên dữ liệu từ API Supabase
     const filteredData = monthCards.filter((row) => {
         const matchesSearch =
             (row.cardNo || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -80,195 +42,151 @@ export default function MonthCardPage() {
             (vehicleTypeFilter === 'Ô tô' && (row.type || '').toLowerCase().includes('ô tô')) ||
             (vehicleTypeFilter === 'Xe máy' && (row.type || '').toLowerCase().includes('xe máy'));
 
-        const matchesStatus =
-            statusFilter === 'Tất cả trạng thái' ||
-            row.status === statusFilter;
+        const matchesStatus = statusFilter === 'Tất cả trạng thái' || row.status === statusFilter;
 
         return matchesSearch && matchesType && matchesStatus;
     });
 
-    // Dynamic stats
+    // Tính toán số liệu thống kê nhanh (Stats)
     const total = monthCards.length;
     const active = monthCards.filter(c => c.status === 'Hoạt động').length;
     const expiring = monthCards.filter(c => c.status === 'Sắp hết hạn').length;
     const expired = monthCards.filter(c => c.status === 'Đã hết hạn').length;
 
     const statCards = [
-        { label: 'Tổng số vé', value: total, icon: 'card_membership', change: '+12%', changeType: 'positive' },
-        { label: 'Đang hoạt động', value: active, icon: 'check_circle', change: total > 0 ? `${Math.round((active / total) * 100)}%` : '0%', changeType: 'positive' },
-        { label: 'Sắp hết hạn', value: expiring, icon: 'warning', change: total > 0 ? `${Math.round((expiring / total) * 100)}%` : '0%', changeType: 'negative' },
-        { label: 'Đã hết hạn', value: expired, icon: 'schedule', change: total > 0 ? `${Math.round((expired / total) * 100)}%` : '0%', changeType: 'neutral' },
+        { label: 'Tổng số vé', value: total, icon: 'card_membership' },
+        { label: 'Đang hoạt động', value: active, icon: 'check_circle' },
+        { label: 'Sắp hết hạn', value: expiring, icon: 'warning' },
+        { label: 'Đã hết hạn', value: expired, icon: 'schedule' },
     ];
 
     return (
-        <div className="month-card-page">
-            <div className="month-header">
-                <button type="button" className="month-back-button" onClick={() => navigate('/login/dashboard')}>
-                    <span className="material-symbols-outlined">arrow_back</span>
-                    Trở về Dashboard
+        <div className="month-card-page" style={{ width: '100%' }}>
+
+            {/* Thanh công cụ gồm đúng 3 nút thao tác căn sát về bên phải */}
+            <div className="month-actions-bar" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '20px' }}>
+                <button
+                    type="button"
+                    className="month-btn month-btn-outline"
+                    onClick={fetchMonthCards}
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
+                    Làm mới
                 </button>
-
-                <div className="month-title-section">
-                    <h1>Quản lý Vé tháng</h1>
-                </div>
-
-                <div className="month-header-right">
-                    <div className="month-user-badge">{getRoleLabel(role)}</div>
-                    <div className="month-actions">
-                        <button type="button" className="month-btn month-btn-outline" onClick={fetchMonthCards}>
-                            <span className="material-symbols-outlined">refresh</span>
-                            Làm mới
-                        </button>
-                        <button type="button" className="month-btn month-btn-outline">
-                            <span className="material-symbols-outlined">calendar_today</span>
-                            Gia hạn
-                        </button>
-                        <button type="button" className="month-btn month-btn-primary">
-                            <span className="material-symbols-outlined">add</span>
-                            Thêm mới
-                        </button>
-                    </div>
-                </div>
+                <button
+                    type="button"
+                    className="month-btn month-btn-outline"
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
+                    Gia hạn
+                </button>
+                <button
+                    type="button"
+                    className="month-btn month-btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                    Thêm mới
+                </button>
             </div>
 
-            <div className="month-stats-grid">
+            {/* Khối Thống kê số liệu dạng Grid */}
+            <div className="month-stats-grid" style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
                 {statCards.map((stat) => (
-                    <div key={stat.label} className="month-stat-card">
-                        <div className="stat-icon">
-                            <span className="material-symbols-outlined">{stat.icon}</span>
-                        </div>
-                        <div className="stat-content">
-                            <p className="stat-label">{stat.label}</p>
-                            <p className="stat-value">{loading ? '...' : stat.value}</p>
-                        </div>
-                        <div className={`stat-change ${stat.changeType}`}>
-                            {stat.change}
+                    <div key={stat.label} className="month-stat-card" style={{ flex: 1, padding: '15px', border: '1px solid #eee', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', background: '#fff' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#e65c00' }}>{stat.icon}</span>
+                        <div>
+                            <p className="stat-label" style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>{stat.label}</p>
+                            <p className="stat-value" style={{ margin: 0, fontSize: '1.4rem', fontWeight: 'bold' }}>{loading ? '...' : stat.value}</p>
                         </div>
                     </div>
                 ))}
             </div>
 
-            <div className="month-search-bar">
-                <div className="search-input-wrapper">
-                    <span className="material-symbols-outlined">search</span>
+            {/* Thanh tìm kiếm và bộ lọc dữ liệu nhanh */}
+            <div className="month-search-bar" style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'center' }}>
+                <div className="search-input-wrapper" style={{ display: 'flex', alignItems: 'center', border: '1px solid #ddd', borderRadius: '6px', padding: '6px 12px', flex: 1, background: '#fff' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#888', marginRight: '5px' }}>search</span>
                     <input
                         type="text"
-                        placeholder="Tìm theo biển số, tên chủ xe, số thẻ..."
+                        placeholder="Tìm theo biển số, tên chủ xe..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        style={{ border: 'none', outline: 'none', width: '100%' }}
                     />
                 </div>
 
-                <div className="filter-select-wrapper">
-                    <select
-                        value={vehicleTypeFilter}
-                        onChange={(e) => setVehicleTypeFilter(e.target.value)}
-                        className="month-filter-dropdown"
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', marginRight: '10px' }}
-                    >
-                        <option value="Tất cả loại xe">Tất cả loại xe</option>
-                        <option value="Xe máy">Xe máy</option>
-                        <option value="Ô tô">Ô tô</option>
-                    </select>
-                </div>
+                <select value={vehicleTypeFilter} onChange={(e) => setVehicleTypeFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}>
+                    <option value="Tất cả loại xe">Tất cả loại xe</option>
+                    <option value="Xe máy">Xe máy</option>
+                    <option value="Ô tô">Ô tô</option>
+                </select>
 
-                <div className="filter-select-wrapper">
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="month-filter-dropdown"
-                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', marginRight: '10px' }}
-                    >
-                        <option value="Tất cả trạng thái">Tất cả trạng thái</option>
-                        <option value="Hoạt động">Hoạt động</option>
-                        <option value="Sắp hết hạn">Sắp hết hạn</option>
-                        <option value="Đã hết hạn">Đã hết hạn</option>
-                    </select>
-                </div>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff' }}>
+                    <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+                    <option value="Hoạt động">Hoạt động</option>
+                    <option value="Sắp hết hạn">Sắp hết hạn</option>
+                    <option value="Đã hết hạn">Đã hết hạn</option>
+                </select>
 
-                <button type="button" className="sort-download-btn" onClick={() => { setSearch(''); setVehicleTypeFilter('Tất cả loại xe'); setStatusFilter('Tất cả trạng thái'); }}>
-                    <span className="material-symbols-outlined">restart_alt</span>
-                </button>
-                <button type="button" className="sort-download-btn">
-                    <span className="material-symbols-outlined">download</span>
+                <button type="button" style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={() => { setSearch(''); setVehicleTypeFilter('Tất cả loại xe'); setStatusFilter('Tất cả trạng thái'); }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>restart_alt</span>
                 </button>
             </div>
 
-            <div className="month-table-container">
-                {error && (
-                    <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
-                        {error}
-                    </div>
-                )}
+            {/* Khối hiển thị bảng dữ liệu */}
+            <div className="month-table-container" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px', background: '#fff' }}>
+                {error && <div style={{ color: '#ff4d4d', padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
                 {loading ? (
-                    <div style={{ padding: '45px', textAlign: 'center', color: '#888' }}>
-                        Đang tải danh sách vé tháng...
-                    </div>
+                    <div style={{ padding: '30px', textAlign: 'center', color: '#888' }}>Đang tải danh sách vé tháng...</div>
                 ) : (
                     <>
-                        <table className="month-table">
+                        <table className="month-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr>
-                                    <th>STT</th>
-                                    <th>SỐ THẺ</th>
-                                    <th>BIỂN SỐ</th>
-                                    <th>TÊN KHÁCH HÀNG</th>
-                                    <th>LOẠI XE</th>
-                                    <th>NGÀY BẮT ĐẦU</th>
-                                    <th>NGÀY HẾT HẠN</th>
-                                    <th>TRẠNG THÁI</th>
-                                    <th>THAO TÁC</th>
+                                <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left' }}>
+                                    <th style={{ padding: '12px' }}>STT</th>
+                                    <th style={{ padding: '12px' }}>BIỂN SỐ</th>
+                                    <th style={{ padding: '12px' }}>TÊN KHÁCH HÀNG</th>
+                                    <th style={{ padding: '12px' }}>LOẠI XE</th>
+                                    <th style={{ padding: '12px' }}>TRẠNG THÁI</th>
+                                    <th style={{ padding: '12px' }}>THAO TÁC</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredData.length > 0 ? (
                                     filteredData.map((row) => (
-                                        <tr key={row.id}>
-                                            <td>{row.id}</td>
-                                            <td>{row.cardNo}</td>
-                                            <td>{row.plate}</td>
-                                            <td>{row.customer}</td>
-                                            <td>{row.type}</td>
-                                            <td>{row.startDate}</td>
-                                            <td>{row.endDate}</td>
-                                            <td>
-                                                <span className={`status-badge ${row.status === 'Hoạt động' ? 'active' : row.status === 'Sắp hết hạn' ? 'expiring' : 'expired'}`}>
+                                        <tr key={row.id} style={{ borderBottom: '1px solid #eee' }}>
+                                            <td style={{ padding: '12px' }}>{row.id}</td>
+                                            <td style={{ padding: '12px' }}>{row.plate}</td>
+                                            <td style={{ padding: '12px' }}>{row.customer}</td>
+                                            <td style={{ padding: '12px' }}>{row.type}</td>
+                                            <td style={{ padding: '12px' }}>
+                                                <span className={`status-badge ${row.status === 'Hoạt động' ? 'active' : 'expired'}`}>
                                                     {row.status}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <button type="button" className="action-icon-btn">
-                                                    <span className="material-symbols-outlined">edit</span>
+                                            <td style={{ padding: '12px' }}>
+                                                <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#007bff' }}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
                                                 </button>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
                                             Không tìm thấy vé tháng phù hợp
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
-
-                        <div className="month-pagination-footer">
-                            <span className="pagination-info">Hiển thị {filteredData.length} trên tổng số {total} bản ghi</span>
-                            <div className="month-pagination">
-                                <button type="button" className="page-btn" disabled>
-                                    <span className="material-symbols-outlined">chevron_left</span>
-                                </button>
-                                <button type="button" className="page-btn active">1</button>
-                                <button type="button" className="page-btn" disabled>
-                                    <span className="material-symbols-outlined">chevron_right</span>
-                                </button>
-                            </div>
-                        </div>
                     </>
                 )}
             </div>
         </div>
-    )
+    );
 }

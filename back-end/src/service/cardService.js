@@ -117,10 +117,6 @@ export const getMonthCards = async () => {
   if (cardError) throw new Error(cardError.message);
 
   return data.map((vp, i) => {
-    const cardCode = cards && cards[i % cards.length]
-      ? cards[i % cards.length].code
-      : `CARD-${i + 1000}`;
-
     let statusText = "Hoạt động";
     if (vp.status === 'EXPIRED') {
       statusText = "Đã hết hạn";
@@ -130,13 +126,10 @@ export const getMonthCards = async () => {
 
     return {
       id: String(i + 1).padStart(2, '0'),
-      // cardNo: cardCode,
       cardNo: vp.card?.code,
       plate: vp.vehicle?.plate_number || "Chưa có",
       customer: vp.vehicle?.customer?.full_name || "Khách vãng lai",
       type: vp.vehicle?.vehicle_type?.name || "Xe máy",
-      // startDate: new Date(vp.start_date).toLocaleDateString('vi-VN'),
-      // endDate: new Date(vp.end_date).toLocaleDateString('vi-VN'),
       startDate: new Date(vp.card?.created_at).toLocaleDateString('vi-VN'),
       endDate: new Date(vp.card?.expired_date).toLocaleDateString('vi-VN'),
       status: statusText
@@ -164,7 +157,6 @@ export const getMonthCardLogs = async () => {
   if (error) throw new Error(error.message);
 
   return data.map((item, idx) => {
-    const cardCode = item.parking_order?.card?.code || `CARD-${1000 + idx}`;
     const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
     const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
     const time = new Date(item.payment_time).toLocaleString('vi-VN');
@@ -177,7 +169,6 @@ export const getMonthCardLogs = async () => {
 
     return {
       time,
-      cardNo: cardCode,
       plate,
       owner,
       type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
@@ -326,6 +317,7 @@ export const deleteCard = async (cardId, currentUserId) => {
   await cardRepository.softDelete(cardId, currentUserId);
   return { success: true };
 };
+
 
 export const getLostCards = async () => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log
