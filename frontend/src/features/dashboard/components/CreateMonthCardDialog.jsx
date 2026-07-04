@@ -265,7 +265,6 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const handleFinalSubmit = async (e) => {
         if (e) e.preventDefault();
         if (!formData.card_code) { setError('Vui lòng nhập mã thẻ RFID.'); return; }
-        if (!vehiclePackageId) { setError('Thiếu thông tin gói tháng. Vui lòng quay lại bước trước.'); return; }
 
         setLoading(true); setError(null); setSuccessMessage('');
         try {
@@ -273,7 +272,20 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 vehiclePackageId,
                 card_code: formData.card_code,
                 payment_method: paymentMethod,
-                orderCode: paymentOrderCode
+                orderCode: paymentOrderCode,
+                customer_info: {
+                    full_name: formData.full_name,
+                    phone: formData.phone,
+                    email: formData.email,
+                    cccd_number: formData.cccd_number
+                },
+                vehicle_info: {
+                    vehicle_type_id: formData.vehicle_type_id,
+                    plate_number: formData.plate_number,
+                    brand: formData.brand,
+                    color: formData.color
+                },
+                package_id: formData.package_id
             }, { headers: authHeaders() });
 
             setSuccessMessage('Đăng ký vé tháng thành công!');

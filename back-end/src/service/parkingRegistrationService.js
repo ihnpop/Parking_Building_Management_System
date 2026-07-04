@@ -206,7 +206,7 @@ class ParkingRegistrationService {
     }   // end processFullMonthlyRegistration
 
     // ─────────────────────────────────────────────────────────────────────────
-    // GIAI ĐOẠN 1: Tạo dữ liệu nền (Customer, Vehicle, Package) + VNPay
+    // GIAI ĐOẠN 1: Tạo dữ liệu nền (Chỉ lưu vào payment note với VNPay, Cash không ghi gì)
     // Được gọi ở Bước 4 (Xác nhận & Thanh toán)
     // ─────────────────────────────────────────────────────────────────────────
     async initiateRegistration(payload) {
@@ -226,44 +226,12 @@ class ParkingRegistrationService {
         if (!phoneRegex.test(phone)) throw new Error('Số điện thoại không hợp lệ.');
         if (!emailRegex.test(email)) throw new Error('Email không hợp lệ.');
 
-        // 1. Tạo Customer
-        const { data: customer, error: cError } = await supabase
-            .from('customer')
-            .insert([{ full_name: customer_info.full_name, phone, email, status: 'Hoạt động' }])
-            .select().single();
-        if (cError) throw new Error('Lỗi tạo Customer: ' + cError.message);
-
-        // 2. Ghi log KYC (đánh dấu đã xác thực ở bước 1 eKYC)
-        const { error: kycError } = await supabase
-            .from('customer_kyc')
-            .insert([{
-                customer_id: customer.customer_id,
-                cccd_number: customer_info.cccd_number || '',
-                ekyc_status: 'Đã xác thực',
-                verified_at: new Date().toISOString()
-            }]);
-        if (kycError) throw new Error('Lỗi lưu log KYC: ' + kycError.message);
-
-        // 3. Tạo Vehicle
         const rawPlate = (vehicle_info.plate_number || '').replace(/[\s.\-]/g, '').toUpperCase();
         const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
         if (!rawPlate) throw new Error('Biển số xe không được để trống.');
         if (!plateRegex.test(rawPlate)) throw new Error('Biển số xe không đúng định dạng.');
 
-        const { data: vehicle, error: vError } = await supabase
-            .from('vehicle')
-            .insert([{
-                customer_id: customer.customer_id,
-                vehicle_type_id: vehicle_info.vehicle_type_id,
-                plate_number: rawPlate,
-                brand: vehicle_info.brand || null,
-                color: vehicle_info.color || null,
-                status: 'Hoạt động'
-            }])
-            .select().single();
-        if (vError) throw new Error('Lỗi tạo phương tiện: ' + vError.message);
-
-        // 4. Tạo Vehicle Package
+        // Tính toán thông tin gói cước
         let durationMonth = 1;
         let packagePrice = 0;
         if (String(package_id).startsWith('static-')) {
@@ -271,6 +239,7 @@ class ParkingRegistrationService {
             const pIdx = parseInt(parts[2], 10);
             const durations = [1, 3, 6];
             durationMonth = durations[pIdx] || 1;
+            packagePrice = durationMonth * 100000;
         } else {
             const { data: pkg, error: pFetchError } = await supabase
                 .from('package')
@@ -282,36 +251,41 @@ class ParkingRegistrationService {
             packagePrice = Number(pkg.price) || 0;
         }
 
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setMonth(startDate.getMonth() + durationMonth);
-
-        const { data: vehiclePackage, error: vpError } = await supabase
-            .from('vehicle_package')
-            .insert([{
-                vehicle_id: vehicle.vehicle_id,
-                package_id: String(package_id).startsWith('static-') ? null : package_id,
-                start_date: startDate.toISOString().split('T')[0],
-                end_date: endDate.toISOString().split('T')[0],
-                status: 'Chờ kích hoạt'   // Trạng thái chờ - chỉ kích hoạt sau khi cấp RFID
-            }])
-            .select().single();
-        if (vpError) throw new Error('Lỗi gán gói cước cho xe: ' + vpError.message);
-
-        // 5. Tạo giao dịch VNPay (nếu chọn VNPay)
         let payUrl = null;
         let orderCode = null;
 
         if (payment_method === 'vnpay') {
             const ipAddrClean = ip_addr || '127.0.0.1';
             orderCode = `PK${Date.now()}`;
+            
+            // Lưu trữ payload tạm thời vào note của payment để không tạo bản ghi Customer/Vehicle/Vehicle Package trước
+            const savedPayload = {
+                customer_info: {
+                    full_name: customer_info.full_name,
+                    phone: phone,
+                    email: email,
+                    cccd_number: customer_info.cccd_number || ''
+                },
+                vehicle_info: {
+                    vehicle_type_id: vehicle_info.vehicle_type_id,
+                    plate_number: rawPlate,
+                    brand: vehicle_info.brand || null,
+                    color: vehicle_info.color || null
+                },
+                package_id,
+                durationMonth,
+                packagePrice
+            };
+
             await paymentRepository.create({
-                vehicle_package_id: vehiclePackage.vehicle_package_id,
+                vehicle_package_id: null,
                 payment_type: 'Đăng ký vé tháng',
                 amount: packagePrice,
                 order_code: orderCode,
-                status: 'Chờ thanh toán'
+                status: 'Chờ thanh toán',
+                note: JSON.stringify(savedPayload)
             });
+
             payUrl = vnpayService.createPaymentUrl({
                 orderCode,
                 amount: packagePrice,
@@ -321,10 +295,6 @@ class ParkingRegistrationService {
         }
 
         return {
-            vehiclePackageId: vehiclePackage.vehicle_package_id,
-            customerId: customer.customer_id,
-            vehicleId: vehicle.vehicle_id,
-            endDate: endDate.toISOString().split('T')[0],
             payUrl,
             orderCode,
             payment_method
@@ -332,56 +302,188 @@ class ParkingRegistrationService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // GIAI ĐOẠN 2: Cấp thẻ RFID + Kích hoạt gói tháng
-    // Được gọi ở Bước 5 (Cấp RFID) sau khi thanh toán thành công
+    // GIAI ĐOẠN 2: Cấp thẻ RFID + Ghi nhận toàn bộ dữ liệu xuống database
+    // Được gọi ở Bước 5 (Cấp RFID) sau khi thanh toán thành công hoặc chọn cash
     // ─────────────────────────────────────────────────────────────────────────
     async finalizeRegistration(payload) {
-        const { vehiclePackageId, card_code, payment_method, orderCode } = payload;
+        const { vehiclePackageId, card_code, payment_method, orderCode, customer_info, vehicle_info, package_id } = payload;
 
-        // Nếu thanh toán VNPay: kiểm tra trạng thái thanh toán
-        if (payment_method === 'vnpay' && orderCode) {
-            const payment = await paymentRepository.findByOrderCode(orderCode);
-            if (!payment || payment.status !== 'Đã thanh toán') {
-                throw new Error('Giao dịch VNPay chưa được xác nhận thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
+        let registrationData = null;
+        let paymentRecord = null;
+
+        // 1. Nhận thông tin đăng ký dựa trên phương thức thanh toán
+        if (payment_method === 'vnpay') {
+            if (!orderCode) {
+                throw new Error('Thiếu mã đơn hàng VNPay.');
             }
+            paymentRecord = await paymentRepository.findByOrderCode(orderCode);
+            if (!paymentRecord) {
+                throw new Error('Không tìm thấy giao dịch VNPay tương ứng.');
+            }
+            if (paymentRecord.status !== 'Đã thanh toán') {
+                throw new Error('Giao dịch VNPay chưa được xác nhận thanh toán. Vui lòng thanh toán rồi thử lại.');
+            }
+
+            try {
+                registrationData = JSON.parse(paymentRecord.note);
+            } catch (e) {
+                throw new Error('Dữ liệu lưu trữ giao dịch không hợp lệ.');
+            }
+        } else if (payment_method === 'cash') {
+            if (!customer_info || !vehicle_info || !package_id) {
+                throw new Error('Thiếu thông tin đăng ký để hoàn tất thanh toán tiền mặt.');
+            }
+            registrationData = {
+                customer_info,
+                vehicle_info,
+                package_id
+            };
+        } else {
+            throw new Error('Phương thức thanh toán không hợp lệ.');
         }
 
-        // Lấy thông tin vehicle_package để biết end_date và vehicle_id
-        const { data: vPkg, error: vpFetchErr } = await supabase
-            .from('vehicle_package')
-            .select('vehicle_id, end_date')
-            .eq('vehicle_package_id', vehiclePackageId)
-            .single();
-        if (vpFetchErr || !vPkg) throw new Error('Không tìm thấy bản ghi gói tháng.');
+        const { customer_info: cInfo, vehicle_info: vInfo, package_id: pkgId } = registrationData;
 
-        const expiredDateStr = vPkg.end_date;
+        // 2. Kiểm tra giới hạn số lượng thẻ tháng (tối đa 50)
+        const { count, error: countErr } = await supabase
+            .from('card')
+            .select('card_id', { count: 'exact', head: true })
+            .eq('type', 'Thẻ tháng')
+            .not('status', 'eq', 'Đã xóa');
+        if (countErr) throw new Error('Lỗi kiểm tra giới hạn thẻ: ' + countErr.message);
 
-        // Kích hoạt vehicle_package
-        const { error: activateErr } = await supabase
-            .from('vehicle_package')
-            .update({ status: 'Hoạt động' })
-            .eq('vehicle_package_id', vehiclePackageId);
-        if (activateErr) throw new Error('Lỗi kích hoạt gói tháng: ' + activateErr.message);
-
-        // Kiểm tra và tạo/kích hoạt thẻ RFID
-        let cardId = null;
+        // Kiểm tra xem thẻ này đã tồn tại hay chưa
         const { data: existingCard, error: cardError } = await supabase
             .from('card')
-            .select('card_id, status')
+            .select('card_id, code, status')
             .eq('code', card_code)
             .maybeSingle();
         if (cardError) throw new Error('Lỗi kiểm tra thẻ RFID: ' + cardError.message);
 
-        if (!existingCard) {
-            // Kiểm tra giới hạn 50 thẻ
-            const { count, error: countErr } = await supabase
-                .from('card')
-                .select('card_id', { count: 'exact', head: true })
-                .eq('type', 'Thẻ tháng')
-                .not('status', 'eq', 'Đã xóa');
-            if (countErr) throw new Error('Lỗi đếm số lượng thẻ: ' + countErr.message);
-            if (count >= 50) throw new Error('Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng.');
+        if (existingCard && existingCard.status === 'Hoạt động') {
+            throw new Error(`Mã thẻ RFID ${card_code} đã tồn tại và đang hoạt động trong hệ thống.`);
+        }
 
+        if (!existingCard && count >= 50) {
+            throw new Error('Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng.');
+        }
+
+        // 3. Tính toán thời hạn của gói
+        let durationMonth = 1;
+        let packagePrice = 0;
+        if (String(pkgId).startsWith('static-')) {
+            const parts = pkgId.split('-');
+            const pIdx = parseInt(parts[2], 10);
+            const durations = [1, 3, 6];
+            durationMonth = durations[pIdx] || 1;
+            packagePrice = durationMonth * 100000;
+        } else {
+            const { data: pkg, error: pFetchError } = await supabase
+                .from('package')
+                .select('duration_month, price')
+                .eq('package_id', pkgId)
+                .single();
+            if (pFetchError || !pkg) throw new Error('Không tìm thấy gói cước.');
+            durationMonth = pkg.duration_month;
+            packagePrice = Number(pkg.price) || 0;
+        }
+
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setMonth(startDate.getMonth() + durationMonth);
+        const expiredDateStr = endDate.toISOString().split('T')[0];
+
+        // --- Bắt đầu ghi toàn bộ dữ liệu xuống database ---
+
+        // 4. Tạo hoặc tìm Customer
+        let customer = null;
+        const phone = (cInfo.phone || '').trim();
+        const email = (cInfo.email || '').trim().toLowerCase();
+
+        const { data: existingCust, error: custFetchErr } = await supabase
+            .from('customer')
+            .select('*')
+            .eq('phone', phone)
+            .maybeSingle();
+
+        if (custFetchErr) throw new Error('Lỗi tìm kiếm khách hàng: ' + custFetchErr.message);
+
+        if (existingCust) {
+            customer = existingCust;
+            await supabase
+                .from('customer')
+                .update({ full_name: cInfo.full_name, email })
+                .eq('customer_id', customer.customer_id);
+        } else {
+            const { data: newCust, error: cError } = await supabase
+                .from('customer')
+                .insert([{ full_name: cInfo.full_name, phone, email, status: 'Hoạt động' }])
+                .select().single();
+            if (cError) throw new Error('Lỗi tạo Customer: ' + cError.message);
+            customer = newCust;
+        }
+
+        // 5. Ghi log KYC
+        const { error: kycError } = await supabase
+            .from('customer_kyc')
+            .insert([{
+                customer_id: customer.customer_id,
+                cccd_number: cInfo.cccd_number || '',
+                ekyc_status: 'Đã xác thực',
+                verified_at: new Date().toISOString()
+            }]);
+        if (kycError) throw new Error('Lỗi lưu log KYC: ' + kycError.message);
+
+        // 6. Tạo hoặc cập nhật Vehicle
+        const rawPlate = (vInfo.plate_number || '').replace(/[\s.\-]/g, '').toUpperCase();
+        const { data: existingVeh, error: vehFetchErr } = await supabase
+            .from('vehicle')
+            .select('vehicle_id, customer_id')
+            .eq('plate_number', rawPlate)
+            .maybeSingle();
+        if (vehFetchErr) throw new Error('Lỗi truy vấn xe: ' + vehFetchErr.message);
+
+        let vehicle = null;
+        if (existingVeh) {
+            vehicle = existingVeh;
+            if (vehicle.customer_id !== customer.customer_id) {
+                await supabase
+                    .from('vehicle')
+                    .update({ customer_id: customer.customer_id })
+                    .eq('vehicle_id', vehicle.vehicle_id);
+            }
+        } else {
+            const { data: newVeh, error: vError } = await supabase
+                .from('vehicle')
+                .insert([{
+                    customer_id: customer.customer_id,
+                    vehicle_type_id: vInfo.vehicle_type_id,
+                    plate_number: rawPlate,
+                    brand: vInfo.brand || null,
+                    color: vInfo.color || null,
+                    status: 'Hoạt động'
+                }])
+                .select().single();
+            if (vError) throw new Error('Lỗi tạo phương tiện: ' + vError.message);
+            vehicle = newVeh;
+        }
+
+        // 7. Tạo Gói tháng (vehicle_package) với trạng thái 'Hoạt động'
+        const { data: vehiclePackage, error: vpError } = await supabase
+            .from('vehicle_package')
+            .insert([{
+                vehicle_id: vehicle.vehicle_id,
+                package_id: String(pkgId).startsWith('static-') ? null : pkgId,
+                start_date: startDate.toISOString().split('T')[0],
+                end_date: expiredDateStr,
+                status: 'Hoạt động'
+            }])
+            .select().single();
+        if (vpError) throw new Error('Lỗi gán gói cước cho xe: ' + vpError.message);
+
+        // 8. Tạo/Cập nhật thẻ RFID
+        let cardId = null;
+        if (!existingCard) {
             const { data: newCard, error: createCardErr } = await supabase
                 .from('card')
                 .insert([{ code: card_code, type: 'Thẻ tháng', status: 'Hoạt động', expired_date: expiredDateStr }])
@@ -396,13 +498,56 @@ class ParkingRegistrationService {
             cardId = existingCard.card_id;
         }
 
-        // Tạo liên kết Thẻ - Xe
+        // 9. Tạo liên kết Thẻ - Xe (card_registrations)
         const { error: regError } = await supabase
             .from('card_registrations')
-            .insert([{ card_id: cardId, vehicle_id: vPkg.vehicle_id, status: 'Hoạt động' }]);
+            .insert([{ card_id: cardId, vehicle_id: vehicle.vehicle_id, status: 'Hoạt động' }]);
         if (regError) throw new Error('Lỗi liên kết thẻ với xe: ' + regError.message);
 
-        return { card_code, vehicle_package_id: vehiclePackageId, expired_date: expiredDateStr };
+        // 10. Xử lý bản ghi thanh toán (Payment)
+        if (payment_method === 'vnpay' && paymentRecord) {
+            // Liên kết payment record với vehicle_package_id mới tạo
+            const { error: paymentUpdateErr } = await supabase
+                .from('payment')
+                .update({ vehicle_package_id: vehiclePackage.vehicle_package_id })
+                .eq('payment_id', paymentRecord.payment_id);
+            if (paymentUpdateErr) throw new Error('Lỗi liên kết hóa đơn thanh toán: ' + paymentUpdateErr.message);
+        } else if (payment_method === 'cash') {
+            // Tạo bản ghi thanh toán tiền mặt với trạng thái 'Đã thanh toán'
+            const cashOrderCode = `PK_CASH_${Date.now()}`;
+            const { error: cashPaymentErr } = await supabase
+                .from('payment')
+                .insert([{
+                    vehicle_package_id: vehiclePackage.vehicle_package_id,
+                    payment_type: 'Đăng ký vé tháng',
+                    amount: packagePrice,
+                    payment_method: 'cash',
+                    provider: 'Tiền mặt',
+                    order_code: cashOrderCode,
+                    status: 'Đã thanh toán',
+                    paid_at: new Date().toISOString(),
+                    note: 'Đăng ký vé tháng thu tiền mặt tại quầy'
+                }]);
+            if (cashPaymentErr) throw new Error('Lỗi ghi hóa đơn tiền mặt: ' + cashPaymentErr.message);
+        }
+
+        // 11. Ghi log hoạt động thẻ
+        const { error: logErr } = await supabase
+            .from('card_activity_logs')
+            .insert([{
+                card_id: cardId,
+                action: 'Cấp mới',
+                plate_number: rawPlate,
+                customer_name: cInfo.full_name,
+                duration_months: durationMonth,
+                amount: packagePrice,
+                expired_date_after: expiredDateStr,
+                note: payment_method === 'vnpay' ? `Cấp mới qua cổng VNPay - Đơn: ${orderCode}` : 'Cấp mới thu tiền mặt',
+                performed_at: new Date().toISOString()
+            }]);
+        if (logErr) console.warn('Lỗi ghi log hoạt động thẻ (bỏ qua):', logErr.message);
+
+        return { card_code, vehicle_package_id: vehiclePackage.vehicle_package_id, expired_date: expiredDateStr };
     }
 }
 

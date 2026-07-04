@@ -102,6 +102,7 @@ export default function App() {
       <Route path="/set-password" element={<SetPasswordPage />} />
 
       <Route path="/payment-result" element={<PaymentResultPage />} />
+      <Route path="/payment-result/:orderCode" element={<PaymentResultPage />} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
