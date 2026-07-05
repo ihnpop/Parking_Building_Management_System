@@ -8,8 +8,16 @@ from paddleocr import PaddleOCR
 
 app = FastAPI(title="PaddleOCR License Plate Recognition Service")
 
-# Khởi tạo mô hình PaddleOCR một lần duy nhất khi khởi động server
-ocr = PaddleOCR(use_angle_cls=True, lang="en", enable_mkldnn=False, ocr_version="PP-OCRv4")
+# Khởi tạo mô hình PaddleOCR tối ưu tốc độ cho CPU
+# - use_angle_cls=False: Tắt phân loại góc nghiêng (do biển số xe vào bãi luôn thẳng đứng) để tiết kiệm thời gian chạy model phụ.
+# - det_limit_side_len=720: Giới hạn kích thước cạnh phát hiện để DBNet chạy nhanh hơn nhiều trên CPU.
+ocr = PaddleOCR(
+    use_angle_cls=False, 
+    lang="en", 
+    enable_mkldnn=True, 
+    ocr_version="PP-OCRv4",
+    det_limit_side_len=720
+)
 
 def smart_correct_vietnamese_plate(plate: str) -> str:
     """
@@ -96,9 +104,23 @@ async def ocr_read(file: UploadFile = File(...)):
         # Tạo tên file tạm thời duy nhất
         temp_file_path = os.path.join(temp_dir, f"ocr_temp_{os.getpid()}.jpg")
         
-        # Ghi nội dung file ảnh xuống đĩa
+        # Đọc và tối ưu kích thước ảnh bằng OpenCV trước khi chạy OCR để tăng tốc độ xử lý CPU
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is not None:
+            h, w = img.shape[:2]
+            max_size = 960  # Kích thước tối đa cho cạnh dài nhất của ảnh biển số
+            if max(h, w) > max_size:
+                scale = max_size / max(h, w)
+                img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+        else:
+            raise ValueError("Không thể giải mã file ảnh.")
+
+        # Ghi nội dung file ảnh đã resize xuống đĩa
         with open(temp_file_path, "wb") as f:
-            f.write(contents)
+            _, img_encoded = cv2.imencode(".jpg", img)
+            f.write(img_encoded.tobytes())
             
         try:
             # Chạy nhận diện bằng đường dẫn file (khớp với test.py hoạt động ổn định)
