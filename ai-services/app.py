@@ -108,13 +108,19 @@ async def ocr_read(file: UploadFile = File(...)):
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
         
-        if not result or not result[0]:
-            return {"success": False, "message": "Không tìm thấy biển số hoặc không nhận diện được chữ."}
-            
-        # Trích xuất biển số xe từ các khối chữ nhận diện được
+        # Trích xuất các khối chữ từ kết quả OCR (hỗ trợ cả dạng dict và dạng list truyền thống)
+        raw_texts = []
+        if isinstance(result[0], dict):
+            if 'rec_texts' in result[0]:
+                raw_texts = result[0]['rec_texts']
+        elif isinstance(result[0], list):
+            for line in result[0]:
+                if len(line) > 1 and (isinstance(line[1], list) or isinstance(line[1], tuple)):
+                    raw_texts.append(line[1][0])
+
         blocks = []
-        for line in result[0]:
-            text = re.sub(r'[^A-Z0-9]', '', line[1][0].upper())
+        for t in raw_texts:
+            text = re.sub(r'[^A-Z0-9]', '', t.upper())
             if text:
                 blocks.append(text)
         
