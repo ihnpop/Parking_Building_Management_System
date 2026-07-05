@@ -111,9 +111,40 @@ async def ocr_read(file: UploadFile = File(...)):
         if not result or not result[0]:
             return {"success": False, "message": "Không tìm thấy biển số hoặc không nhận diện được chữ."}
             
-        # Ghép các khối chữ nhận diện được thành chuỗi duy nhất
-        raw_plate = "".join([line[1][0] for line in result[0]])
+        # Trích xuất biển số xe từ các khối chữ nhận diện được
+        blocks = []
+        for line in result[0]:
+            text = re.sub(r'[^A-Z0-9]', '', line[1][0].upper())
+            if text:
+                blocks.append(text)
         
+        raw_plate = ""
+        # 1. Tìm khối chứa đầy đủ biển số (ví dụ: 37E00058, 30A12345)
+        for text in blocks:
+            if re.match(r'^\d{2}[A-Z]\d{4,6}$', text) or re.match(r'^\d{2}[A-Z]{1,2}\d{4,6}$', text):
+                raw_plate = text
+                break
+        
+        # 2. Nếu không có khối đầy đủ, tìm nửa trên (mã tỉnh + sê-ri) và nửa dưới (dãy số)
+        if not raw_plate:
+            prefix = ""
+            suffix = ""
+            for text in blocks:
+                if re.match(r'^\d{2}[A-Z][A-Z0-9]?$', text):
+                    prefix = text
+                elif re.match(r'^\d{4,5}$', text):
+                    suffix = text
+            if prefix and suffix:
+                raw_plate = prefix + suffix
+        
+        # 3. Nếu vẫn không khớp, lọc ghép các khối có khả năng là biển số
+        if not raw_plate:
+            candidate = ""
+            for text in blocks:
+                if re.search(r'\d{2}[A-Z]', text) or re.match(r'^\d{4,5}$', text):
+                    candidate += text
+            raw_plate = candidate if candidate else (blocks[0] if blocks else "")
+
         # Áp dụng chuẩn hóa thông minh
         corrected_plate = smart_correct_vietnamese_plate(raw_plate)
         
