@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:3636/api';
+const API = import.meta.env.VITE_API_URL;
 
 export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [step, setStep] = useState(1);
@@ -124,8 +124,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         if (!frontImg || !backImg) return;
         setVerifying(true); setVerifyResult(null); setError(null);
         try {
-            const frontBase64 = await convertToBase64(frontImg);
-            const backBase64 = await convertToBase64(backImg);
+            const backBase64 = backImg ? await convertToBase64(backImg) : null;
             const res = await axios.post(`${API}/month-card/verify-document`,
                 { front_base64: frontBase64, back_base64: backBase64 },
                 { headers: authHeaders() }

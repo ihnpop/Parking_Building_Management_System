@@ -219,6 +219,7 @@ export const getLoginLogs = async (req, res) => {
 
             return {
                 timestamp: new Date(item.login_time).toLocaleString("vi-VN"),
+                login_time: item.login_time,
                 username: fullName,
                 initials,
                 role: displayRole,

@@ -19,9 +19,13 @@ services:
       context: ./back-end
     ports:
       - "3639:3636"
+    environment:
+      - OCR_SERVICE_URL=http://ai-service:8000
     volumes:
       - ./back-end:/app
       - /app/node_modules
+    depends_on:
+      - ai-service
 
   frontend:
     build:
@@ -33,3 +37,9 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+
+  ai-service:
+    build: ./ai-services
+    ports:
+      - "8000:8000"
+    restart: on-failure

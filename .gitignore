@@ -7,6 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
 node_modules
 dist
 dist-ssr

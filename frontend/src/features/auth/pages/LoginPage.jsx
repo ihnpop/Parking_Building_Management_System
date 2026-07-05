@@ -26,7 +26,8 @@ export default function LoginPage() {
         }
         try {
             setLoading(true);
-            const response = await axios.post("http://localhost:3636/api/login", {
+            // const response = await axios.post("http://localhost:3636/api/login", { đổi dòng này**************
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/login`, {
                 email,
                 password,
             });

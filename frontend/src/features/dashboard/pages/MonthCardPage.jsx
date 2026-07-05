@@ -5,7 +5,6 @@ import EditMonthCardDialog from '../components/EditMonthCardDialog';
 import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
 import { useNotification } from '../../../context/NotificationContext';
 
-
 const ITEMS_PER_PAGE = 8;
 
 export default function MonthCardPage() {
@@ -14,8 +13,7 @@ export default function MonthCardPage() {
     const [error, setError] = useState(null);
     const [renewingCard, setRenewingCard] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
-    const [isCreateOpen, setIsCreateOpen] = useState(false); // Trạng thái mở modal eKYC tổng
-
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -137,35 +135,32 @@ export default function MonthCardPage() {
     };
 
     // ── Trạng thái xóa thẻ tháng ──────────────────────────────────────────────
-    const [deletingCard, setDeletingCard] = useState(null);   // Thẻ đang được chọn để xóa (null = không hiện modal)
-    const [isDeleting, setIsDeleting] = useState(false);      // Khóa nút trong khi đang gửi request xóa
-    const [deleteError, setDeleteError] = useState(null);     // Lưu thông báo lỗi riêng cho modal xóa
+    const [deletingCard, setDeletingCard] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState(null);
 
     const { showToast } = useNotification();
 
     // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
     const handleDelete = async () => {
-        if (!deletingCard) return; // Bảo vệ: không làm gì nếu chưa chọn thẻ
+        if (!deletingCard) return;
         try {
             setIsDeleting(true);
             setDeleteError(null);
 
-            // Gọi API xóa mềm: cập nhật deleted_at + status → "Đã khóa"
             await deleteMonthCard(deletingCard.card_id);
 
-            setDeletingCard(null);  // Đóng modal xác nhận
-            showToast(`Xóa thẻ ${deletingCard.cardNo} thành công!`, 'success'); // Hiện toast xanh
-            fetchMonthCards(); // Tải lại danh sách để phản ánh thay đổi
+            setDeletingCard(null);
+            showToast(`Xóa thẻ ${deletingCard.cardNo} thành công!`, 'success');
+            fetchMonthCards();
         } catch (err) {
             console.error("Error deleting month card:", err);
-            // Ưu tiên lấy message từ response của server, fallback về err.message
             setDeleteError(err.response?.data?.message || err.message || "Xóa vé tháng thất bại. Vui lòng thử lại!");
         } finally {
-            setIsDeleting(false); // Luôn mở khóa nút dù thành công hay thất bại
+            setIsDeleting(false);
         }
     };
 
-    // Đóng modal xác nhận xóa và reset lỗi (tránh lỗi cũ hiện lại lần sau)
     const closeDeleteModal = () => {
         setDeletingCard(null);
         setDeleteError(null);
@@ -319,12 +314,9 @@ export default function MonthCardPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
                         Làm mới
                     </button>
-
-                    {/* Cập nhật sự kiện click kích hoạt Luồng Tạo Mới kèm eKYC */}
                     <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                         Đăng ký vé tháng
-
                     </button>
                 </div>
             </div>
@@ -506,8 +498,6 @@ export default function MonthCardPage() {
                     </div>
                 </div>
             )}
-
-
         </div>
     );
 }

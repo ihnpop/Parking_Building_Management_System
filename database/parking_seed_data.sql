@@ -8,9 +8,9 @@
 -- 1) ROLE
 -- ============================================================
 INSERT INTO role (role_name, description) VALUES
-('Quản trị viên', 'Quản trị hệ thống'),
-('Quản lý', 'Quản lý bãi xe'),
-('Nhân Viên', 'Nhân viên bãi xe');
+('ADMIN', 'Quản trị hệ thống'),
+('MANAGER', 'Quản lý bãi xe'),
+('STAFF', 'Nhân viên bãi xe');
 
 
 -- ============================================================
@@ -315,6 +315,7 @@ JOIN (
         ('Ô tô', 9, NULL, 120000::numeric)
 ) AS x(vt_name, min_hour, max_hour, price)
 ON vt.name = x.vt_name;
+
 -- ============================================================
 -- 10) PACKAGE (Chỉ Xe máy & Ô tô)
 -- ============================================================

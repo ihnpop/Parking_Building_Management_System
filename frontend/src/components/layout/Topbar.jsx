@@ -45,9 +45,32 @@ export default function Topbar({ title, showExtras = false, currentTab }) {
     const userEmail = user?.email || 'admin@parkflow.com';
     const userInitials = userEmail.charAt(0).toUpperCase();
 
+    const isStaff = userRole?.toUpperCase() === 'STAFF';
+
     return (
         <header className="header">
-            <div className="header-left-group">
+            <div className="header-left-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {currentTab === 'system' && !isStaff && (
+                    <button
+                        type="button"
+                        onClick={() => navigate('/login/dashboard')}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            color: '#ff6b00',
+                            padding: '4px',
+                            borderRadius: '50%',
+                            transition: 'background 0.2s',
+                            marginRight: '8px'
+                        }}
+                        title="Quay lại Bảng điều khiển"
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>arrow_back</span>
+                    </button>
+                )}
                 <h1 className="page-title">{title}</h1>
             </div>
 

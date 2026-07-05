@@ -495,7 +495,6 @@ CREATE TABLE feedback (
     rating INT,
 
     status VARCHAR(50) DEFAULT 'Mới',
-
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -648,7 +647,6 @@ CREATE TABLE public.login_logs (
         FOREIGN KEY (profiles_id)
         REFERENCES profiles(id)
         ON DELETE CASCADE
-
 );
 
 -- ==========================================

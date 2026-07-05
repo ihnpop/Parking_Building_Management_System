@@ -53,68 +53,78 @@ export const getCards = async () => {
         const { data: sessions } = await supabase
           .from("parking_sessions")
           .select(`
-          session_id,
-          entry_time,
-          exit_time
-        `)
-          .eq(
-            "vehicle_id",
-            activeReg.vehicle.vehicle_id
-          )
-          .order(
-            "entry_time",
-            { ascending: false }
-          )
+            session_id,
+            entry_time,
+            exit_time
+          `)
+          .eq("vehicle_id", activeReg.vehicle.vehicle_id)
+          .order("entry_time", { ascending: false })
           .limit(1);
 
         latestSession = sessions?.[0] || null;
       }
       return {
-
         card_id: item.card_id,
         code: item.code,
         type: item.type,
-
         expired_date: item.expired_date,
         status: item.status,
         created_at: item.created_at,
-
-        plate:
-          activeReg?.vehicle?.plate_number ||
-          "",
-
-        fullName:
-          activeReg?.vehicle?.customer?.full_name ||
-          "",
-
-        phone:
-          activeReg?.vehicle?.customer?.phone ||
-          "",
-
-        email:
-          activeReg?.vehicle?.customer?.email ||
-          "",
-
-        check_in_time:
-          latestSession?.entry_time || '',
-
-        check_out_time:
-          latestSession?.exit_time || '',
-
-        customer_name:
-          activeReg?.vehicle?.customer?.full_name ||
-          "Chưa đăng ký",
-
-        vehicle_id:
-          activeReg?.vehicle?.vehicle_id || null,
-
-        customer_id:
-          activeReg?.vehicle?.customer?.customer_id ||
-          null
+        plate: activeReg?.vehicle?.plate_number || "",
+        fullName: activeReg?.vehicle?.customer?.full_name || "",
+        phone: activeReg?.vehicle?.customer?.phone || "",
+        email: activeReg?.vehicle?.customer?.email || "",
+        check_in_time: latestSession?.entry_time || '',
+        check_out_time: latestSession?.exit_time || '',
+        customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký",
+        vehicle_id: activeReg?.vehicle?.vehicle_id || null,
+        customer_id: activeReg?.vehicle?.customer?.customer_id || null
       };
     })
-  )
-}
+  );
+};
+
+export const getMonthCardLogs = async () => {
+  const { data, error } = await supabase
+    .from("payment")
+    .select(`
+      payment_time,
+      amount,
+      status,
+      parking_order (
+        vehicle (
+          plate_number,
+          customer (
+            full_name
+          )
+        )
+      )
+    `);
+
+  if (error) throw new Error(error.message);
+
+  return data.map((item, idx) => {
+    const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
+    const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
+    const time = new Date(item.payment_time).toLocaleString('vi-VN');
+    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
+    const status = (item.status === 'PAID' || item.status === 'Đã thanh toán')
+      ? 'Thành công'
+      : item.status === 'PENDING'
+        ? 'Đang xử lý'
+        : 'Thất bại';
+
+    return {
+      time,
+      plate,
+      owner,
+      type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
+      amount,
+      status
+    };
+  });
+};
+
 
 export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
   let cleanPlate = plate ? plate.trim() : undefined;
@@ -368,18 +378,18 @@ export const getLostCards = async () => {
     const handlerName = log.profiles?.full_name || "---";
 
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
-    let statusText = 'Đang xử lý'; // Giá trị mặc định: áp dụng cho trường hợp đã có handled_by nhưng chưa hoàn tất
-
-    if (log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
-      // Nhân viên đã xử lý xong báo cáo mất thẻ
+    let statusText = 'Đang xử lý';
+    const statusVal = log.status || '';
+    if (statusVal === 'RESOLVED' || statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại') {
       statusText = 'Đã xong';
-    } else if (log.status === 'Đã hủy thẻ') {
-      // Báo cáo mất thẻ đã dẫn đến việc hủy/khóa thẻ
+    } else if (statusVal === 'CANCELED' || statusVal === 'Đã hủy thẻ') {
       statusText = 'Đã hủy thẻ';
-    } else if (log.status === 'Chờ xử lý' && !log.handled_by) {
-      // Vừa tạo mới (status mặc định khi insert) và chưa có ai nhận xử lý
-      // -> giữ đúng trạng thái ban đầu, không để rơi về "Đang xử lý"
-      statusText = 'Chờ xử lý';
+    } else if (statusVal === 'PENDING' || statusVal === 'Chờ xử lý' || !statusVal) {
+      if (!log.handled_by) {
+        statusText = 'Chờ xử lý';
+      } else {
+        statusText = 'Đang xử lý';
+      }
     }
     // Trường hợp còn lại: status vẫn là 'Chờ xử lý' nhưng đã có handled_by
     // (nhân viên đã bắt đầu xử lý) -> giữ giá trị default 'Đang xử lý' ở trên

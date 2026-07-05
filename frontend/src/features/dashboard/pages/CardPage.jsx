@@ -574,8 +574,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     <div className="mc-loading-message">Đang tải danh sách thẻ...</div>
                 ) : (
                     <>
-                        <div className="mc-table-scroll">
-                            <table className="mc-table">
+                        <div className="cp-table-scroll">
+                            <table className="cp-table">
                                 <thead>
                                     <tr>
                                         <th>STT</th>
