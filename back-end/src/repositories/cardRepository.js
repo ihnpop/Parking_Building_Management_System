@@ -26,11 +26,8 @@ export const softDelete = async (cardId, currentUserId) => {
   const { data, error } = await supabase
     .from('card')
     .update({
-<<<<<<< HEAD
-      status: 'Đã xóa',
-=======
+
       status: 'Đã khóa',
->>>>>>> RegistrationFunction
       deleted_at: new Date().toISOString(),
       deleted_by: currentUserId || null
     })
@@ -41,8 +38,6 @@ export const softDelete = async (cardId, currentUserId) => {
   if (error) throw new Error(error.message);
   return data;
 };
-<<<<<<< HEAD
-=======
 
 /**
  * Tìm kiếm thông tin thẻ theo mã code
@@ -237,4 +232,3 @@ export const deactivateRegistration = async (registrationId) => {
   if (error) throw new Error(error.message);
   return data;
 };
->>>>>>> RegistrationFunction

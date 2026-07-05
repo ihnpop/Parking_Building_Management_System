@@ -153,8 +153,6 @@ packages:
   is-standalone-pwa@0.1.1:
     resolution: {integrity: sha512-9Cbovsa52vNQCjdXOzeQq5CnCbAcRk05aU62K20WO372NrTv0NxibLFCK6lQ4/iZEFdEA3p3t2VNOn8AJ53F5g==}
 
-<<<<<<< HEAD
-=======
   lucide-react@1.22.0:
     resolution: {integrity: sha512-c9o3l0PiNcgOQDW4F31BEYHudE7kgxVt3o30qMl36ZPwTxXlGB4QnLilhERvVM4uh/pl5MDyY1/gzZSYcHDtBg==}
     peerDependencies:
@@ -172,7 +170,6 @@ packages:
     resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
     engines: {node: '>= 0.6'}
 
->>>>>>> RegistrationFunction
   minimatch@10.2.5:
     resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
     engines: {node: 18 || 20 || >=22}
@@ -247,8 +244,7 @@ packages:
     resolution: {integrity: sha512-r0eojU4bI8MnHr8c5bNo7lJDdI2qXlWWJk6a9EAFG7vbhTjElYhBVS3/miuE0uOuoLdb8Mc/rVfsmm6eo5o9GA==}
     hasBin: true
 
-<<<<<<< HEAD
-=======
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -259,7 +255,6 @@ packages:
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
 
->>>>>>> RegistrationFunction
   ua-is-frozen@0.1.2:
     resolution: {integrity: sha512-RwKDW2p3iyWn4UbaxpP2+VxwqXh0jpvdxsYpZ5j/MLLiQOfbsV5shpgQiw93+KMYQPcteeMQ289MaAFzs3G9pw==}
 
@@ -392,8 +387,7 @@ snapshots:
 
   is-standalone-pwa@0.1.1: {}
 
-<<<<<<< HEAD
-=======
+
   lucide-react@1.22.0(react@19.2.7):
     dependencies:
       react: 19.2.7
@@ -406,7 +400,7 @@ snapshots:
     dependencies:
       mime-db: 1.52.0
 
->>>>>>> RegistrationFunction
+
   minimatch@10.2.5:
     dependencies:
       brace-expansion: 5.0.6
@@ -477,8 +471,7 @@ snapshots:
 
   touch@3.1.1: {}
 
-<<<<<<< HEAD
-=======
+
   tslib@2.8.1: {}
 
   type-is@1.6.18:
@@ -488,7 +481,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
->>>>>>> RegistrationFunction
+
   ua-is-frozen@0.1.2: {}
 
   ua-parser-js@2.0.10:
