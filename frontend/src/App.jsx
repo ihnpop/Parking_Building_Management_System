@@ -54,7 +54,7 @@ export default function App() {
       <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
-            <LostCardLogPage />
+            <LostCardLogPage showBackButton={true} />
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
