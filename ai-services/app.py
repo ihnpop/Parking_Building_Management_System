@@ -9,7 +9,7 @@ from paddleocr import PaddleOCR
 app = FastAPI(title="PaddleOCR License Plate Recognition Service")
 
 # Khởi tạo mô hình PaddleOCR một lần duy nhất khi khởi động server
-ocr = PaddleOCR(use_angle_cls=True, lang="en", enable_mkldnn=False)
+ocr = PaddleOCR(use_angle_cls=True, lang="en", enable_mkldnn=False, ocr_version="PP-OCRv4")
 
 def smart_correct_vietnamese_plate(plate: str) -> str:
     """
