@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMonthCardLogs } from '../../../service/cardApi';
+import { getMonthCardLogs } from '../../../service/monthCardApi';
 
 export default function MonthCardLogPage() {
     const [allLogs, setAllLogs] = useState([]);
@@ -64,174 +64,172 @@ export default function MonthCardLogPage() {
 
 
     const failedCount = allLogs.filter(log => log.status === 'Thất bại').length;
-    const renewPercent = totalTransactions ? Math.round(renewals * 100 / totalTransactions) : 0;
-    const newPercent = totalTransactions ? Math.round(newRegistrations * 100 / totalTransactions) : 0;
-    const pendingPercent = totalTransactions ? Math.round(pendingCount * 100 / totalTransactions) : 0;
-    const failedPercent = totalTransactions ? Math.round(failedCount * 100 / totalTransactions) : 0;
 
     return (
-        <div className="lost-card-log-page" style={{ width: '100%' }}>
+        <div className="lost-card-log-wrapper">
 
-            {/* Bảng phân tích Dashboard KPIs 4 cột phẳng */}
-            <section className="lost-dashboard-analytics-container">
-                <div className="lost-stats-grid-layout" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {/* ĐÃ XÓA KHỐI HEADER VÀ PROFILE LẶP LẠI TẠI ĐÂY */}
 
-                    <article className="lost-stat-box-item total-border">
-                        <div className="lost-box-header">
-                            <div className="lost-box-icon total-icon">
-                                <span className="material-symbols-outlined font-icon-modern">directions_car</span>
+            {/* Stats Grid */}
+
+            <div className="lost-kpi-container">
+                <div className="lost-kpi-grid">
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-gray">
+                                <span className="material-symbols-outlined">receipt_long</span>
                             </div>
-                            <span className="lost-box-label">Tổng giao dịch</span>
+                            <span className="lost-kpi-title">Tổng giao dịch</span>
                         </div>
-                        <div className="lost-box-body">
-                            <span className="lost-box-number text-total">{loading ? '...' : totalTransactions}</span>
-                            <span className="lost-box-subtext success-alert">📈 +5% hệ thống</span>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value">{loading ? '...' : totalTransactions}</div>
+                            <div className="lost-kpi-footer txt-gray">Tất cả giao dịch</div>
                         </div>
-                    </article>
-
-                    <article className="lost-stat-box-item success-border">
-                        <div className="lost-box-header">
-                            <div className="lost-box-icon success-icon">
-                                <span className="material-symbols-outlined font-icon-modern">autorenew</span>
-                            </div>
-                            <span className="lost-box-label">Gia hạn thành công</span>
-                        </div>
-                        <div className="lost-box-body">
-                            <span className="lost-box-number text-success">{loading ? '...' : renewals}</span>
-                            <span className="lost-box-subtext success-alert">✨ Tự động cập nhật</span>
-                        </div>
-                    </article>
-
-                    <article className="lost-stat-box-item processing-border">
-                        <div className="lost-box-header">
-                            <div className="lost-box-icon processing-icon">
-                                <span className="material-symbols-outlined font-icon-modern">add_card</span>
-                            </div>
-                            <span className="lost-box-label">Đăng ký mới</span>
-                        </div>
-                        <div className="lost-box-body">
-                            <span className="lost-box-number text-processing">{loading ? '...' : newRegistrations}</span>
-                            <span className="lost-box-subtext success-alert">🚀 Cấp phát thẻ nhanh</span>
-                        </div>
-                    </article>
-
-                    <article className="lost-stat-box-item pending-border">
-                        <div className="lost-box-header">
-                            <div className="lost-box-icon pending-icon">
-                                <span className="material-symbols-outlined font-icon-modern">warning</span>
-                            </div>
-                            <span className="lost-box-label">Đang chờ xử lý</span>
-                        </div>
-                        <div className="lost-box-body">
-                            <span className="lost-box-number text-pending">{loading ? '...' : pendingCount}</span>
-                            <span className="lost-box-subtext warning-alert">⏰ Cần đối soát nhanh</span>
-                        </div>
-                    </article>
-
-                </div>
-
-                {/* Khối biểu đồ tỉ lệ 1/3 bên phải */}
-                <div className="lost-chart-visualization-card compressed-width">
-                    <div className="chart-header-zone">
-                        <span className="material-symbols-outlined text-muted">insights</span>
-                        <h4>Tỷ lệ giao dịch vé tháng</h4>
                     </div>
 
-                    <div className="chart-bars-wrapper">
-                        <div className="chart-bar-item">
-                            <div className="bar-meta-desc">
-                                <span className="bar-name-label">Gia hạn thành công</span>
-                                <span className="bar-data-counter"><b>{renewals}</b> ({renewPercent}%)</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-green">
+                                <span className="material-symbols-outlined">add_card</span>
                             </div>
-                            <div className="bar-track-background">
-                                <div className="bar-fill-color success-fill" style={{ width: `${renewPercent}%` }}></div>
-                            </div>
+                            <span className="lost-kpi-title">Đăng ký mới</span>
                         </div>
-
-                        <div className="chart-bar-item">
-                            <div className="bar-meta-desc">
-                                <span className="bar-name-label">Đăng ký mới</span>
-                                <span className="bar-data-counter"><b>{newRegistrations}</b> ({newPercent}%)</span>
-                            </div>
-                            <div className="bar-track-background">
-                                <div className="bar-fill-color processing-fill" style={{ width: `${newPercent}%` }}></div>
-                            </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-green">{loading ? '...' : newRegistrations}</div>
+                            <div className="lost-kpi-footer txt-green">Cấp mới thành công</div>
                         </div>
+                    </div>
 
-                        <div className="chart-bar-item">
-                            <div className="bar-meta-desc">
-                                <span className="bar-name-label">Đang chờ</span>
-                                <span className="bar-data-counter"><b>{pendingCount}</b> ({pendingPercent}%)</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-blue">
+                                <span className="material-symbols-outlined">autorenew</span>
                             </div>
-                            <div className="bar-track-background">
-                                <div className="bar-fill-color pending-fill" style={{ width: `${pendingPercent}%` }}></div>
-                            </div>
+                            <span className="lost-kpi-title">Gia hạn</span>
                         </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-blue">{loading ? '...' : renewals}</div>
+                            <div className="lost-kpi-footer txt-blue">Gia hạn thành công</div>
+                        </div>
+                    </div>
 
-                        <div className="chart-bar-item">
-                            <div className="bar-meta-desc">
-                                <span className="bar-name-label">Thất bại</span>
-                                <span className="bar-data-counter"><b>{failedCount}</b> ({failedPercent}%)</span>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-red">
+                                <span className="material-symbols-outlined">pending_actions</span>
                             </div>
-                            <div className="bar-track-background">
-                                <div className="bar-fill-color pending-warn-fill" style={{ width: `${failedPercent}%` }}></div>
-                            </div>
+                            <span className="lost-kpi-title">Đang chờ xử lý</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-red">{loading ? '...' : pendingCount}</div>
+                            <div className="lost-kpi-footer txt-orange">Chờ xác nhận</div>
                         </div>
                     </div>
                 </div>
-            </section>
 
-            {/* Thanh công cụ tìm kiếm kết hợp ngang */}
-            <section className="lost-toolbar-modern">
-                <div className="lost-filters-horizontal-bar">
+                <div className="lost-dist-card">
+                    <div className="lost-dist-title">
+                        <span className="material-symbols-outlined">monitoring</span>
+                        Tỷ lệ giao dịch
+                    </div>
 
-                    <div className="lost-filter-item search-premium-wrapper">
-                        <label className="filter-field-label">Tìm kiếm nâng cao</label>
-                        <div className="premium-input-box-styled">
-                            <span className="material-symbols-outlined search-brand-icon-premium">search</span>
-                            <input
-                                type="text"
-                                placeholder="Nhập biển số xe hoặc tên chủ xe để truy vết..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                            />
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Mốc tổng giao dịch</span>
+                            <span><span className="lost-dist-val">{totalTransactions}</span> <span className="lost-dist-pct">(100%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-dark" style={{ width: '100%' }}></div>
                         </div>
                     </div>
 
-                    <div className="lost-filter-item select-premium-wrapper">
-                        <label className="filter-field-label">Loại giao dịch</label>
-                        <div className="premium-select-box-styled">
-                            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                                <option value="Tất cả">Tất cả danh mục</option>
-                                <option value="Gia hạn">Gia hạn vé</option>
-                                <option value="Cấp mới">Cấp mới thẻ</option>
-                                <option value="Thay đổi xe">Thay đổi xe</option>
-                            </select>
-                            <span className="material-symbols-outlined select-arrow-icon-premium">keyboard_arrow_down</span>
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Cấp mới</span>
+                            <span><span className="lost-dist-val">{newRegistrations}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((newRegistrations / totalTransactions) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-green" style={{ width: `${totalTransactions > 0 ? (newRegistrations / totalTransactions) * 100 : 0}%` }}></div>
                         </div>
                     </div>
 
-                    <div className="lost-filter-item select-premium-wrapper">
-                        <label className="filter-field-label">Trạng thái đối soát</label>
-                        <div className="premium-select-box-styled">
-                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                                <option value="Tất cả">Tất cả trạng thái</option>
-                                <option value="Thành công">Thành công</option>
-                                <option value="Đang xử lý">Đang xử lý</option>
-                                <option value="Thất bại">Thất bại</option>
-                            </select>
-                            <span className="material-symbols-outlined select-arrow-icon-premium">keyboard_arrow_down</span>
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Gia hạn</span>
+                            <span><span className="lost-dist-val">{renewals}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((renewals / totalTransactions) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-blue" style={{ width: `${totalTransactions > 0 ? (renewals / totalTransactions) * 100 : 0}%` }}></div>
                         </div>
                     </div>
 
-                    <button type="button" className="lost-create-button-premium" onClick={handleFilter} style={{ height: '42px' }}>
-                        <span className="material-symbols-outlined">filter_list</span>
-                        Lọc dữ liệu
-                    </button>
-
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Đang chờ xử lý</span>
+                            <span><span className="lost-dist-val">{pendingCount}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((pendingCount / totalTransactions) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-gray" style={{ width: `${totalTransactions > 0 ? (pendingCount / totalTransactions) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
                 </div>
-            </section>
+            </div>
+
+
+            {/* Filter Toolbar */}
+
+            {/* Filter Toolbar */}
+            <div className="lost-filter-card">
+                <div className="filter-block">
+                    <label className="filter-label">TÌM KIẾM NÂNG CAO</label>
+                    <div className="filter-input-wrapper">
+                        <span className="material-symbols-outlined icon-left">search</span>
+                        <input
+                            type="text"
+                            className="filter-input has-icon-left"
+                            placeholder="Biển số, Chủ xe..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+                        />
+                    </div>
+                </div>
+
+                <div className="filter-block">
+                    <label className="filter-label">LOẠI GIAO DỊCH</label>
+                    <div className="filter-input-wrapper">
+                        <select
+                            className="filter-select"
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value)}
+                        >
+                            <option value="Tất cả">Tất cả</option>
+                            <option value="Gia hạn">Gia hạn</option>
+                            <option value="Cấp mới">Cấp mới</option>
+                            <option value="Thay đổi xe">Thay đổi xe</option>
+                        </select>
+                        <span className="material-symbols-outlined icon-right">expand_more</span>
+                    </div>
+                </div>
+
+                <div className="filter-block">
+                    <label className="filter-label">TRẠNG THÁI</label>
+                    <div className="filter-input-wrapper">
+                        <select
+                            className="filter-select"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="Tất cả">Tất cả</option>
+                            <option value="Thành công">Thành công</option>
+                            <option value="Đang xử lý">Đang xử lý</option>
+                            <option value="Thất bại">Thất bại</option>
+                        </select>
+                        <span className="material-symbols-outlined icon-right">expand_more</span>
+                    </div>
+                </div>
+            </div>
+
 
             {/* Bảng dữ liệu phẳng Flat UI */}
             <section className="lost-table-card-premium">
@@ -241,54 +239,47 @@ export default function MonthCardLogPage() {
                     <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký vé tháng...</div>
                 ) : (
                     <>
-                        <div className="table-responsive-wrapper">
-                            <table className="lost-table-modernized">
-                                <thead>
-                                    <tr>
-                                        <th>THỜI GIAN GIAO DỊCH</th>
-                                        <th>BIỂN SỐ</th>
-                                        <th>CHỦ XE</th>
-                                        <th>LOẠI GD</th>
-                                        <th>SỐ TIỀN THANH TOÁN</th>
-                                        <th>TRẠNG THÁI</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {logs.length > 0 ? (
-                                        logs.map((log, index) => (
-                                            <tr key={index} className="row-animation-item">
-                                                <td className="text-muted-smooth" style={{ fontFamily: 'monospace' }}>{log.time}</td>
-                                                <td style={{ fontWeight: '700', color: '#1f2937' }}>{log.plate}</td>
-                                                <td>{log.owner}</td>
-                                                <td>
-                                                    <span style={{ fontWeight: '600', color: log.type === 'Cấp mới' ? '#0284c7' : '#475569' }}>
-                                                        {log.type}
-                                                    </span>
-                                                </td>
-                                                <td className="lost-id-cell-premium" style={{ fontWeight: '700' }}>{log.amount}</td>
-                                                <td>
-                                                    <span className={`status-badge-lost-premium ${getStatusClass(log.status)}`}>
-                                                        {log.status}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                                                Không tìm thấy nhật ký gia dịch phù hợp
+                        <table className="month-log-table">
+                            <thead>
+                                <tr>
+                                    <th>THỜI GIAN</th>
+                                    <th>BIỂN SỐ</th>
+                                    <th>CHỦ XE</th>
+                                    <th>LOẠI GD</th>
+                                    <th>SỐ TIỀN</th>
+                                    <th>TRẠNG THÁI</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logs.length > 0 ? (
+                                    logs.map((log, index) => (
+                                        <tr key={index}>
+                                            <td className="log-time">{log.time}</td>
+                                            <td>{log.plate}</td>
+                                            <td>{log.owner}</td>
+                                            <td>{log.type}</td>
+                                            <td className="log-amount">{log.amount}</td>
+                                            <td>
+                                                <span className={`status-badge-month ${getStatusClass(log.status)}`}>
+                                                    {log.status}
+                                                </span>
                                             </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>Không tìm thấy nhật ký phù hợp</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
 
-                        {/* Footer phân trang kịch biên */}
-                        <div className="lost-table-footer-premium">
-                            <span className="footer-info-premium">Hiển thị <b>{logs.length}</b> trong số <b>{totalTransactions}</b> giao dịch</span>
-                            <div className="lost-pagination">
-                                <button type="button" className="page-btn" disabled><span className="material-symbols-outlined">chevron_left</span></button>
+                        <div className="month-log-footer">
+                            <span className="footer-info">Hiển thị {logs.length} trong số {totalTransactions} giao dịch</span>
+                            <div className="month-log-pagination">
+                                <button type="button" className="page-btn" disabled>
+                                    <span className="material-symbols-outlined">chevron_left</span>
+                                </button>
                                 <button type="button" className="page-btn active">1</button>
                                 <button type="button" className="page-btn" disabled><span className="material-symbols-outlined">chevron_right</span></button>
                             </div>

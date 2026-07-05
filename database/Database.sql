@@ -1,4 +1,4 @@
-﻿CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
 -- ROLE
@@ -8,28 +8,6 @@ CREATE TABLE role (
     role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT
-);
-
--- ==========================================
--- PROFILES (Supabase Auth)
--- ==========================================
-
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-
-    role_id UUID REFERENCES role(role_id),
-
-    username VARCHAR(100) UNIQUE,
-
-    full_name VARCHAR(255),
-
-    email VARCHAR(255),
-
-    phone VARCHAR(50),
-
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-
-    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- ==========================================
@@ -57,9 +35,8 @@ CREATE TABLE vehicle_type (
 
     name VARCHAR(255) NOT NULL,
 
-    description TEXT,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -93,7 +70,35 @@ CREATE TABLE building (
 
     address TEXT,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
+);
+
+
+-- ==========================================
+-- PROFILES (Supabase Auth)
+-- ==========================================
+
+CREATE TABLE profiles (
+    id UUID PRIMARY KEY
+        REFERENCES auth.users(id) ON DELETE CASCADE,
+
+    role_id UUID
+        REFERENCES role(role_id),
+
+    username VARCHAR(100) UNIQUE NOT NULL,
+
+    full_name VARCHAR(255) NOT NULL,
+
+    email VARCHAR(255) UNIQUE,
+
+    phone VARCHAR(50),
+
+    status VARCHAR(50) NOT NULL DEFAULT 'Hoạt động',
+
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    building_id UUID
+        REFERENCES building(building_id)
 );
 
 -- ==========================================
@@ -113,7 +118,7 @@ CREATE TABLE parking (
 
     close_time TIME,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -129,7 +134,7 @@ CREATE TABLE floor (
 
     name VARCHAR(255),
 
-    status VARCHAR(50) DEFAULT 'ACTIVE',
+    status VARCHAR(50) DEFAULT 'Hoạt động',
 
     UNIQUE(parking_id, floor_number)
 );
@@ -149,7 +154,7 @@ CREATE TABLE area (
 
     capacity INT DEFAULT 0,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -163,7 +168,7 @@ CREATE TABLE slot (
 
     slot_code VARCHAR(100) NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'AVAILABLE',
+    status VARCHAR(50) DEFAULT 'Sẵn sàng',
 
     distance_to_gate INT,
 
@@ -185,7 +190,7 @@ CREATE TABLE gate (
 
     gate_type VARCHAR(50) NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -196,28 +201,44 @@ CREATE TABLE card (
 
     code VARCHAR(100) UNIQUE NOT NULL,
 
+    status VARCHAR(50) DEFAULT 'Đang chờ',
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
     type VARCHAR(50) NOT NULL,
 
     expired_date DATE,
 
-    status VARCHAR(50) DEFAULT 'Đã khóa',
+    deleted_at TIMESTAMPTZ,
 
-    created_at TIMESTAMP DEFAULT NOW()
+    deleted_by UUID
 );
+
 
 CREATE TABLE card_registrations (
 
     registration_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    card_id UUID NOT NULL REFERENCES card(card_id),
+    card_id UUID NOT NULL,
 
-    vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
+    vehicle_id UUID NOT NULL,
 
-    status VARCHAR(20) DEFAULT 'ACTIVE',
+    status VARCHAR(20) DEFAULT 'Hoạt động',
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    CONSTRAINT fk_card_registrations_card
+        FOREIGN KEY (card_id)
+        REFERENCES card(card_id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_card_registrations_vehicle
+        FOREIGN KEY (vehicle_id)
+        REFERENCES vehicle(vehicle_id)
+        ON DELETE CASCADE
 
 );
+
 
 -- ==========================================
 -- PRICE TABLE
@@ -232,8 +253,22 @@ CREATE TABLE price_table (
 
     description TEXT,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
+
+create table public.card_lost_log (
+  lost_report_id uuid not null default gen_random_uuid (),
+  card_id uuid not null,
+  vehicle_id uuid null,
+  reported_at timestamp without time zone null default now(),
+  status character varying null default 'Đang chờ'::character varying,
+  handled_by uuid null,
+  description text null,
+  constraint card_lost_log_pkey primary key (lost_report_id),
+  constraint card_lost_log_card_id_fkey foreign KEY (card_id) references card (card_id) on delete CASCADE,
+  constraint card_lost_log_handled_by_fkey foreign KEY (handled_by) references profiles (id) on delete set null,
+  constraint card_lost_log_vehicle_id_fkey foreign KEY (vehicle_id) references vehicle (vehicle_id) on delete set null
+) TABLESPACE pg_default;
 
 -- ==========================================
 -- PRICE ITEM
@@ -268,7 +303,7 @@ CREATE TABLE package (
 
     price NUMERIC(18,2) NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -286,7 +321,7 @@ CREATE TABLE vehicle_package (
 
     end_date DATE NOT NULL,
 
-    status VARCHAR(50) DEFAULT 'ACTIVE'
+    status VARCHAR(50) DEFAULT 'Hoạt động'
 );
 
 -- ==========================================
@@ -310,54 +345,87 @@ CREATE TABLE parking_order (
 
     staff_out_id UUID REFERENCES profiles(id),
 
-    time_in TIMESTAMP DEFAULT NOW(),
+    time_in TIMESTAMPTZ DEFAULT NOW(),
 
-    time_out TIMESTAMP,
+    time_out TIMESTAMPTZ,
 
     estimated_fee NUMERIC(18,2) DEFAULT 0,
 
     final_fee NUMERIC(18,2) DEFAULT 0,
 
-    status VARCHAR(50) DEFAULT 'PARKING'
+    status VARCHAR(50) DEFAULT 'Đang gửi xe'
 );
 
--- ==========================================
--- PAYMENT
--- ==========================================
+CREATE TABLE parking_sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), 
+
+    -- RFID được sử dụng
+    card_id UUID REFERENCES card(card_id),
+
+    -- Xe vào bãi
+    vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
+
+    -- Snapshot biển số tại thời điểm vào bãi
+    plate_number VARCHAR(20) NOT NULL,
+
+    -- Thời gian
+    entry_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    exit_time TIMESTAMPTZ,
+
+    -- Ảnh khi vào
+    entry_vehicle_image TEXT,
+    entry_plate_image TEXT,
+
+    -- Ảnh khi ra
+    exit_vehicle_image TEXT,
+    exit_plate_image TEXT,
+
+    -- Cổng vào / cổng ra
+    entry_gate_id UUID,
+    exit_gate_id UUID,
+
+    -- -- Nhân viên xử lý
+    -- created_by UUID,
+    -- closed_by UUID,
+
+    -- Phí gửi xe
+    -- total_fee NUMERIC(12,2) DEFAULT 0,
+
+    -- -- Thanh toán
+    -- payment_status VARCHAR(20)
+    --     DEFAULT 'UNPAID'
+    --     CHECK (payment_status IN ('UNPAID', 'PAID', 'FREE')),
+
+    -- Trạng thái phiên gửi xe
+    status VARCHAR(20)
+        DEFAULT 'Đang gửi xe'
+        CHECK (status IN ('Đang gửi xe', 'Hoàn thành', 'Mất thẻ', 'Đã hủy')),\
+
+    -- created_at TIMESTAMPTZ DEFAULT NOW(),
+    -- updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 CREATE TABLE payment (
     payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    parking_order_id UUID NOT NULL REFERENCES parking_order(parking_order_id),
-
+    vehicle_package_id UUID REFERENCES vehicle_package(vehicle_package_id),
+    session_id UUID REFERENCES parking_sessions(session_id),
+    parking_order_id UUID, -- Giữ lại nếu cần liên kết cũ hoặc để null
+    payment_type VARCHAR(100) NOT NULL CHECK (payment_type IN ('Vé lượt', 'Đăng ký vé tháng', 'Gia hạn vé tháng')),
     amount NUMERIC(18,2) NOT NULL,
-
     payment_method VARCHAR(50),
-
-    payment_time TIMESTAMP DEFAULT NOW(),
-
-    status VARCHAR(50) DEFAULT 'PAID'
+    provider VARCHAR(50) DEFAULT 'VNPay',
+    order_code VARCHAR(100) UNIQUE,
+    transaction_no VARCHAR(100),
+    bank_code VARCHAR(50),
+    paid_at TIMESTAMPTZ,
+    payment_time TIMESTAMPTZ DEFAULT NOW(),
+    status VARCHAR(50) DEFAULT 'Chờ thanh toán',
+    note TEXT,
+    created_by UUID REFERENCES profiles(id),
+    raw_response JSONB
 );
 
--- ==========================================
--- RESERVATION
--- ==========================================
-
-CREATE TABLE reservation (
-    reservation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    vehicle_id UUID NOT NULL REFERENCES vehicle(vehicle_id),
-
-    slot_id UUID NOT NULL REFERENCES slot(slot_id),
-
-    start_time TIMESTAMP NOT NULL,
-
-    end_time TIMESTAMP NOT NULL,
-
-    status VARCHAR(50) DEFAULT 'RESERVED',
-
-    created_at TIMESTAMP DEFAULT NOW()
-);
+-----------------------------------
 
 -- ==========================================
 -- INCIDENT REPORT
@@ -376,11 +444,11 @@ CREATE TABLE incident_report (
 
     handled_by UUID REFERENCES profiles(id),
 
-    status VARCHAR(50) DEFAULT 'OPEN',
+    status VARCHAR(50) DEFAULT 'Đang xử lý',
 
-    created_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
 
-    resolved_at TIMESTAMP
+    resolved_at TIMESTAMPTZ
 );
 
 -- ==========================================
@@ -408,7 +476,7 @@ CREATE TABLE slot_allocation_log (
 
     priority_score NUMERIC(10,2) DEFAULT 0,
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ==========================================
@@ -426,9 +494,161 @@ CREATE TABLE feedback (
 
     rating INT,
 
-    status VARCHAR(50) DEFAULT 'NEW',
+    status VARCHAR(50) DEFAULT 'Mới',
 
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE customer_kyc (
+    kyc_id UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    customer_id UUID NOT NULL UNIQUE
+        REFERENCES customer(customer_id) ON DELETE CASCADE,
+
+    cccd_number VARCHAR(20) UNIQUE,
+
+    face_match_score NUMERIC(5,2),
+
+    ekyc_status VARCHAR(20) NOT NULL
+        DEFAULT 'Chờ xử lý'
+        CHECK (ekyc_status IN ('Chờ xử lý', 'Đã xác thực', 'Từ chối')),
+
+    front_cccd_url TEXT,
+
+    back_cccd_url TEXT,
+
+    selfie_url TEXT,
+
+    verified_at TIMESTAMPTZ,
+
+    created_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW()
+);
+
+CREATE TABLE public.entry_exit_log (
+    log_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    session_id uuid NOT NULL,
+
+    vehicle_id uuid NOT NULL,
+
+    card_id uuid,
+
+    building_id uuid NOT NULL,
+
+    parking_id uuid NOT NULL,
+
+    gate_id uuid NOT NULL,
+
+    staff_id uuid,
+
+    direction varchar(10) NOT NULL
+        CHECK (direction IN ('Xe vào','Xe ra')),
+
+    event_time timestamp NOT NULL DEFAULT now(),
+
+    vehicle_type_id uuid,
+
+    plate_number varchar NOT NULL,
+
+    ticket_type varchar(20) NOT NULL
+        CHECK (ticket_type IN ('Thẻ lượt','Thẻ tháng','Mất thẻ')),
+
+    applied_price numeric(12,2),
+
+    note text,
+
+    created_at timestamp DEFAULT now(),
+
+    CONSTRAINT fk_log_session
+        FOREIGN KEY(session_id)
+        REFERENCES parking_sessions(session_id),
+
+    CONSTRAINT fk_log_vehicle
+        FOREIGN KEY(vehicle_id)
+        REFERENCES vehicle(vehicle_id),
+
+    CONSTRAINT fk_log_card
+        FOREIGN KEY(card_id)
+        REFERENCES card(card_id),
+
+    CONSTRAINT fk_log_building
+        FOREIGN KEY(building_id)
+        REFERENCES building(building_id),
+
+    CONSTRAINT fk_log_parking
+        FOREIGN KEY(parking_id)
+        REFERENCES parking(parking_id),
+
+    CONSTRAINT fk_log_gate
+        FOREIGN KEY(gate_id)
+        REFERENCES gate(gate_id),
+
+    CONSTRAINT fk_log_staff
+        FOREIGN KEY(staff_id)
+        REFERENCES profiles(id),
+
+    CONSTRAINT fk_log_vehicle_type
+        FOREIGN KEY(vehicle_type_id)
+        REFERENCES vehicle_type(vehicle_type_id)
+);
+
+CREATE TABLE public.card_activity_logs (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Liên kết đối tượng liên quan
+    card_id UUID NOT NULL REFERENCES public.card(card_id) ON DELETE CASCADE,
+    registration_id UUID REFERENCES public.card_registrations(registration_id) ON DELETE SET NULL,
+    
+    -- Phân loại hành động
+    action VARCHAR(50) NOT NULL, -- Ví dụ: 'Cấp mới', 'Gia hạn', 'Khóa thẻ', 'Mở khóa', 'Thay đổi thông tin'
+    
+    -- Chụp lại thông tin lúc thực hiện (Snapshot để tránh lịch sử bị thay đổi khi chủ xe đổi tên/biển số)
+    plate_number VARCHAR(20),
+    customer_name VARCHAR(255),
+    
+    -- Dữ liệu tài chính & hạn dùng (Phục vụ trực tiếp cho tính năng Gia hạn/Cấp mới)
+    duration_months INT,          -- Số tháng đăng ký/gia hạn (nếu có)
+    amount NUMERIC(12, 2),        -- Số tiền đóng (nếu có)
+    expired_date_before DATE,     -- Hạn dùng trước khi thao tác
+    expired_date_after DATE,      -- Hạn dùng sau khi thao tác
+    
+    -- Chi tiết thay đổi dạng JSONB (Lưu vết thuộc tính chi tiết)
+    old_data JSONB,               -- Trạng thái dữ liệu cũ (ví dụ: { phone: "090..." })
+    new_data JSONB,               -- Trạng thái dữ liệu mới (ví dụ: { phone: "091..." })
+    
+    -- Thông tin vận hành
+    performed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Staff thực hiện
+    performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),                     -- Thời gian thực hiện
+    note TEXT                                                            -- Ghi chú/Lý do
+);
+
+CREATE TABLE public.login_logs (
+
+    log_id UUID PRIMARY KEY
+        DEFAULT gen_random_uuid(),
+
+    profiles_id UUID,
+
+    username VARCHAR(255) NOT NULL,
+
+    ip_address VARCHAR(50),
+
+    device_browser TEXT,
+
+    location VARCHAR(255),
+
+    status VARCHAR(50) NOT NULL,
+
+    login_time TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+    CONSTRAINT fk_login_logs_profiles
+        FOREIGN KEY (profiles_id)
+        REFERENCES profiles(id)
+        ON DELETE CASCADE
+
 );
 
 -- ==========================================
@@ -456,18 +676,7 @@ CREATE INDEX idx_order_timein ON parking_order(time_in);
 
 CREATE INDEX idx_payment_order ON payment(parking_order_id);
 
-CREATE INDEX idx_reservation_slot ON reservation(slot_id);
-
 CREATE INDEX idx_incident_order ON incident_report(parking_order_id);
 
 CREATE INDEX idx_allocation_order ON slot_allocation_log(parking_order_id);
 
--- ==========================================
--- SEED ROLE
--- ==========================================
-
-INSERT INTO role(role_name, description)
-VALUES
-('ADMIN', 'Administrator'),
-('MANAGER', 'Parking Manager'),
-('STAFF', 'Parking Staff');

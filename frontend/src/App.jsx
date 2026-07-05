@@ -13,8 +13,9 @@ import RoleProtectedRoute from './components/auth/RoleProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import ResetPassword from "./features/auth/pages/ResetPassword";
-
 import "./styles/App.css";
+import SetPasswordPage from './features/auth/pages/Setpasswordpage';
+import PaymentResultPage from './features/dashboard/pages/PaymentResultPage';
 
 export default function App() {
   return (
@@ -52,7 +53,7 @@ export default function App() {
 
       <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
             <LostCardLogPage />
           </RoleProtectedRoute>
         </ProtectedRoute>
@@ -84,7 +85,7 @@ export default function App() {
 
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
             <OccupancyChart />
           </RoleProtectedRoute>
         </ProtectedRoute>
@@ -97,6 +98,11 @@ export default function App() {
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
+
+      <Route path="/set-password" element={<SetPasswordPage />} />
+
+      <Route path="/payment-result" element={<PaymentResultPage />} />
+      <Route path="/payment-result/:orderCode" element={<PaymentResultPage />} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />

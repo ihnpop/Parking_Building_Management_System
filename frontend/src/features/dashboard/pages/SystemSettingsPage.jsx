@@ -1,8 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
+import { useNotification } from '../../../context/NotificationContext';
 
 export default function SystemSettingsPage() {
+    const { showToast } = useNotification();
     const navigate = useNavigate();
+    const { user, userRole, logout } = useAuth();
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+    const userEmail = user?.email || 'admin@parkflow.com';
+    const userInitials = userEmail.charAt(0).toUpperCase();
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowDropdown(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleLogout = async () => {
+        try { await logout(); navigate('/login'); } catch (err) { console.error(err); }
+    };
+
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
+        }
+    };
 
     // Section 1: Thông tin hệ thống
     const [cameraInPath, setCameraInPath] = useState('D:\\ParkingData\\Images\\IN');
@@ -27,7 +59,7 @@ export default function SystemSettingsPage() {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
-                alert("Kích thước ảnh vượt quá dung lượng cho phép 2MB!");
+                showToast("Kích thước ảnh vượt quá dung lượng cho phép 2MB!", "error");
                 return;
             }
             const url = URL.createObjectURL(file);
@@ -36,42 +68,20 @@ export default function SystemSettingsPage() {
     };
 
     const handleSave = () => {
-        alert("Đã lưu các thay đổi cấu hình hệ thống thành công!");
+        showToast("Đã lưu các thay đổi cấu hình hệ thống thành công!", "success");
         navigate('/login/dashboard');
     };
 
     return (
         <div className="settings-page">
-            {/* Header */}
-            <header className="settings-header">
-                <div className="settings-header-left">
-                    <button type="button" className="settings-back-btn" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                        <span>Thoát</span>
-                    </button>
-                    <h1>Cài đặt hệ thống</h1>
-                </div>
 
-                <div className="settings-header-right">
-                    <button type="button" className="settings-bell-btn">
-                        <span className="material-symbols-outlined">notifications</span>
-                    </button>
-                    <div className="settings-profile">
-                        <div className="profile-text">
-                            <span className="profile-name">Admin User</span>
-                            <span className="profile-role">Quản trị viên</span>
-                        </div>
-                        <div className="profile-avatar">AD</div>
-                    </div>
-                </div>
-            </header>
 
             {/* Form Content */}
             <div className="settings-content">
                 {/* 1. Thông tin hệ thống */}
                 <section className="settings-section-card">
                     <div className="settings-section-header">
-                        <div className="settings-section-icon orange-bg">
+                        <div className="settings-section-icon">
                             <span className="material-symbols-outlined text-orange">info</span>
                         </div>
                         <h2>Thông tin hệ thống</h2>
@@ -82,8 +92,8 @@ export default function SystemSettingsPage() {
                             <div className="settings-group">
                                 <label>Đường dẫn lưu ảnh Camera (Vào)</label>
                                 <div className="input-with-button">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={cameraInPath}
                                         onChange={(e) => setCameraInPath(e.target.value)}
                                     />
@@ -96,8 +106,8 @@ export default function SystemSettingsPage() {
                             <div className="settings-group">
                                 <label>Đường dẫn lưu ảnh Camera (Ra)</label>
                                 <div className="input-with-button">
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={cameraOutPath}
                                         onChange={(e) => setCameraOutPath(e.target.value)}
                                     />
@@ -133,7 +143,7 @@ export default function SystemSettingsPage() {
                 {/* 2. Thiết bị ngoại vi */}
                 <section className="settings-section-card">
                     <div className="settings-section-header">
-                        <div className="settings-section-icon orange-bg">
+                        <div className="settings-section-icon">
                             <span className="material-symbols-outlined text-orange">devices</span>
                         </div>
                         <h2>Thiết bị ngoại vi</h2>
@@ -180,16 +190,16 @@ export default function SystemSettingsPage() {
                             <div className="settings-row">
                                 <div className="settings-group">
                                     <label>Luồng Video - Biển số Làn Vào</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={cameraInPlate}
                                         onChange={(e) => setCameraInPlate(e.target.value)}
                                     />
                                 </div>
                                 <div className="settings-group">
                                     <label>Luồng Video - Toàn cảnh Làn Vào</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={cameraInPanorama}
                                         onChange={(e) => setCameraInPanorama(e.target.value)}
                                     />
@@ -199,16 +209,16 @@ export default function SystemSettingsPage() {
                             <div className="settings-row mt-16">
                                 <div className="settings-group">
                                     <label>Luồng Video - Biển số Làn Ra</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={cameraOutPlate}
                                         onChange={(e) => setCameraOutPlate(e.target.value)}
                                     />
                                 </div>
                                 <div className="settings-group">
                                     <label>Luồng Video - Toàn cảnh Làn Ra</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={cameraOutPanorama}
                                         onChange={(e) => setCameraOutPanorama(e.target.value)}
                                     />
@@ -221,7 +231,7 @@ export default function SystemSettingsPage() {
                 {/* 3. Cấu hình vận hành */}
                 <section className="settings-section-card">
                     <div className="settings-section-header">
-                        <div className="settings-section-icon orange-bg">
+                        <div className="settings-section-icon">
                             <span className="material-symbols-outlined text-orange">settings_suggest</span>
                         </div>
                         <h2>Cấu hình vận hành</h2>
@@ -235,8 +245,8 @@ export default function SystemSettingsPage() {
                                 <span className="toggle-desc">Hệ thống sẽ tự động gửi lệnh mở barie khi quẹt thẻ hợp lệ.</span>
                             </div>
                             <label className="toggle-switch">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     checked={autoOpenBarieIn}
                                     onChange={(e) => setAutoOpenBarieIn(e.target.checked)}
                                 />
@@ -251,8 +261,8 @@ export default function SystemSettingsPage() {
                                 <span className="toggle-desc">Yêu cầu thẻ hợp lệ và khớp biển số để tự động mở.</span>
                             </div>
                             <label className="toggle-switch">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     checked={autoOpenBarieOut}
                                     onChange={(e) => setAutoOpenBarieOut(e.target.checked)}
                                 />
@@ -266,8 +276,8 @@ export default function SystemSettingsPage() {
                         <div className="settings-row">
                             <div className="settings-group">
                                 <label>Thời gian lưu trữ hình ảnh (Ngày)</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={storageDays}
                                     onChange={(e) => setStorageDays(Number(e.target.value))}
                                 />
@@ -276,8 +286,8 @@ export default function SystemSettingsPage() {
 
                             <div className="settings-group">
                                 <label>Biên độ sai lệch biển số cho phép (Ký tự)</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={plateDeviationLimit}
                                     onChange={(e) => setPlateDeviationLimit(Number(e.target.value))}
                                 />
