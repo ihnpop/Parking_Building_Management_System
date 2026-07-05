@@ -14,7 +14,7 @@ app = FastAPI(title="PaddleOCR License Plate Recognition Service")
 ocr = PaddleOCR(
     use_angle_cls=False, 
     lang="en", 
-    enable_mkldnn=True, 
+    enable_mkldnn=False, 
     ocr_version="PP-OCRv4",
     det_limit_side_len=720
 )
