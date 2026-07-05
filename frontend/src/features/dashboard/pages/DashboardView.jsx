@@ -12,6 +12,10 @@ import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
 import SystemSettingsPage from './SystemSettingsPage';
 
+// Import Modal chi tiết doanh thu
+import RevenueTodayModal from '../components/RevenueTodayModal';
+import RevenueMonthModal from '../components/RevenueMonthModal';
+
 // ─── Dashboard service ────────────────────────────────────────────────────────
 import {
     fetchAllDashboardData,
@@ -59,6 +63,10 @@ export default function DashboardView() {
     const [selectedPeriod, setSelectedPeriod] = useState('30 ngày qua');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Modal state
+    const [isTodayModalOpen, setIsTodayModalOpen] = useState(false);
+    const [isMonthModalOpen, setIsMonthModalOpen] = useState(false);
 
     // ─── KPI state ────────────────────────────────────────────────────────────
     const [stats, setStats] = useState({
@@ -237,6 +245,10 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{stats.activeSessions} lượt đỗ</div>
                             <div className="db-kpi-note">Xe hiện đang trong bãi</div>
+                            <div className="db-kpi-status-cue" style={{ color: '#3b82f6' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>sync</span>
+                                <span>Cập nhật tự động</span>
+                            </div>
                         </div>
 
                         {/* Chỗ trống – từ slot.status = 'Sẵn sàng' */}
@@ -249,6 +261,10 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{stats.emptySlots} chỗ</div>
                             <div className="db-kpi-note">Sẵn sàng cấp phát khi xe vào</div>
+                            <div className="db-kpi-status-cue" style={{ color: '#10b981' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>check_circle</span>
+                                <span>Sẵn sàng đón xe</span>
+                            </div>
                         </div>
 
                         {/* Chỗ đã sử dụng – từ slot.status / parking_order active */}
@@ -261,6 +277,10 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{stats.usedSlots} chỗ</div>
                             <div className="db-kpi-note">Các chỗ đang được sử dụng</div>
+                            <div className="db-kpi-status-cue" style={{ color: '#6366f1' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>pie_chart</span>
+                                <span>Tỷ lệ lấp đầy {Math.round((stats.usedSlots / ((stats.usedSlots + stats.emptySlots) || 1)) * 100)}%</span>
+                            </div>
                         </div>
 
                         {/* Sự cố hôm nay – từ card_lost_log + incident_report */}
@@ -273,10 +293,14 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{stats.incidents} sự cố</div>
                             <div className="db-kpi-note">Các trường hợp ngoại lệ đã ghi nhận</div>
+                            <div className="db-kpi-status-cue" style={{ color: stats.incidents > 0 ? '#ef4444' : '#10b981' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>{stats.incidents > 0 ? 'warning' : 'verified'}</span>
+                                <span>{stats.incidents > 0 ? 'Cần kiểm tra ngay' : 'Hoạt động an toàn'}</span>
+                            </div>
                         </div>
 
                         {/* Doanh thu hôm nay – từ payment.status = 'Đã thanh toán' */}
-                        <div className="db-kpi">
+                        <div className="db-kpi db-kpi--clickable" onClick={() => setIsTodayModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>DOANH THU HÔM NAY</span>
                                 <span className="db-kpi-icon" style={{ color: '#059669' }}>
@@ -285,10 +309,14 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueToday)}</div>
                             <div className="db-kpi-note">Tiền mặt &amp; QR ngân hàng đã thu</div>
+                            <div className="db-kpi-clickable-cue">
+                                <span>Nhấn để xem chi tiết</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+                            </div>
                         </div>
 
                         {/* Doanh thu tháng – từ payment.status = 'Đã thanh toán' tháng này */}
-                        <div className="db-kpi">
+                        <div className="db-kpi db-kpi--clickable" onClick={() => setIsMonthModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>DOANH THU THÁNG</span>
                                 <span className="db-kpi-icon" style={{ color: '#1D4ED8' }}>
@@ -297,6 +325,10 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueMonth)}</div>
                             <div className="db-kpi-note">Tổng doanh thu 30 ngày gần nhất</div>
+                            <div className="db-kpi-clickable-cue">
+                                <span>Nhấn để xem chi tiết</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
+                            </div>
                         </div>
                     </div>
 
@@ -548,6 +580,16 @@ export default function DashboardView() {
                     </div>
                 </div>
             )}
+
+            {/* Modals Chi Tiết Doanh Thu */}
+            <RevenueTodayModal
+                isOpen={isTodayModalOpen}
+                onClose={() => setIsTodayModalOpen(false)}
+            />
+            <RevenueMonthModal
+                isOpen={isMonthModalOpen}
+                onClose={() => setIsMonthModalOpen(false)}
+            />
         </DashboardShell>
     );
 }
