@@ -20,7 +20,10 @@ export const readPlate = async (file) => {
     contentType: file.mimetype || "image/jpeg"
   });
 
-  const ocrUrl = process.env.OCR_SERVICE_URL || "http://localhost:8000";
+  let ocrUrl = process.env.OCR_SERVICE_URL || "http://localhost:8000";
+  if (!ocrUrl.startsWith("http://") && !ocrUrl.startsWith("https://")) {
+    ocrUrl = `https://${ocrUrl}`;
+  }
 
   const response = await axios.post(
     `${ocrUrl}/ocr`,
