@@ -630,7 +630,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
         .from('payment')
         .select('payment_id')
         .eq('session_id', activeSession.session_id)
-        .eq('payment_type', 'CASUAL')
+        .eq('payment_type', 'Vé lượt')
         .maybeSingle();
 
       if (!existingPayment) {
@@ -642,7 +642,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
             payment_method: 'Cash',
             status: 'Đã thanh toán',
             payment_time: exitTime.toISOString(),
-            payment_type: 'CASUAL',
+            payment_type: 'Vé lượt',
             created_by: staffId || null
           });
         if (paymentErr) {

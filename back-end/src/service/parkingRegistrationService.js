@@ -143,7 +143,7 @@ class ParkingRegistrationService {
                     .from('payment')
                     .select('payment_id')
                     .eq('vehicle_package_id', vehiclePackage.vehicle_package_id)
-                    .eq('payment_type', 'MONTHLY_NEW')
+                    .eq('payment_type', 'Đăng ký vé tháng')
                     .gte('payment_time', oneMinuteAgo)
                     .maybeSingle();
 
@@ -156,7 +156,7 @@ class ParkingRegistrationService {
                             payment_method: 'E-Wallet',
                             status: 'Đã thanh toán',
                             payment_time: new Date().toISOString(),
-                            payment_type: 'MONTHLY_NEW'
+                            payment_type: 'Đăng ký vé tháng'
                         });
                     if (paymentErr) {
                         console.error("Lỗi insert payment khi đăng ký online:", paymentErr.message);

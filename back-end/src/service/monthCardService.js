@@ -143,7 +143,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
         .from('payment')
         .select('payment_id')
         .eq('vehicle_package_id', vehiclePackageId)
-        .eq('payment_type', 'MONTHLY_RENEW')
+        .eq('payment_type', 'Gia hạn vé tháng')
         .eq('amount', pkg.price)
         .gte('payment_time', oneMinuteAgo)
         .maybeSingle();
@@ -157,7 +157,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
             payment_method: 'Cash',
             status: 'Đã thanh toán',
             payment_time: new Date().toISOString(),
-            payment_type: 'MONTHLY_RENEW',
+            payment_type: 'Gia hạn vé tháng',
             created_by: currentUserId || null
           });
         if (paymentErr) {
@@ -420,7 +420,7 @@ export const createMonthCard = async ({
         .from('payment')
         .select('payment_id')
         .eq('vehicle_package_id', vehiclePackageId)
-        .eq('payment_type', 'MONTHLY_NEW')
+        .eq('payment_type', 'Đăng ký vé tháng')
         .gte('payment_time', oneMinuteAgo)
         .maybeSingle();
 
@@ -433,7 +433,7 @@ export const createMonthCard = async ({
             payment_method: 'Cash',
             status: 'Đã thanh toán',
             payment_time: new Date().toISOString(),
-            payment_type: 'MONTHLY_NEW',
+            payment_type: 'Đăng ký vé tháng',
             created_by: currentUserId || null
           });
         if (paymentErr) {

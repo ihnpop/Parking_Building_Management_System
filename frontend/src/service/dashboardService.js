@@ -279,7 +279,7 @@ export async function fetchTodayCasualRevenue() {
             .from('payment')
             .select('amount')
             .eq('status', 'Đã thanh toán')
-            .eq('payment_type', 'CASUAL')
+            .in('payment_type', ['CASUAL', 'Vé lượt'])
             .gte('payment_time', startOfToday())
             .lte('payment_time', endOfToday());
         if (error) throw error;
@@ -297,7 +297,7 @@ export async function fetchMonthCasualRevenue() {
             .from('payment')
             .select('amount')
             .eq('status', 'Đã thanh toán')
-            .eq('payment_type', 'CASUAL')
+            .in('payment_type', ['CASUAL', 'Vé lượt'])
             .gte('payment_time', startOfCurrentMonth())
             .lte('payment_time', endOfCurrentMonth());
         if (error) throw error;
@@ -315,7 +315,7 @@ export async function fetchTodayMonthlyRevenue() {
             .from('payment')
             .select('amount')
             .eq('status', 'Đã thanh toán')
-            .in('payment_type', ['MONTHLY_NEW', 'MONTHLY_RENEW'])
+            .in('payment_type', ['MONTHLY_NEW', 'MONTHLY_RENEW', 'Đăng ký vé tháng', 'Gia hạn vé tháng'])
             .gte('payment_time', startOfToday())
             .lte('payment_time', endOfToday());
         if (error) throw error;
@@ -333,7 +333,7 @@ export async function fetchMonthMonthlyRevenue() {
             .from('payment')
             .select('amount')
             .eq('status', 'Đã thanh toán')
-            .in('payment_type', ['MONTHLY_NEW', 'MONTHLY_RENEW'])
+            .in('payment_type', ['MONTHLY_NEW', 'MONTHLY_RENEW', 'Đăng ký vé tháng', 'Gia hạn vé tháng'])
             .gte('payment_time', startOfCurrentMonth())
             .lte('payment_time', endOfCurrentMonth());
         if (error) throw error;
@@ -351,7 +351,7 @@ export async function fetchMonthlyNewCount() {
             .from('payment')
             .select('payment_id', { count: 'exact', head: true })
             .eq('status', 'Đã thanh toán')
-            .eq('payment_type', 'MONTHLY_NEW')
+            .in('payment_type', ['MONTHLY_NEW', 'Đăng ký vé tháng'])
             .gte('payment_time', startOfCurrentMonth())
             .lte('payment_time', endOfCurrentMonth());
         if (error) throw error;
@@ -369,7 +369,7 @@ export async function fetchMonthlyRenewCount() {
             .from('payment')
             .select('payment_id', { count: 'exact', head: true })
             .eq('status', 'Đã thanh toán')
-            .eq('payment_type', 'MONTHLY_RENEW')
+            .in('payment_type', ['MONTHLY_RENEW', 'Gia hạn vé tháng'])
             .gte('payment_time', startOfCurrentMonth())
             .lte('payment_time', endOfCurrentMonth());
         if (error) throw error;
@@ -453,7 +453,7 @@ export async function fetchTodayRevenueDetails() {
             const amt = Number(p.amount) || 0;
             const pType = p.payment_type || 'CASUAL';
 
-            if (pType === 'CASUAL') {
+            if (pType === 'CASUAL' || pType === 'Vé lượt') {
                 result.casual.total += amt;
                 let rawType = sessionMap[p.session_id] || orderMap[p.parking_order_id] || '';
                 let vTypeLabel = 'Chưa phân loại';
@@ -467,7 +467,7 @@ export async function fetchTodayRevenueDetails() {
                 result.casual.items[vTypeLabel].count += 1;
                 result.casual.items[vTypeLabel].revenue += amt;
 
-            } else if (pType === 'MONTHLY_NEW') {
+            } else if (pType === 'MONTHLY_NEW' || pType === 'Đăng ký vé tháng') {
                 result.monthlyNew.total += amt;
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
@@ -485,7 +485,7 @@ export async function fetchTodayRevenueDetails() {
                 result.monthlyNew.items[key].count += 1;
                 result.monthlyNew.items[key].revenue += amt;
 
-            } else if (pType === 'MONTHLY_RENEW') {
+            } else if (pType === 'MONTHLY_RENEW' || pType === 'Gia hạn vé tháng') {
                 result.renewals.total += amt;
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
@@ -624,7 +624,7 @@ export async function fetchMonthlyRevenueDetails() {
 
             const pType = p.payment_type || 'CASUAL';
 
-            if (pType === 'CASUAL') {
+            if (pType === 'CASUAL' || pType === 'Vé lượt') {
                 let rawType = sessionMap[p.session_id] || orderMap[p.parking_order_id] || '';
                 let vTypeLabel = 'Chưa phân loại';
                 if (isCar(rawType)) vTypeLabel = 'Ô tô';
@@ -633,7 +633,7 @@ export async function fetchMonthlyRevenueDetails() {
 
                 targetWeek.casual[vTypeLabel] = (targetWeek.casual[vTypeLabel] || 0) + amt;
 
-            } else if (pType === 'MONTHLY_NEW') {
+            } else if (pType === 'MONTHLY_NEW' || pType === 'Đăng ký vé tháng') {
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
                 let vTypeLabel = 'Chưa phân loại';
@@ -650,7 +650,7 @@ export async function fetchMonthlyRevenueDetails() {
                 targetWeek.monthlyNew[key].count += 1;
                 targetWeek.monthlyNew[key].revenue += amt;
 
-            } else if (pType === 'MONTHLY_RENEW') {
+            } else if (pType === 'MONTHLY_RENEW' || pType === 'Gia hạn vé tháng') {
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
                 let vTypeLabel = 'Chưa phân loại';
