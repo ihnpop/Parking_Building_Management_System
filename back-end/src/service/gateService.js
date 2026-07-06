@@ -807,8 +807,7 @@ export const getSessions = async (dateStr = null) => {
       status,
       card_id
     `)
-    .gte("entry_time", startOfDay.toISOString())
-    .lt("entry_time", endOfDay.toISOString())
+    .or(`and(entry_time.gte.${startOfDay.toISOString()},entry_time.lt.${endOfDay.toISOString()}),and(exit_time.gte.${startOfDay.toISOString()},exit_time.lt.${endOfDay.toISOString()})`)
     .order("entry_time", { ascending: false });
 
   if (sessionsErr) throw new Error("Lỗi lấy danh sách phiên gửi xe: " + sessionsErr.message);
