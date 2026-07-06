@@ -742,7 +742,8 @@ const getDayRange = (dateStr = null) => {
  */
 export const getStats = async (dateStr = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
-  const isToday = !dateStr;
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const isToday = !dateStr || dateStr === todayStr;
 
   // 1. Số lượng xe trong bãi (status = 'Đang gửi xe') — chỉ có nghĩa khi xem hôm nay
   let insideCount = 0;
@@ -807,7 +808,8 @@ export const getSessions = async (dateStr = null) => {
       status,
       card_id
     `)
-    .or(`and(entry_time.gte.${startOfDay.toISOString()},entry_time.lt.${endOfDay.toISOString()}),and(exit_time.gte.${startOfDay.toISOString()},exit_time.lt.${endOfDay.toISOString()})`)
+    .lt("entry_time", endOfDay.toISOString())
+    .or(`exit_time.is.null,exit_time.gte.${startOfDay.toISOString()}`)
     .order("entry_time", { ascending: false });
 
   if (sessionsErr) throw new Error("Lỗi lấy danh sách phiên gửi xe: " + sessionsErr.message);

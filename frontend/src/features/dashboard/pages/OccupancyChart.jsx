@@ -132,8 +132,27 @@ export default function OccupancyChart() {
                 <h1 className="stats-page-title">Thống kê hoạt động bãi xe</h1>
                 <div className="stats-header-right">
                     {/* Date Picker */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '6px 12px', border: '1px solid rgba(255,255,255,0.2)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'inherit', opacity: 0.85 }}>calendar_today</span>
+                    <div 
+                        style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 8, 
+                            background: '#ffffff', 
+                            borderRadius: 10, 
+                            padding: '6px 12px', 
+                            border: '1.5px solid #cbd5e1', 
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'border-color 0.2s, box-shadow 0.2s',
+                            color: '#1f2937'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#a94412';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = '#cbd5e1';
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#6b7280' }}>calendar_today</span>
                         <input
                             type="date"
                             value={selectedDate}
@@ -145,11 +164,11 @@ export default function OccupancyChart() {
                                 background: 'transparent',
                                 border: 'none',
                                 outline: 'none',
-                                color: 'inherit',
+                                color: '#1f2937',
                                 fontSize: 14,
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                colorScheme: 'dark'
+                                colorScheme: 'light'
                             }}
                         />
                         {selectedDate !== todayStr && (
@@ -157,7 +176,7 @@ export default function OccupancyChart() {
                                 type="button"
                                 onClick={() => setSelectedDate(todayStr)}
                                 title="Quay về hôm nay"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
                             >
                                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
                             </button>
