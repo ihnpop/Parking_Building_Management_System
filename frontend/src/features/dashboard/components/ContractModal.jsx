@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { XCircle, Download, Loader2, X } from 'lucide-react';
-import './ContractModal.css';
 import { useNotification } from '../../../context/NotificationContext';
 
 export default function ContractModal({ isOpen, onClose, cardData }) {
