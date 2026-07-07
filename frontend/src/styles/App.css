@@ -25791,6 +25791,7 @@ body,
   font-weight: 700;
   color: #0f172a;
 }
+
 /* ============================================================
    System Operations Sessions Table & Real-time Timer Styles
    ============================================================ */
@@ -26362,6 +26363,7 @@ body,
 .system-page .transaction-price {
   color: #1d4ed8 !important;
 }
+
 .system-sessions-filters {
   display: flex;
   gap: 8px;
@@ -26495,10 +26497,12 @@ body,
     opacity: 0.4;
     transform: scale(0.9);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.1);
   }
+
   100% {
     opacity: 0.4;
     transform: scale(0.9);
@@ -26509,6 +26513,7 @@ body,
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -26516,7 +26521,6 @@ body,
 
 /* ══════════════════════════════════════════════════════════════════════════════
    CONTRACT MODAL — Hợp đồng đăng ký thẻ tháng
-   (Migrated from ContractModal.css — feat: merge ContractModal.css into App.css)
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .contract-overlay {
@@ -26604,7 +26608,8 @@ body,
   line-height: 1.5;
   font-size: 14px;
   user-select: none;
-  pointer-events: none; /* Ngăn chặn bôi đen hoặc click vào văn bản */
+  pointer-events: none;
+  /* Ngăn chặn bôi đen hoặc click vào văn bản */
   /* Đảm bảo paper luôn kết thúc tại ký tên, không bị kéo dài thừa */
   align-self: flex-start;
 }
@@ -26793,6 +26798,7 @@ body,
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
