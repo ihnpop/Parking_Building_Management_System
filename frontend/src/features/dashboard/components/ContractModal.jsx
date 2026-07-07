@@ -150,11 +150,19 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
               <div className="contract-sign-block">
                 <p>ĐẠI DIỆN BÊN A</p>
                 <p>(Ký và ghi rõ họ tên)</p>
+                <div className="contract-stamp-wrapper">
+                  <img
+                    src="/assets/stamp.jpg"
+                    alt="Con dấu BQL Bãi Xe PBMS"
+                    className="contract-stamp-img"
+                  />
+                </div>
                 <p className="signed-name">BQL Bãi Xe PBMS</p>
               </div>
               <div className="contract-sign-block">
                 <p>ĐẠI DIỆN BÊN B</p>
                 <p>(Ký và ghi rõ họ tên)</p>
+                <div className="contract-stamp-wrapper"></div>
                 <p className="signed-name">{cardData.customer || '---'}</p>
               </div>
             </div>
