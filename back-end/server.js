@@ -12,6 +12,7 @@ import registrationRouter from "./src/routes/parkingRegistrationRoutes.js";
 import gateRouter from "./src/routes/gateRoutes.js";
 import monthCardRouter from "./src/routes/monthCardRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
+import contractRouter from "./src/routes/contractRoutes.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/parking", parkingRouter);
 app.use("/api/parking", registrationRouter);
 app.use("/api/gate", gateRouter);
 app.use("/api/month-card", monthCardRouter);
+app.use("/api/contracts", contractRouter);
 
 // Helpers for login logs
 const parseUserAgent = (uaString) => {

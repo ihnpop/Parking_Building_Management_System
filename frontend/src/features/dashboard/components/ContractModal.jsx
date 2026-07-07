@@ -1,13 +1,45 @@
-import { useRef, useState } from 'react';
-import { XCircle, Download, Loader2, X } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { XCircle, Download, Loader2, X, Mail } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
+import { getContractStatus, sendContractEmail } from '../../../service/contractApi';
 
 export default function ContractModal({ isOpen, onClose, cardData }) {
   const { showToast } = useNotification();
   const [downloading, setDownloading] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [contractStatus, setContractStatus] = useState('Chưa gửi');
   const contractRef = useRef(null);
 
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (isOpen && cardData?.registrationId) {
+        try {
+          const res = await getContractStatus(cardData.registrationId);
+          setContractStatus(res.status || 'Chưa gửi');
+        } catch (err) {
+          console.error("Lỗi lấy trạng thái hợp đồng:", err);
+          setContractStatus('Chưa gửi');
+        }
+      }
+    };
+    fetchStatus();
+  }, [isOpen, cardData?.registrationId]);
+
   if (!isOpen || !cardData) return null;
+
+  const handleSendEmail = async () => {
+    try {
+      setSendingEmail(true);
+      const res = await sendContractEmail(cardData.registrationId);
+      setContractStatus(res.status);
+      showToast('Gửi email yêu cầu ký hợp đồng thành công!', 'success');
+    } catch (err) {
+      console.error("Lỗi gửi email hợp đồng:", err);
+      showToast(err.response?.data?.error || err.message || 'Không thể gửi email hợp đồng.', 'error');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   const handleDownload = async () => {
     try {
@@ -50,8 +82,13 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
     <div className="contract-overlay" onClick={onClose}>
       <div className="contract-container" onClick={(e) => e.stopPropagation()}>
         {/* Header Modal */}
-        <div className="contract-header">
-          <h3>Hợp đồng đăng ký thẻ tháng</h3>
+        <div className="contract-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 style={{ margin: 0 }}>Hợp đồng đăng ký thẻ tháng</h3>
+            <span className={`contract-status-badge status-${contractStatus}`}>
+              {contractStatus}
+            </span>
+          </div>
           <button className="contract-close-top" onClick={onClose} title="Đóng">
             <X size={20} />
           </button>
@@ -175,16 +212,42 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
             type="button"
             className="contract-btn contract-btn-close"
             onClick={onClose}
-            disabled={downloading}
+            disabled={downloading || sendingEmail}
           >
             <XCircle size={18} />
             Đóng
           </button>
+          
+          <button
+            type="button"
+            className="contract-btn contract-btn-email"
+            onClick={handleSendEmail}
+            disabled={sendingEmail || downloading || !cardData.email || contractStatus === 'Đã ký'}
+            style={{
+              backgroundColor: contractStatus === 'Đã ký' ? '#cbd5e1' : '#ea580c',
+              color: contractStatus === 'Đã ký' ? '#64748b' : '#ffffff',
+              cursor: (sendingEmail || downloading || !cardData.email || contractStatus === 'Đã ký') ? 'not-allowed' : 'pointer'
+            }}
+            title={!cardData.email ? "Khách hàng không có địa chỉ email" : ""}
+          >
+            {sendingEmail ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Đang gửi...
+              </>
+            ) : (
+              <>
+                <Mail size={18} />
+                Gửi Mail Ký HĐ
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             className="contract-btn contract-btn-download"
             onClick={handleDownload}
-            disabled={downloading}
+            disabled={downloading || sendingEmail}
           >
             {downloading ? (
               <>

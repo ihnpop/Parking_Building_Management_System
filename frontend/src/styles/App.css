@@ -26836,3 +26836,276 @@ body,
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+
+/* =========================================================================
+   GIAO DIỆN TRANG KÝ HỢP ĐỒNG ĐIỆN TỬ (CONTRACT SIGN PAGE)
+   ========================================================================= */
+.sign-page-layout {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(255, 140, 0, 0.08), transparent 30%),
+              linear-gradient(180deg, #fbf7f4 0%, #f4eae1 100%);
+  color: #2d3748;
+  display: flex;
+  flex-direction: column;
+}
+
+.sign-page-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sign-header-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sign-brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #4a5568;
+}
+
+.sign-security-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #10b981;
+  background-color: #ecfdf5;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.sign-page-main {
+  max-width: 900px;
+  width: 100%;
+  margin: 32px auto;
+  padding: 0 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Panel Action / Success */
+.sign-action-panel, .sign-success-panel {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  border-left: 6px solid #ff8c00;
+  animation: slideDown 0.4s ease;
+}
+
+.sign-success-panel {
+  border-left-color: #10b981;
+}
+
+.action-text-wrapper h3, .success-text-wrapper h3 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.action-text-wrapper p, .success-text-wrapper p {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.success-icon-wrapper {
+  background-color: #ecfdf5;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sign-btn-primary {
+  background-color: #ff8c00;
+  color: #ffffff;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.18);
+}
+
+.sign-btn-primary:hover:not(:disabled) {
+  background-color: #e57a00;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 140, 0, 0.24);
+}
+
+.sign-btn-primary:active {
+  transform: translateY(0);
+}
+
+.sign-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sign-btn-secondary {
+  background-color: #edf2f7;
+  color: #4a5568;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #2d3748;
+}
+
+/* loading / error */
+.sign-page-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #fbf7f4;
+}
+
+.sign-page-error-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #fbf7f4;
+}
+
+.sign-page-error-card {
+  background-color: #ffffff;
+  padding: 40px 32px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  border-top: 4px solid #ef4444;
+}
+
+/* Paper view alignment */
+.contract-paper-wrapper {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.06), 0 5px 15px -5px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.contract-paper-wrapper .contract-paper {
+  border: none;
+  box-shadow: none;
+  padding: 48px;
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive sign actions */
+@media (max-width: 768px) {
+  .sign-action-panel, .sign-success-panel {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .sign-btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+  .contract-paper-wrapper .contract-paper {
+    padding: 24px 16px;
+  }
+}
+
+/* Badge trạng thái hợp đồng */
+.contract-status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.contract-status-badge.status-Chưa\ gửi {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.contract-status-badge.status-Chờ\ ký {
+  background-color: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+  animation: pulseLight 2s infinite;
+}
+
+.contract-status-badge.status-Đã\ ký {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #d1fae5;
+}
+
+.contract-status-badge.status-Hết\ hạn {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+}
+
+@keyframes pulseLight {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}

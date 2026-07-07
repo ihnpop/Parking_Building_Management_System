@@ -16,6 +16,7 @@ import ResetPassword from "./features/auth/pages/ResetPassword";
 import "./styles/App.css";
 import SetPasswordPage from './features/auth/pages/Setpasswordpage';
 import PaymentResultPage from './features/dashboard/pages/PaymentResultPage';
+import ContractSignPage from './features/dashboard/pages/ContractSignPage';
 
 export default function App() {
   return (
@@ -103,6 +104,7 @@ export default function App() {
 
       <Route path="/payment-result" element={<PaymentResultPage />} />
       <Route path="/payment-result/:orderCode" element={<PaymentResultPage />} />
+      <Route path="/sign-contract/:token" element={<ContractSignPage />} />
 
       {/* 3. Bắt lỗi: Nếu gõ link bậy bạ, tự động đá về trang login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
