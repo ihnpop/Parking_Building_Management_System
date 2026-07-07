@@ -8,6 +8,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Missing Supabase environment variables in frontend!");
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+        // Tắt tính năng tự động detect session từ URL fragment (#)
+        // để Supabase không nhầm lẫn HashRouter path (#/sign-contract/...) với auth callback
+        detectSessionInUrl: false,
+        persistSession: true,
+        autoRefreshToken: true,
+    }
+});
 
 export default supabase;

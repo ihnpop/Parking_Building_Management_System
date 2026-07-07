@@ -168,7 +168,7 @@ export const sendContract = async (registrationId) => {
 
   // 4. Tạo đường link ký hợp đồng
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-  const signLink = `${frontendUrl}/sign-contract/${token}`;
+  const signLink = `${frontendUrl}/#/sign-contract/${token}`;
 
   // 5. Gửi email qua Resend
   await sendEmailViaResend(customer.email, customer.full_name, contractNo, signLink);
