@@ -1,51 +1,43 @@
-import { useState } from 'react';
-import axios from 'axios';
+import { useRef, useState } from 'react';
 import { XCircle, Download, Loader2, X } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 
 export default function ContractModal({ isOpen, onClose, cardData }) {
   const { showToast } = useNotification();
   const [downloading, setDownloading] = useState(false);
+  const contractRef = useRef(null);
 
   if (!isOpen || !cardData) return null;
 
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      
-      const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      // Gọi API tải PDF với responseType là blob
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/month-card/${cardData.card_id}/contract`,
-        {
-          responseType: 'blob',
-          headers
-        }
-      );
+      // Import html2pdf động để tránh SSR issues
+      const html2pdf = (await import('html2pdf.js')).default;
 
-      // Tạo đường dẫn tạm thời trong bộ nhớ RAM trình duyệt
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const downloadUrl = window.URL.createObjectURL(blob);
+      const element = contractRef.current;
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Hop_Dong_Ve_Thang_${cardData.cardNo}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait',
+        },
+      };
 
-      // Tạo ngầm thẻ liên kết ẩn để tải xuống
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `Hop_Dong_Ve_Thang_${cardData.cardNo}.pdf`;
-      document.body.appendChild(link);
-      
-      // Kích hoạt sự kiện tải xuống
-      link.click();
-
-      // Giải phóng bộ nhớ và dọn dẹp phần tử ẩn khỏi DOM
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-
-      showToast("Tải hợp đồng thành công!", "success");
+      await html2pdf().set(opt).from(element).save();
+      showToast('Tải hợp đồng thành công!', 'success');
     } catch (error) {
-      console.error("Lỗi khi tải tệp hợp đồng:", error);
-      showToast("Không thể tải tệp hợp đồng. Vui lòng thử lại sau!", "error");
+      console.error('Lỗi khi tải tệp hợp đồng:', error);
+      showToast('Không thể tải tệp hợp đồng. Vui lòng thử lại sau!', 'error');
     } finally {
       setDownloading(false);
     }
@@ -67,7 +59,7 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
 
         {/* Nội dung Hợp đồng dạng A4 Read-only */}
         <div className="contract-body">
-          <div className="contract-paper">
+          <div className="contract-paper" ref={contractRef}>
             {/* Quốc hiệu */}
             <div className="contract-national-title">
               <p>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
@@ -87,7 +79,7 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
             </div>
 
             {/* Thông tin Bên A */}
-            <div className="contract-section-title">Bên A: Ban quản lý tòa nhà & bãi xe PBMS (Bên cho thuê)</div>
+            <div className="contract-section-title">Bên A: Ban quản lý tòa nhà &amp; bãi xe PBMS (Bên cho thuê)</div>
             <div className="contract-party-info">
               <p><strong>- Người đại diện:</strong> Ban Quản lý Bãi xe PBMS</p>
               <p><strong>- Địa chỉ:</strong> Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội</p>
@@ -171,25 +163,25 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
 
         {/* Footer Modal với các nút hành động */}
         <div className="contract-footer">
-          <button 
-            type="button" 
-            className="contract-btn contract-btn-close" 
+          <button
+            type="button"
+            className="contract-btn contract-btn-close"
             onClick={onClose}
             disabled={downloading}
           >
             <XCircle size={18} />
             Đóng
           </button>
-          <button 
-            type="button" 
-            className="contract-btn contract-btn-download" 
+          <button
+            type="button"
+            className="contract-btn contract-btn-download"
             onClick={handleDownload}
             disabled={downloading}
           >
             {downloading ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                Đang tải...
+                Đang tạo PDF...
               </>
             ) : (
               <>

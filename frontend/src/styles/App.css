@@ -26803,3 +26803,16 @@ body,
     transform: rotate(360deg);
   }
 }
+
+/* Fix cho html2pdf: đảm bảo contract-paper render đúng màu nền và border khi chụp ảnh */
+.contract-paper * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Đảm bảo nền trắng và chữ đen khi xuất PDF */
+.contract-paper .contract-table th {
+  background-color: #f8fafc !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
