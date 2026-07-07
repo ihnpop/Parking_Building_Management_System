@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 import { getMonthCards, deleteMonthCard } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
 import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
+import ContractModal from '../components/ContractModal';
+import { FileText, Download, Loader2 } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 
 const ITEMS_PER_PAGE = 8;
@@ -14,6 +17,11 @@ export default function MonthCardPage() {
     const [renewingCard, setRenewingCard] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    
+    // States cho hợp đồng
+    const [selectedContractCard, setSelectedContractCard] = useState(null);
+    const [isContractOpen, setIsContractOpen] = useState(false);
+    const [downloadingRowId, setDownloadingRowId] = useState(null);
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -142,6 +150,43 @@ export default function MonthCardPage() {
     const { showToast } = useNotification();
 
     // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
+    // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
+    const handleDownloadContract = async (cardId, cardNo) => {
+        if (downloadingRowId) return;
+        try {
+            setDownloadingRowId(cardId);
+            const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            const response = await axios.get(
+                `${import.meta.env.VITE_API_URL}/month-card/${cardId}/contract`,
+                {
+                    responseType: 'blob',
+                    headers
+                }
+            );
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const downloadUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `Hop_Dong_Ve_Thang_${cardNo}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            showToast("Tải hợp đồng thành công!", "success");
+        } catch (error) {
+            console.error("Lỗi tải hợp đồng:", error);
+            showToast("Tải hợp đồng thất bại. Vui lòng thử lại!", "error");
+        } finally {
+            setDownloadingRowId(null);
+        }
+    };
+
     const handleDelete = async () => {
         if (!deletingCard) return;
         try {
@@ -380,6 +425,60 @@ export default function MonthCardPage() {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
                                                     </button>
+                                                    {/* Nút Xem hợp đồng (Icon FileText) */}
+                                                    <button
+                                                        type="button"
+                                                        className="mc-contract-view-btn"
+                                                        style={{
+                                                            color: '#0284c7',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: row.status === 'Hoạt động' ? 'pointer' : 'not-allowed',
+                                                            opacity: row.status === 'Hoạt động' ? 1 : 0.4,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            padding: '4px'
+                                                        }}
+                                                        onClick={() => {
+                                                            if (row.status !== 'Hoạt động') return;
+                                                            setSelectedContractCard(row);
+                                                            setIsContractOpen(true);
+                                                        }}
+                                                        disabled={row.status !== 'Hoạt động'}
+                                                        title={row.status === 'Hoạt động' ? 'Xem hợp đồng đăng ký' : 'Chỉ khả dụng cho thẻ đang hoạt động'}
+                                                    >
+                                                        <FileText size={20} />
+                                                    </button>
+                                                    
+                                                    {/* Nút Tải hợp đồng trực tiếp (Icon Download) */}
+                                                    <button
+                                                        type="button"
+                                                        className="mc-contract-download-btn"
+                                                        style={{
+                                                            color: '#0369a1',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: (row.status === 'Hoạt động' && !downloadingRowId) ? 'pointer' : 'not-allowed',
+                                                            opacity: row.status === 'Hoạt động' ? 1 : 0.4,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            padding: '4px'
+                                                        }}
+                                                        onClick={() => {
+                                                            if (row.status !== 'Hoạt động' || downloadingRowId) return;
+                                                            handleDownloadContract(row.card_id, row.cardNo);
+                                                        }}
+                                                        disabled={row.status !== 'Hoạt động' || !!downloadingRowId}
+                                                        title={row.status === 'Hoạt động' ? 'Tải hợp đồng (.pdf)' : 'Chỉ khả dụng cho thẻ đang hoạt động'}
+                                                    >
+                                                        {downloadingRowId === row.card_id ? (
+                                                            <Loader2 size={20} className="animate-spin" />
+                                                        ) : (
+                                                            <Download size={20} />
+                                                        )}
+                                                    </button>
                                                     {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ KHÔNG ở trạng thái "Hoạt động" */}
                                                     <button type="button" className="cp-delete-btn"
                                                         style={{
@@ -498,6 +597,15 @@ export default function MonthCardPage() {
                     </div>
                 </div>
             )}
+
+            <ContractModal
+                isOpen={isContractOpen}
+                onClose={() => {
+                    setIsContractOpen(false);
+                    setSelectedContractCard(null);
+                }}
+                cardData={selectedContractCard}
+            />
         </div>
     );
 }
