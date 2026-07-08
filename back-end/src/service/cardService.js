@@ -377,6 +377,9 @@ export const getLostCards = async () => {
     // Nếu rỗng (NULL - Chờ xử lý) thì hiển thị gạch ngang thanh lịch "---"
     const handlerName = log.profiles?.full_name || "---";
 
+    // Nội dung / lí do báo mất (nhập từ form tạo báo mất mới)
+    const description = log.description || "";
+
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
     let statusText = 'Đang xử lý';
     const statusVal = log.status || '';
@@ -403,6 +406,7 @@ export const getLostCards = async () => {
       owner: customerName,
       date: log.reported_at,
       handler: handlerName,
+      reason: description,
 
       // Khớp hoàn toàn định dạng trường phẳng mới
       lost_report_id: reportId,
@@ -411,6 +415,7 @@ export const getLostCards = async () => {
       customer_name: customerName,
       reported_at: log.reported_at,
       handler_name: handlerName,
+      description,
 
       status: statusText
     };
