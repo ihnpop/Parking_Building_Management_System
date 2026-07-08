@@ -375,6 +375,7 @@ export default function LostCardLogPage() {
                                     <th>BIỂN SỐ XE</th>
                                     <th>LOẠI THẺ</th>
                                     <th>NGÀY BÁO MẤT</th>
+                                    <th>NỘI DUNG</th>
                                     <th>TRẠNG THÁI</th>
                                     <th>NGƯỜI XỬ LÝ</th>
                                     <th>THAO TÁC</th>
@@ -388,6 +389,7 @@ export default function LostCardLogPage() {
                                         const plateNumber = row.plate_number || row.plate;
                                         const cardType = row.card_type || 'Thẻ lượt';
                                         const reportDate = row.reported_at || row.date;
+                                        const content = row.description || row.reason || '---';
 
                                         return (
                                             <tr key={reportId}>
@@ -406,6 +408,7 @@ export default function LostCardLogPage() {
                                                         })
                                                         : reportDate}
                                                 </td>
+                                                <td className="lost-content-cell" title={content}>{content}</td>
                                                 <td>
                                                     <span className={`status-badge-lost ${getStatusClass(row.status)}`}>
                                                         <span className="dot"></span>
@@ -423,7 +426,7 @@ export default function LostCardLogPage() {
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
                                             Không tìm thấy dữ liệu phù hợp
                                         </td>
                                     </tr>
@@ -490,6 +493,15 @@ export default function LostCardLogPage() {
                                     <option value="Thẻ lượt">Thẻ lượt</option>
                                     <option value="Thẻ vãng lai">Thẻ vãng lai</option>
                                 </select>
+                            </div>
+
+                            <div className="lost-form-group">
+                                <label>Nội dung</label>
+                                <input
+                                    type="text"
+                                    value={editingCard.description || editingCard.reason || ''}
+                                    onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })}
+                                />
                             </div>
 
                             <div className="lost-form-group">
