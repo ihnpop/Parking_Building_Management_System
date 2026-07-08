@@ -510,15 +510,23 @@ export const createLostCard = async ({
     throw new Error(`Xe biển số ${plate_number} chưa được gắn thẻ nào trong hệ thống. Vui lòng đăng ký thẻ trước.`);
   }
 
-  // Lấy thông tin thẻ để kiểm tra loại thẻ
+  // Lấy thông tin thẻ để kiểm tra loại thẻ và trạng thái hiện tại
   const { data: cardObj, error: cardErr } = await supabase
     .from('card')
-    .select('type')
+    .select('type, status')
     .eq('card_id', finalCardId)
     .maybeSingle();
 
   if (cardErr) {
     throw new Error(cardErr.message);
+  }
+
+  // Rule: không cho báo mất nếu thẻ đã bị khóa hoặc đã xóa từ trước
+  if (cardObj?.status === 'Đã khóa') {
+    throw new Error("Thẻ này đã bị khóa (có thể do đã có báo cáo mất thẻ trước đó). Không thể tạo báo cáo mới.");
+  }
+  if (cardObj?.status === 'Đã xóa') {
+    throw new Error("Thẻ này đã bị xóa khỏi hệ thống, không thể báo mất.");
   }
 
   // Nếu không tìm thấy thẻ hoặc loại thẻ không phải 'Thẻ tháng' -> là thẻ lượt
@@ -552,6 +560,23 @@ export const createLostCard = async ({
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  // 4. RULE #1 - Khóa thẻ ngay lập tức để chặn ra/vào cổng bằng thẻ đã báo mất
+  //    Đây là bước bảo mật bắt buộc, thực hiện ngay sau khi ghi nhận báo cáo thành công.
+  const { error: lockErr } = await supabase
+    .from('card')
+    .update({ status: 'Đã khóa' })
+    .eq('card_id', finalCardId);
+
+  if (lockErr) {
+    // Báo cáo mất thẻ đã được ghi nhận, nhưng việc khóa thẻ thất bại -> cần cảnh báo rõ ràng
+    // để nhân viên xử lý thủ công, tránh để thẻ bị mất mà vẫn ở trạng thái Hoạt động.
+    console.error("Lỗi khi khóa thẻ sau khi ghi nhận báo mất:", lockErr.message);
+    throw new Error(
+      `Đã ghi nhận báo mất thẻ nhưng KHÔNG khóa được thẻ (lỗi: ${lockErr.message}). ` +
+      `Vui lòng khóa thẻ thủ công ngay để đảm bảo an toàn.`
+    );
   }
 
   return data;
