@@ -380,11 +380,11 @@ export const getLostCards = async () => {
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
     let statusText = 'Đang xử lý';
     const statusVal = log.status || '';
-    if (statusVal === 'RESOLVED' || statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại') {
+    if (statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại') {
       statusText = 'Đã xong';
-    } else if (statusVal === 'CANCELED' || statusVal === 'Đã hủy thẻ') {
+    } else if (statusVal === 'Đã hủy thẻ') {
       statusText = 'Đã hủy thẻ';
-    } else if (statusVal === 'PENDING' || statusVal === 'Chờ xử lý' || !statusVal) {
+    } else if (statusVal === 'Chờ xử lý' || !statusVal) {
       if (!log.handled_by) {
         statusText = 'Chờ xử lý';
       } else {
@@ -930,13 +930,6 @@ export const updateCard = async (
           session.session_id
         );
     }
-
-    // await supabase
-    //   .from("card")
-    //   .update({
-    //     status
-    //   })
-    //   .eq("card_id", cardId); 
 
     await supabase
       .from("card")

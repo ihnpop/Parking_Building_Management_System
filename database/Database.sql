@@ -261,7 +261,7 @@ create table public.card_lost_log (
   card_id uuid not null,
   vehicle_id uuid null,
   reported_at timestamp without time zone null default now(),
-  status character varying null default 'Đang chờ'::character varying,
+  status character varying null default 'Chờ xử lý'::character varying,
   handled_by uuid null,
   description text null,
   constraint card_lost_log_pkey primary key (lost_report_id),
