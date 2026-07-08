@@ -510,6 +510,30 @@ export const createLostCard = async ({
     throw new Error(`Xe biển số ${plate_number} chưa được gắn thẻ nào trong hệ thống. Vui lòng đăng ký thẻ trước.`);
   }
 
+  // RULE #2 - Chặn báo mất trùng lặp: không cho tạo report mới nếu thẻ này
+  // đang có report chưa đóng. Lưu ý: trường status trong card_lost_log hiện tại
+  // chỉ được set 'Chờ xử lý' lúc tạo và các giá trị "đóng" khi xử lý xong
+  // ('Đã xong' / 'Đã xử lý xong' / 'Đã tìm lại' / 'Đã hủy thẻ'), nên ta loại trừ
+  // các giá trị đã đóng thay vì liệt kê các giá trị "đang mở" để tránh bỏ sót.
+  const CLOSED_LOST_STATUSES = ['Đã xong', 'Đã xử lý xong', 'Đã tìm lại', 'Đã hủy thẻ'];
+
+  const { data: openReports, error: openReportErr } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id, status')
+    .eq('card_id', finalCardId)
+    .not('status', 'in', `(${CLOSED_LOST_STATUSES.map(s => `"${s}"`).join(',')})`)
+    .limit(1);
+
+  if (openReportErr) {
+    throw new Error(openReportErr.message);
+  }
+  if (openReports && openReports.length > 0) {
+    throw new Error(
+      `Thẻ này đã có báo cáo mất thẻ đang được xử lý (mã: ${openReports[0].lost_report_id}). ` +
+      `Vui lòng xử lý xong báo cáo cũ trước khi tạo báo cáo mới.`
+    );
+  }
+
   // Lấy thông tin thẻ để kiểm tra loại thẻ và trạng thái hiện tại
   const { data: cardObj, error: cardErr } = await supabase
     .from('card')
