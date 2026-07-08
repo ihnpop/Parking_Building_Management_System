@@ -425,14 +425,22 @@ export const getLostCards = async () => {
 /**
  * Tạo báo cáo mất thẻ mới.
  * Chỉ cần nhập biển số xe và lí do - hệ thống tự động tra cứu vehicle và card.
+ * @param {string} performedBy - id của nhân viên (profiles.id) thực hiện thao tác báo mất,
+ *                                dùng để ghi audit log vào card_activity_logs (bắt buộc).
  */
 export const createLostCard = async ({
   plate_number,
-  description
+  description,
+  performedBy
 }) => {
   // Biển số xe là trường bắt buộc
   if (!plate_number) {
     throw new Error("Vui lòng nhập biển số xe.");
+  }
+
+  // performedBy bắt buộc vì card_activity_logs.performed_by là NOT NULL (audit trail - rule #3)
+  if (!performedBy) {
+    throw new Error("Thiếu thông tin người thực hiện (performedBy) để ghi nhận audit log.");
   }
 
   // 1. Tra cứu vehicle_id từ biển số xe
@@ -601,6 +609,35 @@ export const createLostCard = async ({
       `Đã ghi nhận báo mất thẻ nhưng KHÔNG khóa được thẻ (lỗi: ${lockErr.message}). ` +
       `Vui lòng khóa thẻ thủ công ngay để đảm bảo an toàn.`
     );
+  }
+
+  // 5. RULE #3 - Ghi audit trail vào card_activity_logs cho thao tác khóa thẻ.
+  //    Không throw nếu bước này lỗi (không nên chặn nghiệp vụ chính vì audit log lỗi),
+  //    chỉ log ra console để theo dõi/khắc phục sau.
+  const { data: regForAudit } = await supabase
+    .from('card_registrations')
+    .select('registration_id')
+    .eq('card_id', finalCardId)
+    .eq('vehicle_id', vehicle.vehicle_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error: auditErr } = await supabase
+    .from('card_activity_logs')
+    .insert({
+      card_id: finalCardId,
+      registration_id: regForAudit?.registration_id ?? null,
+      action: 'CARD_LOCKED',
+      old_data: { status: cardObj?.status ?? null },
+      new_data: { status: 'Đã khóa' },
+      note: `Khóa thẻ tự động do báo mất - report ${data.lost_report_id}`,
+      reason: description || "Báo mất thẻ",
+      performed_by: performedBy
+    });
+
+  if (auditErr) {
+    console.error("Lỗi khi ghi audit log card_activity_logs:", auditErr.message);
   }
 
   return data;

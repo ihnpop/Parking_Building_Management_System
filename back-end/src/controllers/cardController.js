@@ -92,8 +92,23 @@ export const createCard = async (req, res) => {
 // Ghi nhận yêu cầu báo mất thẻ từ phía Client
 export const createLostCard = async (req, res) => {
   try {
+    // performedBy PHẢI lấy từ danh tính đã xác thực (req.user), không tin tưởng req.body,
+    // vì đây là dữ liệu ghi vào audit log (card_activity_logs.performed_by) để tra soát -
+    // client tự gửi lên sẽ dễ bị giả mạo danh tính người thực hiện.
+    const performedBy = req.user?.id;
+
+    if (!performedBy) {
+      return res.status(401).json({
+        success: false,
+        message: "Không xác định được người thực hiện. Vui lòng đăng nhập lại."
+      });
+    }
+
     // Gọi Service xử lý nghiệp vụ kiểm tra và thêm báo mất thẻ
-    const result = await cardService.createLostCard(req.body);
+    const result = await cardService.createLostCard({
+      ...req.body,
+      performedBy
+    });
 
     // Trả về kết quả thành công HTTP 201 cho Client
     return res.status(201).json({
