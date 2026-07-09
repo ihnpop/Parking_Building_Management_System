@@ -13,6 +13,7 @@ router.get('/lost-logs', lostController.getLostLogs);
 
 // Đăng ký các API cho việc quản lý mất thẻ (cần xác thực để lấy performedBy)
 router.post('/lost-card', verifyToken, lostController.createLostCard);
+router.get('/lost-card/history', verifyToken, lostController.getAllHistory);
 router.put('/lost-card/:reportId/accept', verifyToken, lostController.acceptLostCard);
 router.put('/lost-card/:reportId/resolve', verifyToken, lostController.resolveLostCard);
 

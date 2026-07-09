@@ -87,3 +87,12 @@ export const resolveLostCard = async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+
+export const getAllHistory = async (req, res) => {
+  try {
+    const history = await lostCardService.getAllHistory();
+    return res.status(200).json({ success: true, data: history });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};

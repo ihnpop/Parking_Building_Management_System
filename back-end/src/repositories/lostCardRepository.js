@@ -201,3 +201,28 @@ export const findRegForAudit = async (cardId, vehicleId) => {
 
   return data;
 };
+
+/**
+ * Lấy toàn bộ lịch sử hoạt động (audit trail) của tất cả các thẻ, kèm tên người thực hiện và mã thẻ
+ * @returns {Promise<object[]>}
+ */
+export const getAllActivityLogs = async () => {
+  const { data, error } = await supabase
+    .from('card_activity_logs')
+    .select(`
+      log_id,
+      action,
+      plate_number,
+      old_data,
+      new_data,
+      note,
+      performed_at,
+      card ( code ),
+      profiles ( full_name )
+    `)
+    .order('performed_at', { ascending: false })
+    .limit(200);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};

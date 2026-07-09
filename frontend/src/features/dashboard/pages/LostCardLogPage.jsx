@@ -68,14 +68,14 @@ export default function LostCardLogPage() {
         }
     };
 
-    // RULE #4 - Đóng report: tìm lại thẻ (FOUND) hoặc hủy thẻ vĩnh viễn (CANCELLED).
+    // RULE #4 - Đóng report: tìm lại thẻ (Tìm lại thẻ) hoặc hủy thẻ vĩnh viễn (Hủy thẻ).
     // Chỉ gọi được khi report đang ở trạng thái 'Đang xử lý' (backend tự chặn nếu sai state).
     const handleResolveReport = async (resolution) => {
         if (!editingCard?.raw_report_id) {
             showToast('Thiếu mã báo cáo gốc (raw_report_id) - không thể đóng report. Vui lòng tải lại trang.', 'error');
             return;
         }
-        if (resolution === 'CANCELLED') {
+        if (resolution === 'Hủy thẻ') {
             const confirmed = window.confirm(
                 'Hủy thẻ là thao tác KHÔNG THỂ hoàn tác - thẻ sẽ bị vô hiệu hóa vĩnh viễn. Bạn chắc chắn muốn tiếp tục?'
             );
@@ -90,7 +90,7 @@ export default function LostCardLogPage() {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             showToast(
-                resolution === 'FOUND' ? 'Đã đóng report: tìm lại được thẻ.' : 'Đã đóng report: hủy thẻ vĩnh viễn.',
+                resolution === 'Tìm lại thẻ' ? 'Đã đóng report: tìm lại được thẻ.' : 'Đã đóng report: hủy thẻ vĩnh viễn.',
                 'success'
             );
             setResolveNote('');
@@ -595,7 +595,7 @@ export default function LostCardLogPage() {
                                             type="button"
                                             className="btn-save"
                                             disabled={actionLoading}
-                                            onClick={() => handleResolveReport('FOUND')}
+                                            onClick={() => handleResolveReport('Tìm lại thẻ')}
                                         >
                                             {actionLoading ? 'Đang xử lý...' : 'Đã tìm lại thẻ'}
                                         </button>
@@ -603,7 +603,7 @@ export default function LostCardLogPage() {
                                             type="button"
                                             className="btn-cancel"
                                             disabled={actionLoading}
-                                            onClick={() => handleResolveReport('CANCELLED')}
+                                            onClick={() => handleResolveReport('Hủy thẻ')}
                                             style={{ color: '#ef4444', borderColor: '#ef4444' }}
                                         >
                                             {actionLoading ? 'Đang xử lý...' : 'Hủy thẻ vĩnh viễn'}

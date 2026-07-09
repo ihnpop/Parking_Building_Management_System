@@ -256,3 +256,22 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
 
   return await lostCardRepository.updateLostReport(reportId, { status: 'Đã hủy thẻ' });
 };
+
+/**
+ * Lấy toàn bộ lịch sử xử lý (audit trail) để hiển thị cho quản lý.
+ */
+export const getAllHistory = async () => {
+  const logs = await lostCardRepository.getAllActivityLogs();
+
+  return logs.map((log) => ({
+    log_id: log.log_id,
+    action: log.action,
+    card_code: log.card?.code || "---",
+    plate_number: log.plate_number,
+    old_data: log.old_data,
+    new_data: log.new_data,
+    note: log.note,
+    performed_by_name: log.profiles?.full_name || "Hệ thống",
+    performed_at: log.performed_at
+  }));
+};
