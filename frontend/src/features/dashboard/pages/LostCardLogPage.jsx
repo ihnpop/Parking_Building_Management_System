@@ -36,6 +36,30 @@ export default function LostCardLogPage() {
         description: ''
     });
 
+    const [historyData, setHistoryData] = useState([]);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    const handleViewHistory = async () => {
+        try {
+            setHistoryLoading(true);
+            setShowHistoryModal(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            const res = await axios.get(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/history`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setHistoryData(res.data.data || []);
+        } catch (err) {
+            const message = err.response?.data?.message || err.message || 'Không thể tải lịch sử';
+            showToast(message, 'error');
+            setShowHistoryModal(false);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+
     // RULE #4 - Tiếp nhận xử lý report (Đang chờ -> Đang xử lý).
     // Gọi đúng API state-machine mới, không tự sửa status tùy tiện như trước.
     const handleAcceptReport = async () => {
@@ -501,6 +525,9 @@ export default function LostCardLogPage() {
                                         <span className="material-symbols-outlined">chevron_right</span>
                                     </button>
                                 </div>
+                                <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory}>
+                                    <span className="material-symbols-outlined">history</span>
+                                </button>
                                 <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
                                     <span className="material-symbols-outlined">add</span>
                                     Tạo báo mất
@@ -676,6 +703,44 @@ export default function LostCardLogPage() {
                         <div className="lost-modal-actions">
                             <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Hủy</button>
                             <button type="button" className="btn-save" onClick={handleCreateLostCard}>Lưu</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showHistoryModal && (
+                <div className="lost-modal-overlay">
+                    <div className="lost-modal">
+                        <div className="lost-modal-header">
+                            <h2>Lịch sử xử lý</h2>
+                        </div>
+
+                        {/* ĐOẠN BẠN VỪA HỎI - dán vào đây */}
+                        <div className="lost-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                            {historyLoading ? (
+                                <p className="history-empty">Đang tải...</p>
+                            ) : historyData.length === 0 ? (
+                                <p className="history-empty">Chưa có lịch sử hoạt động nào.</p>
+                            ) : (
+                                <div className="history-list">
+                                    {historyData.map((item) => (
+                                        <div key={item.log_id} className="history-item">
+                                            <div className="history-action">
+                                                {item.action} — <span className="history-target">Thẻ {item.card_code} ({item.plate_number || '---'})</span>
+                                            </div>
+                                            <div className="history-meta">
+                                                {new Date(item.performed_at).toLocaleString('vi-VN')} — bởi {item.performed_by_name}
+                                            </div>
+                                            {item.note && (
+                                                <div className="history-note">Ghi chú: {item.note}</div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="lost-modal-actions">
+                            <button type="button" className="btn-cancel" onClick={() => setShowHistoryModal(false)}>Đóng</button>
                         </div>
                     </div>
                 </div>
