@@ -3,9 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createLostCard } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
+import { useAuth } from '../../../context/AuthContext';
 export default function LostCardLogPage() {
     const { showToast } = useNotification();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    // Lấy tên hiển thị: ưu tiên full_name → name → email
+    const currentUserName = user?.user_metadata?.full_name
+        || user?.user_metadata?.name
+        || user?.email
+        || '---';
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -20,6 +27,8 @@ export default function LostCardLogPage() {
     // Trạng thái hiển thị modal tạo báo mất thẻ
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [resolveNote, setResolveNote] = useState('');
 
     // Dữ liệu nhập vào của form báo mất thẻ mới
     const [newLostCard, setNewLostCard] = useState({
@@ -27,30 +36,75 @@ export default function LostCardLogPage() {
         description: ''
     });
 
-    // Xử lý gửi yêu cầu tạo báo mất thẻ mới lên server
-
-    const handleUpdateLostCard = async () => {
+    // RULE #4 - Tiếp nhận xử lý report (Đang chờ -> Đang xử lý).
+    // Gọi đúng API state-machine mới, không tự sửa status tùy tiện như trước.
+    const handleAcceptReport = async () => {
+        if (!editingCard?.raw_report_id) {
+            showToast('Thiếu mã báo cáo gốc (raw_report_id) - không thể tiếp nhận. Vui lòng tải lại trang.', 'error');
+            return;
+        }
         try {
-            // Mock API call or real API call to update
-            // await axios.put(`http://localhost:3636/api/cards/${editingCard.lost_report_id || editingCard.id}`, editingCard);
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            await axios.put(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/${editingCard.raw_report_id}/accept`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            showToast('Đã tiếp nhận xử lý báo cáo.', 'success');
+            // Cập nhật tên người xử lý ngay lập tức trên UI
+            setEditingCard(prev => ({
+                ...prev,
+                handler_name: currentUserName,
+                status: 'Đang xử lý'
+            }));
+            await fetchLostCards();
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.message || 'Không thể tiếp nhận xử lý';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
-            // Tạm thời update local state vì chưa rõ API put có hỗ trợ hay không
-            setLostCards(prev => prev.map(card =>
-                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id)
-                    ? { ...card, ...editingCard } : card
-            ));
-            setFilteredCards(prev => prev.map(card =>
-                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id)
-                    ? { ...card, ...editingCard } : card
-            ));
-            showToast('Đã lưu thay đổi thành công!', 'success');
-
+    // RULE #4 - Đóng report: tìm lại thẻ (FOUND) hoặc hủy thẻ vĩnh viễn (CANCELLED).
+    // Chỉ gọi được khi report đang ở trạng thái 'Đang xử lý' (backend tự chặn nếu sai state).
+    const handleResolveReport = async (resolution) => {
+        if (!editingCard?.raw_report_id) {
+            showToast('Thiếu mã báo cáo gốc (raw_report_id) - không thể đóng report. Vui lòng tải lại trang.', 'error');
+            return;
+        }
+        if (resolution === 'CANCELLED') {
+            const confirmed = window.confirm(
+                'Hủy thẻ là thao tác KHÔNG THỂ hoàn tác - thẻ sẽ bị vô hiệu hóa vĩnh viễn. Bạn chắc chắn muốn tiếp tục?'
+            );
+            if (!confirmed) return;
+        }
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            await axios.put(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/${editingCard.raw_report_id}/resolve`,
+                { resolution, note: resolveNote || undefined },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            showToast(
+                resolution === 'FOUND' ? 'Đã đóng report: tìm lại được thẻ.' : 'Đã đóng report: hủy thẻ vĩnh viễn.',
+                'success'
+            );
+            setResolveNote('');
+            await fetchLostCards();
             setEditingCard(null);
         } catch (err) {
             console.error(err);
-            showToast('Lỗi khi lưu thay đổi!', 'error');
+            const message = err.response?.data?.message || err.message || 'Không thể đóng report';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
         }
     };
+
     const handleCreateLostCard = async () => {
         try {
             // Tạo payload gửi đi từ dữ liệu form
@@ -119,7 +173,7 @@ export default function LostCardLogPage() {
                 reportId.includes(searchKey);
 
             // Đồng bộ chuỗi chữ trạng thái
-            const currentStatus = row.status || 'Chờ xử lý';
+            const currentStatus = row.status || 'Đang chờ';
             const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
 
             let matchesDate = true;
@@ -171,7 +225,7 @@ export default function LostCardLogPage() {
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'Chờ xử lý':
+            case 'Đang chờ':
                 return 'status-pending';
             case 'Đang xử lý':
                 return 'status-processing';
@@ -187,7 +241,7 @@ export default function LostCardLogPage() {
 
     // Thống kê số liệu
     const totalLost = lostCards.length;
-    const pendingCount = lostCards.filter(c => c.status === 'Chờ xử lý').length;
+    const pendingCount = lostCards.filter(c => c.status === 'Đang chờ').length;
     const processingCount = lostCards.filter(c => c.status === 'Đang xử lý').length;
     const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'Đã tìm lại' || c.status === 'Đã xử lý').length;
 
@@ -268,7 +322,7 @@ export default function LostCardLogPage() {
 
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Chờ xử lý</span>
+                            <span>Đang chờ</span>
                             <span><span className="lost-dist-val">{pendingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((pendingCount / totalLost) * 100) : 0}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
@@ -323,7 +377,7 @@ export default function LostCardLogPage() {
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
                             <option value="Tất cả">Tất cả trạng thái</option>
-                            <option value="Chờ xử lý">Chờ xử lý</option>
+                            <option value="Đang chờ">Đang chờ</option>
                             <option value="Đang xử lý">Đang xử lý</option>
                             <option value="Đã xong">Đã xong</option>
                         </select>
@@ -417,7 +471,7 @@ export default function LostCardLogPage() {
                                                 </td>
                                                 <td>{row.handler_name || '---'}</td>
                                                 <td>
-                                                    <button type="button" className="lost-action-btn" onClick={() => setEditingCard(row)}>
+                                                    <button type="button" className="lost-action-btn" onClick={() => { setEditingCard(row); setResolveNote(''); }}>
                                                         <span className="material-symbols-outlined">edit</span>
                                                     </button>
                                                 </td>
@@ -461,69 +515,110 @@ export default function LostCardLogPage() {
                 <div className="lost-modal-overlay">
                     <div className="lost-modal">
                         <div className="lost-modal-header">
-                            <h2>Chỉnh sửa báo mất</h2>
+                            <h2>Xử lý báo cáo mất thẻ</h2>
                         </div>
 
                         <div className="lost-modal-body">
+                            {/* Thông tin chỉ đọc - không cho sửa tay để tránh phá vỡ state machine */}
+                            <div className="lost-form-group">
+                                <label>Mã báo mất</label>
+                                <input type="text" value={editingCard.lost_report_id || editingCard.id || ''} disabled />
+                            </div>
+
                             <div className="lost-form-group">
                                 <label>Mã thẻ</label>
-                                <input
-                                    type="text"
-                                    value={editingCard.card_code || editingCard.cardNo || ''}
-                                    onChange={(e) => setEditingCard({ ...editingCard, card_code: e.target.value })}
-                                />
+                                <input type="text" value={editingCard.card_code || editingCard.cardNo || ''} disabled />
                             </div>
 
                             <div className="lost-form-group">
                                 <label>Biển số xe</label>
-                                <input
-                                    type="text"
-                                    value={editingCard.plate_number || editingCard.plate || ''}
-                                    onChange={(e) => setEditingCard({ ...editingCard, plate_number: e.target.value })}
-                                />
+                                <input type="text" value={editingCard.plate_number || editingCard.plate || ''} disabled />
                             </div>
 
                             <div className="lost-form-group">
                                 <label>Loại thẻ</label>
-                                <select
-                                    value={editingCard.card_type || 'Thẻ lượt'}
-                                    onChange={(e) => setEditingCard({ ...editingCard, card_type: e.target.value })}
-                                >
-                                    <option value="Thẻ tháng">Thẻ tháng</option>
-                                    <option value="Thẻ lượt">Thẻ lượt</option>
-                                    <option value="Thẻ vãng lai">Thẻ vãng lai</option>
-                                </select>
+                                <input type="text" value={editingCard.card_type || 'Thẻ lượt'} disabled />
                             </div>
 
                             <div className="lost-form-group">
                                 <label>Nội dung</label>
-                                <input
-                                    type="text"
-                                    value={editingCard.description || editingCard.reason || ''}
-                                    onChange={(e) => setEditingCard({ ...editingCard, description: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="lost-form-group">
-                                <label>Trạng thái</label>
-                                <select
-                                    value={editingCard.status || 'Chờ xử lý'}
-                                    onChange={(e) => setEditingCard({ ...editingCard, status: e.target.value })}
-                                >
-                                    <option value="Chờ xử lý">Chờ xử lý</option>
-                                    <option value="Đang xử lý">Đang xử lý</option>
-                                    <option value="Đã xong">Đã xong</option>
-                                </select>
+                                <input type="text" value={editingCard.description || editingCard.reason || ''} disabled />
                             </div>
 
                             <div className="lost-form-group">
                                 <label>Người xử lý</label>
-                                <input
-                                    type="text"
-                                    value={editingCard.handler_name || ''}
-                                    onChange={(e) => setEditingCard({ ...editingCard, handler_name: e.target.value })}
-                                />
+                                <input type="text" value={editingCard.handler_name || '---'} disabled />
                             </div>
+
+                            <div className="lost-form-group">
+                                <label>Trạng thái hiện tại</label>
+                                <div>
+                                    <span className={`status-badge-lost ${getStatusClass(editingCard.status)}`}>
+                                        <span className="dot"></span>
+                                        {editingCard.status}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Khu vực hành động - tùy theo trạng thái hiện tại, chỉ hiện đúng bước tiếp theo hợp lệ */}
+                            {editingCard.status === 'Đang chờ' && (
+                                <div className="lost-form-group">
+                                    <label>Hành động</label>
+                                    <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 8px' }}>
+                                        Report đang chờ - bấm "Tiếp nhận xử lý" để bắt đầu xác minh.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        className="btn-save"
+                                        disabled={actionLoading}
+                                        onClick={handleAcceptReport}
+                                    >
+                                        {actionLoading ? 'Đang xử lý...' : 'Tiếp nhận xử lý'}
+                                    </button>
+                                </div>
+                            )}
+
+                            {editingCard.status === 'Đang xử lý' && (
+                                <div className="lost-form-group">
+                                    <label>Ghi chú xử lý (tùy chọn)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nhập ghi chú khi đóng report..."
+                                        value={resolveNote}
+                                        onChange={(e) => setResolveNote(e.target.value)}
+                                    />
+                                    <p style={{ fontSize: '13px', color: '#94a3b8', margin: '8px 0' }}>
+                                        Chọn kết quả xử lý để đóng report:
+                                    </p>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button
+                                            type="button"
+                                            className="btn-save"
+                                            disabled={actionLoading}
+                                            onClick={() => handleResolveReport('FOUND')}
+                                        >
+                                            {actionLoading ? 'Đang xử lý...' : 'Đã tìm lại thẻ'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-cancel"
+                                            disabled={actionLoading}
+                                            onClick={() => handleResolveReport('CANCELLED')}
+                                            style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                                        >
+                                            {actionLoading ? 'Đang xử lý...' : 'Hủy thẻ vĩnh viễn'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {(editingCard.status === 'Đã xong' || editingCard.status === 'Đã hủy thẻ') && (
+                                <div className="lost-form-group">
+                                    <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                                        Report này đã được đóng, không thể thao tác thêm.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="lost-modal-actions">
@@ -531,15 +626,9 @@ export default function LostCardLogPage() {
                                 type="button"
                                 className="btn-cancel"
                                 onClick={() => setEditingCard(null)}
+                                disabled={actionLoading}
                             >
-                                Hủy
-                            </button>
-                            <button
-                                type="button"
-                                className="btn-save"
-                                onClick={handleUpdateLostCard}
-                            >
-                                Lưu
+                                Đóng
                             </button>
                         </div>
                     </div>

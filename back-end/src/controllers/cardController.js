@@ -124,6 +124,42 @@ export const createLostCard = async (req, res) => {
   }
 };
 
+// Tiếp nhận xử lý một báo cáo mất thẻ (Chờ xử lý -> Đang xử lý)
+export const acceptLostCard = async (req, res) => {
+  try {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      return res.status(401).json({ success: false, message: "Không xác định được người thực hiện. Vui lòng đăng nhập lại." });
+    }
+
+    const { reportId } = req.params;
+    const result = await cardService.acceptLostCardReport({ reportId, performedBy });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// Đóng một báo cáo mất thẻ: tìm lại thẻ (FOUND) hoặc hủy thẻ vĩnh viễn (CANCELLED)
+export const resolveLostCard = async (req, res) => {
+  try {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      return res.status(401).json({ success: false, message: "Không xác định được người thực hiện. Vui lòng đăng nhập lại." });
+    }
+
+    const { reportId } = req.params;
+    const { resolution, note } = req.body;
+
+    const result = await cardService.resolveLostCardReport({ reportId, performedBy, resolution, note });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 export const updateCard = async (
   req,
   res

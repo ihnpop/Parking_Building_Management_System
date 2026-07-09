@@ -380,22 +380,22 @@ export const getLostCards = async () => {
     // Nội dung / lí do báo mất (nhập từ form tạo báo mất mới)
     const description = log.description || "";
 
-    // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
-    let statusText = 'Đang xử lý';
+    // PHÂN LOẠI TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
+    // Từ khi có acceptLostCardReport/resolveLostCardReport (rule #4), status raw
+    // trong DB đã tường minh theo từng bước (không cần suy luận qua handled_by nữa):
+    //   'Đang chờ' (mới tạo) -> 'Đang xử lý' (đã tiếp nhận) -> 'Đã tìm lại' / 'Đã hủy thẻ' (đã đóng)
     const statusVal = log.status || '';
+    let statusText;
     if (statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại') {
       statusText = 'Đã xong';
     } else if (statusVal === 'Đã hủy thẻ') {
       statusText = 'Đã hủy thẻ';
-    } else if (statusVal === 'Chờ xử lý' || !statusVal) {
-      if (!log.handled_by) {
-        statusText = 'Chờ xử lý';
-      } else {
-        statusText = 'Đang xử lý';
-      }
+    } else if (statusVal === 'Đang xử lý') {
+      statusText = 'Đang xử lý';
+    } else {
+      // Bao gồm raw value mới 'Đang chờ' (default của DB) và các giá trị rỗng/legacy khác
+      statusText = 'Đang chờ';
     }
-    // Trường hợp còn lại: status vẫn là 'Chờ xử lý' nhưng đã có handled_by
-    // (nhân viên đã bắt đầu xử lý) -> giữ giá trị default 'Đang xử lý' ở trên
 
     return {
       // Khớp hoàn toàn cả định dạng trường cũ (Dự phòng cho UI)
@@ -409,7 +409,8 @@ export const getLostCards = async () => {
       reason: description,
 
       // Khớp hoàn toàn định dạng trường phẳng mới
-      lost_report_id: reportId,
+      lost_report_id: reportId,          // dạng rút gọn (8 ký tự) - CHỈ để hiển thị
+      raw_report_id: log.lost_report_id, // UUID gốc đầy đủ - BẮT BUỘC dùng khi gọi API accept/resolve
       card_code: cardCode,
       plate_number: plateNumber,
       customer_name: customerName,
@@ -438,7 +439,10 @@ export const createLostCard = async ({
     throw new Error("Vui lòng nhập biển số xe.");
   }
 
-  // performedBy bắt buộc vì card_activity_logs.performed_by là NOT NULL (audit trail - rule #3)
+  // performedBy bắt buộc theo business rule (rule #3 - audit trail): dù cột
+  // card_activity_logs.performed_by ở schema hiện tại đã cho phép NULL, việc
+  // ghi log mà không biết ai thực hiện là vô nghĩa cho mục đích tra soát,
+  // nên vẫn bắt buộc tường minh ở tầng app.
   if (!performedBy) {
     throw new Error("Thiếu thông tin người thực hiện (performedBy) để ghi nhận audit log.");
   }
@@ -501,7 +505,7 @@ export const createLostCard = async ({
       .select('card_id')
       .eq('vehicle_id', vehicle.vehicle_id)
       .not('card_id', 'is', null)
-      .order('check_in_time', { ascending: false })
+      .order('time_in', { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -520,7 +524,7 @@ export const createLostCard = async ({
 
   // RULE #2 - Chặn báo mất trùng lặp: không cho tạo report mới nếu thẻ này
   // đang có report chưa đóng. Lưu ý: trường status trong card_lost_log hiện tại
-  // chỉ được set 'Chờ xử lý' lúc tạo và các giá trị "đóng" khi xử lý xong
+  // chỉ được set 'Đang chờ' lúc tạo và các giá trị "đóng" khi xử lý xong
   // ('Đã xong' / 'Đã xử lý xong' / 'Đã tìm lại' / 'Đã hủy thẻ'), nên ta loại trừ
   // các giá trị đã đóng thay vì liệt kê các giá trị "đang mở" để tránh bỏ sót.
   const CLOSED_LOST_STATUSES = ['Đã xong', 'Đã xử lý xong', 'Đã tìm lại', 'Đã hủy thẻ'];
@@ -584,7 +588,7 @@ export const createLostCard = async ({
       vehicle_id: vehicle.vehicle_id,
       description: description || "Báo mất thẻ",
       reported_at: new Date().toISOString(),
-      status: 'Chờ xử lý',            // Mặc định trạng thái Chờ xử lý
+      status: 'Đang chờ',             // Mặc định trạng thái ban đầu (khớp default DB)
       handled_by: null              // Chưa có nhân viên xử lý
     })
     .select()
@@ -629,10 +633,10 @@ export const createLostCard = async ({
       card_id: finalCardId,
       registration_id: regForAudit?.registration_id ?? null,
       action: 'CARD_LOCKED',
+      plate_number,
       old_data: { status: cardObj?.status ?? null },
       new_data: { status: 'Đã khóa' },
-      note: `Khóa thẻ tự động do báo mất - report ${data.lost_report_id}`,
-      reason: description || "Báo mất thẻ",
+      note: `Khóa thẻ tự động do báo mất - report ${data.lost_report_id}. Lý do: ${description || "Báo mất thẻ"}`,
       performed_by: performedBy
     });
 
@@ -641,6 +645,171 @@ export const createLostCard = async ({
   }
 
   return data;
+};
+
+/**
+ * RULE #4a - Tiếp nhận xử lý một báo cáo mất thẻ.
+ * Chuyển trạng thái report từ 'Đang chờ' -> 'Đang xử lý' một cách TƯỜNG MINH,
+ * thay vì suy luận ngầm qua handled_by như getLostCards đang làm hiện tại.
+ * Chỉ cho phép tiếp nhận report đang ở đúng trạng thái 'Đang chờ' (mặc định khi mới tạo).
+ */
+export const acceptLostCardReport = async ({ reportId, performedBy }) => {
+  if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
+  if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
+
+  const { data: report, error: reportErr } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id, status, handled_by')
+    .eq('lost_report_id', reportId)
+    .maybeSingle();
+
+  if (reportErr) throw new Error(reportErr.message);
+  if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
+
+  // Chấp nhận cả 'Đang chờ' (mới) lẫn 'Chờ xử lý' (legacy) để tương thích dữ liệu cũ
+  const PENDING_STATUSES = ['Đang chờ', 'Chờ xử lý'];
+  if (!PENDING_STATUSES.includes(report.status)) {
+    throw new Error(`Chỉ có thể tiếp nhận report ở trạng thái 'Đang chờ' (hiện tại: '${report.status}').`);
+  }
+
+  const { data: updated, error: updateErr } = await supabase
+    .from('card_lost_log')
+    .update({ status: 'Đang xử lý', handled_by: performedBy })
+    .eq('lost_report_id', reportId)
+    .select()
+    .single();
+
+  if (updateErr) throw new Error(updateErr.message);
+  return updated;
+};
+
+/**
+ * RULE #4b - Đóng một báo cáo mất thẻ, bắt buộc phải chọn 1 trong 2 hướng xử lý:
+ *  - resolution = 'FOUND'     : Tìm lại được thẻ -> mở khóa thẻ, khôi phục Hoạt động.
+ *  - resolution = 'CANCELLED' : Hủy thẻ vĩnh viễn -> soft-delete thẻ (không thể hoàn tác qua flow này).
+ * Chỉ cho phép đóng report đang ở trạng thái 'Đang xử lý' (tức đã được tiếp nhận qua
+ * acceptLostCardReport trước đó) - không cho nhảy cóc từ 'Đang chờ' thẳng sang đóng.
+ */
+export const resolveLostCardReport = async ({ reportId, performedBy, resolution, note }) => {
+  if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
+  if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
+  if (!['FOUND', 'CANCELLED'].includes(resolution)) {
+    throw new Error("resolution phải là 'FOUND' (tìm lại thẻ) hoặc 'CANCELLED' (hủy thẻ).");
+  }
+
+  const { data: report, error: reportErr } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id, card_id, vehicle_id, status, handled_by')
+    .eq('lost_report_id', reportId)
+    .maybeSingle();
+
+  if (reportErr) throw new Error(reportErr.message);
+  if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
+
+  if (report.status !== 'Đang xử lý') {
+    throw new Error(
+      `Chỉ có thể đóng report đã được tiếp nhận (trạng thái 'Đang xử lý'). ` +
+      `Trạng thái hiện tại: '${report.status}'. Vui lòng tiếp nhận xử lý trước.`
+    );
+  }
+
+  const { data: cardObj, error: cardErr } = await supabase
+    .from('card')
+    .select('status')
+    .eq('card_id', report.card_id)
+    .maybeSingle();
+
+  if (cardErr) throw new Error(cardErr.message);
+
+  const { data: regForAudit } = await supabase
+    .from('card_registrations')
+    .select('registration_id')
+    .eq('card_id', report.card_id)
+    .eq('vehicle_id', report.vehicle_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Lấy plate_number để điền vào card_activity_logs cho dễ tra cứu (cột có sẵn trong schema)
+  let plateForAudit = null;
+  if (report.vehicle_id) {
+    const { data: vehicleForAudit } = await supabase
+      .from('vehicle')
+      .select('plate_number')
+      .eq('vehicle_id', report.vehicle_id)
+      .maybeSingle();
+    plateForAudit = vehicleForAudit?.plate_number ?? null;
+  }
+
+  if (resolution === 'FOUND') {
+    // Tìm lại thẻ -> mở khóa, khôi phục Hoạt động
+    const { error: unlockErr } = await supabase
+      .from('card')
+      .update({ status: 'Hoạt động' })
+      .eq('card_id', report.card_id);
+
+    if (unlockErr) throw new Error(unlockErr.message);
+
+    await supabase.from('card_activity_logs').insert({
+      card_id: report.card_id,
+      registration_id: regForAudit?.registration_id ?? null,
+      action: 'CARD_UNLOCKED',
+      plate_number: plateForAudit,
+      old_data: { status: cardObj?.status ?? null },
+      new_data: { status: 'Hoạt động' },
+      note: note || `Tìm lại được thẻ - đóng report ${reportId}`,
+      performed_by: performedBy
+    });
+
+    const { data: closedReport, error: closeErr } = await supabase
+      .from('card_lost_log')
+      .update({ status: 'Đã tìm lại' })
+      .eq('lost_report_id', reportId)
+      .select()
+      .single();
+
+    if (closeErr) throw new Error(closeErr.message);
+    return closedReport;
+  }
+
+  // resolution === 'CANCELLED' -> hủy thẻ vĩnh viễn (soft delete)
+  const { error: cancelErr } = await supabase
+    .from('card')
+    .update({
+      status: 'Đã xóa',
+      deleted_at: new Date().toISOString(),
+      deleted_by: performedBy
+    })
+    .eq('card_id', report.card_id);
+
+  if (cancelErr) throw new Error(cancelErr.message);
+
+  await supabase.from('card_activity_logs').insert({
+    card_id: report.card_id,
+    registration_id: regForAudit?.registration_id ?? null,
+    action: 'CARD_DELETED',
+    plate_number: plateForAudit,
+    old_data: { status: cardObj?.status ?? null },
+    new_data: { status: 'Đã xóa' },
+    note: note || `Hủy thẻ vĩnh viễn do mất thẻ - đóng report ${reportId}`,
+    performed_by: performedBy
+  });
+
+  const { data: closedReport, error: closeErr } = await supabase
+    .from('card_lost_log')
+    .update({ status: 'Đã hủy thẻ' })
+    .eq('lost_report_id', reportId)
+    .select()
+    .single();
+
+  if (closeErr) throw new Error(closeErr.message);
+
+  // LƯU Ý: thẻ đã bị hủy vĩnh viễn -> nếu khách hàng cần tiếp tục gửi xe,
+  // cần gọi API tạo thẻ mới (createCard) riêng cho vehicle_id này. Hàm này
+  // KHÔNG tự động cấp thẻ mới để tránh phát sinh chi phí/thẻ ngoài ý muốn
+  // của nhân viên - việc cấp thẻ mới nên là một hành động tường minh, có
+  // thể đi kèm thu phí cấp lại thẻ (xem rule #5).
+  return closedReport;
 };
 
 
