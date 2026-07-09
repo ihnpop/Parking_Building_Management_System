@@ -1,38 +1,13 @@
-import supabase from "../config/supabaseClient.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 
 export const getCards = async () => {
-  const { data: cards, error: cardError } = await supabase
-    .from('card')
-    .select('card_id, code, type, expired_date, status, created_at')
-    .eq('type', 'Thẻ lượt')
-    .not('status', 'eq', 'Đã xóa');
-
-  if (cardError) throw new Error(cardError.message);
+  const cards = await cardRepository.getCardsWithType('Thẻ lượt');
 
   if (!cards || cards.length === 0) return [];
 
   const cardIds = cards.map(c => c.card_id);
 
-  const { data: registrations, error: regError } = await supabase
-    .from('card_registrations')
-    .select(`
-      card_id,
-      status,
-      vehicle (
-        vehicle_id,
-        plate_number,
-        customer (
-          customer_id,
-          full_name,
-          phone,
-          email
-        )
-      )
-    `)
-    .in('card_id', cardIds);
-
-  if (regError) throw new Error(regError.message);
+  const registrations = await cardRepository.getRegistrationsByCardIds(cardIds);
 
   const regMap = {};
   registrations?.forEach(reg => {
@@ -50,19 +25,9 @@ export const getCards = async () => {
       let latestSession = null;
 
       if (activeReg?.vehicle?.vehicle_id) {
-        const { data: sessions } = await supabase
-          .from("parking_sessions")
-          .select(`
-            session_id,
-            entry_time,
-            exit_time
-          `)
-          .eq("vehicle_id", activeReg.vehicle.vehicle_id)
-          .order("entry_time", { ascending: false })
-          .limit(1);
-
-        latestSession = sessions?.[0] || null;
+        latestSession = await cardRepository.getLatestSessionByVehicle(activeReg.vehicle.vehicle_id);
       }
+
       return {
         card_id: item.card_id,
         code: item.code,
@@ -85,25 +50,9 @@ export const getCards = async () => {
 };
 
 export const getMonthCardLogs = async () => {
-  const { data, error } = await supabase
-    .from("payment")
-    .select(`
-      payment_time,
-      amount,
-      status,
-      parking_order (
-        vehicle (
-          plate_number,
-          customer (
-            full_name
-          )
-        )
-      )
-    `);
+  const data = await cardRepository.getPaymentLogs();
 
-  if (error) throw new Error(error.message);
-
-  return data.map((item, idx) => {
+  return data.map((item) => {
     const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
     const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
     const time = new Date(item.payment_time).toLocaleString('vi-VN');
@@ -138,28 +87,10 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
 
   // Validate plate uniqueness among active cards
   if (cleanPlate) {
-    const { data: vehicle, error: vehicleErr } = await supabase
-      .from('vehicle')
-      .select('vehicle_id')
-      .eq('plate_number', cleanPlate)
-      .maybeSingle();
-
-    if (vehicleErr) throw new Error(vehicleErr.message);
+    const vehicle = await cardRepository.findVehicleByPlate(cleanPlate);
 
     if (vehicle) {
-      const { data: activeReg, error: regCheckErr } = await supabase
-        .from('card_registrations')
-        .select(`
-          registration_id,
-          card (
-            code
-          )
-        `)
-        .eq('vehicle_id', vehicle.vehicle_id)
-        .in('status', ['Hoạt động'])
-        .maybeSingle();
-
-      if (regCheckErr) throw new Error(regCheckErr.message);
+      const activeReg = await cardRepository.findActiveRegByVehicleId(vehicle.vehicle_id);
 
       if (activeReg) {
         throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
@@ -171,31 +102,11 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
 
   if (type === 'Thẻ lượt') {
     // Tìm thẻ lượt có trạng thái "Đang chờ" để tái sử dụng
-    const { data: waitingCard, error: waitingCardErr } = await supabase
-      .from('card')
-      .select('*')
-      .eq('type', 'Thẻ lượt')
-      .eq('status', 'Đang chờ')
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (waitingCardErr) throw new Error(waitingCardErr.message);
+    const waitingCard = await cardRepository.findWaitingCard(type);
 
     if (waitingCard) {
       // Trường hợp 1: Tái sử dụng thẻ đang chờ, cập nhật lại trạng thái và ngày tạo
-      const { data: updatedCard, error: updateErr } = await supabase
-        .from('card')
-        .update({
-          status: 'Hoạt động',
-          created_at: startDate || new Date().toISOString()
-        })
-        .eq('card_id', waitingCard.card_id)
-        .select()
-        .single();
-
-      if (updateErr) throw new Error(updateErr.message);
-      cardToUse = updatedCard;
+      cardToUse = await cardRepository.reuseWaitingCard(waitingCard.card_id, startDate);
     }
   }
 
@@ -204,8 +115,8 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     // Generate a random unique code
     const generateCode = async () => {
       const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
-      const { data: existing } = await supabase.from('card').select('code').eq('code', random).maybeSingle();
-      if (existing) return generateCode();
+      const exists = await cardRepository.checkCodeExists(random);
+      if (exists) return generateCode();
       return random;
     };
     const code = await generateCode();
@@ -219,93 +130,57 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
       expiredDate = start.toISOString().split('T')[0];
     }
 
-    const { data: newCard, error: cardError } = await supabase
-      .from('card')
-      .insert({
-        code,
-        type,
-        created_at: startDate,
-        expired_date: expiredDate,
-        status: 'Hoạt động',
-      })
-      .select()
-      .single();
-
-    if (cardError) throw new Error(cardError.message);
-    cardToUse = newCard;
+    cardToUse = await cardRepository.insertCard({
+      code,
+      type,
+      created_at: startDate,
+      expired_date: expiredDate,
+      status: 'Hoạt động',
+    });
   }
 
   // Link to vehicle if plate is provided
   if (cleanPlate) {
     // Check if vehicle with plate exists
-    let { data: vehicle, error: vehicleErr } = await supabase
-      .from('vehicle')
-      .select('vehicle_id')
-      .eq('plate_number', cleanPlate)
-      .maybeSingle();
-
-    if (vehicleErr) throw new Error(vehicleErr.message);
+    let vehicle = await cardRepository.findVehicleByPlate(cleanPlate);
 
     if (!vehicle) {
       let customerId = null;
 
       // If it's a monthly card, create/use customer
       if (type === 'Thẻ tháng') {
-        const { data: customer, error: custErr } = await supabase
-          .from('customer')
-          .insert({
-            full_name: fullName || `Chủ xe ${cleanPlate}`,
-            phone: phone || null,
-            email: email || null,
-            status: 'Hoạt động'
-          })
-          .select()
-          .single();
-
-        if (custErr) throw new Error(custErr.message);
+        const customer = await cardRepository.insertCustomer({
+          full_name: fullName || `Chủ xe ${cleanPlate}`,
+          phone: phone || null,
+          email: email || null,
+          status: 'Hoạt động'
+        });
         customerId = customer ? customer.customer_id : null;
       }
 
       // Fetch first active vehicle type
-      const { data: vtList, error: vtErr } = await supabase
-        .from('vehicle_type')
-        .select('vehicle_type_id')
-        .limit(1);
-
-      if (vtErr) throw new Error(vtErr.message);
-      const vehicleTypeId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
+      const vehicleTypeId = await cardRepository.getFirstVehicleTypeId();
 
       if (!vehicleTypeId) {
         throw new Error("Không tìm thấy loại xe nào trong hệ thống. Vui lòng cấu hình loại xe trước.");
       }
 
       // Insert new vehicle
-      const { data: newVehicle, error: insertVehErr } = await supabase
-        .from('vehicle')
-        .insert({
-          customer_id: customerId,
-          vehicle_type_id: vehicleTypeId,
-          plate_number: cleanPlate,
-          status: 'Hoạt động'
-        })
-        .select()
-        .single();
-
-      if (insertVehErr) throw new Error(insertVehErr.message);
-      vehicle = newVehicle;
+      vehicle = await cardRepository.insertVehicle({
+        customer_id: customerId,
+        vehicle_type_id: vehicleTypeId,
+        plate_number: cleanPlate,
+        status: 'Hoạt động'
+      });
     }
 
     // Link card to vehicle via card_registrations
-    const { error: regErr } = await supabase
-      .from('card_registrations')
-      .insert({
-        card_id: cardToUse.card_id,
-        vehicle_id: vehicle.vehicle_id,
-        status: 'Hoạt động',
-        created_at: startDate
-      });
-
-    if (regErr) throw new Error(regErr.message);
+    await cardRepository.insertCardRegistration({
+      card_id: cardToUse.card_id,
+      vehicle_id: vehicle.vehicle_id,
+      status: 'Hoạt động',
+      created_at: startDate
+    });
   }
 
   return cardToUse;
@@ -342,27 +217,7 @@ export const deleteCard = async (cardId, currentUserId) => {
 
 export const getLostCards = async () => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log
-  const { data, error } = await supabase
-    .from('card_lost_log')
-    .select(`
-      lost_report_id,
-      reported_at,
-      status,
-      description,
-      handled_by,
-      card ( code, type ),
-      vehicle (
-        plate_number,
-        customer ( full_name )
-      ),
-      profiles ( full_name )
-    `)
-    .order('reported_at', { ascending: false });
-
-  if (error) {
-    console.error("Lỗi khi truy vấn nhật ký mất thẻ:", error);
-    throw new Error(error.message);
-  }
+  const data = await cardRepository.getLostCardLogs();
 
   // 2. Chuẩn hóa và làm phẳng cấu trúc dữ liệu JSON trả về
   return data.map((log, idx) => {
@@ -448,15 +303,7 @@ export const createLostCard = async ({
   }
 
   // 1. Tra cứu vehicle_id từ biển số xe
-  const { data: vehicle, error: vehicleErr } = await supabase
-    .from('vehicle')
-    .select('vehicle_id')
-    .eq('plate_number', plate_number)
-    .maybeSingle();
-
-  if (vehicleErr) {
-    throw new Error(vehicleErr.message);
-  }
+  const vehicle = await cardRepository.findVehicleByPlate(plate_number);
   if (!vehicle) {
     throw new Error(`Không tìm thấy xe có biển số ${plate_number}`);
   }
@@ -466,33 +313,13 @@ export const createLostCard = async ({
   let finalCardId = null;
 
   // 2a. Tìm thẻ có trạng thái ACTIVE hoặc Hoạt động
-  const { data: activeReg, error: activeErr } = await supabase
-    .from('card_registrations')
-    .select('card_id')
-    .eq('vehicle_id', vehicle.vehicle_id)
-    .in('status', ['Hoạt động'])
-    .limit(1)
-    .maybeSingle();
-
-  if (activeErr) {
-    throw new Error(activeErr.message);
-  }
+  const activeReg = await cardRepository.findActiveCardByVehicle(vehicle.vehicle_id);
 
   if (activeReg) {
     finalCardId = activeReg.card_id;
   } else {
     // 2b. Không có thẻ ACTIVE -> tìm bất kỳ thẻ nào đã đăng ký với xe
-    const { data: anyReg, error: anyErr } = await supabase
-      .from('card_registrations')
-      .select('card_id')
-      .eq('vehicle_id', vehicle.vehicle_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (anyErr) {
-      throw new Error(anyErr.message);
-    }
+    const anyReg = await cardRepository.findAnyRegistrationByVehicle(vehicle.vehicle_id);
     if (anyReg) {
       finalCardId = anyReg.card_id;
     }
@@ -500,18 +327,7 @@ export const createLostCard = async ({
 
   // 2c. Nếu vẫn không tìm thấy thẻ -> tìm qua bảng parking_order
   if (!finalCardId) {
-    const { data: order, error: orderErr } = await supabase
-      .from('parking_order')
-      .select('card_id')
-      .eq('vehicle_id', vehicle.vehicle_id)
-      .not('card_id', 'is', null)
-      .order('time_in', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (orderErr) {
-      throw new Error(orderErr.message);
-    }
+    const order = await cardRepository.findCardByParkingOrder(vehicle.vehicle_id);
     if (order) {
       finalCardId = order.card_id;
     }
@@ -529,16 +345,8 @@ export const createLostCard = async ({
   // các giá trị đã đóng thay vì liệt kê các giá trị "đang mở" để tránh bỏ sót.
   const CLOSED_LOST_STATUSES = ['Đã xong', 'Đã xử lý xong', 'Đã tìm lại', 'Đã hủy thẻ'];
 
-  const { data: openReports, error: openReportErr } = await supabase
-    .from('card_lost_log')
-    .select('lost_report_id, status')
-    .eq('card_id', finalCardId)
-    .not('status', 'in', `(${CLOSED_LOST_STATUSES.map(s => `"${s}"`).join(',')})`)
-    .limit(1);
+  const openReports = await cardRepository.findOpenLostReports(finalCardId, CLOSED_LOST_STATUSES);
 
-  if (openReportErr) {
-    throw new Error(openReportErr.message);
-  }
   if (openReports && openReports.length > 0) {
     throw new Error(
       `Thẻ này đã có báo cáo mất thẻ đang được xử lý (mã: ${openReports[0].lost_report_id}). ` +
@@ -547,15 +355,7 @@ export const createLostCard = async ({
   }
 
   // Lấy thông tin thẻ để kiểm tra loại thẻ và trạng thái hiện tại
-  const { data: cardObj, error: cardErr } = await supabase
-    .from('card')
-    .select('type, status')
-    .eq('card_id', finalCardId)
-    .maybeSingle();
-
-  if (cardErr) {
-    throw new Error(cardErr.message);
-  }
+  const cardObj = await cardRepository.findCardTypeAndStatus(finalCardId);
 
   // Rule: không cho báo mất nếu thẻ đã bị khóa hoặc đã xóa từ trước
   if (cardObj?.status === 'Đã khóa') {
@@ -570,42 +370,24 @@ export const createLostCard = async ({
 
   if (isDailyCard) {
     // Nếu là thẻ lượt, chủ xe trong database (customer_id) sẽ là null
-    const { error: updateErr } = await supabase
-      .from('vehicle')
-      .update({ customer_id: null })
-      .eq('vehicle_id', vehicle.vehicle_id);
-
-    if (updateErr) {
-      console.error("Lỗi khi cập nhật customer_id thành null cho thẻ lượt:", updateErr.message);
-    }
+    await cardRepository.updateVehicleCustomer(vehicle.vehicle_id, null);
   }
 
   // 3. Thêm mới bản ghi vào bảng nhật ký mất thẻ card_lost_log
-  const { data, error } = await supabase
-    .from('card_lost_log')
-    .insert({
-      card_id: finalCardId,
-      vehicle_id: vehicle.vehicle_id,
-      description: description || "Báo mất thẻ",
-      reported_at: new Date().toISOString(),
-      status: 'Đang chờ',             // Mặc định trạng thái ban đầu (khớp default DB)
-      handled_by: null              // Chưa có nhân viên xử lý
-    })
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  const data = await cardRepository.insertLostCardLog({
+    card_id: finalCardId,
+    vehicle_id: vehicle.vehicle_id,
+    description: description || "Báo mất thẻ",
+    reported_at: new Date().toISOString(),
+    status: 'Đang chờ',             // Mặc định trạng thái ban đầu (khớp default DB)
+    handled_by: null              // Chưa có nhân viên xử lý
+  });
 
   // 4. RULE #1 - Khóa thẻ ngay lập tức để chặn ra/vào cổng bằng thẻ đã báo mất
   //    Đây là bước bảo mật bắt buộc, thực hiện ngay sau khi ghi nhận báo cáo thành công.
-  const { error: lockErr } = await supabase
-    .from('card')
-    .update({ status: 'Đã khóa' })
-    .eq('card_id', finalCardId);
-
-  if (lockErr) {
+  try {
+    await cardRepository.lockCard(finalCardId);
+  } catch (lockErr) {
     // Báo cáo mất thẻ đã được ghi nhận, nhưng việc khóa thẻ thất bại -> cần cảnh báo rõ ràng
     // để nhân viên xử lý thủ công, tránh để thẻ bị mất mà vẫn ở trạng thái Hoạt động.
     console.error("Lỗi khi khóa thẻ sau khi ghi nhận báo mất:", lockErr.message);
@@ -618,31 +400,18 @@ export const createLostCard = async ({
   // 5. RULE #3 - Ghi audit trail vào card_activity_logs cho thao tác khóa thẻ.
   //    Không throw nếu bước này lỗi (không nên chặn nghiệp vụ chính vì audit log lỗi),
   //    chỉ log ra console để theo dõi/khắc phục sau.
-  const { data: regForAudit } = await supabase
-    .from('card_registrations')
-    .select('registration_id')
-    .eq('card_id', finalCardId)
-    .eq('vehicle_id', vehicle.vehicle_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const regForAudit = await cardRepository.findRegForAudit(finalCardId, vehicle.vehicle_id);
 
-  const { error: auditErr } = await supabase
-    .from('card_activity_logs')
-    .insert({
-      card_id: finalCardId,
-      registration_id: regForAudit?.registration_id ?? null,
-      action: 'CARD_LOCKED',
-      plate_number,
-      old_data: { status: cardObj?.status ?? null },
-      new_data: { status: 'Đã khóa' },
-      note: `Khóa thẻ tự động do báo mất - report ${data.lost_report_id}. Lý do: ${description || "Báo mất thẻ"}`,
-      performed_by: performedBy
-    });
-
-  if (auditErr) {
-    console.error("Lỗi khi ghi audit log card_activity_logs:", auditErr.message);
-  }
+  await cardRepository.insertActivityLog({
+    card_id: finalCardId,
+    registration_id: regForAudit?.registration_id ?? null,
+    action: 'CARD_LOCKED',
+    plate_number,
+    old_data: { status: cardObj?.status ?? null },
+    new_data: { status: 'Đã khóa' },
+    note: `Khóa thẻ tự động do báo mất - report ${data.lost_report_id}. Lý do: ${description || "Báo mất thẻ"}`,
+    performed_by: performedBy
+  });
 
   return data;
 };
@@ -657,13 +426,8 @@ export const acceptLostCardReport = async ({ reportId, performedBy }) => {
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
 
-  const { data: report, error: reportErr } = await supabase
-    .from('card_lost_log')
-    .select('lost_report_id, status, handled_by')
-    .eq('lost_report_id', reportId)
-    .maybeSingle();
+  const report = await cardRepository.findLostReportStatus(reportId);
 
-  if (reportErr) throw new Error(reportErr.message);
   if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
 
   // Chấp nhận cả 'Đang chờ' (mới) lẫn 'Chờ xử lý' (legacy) để tương thích dữ liệu cũ
@@ -672,15 +436,7 @@ export const acceptLostCardReport = async ({ reportId, performedBy }) => {
     throw new Error(`Chỉ có thể tiếp nhận report ở trạng thái 'Đang chờ' (hiện tại: '${report.status}').`);
   }
 
-  const { data: updated, error: updateErr } = await supabase
-    .from('card_lost_log')
-    .update({ status: 'Đang xử lý', handled_by: performedBy })
-    .eq('lost_report_id', reportId)
-    .select()
-    .single();
-
-  if (updateErr) throw new Error(updateErr.message);
-  return updated;
+  return await cardRepository.updateLostReport(reportId, { status: 'Đang xử lý', handled_by: performedBy });
 };
 
 /**
@@ -697,13 +453,8 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
     throw new Error("resolution phải là 'FOUND' (tìm lại thẻ) hoặc 'CANCELLED' (hủy thẻ).");
   }
 
-  const { data: report, error: reportErr } = await supabase
-    .from('card_lost_log')
-    .select('lost_report_id, card_id, vehicle_id, status, handled_by')
-    .eq('lost_report_id', reportId)
-    .maybeSingle();
+  const report = await cardRepository.findLostReport(reportId);
 
-  if (reportErr) throw new Error(reportErr.message);
   if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
 
   if (report.status !== 'Đang xử lý') {
@@ -713,44 +464,21 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
     );
   }
 
-  const { data: cardObj, error: cardErr } = await supabase
-    .from('card')
-    .select('status')
-    .eq('card_id', report.card_id)
-    .maybeSingle();
-
-  if (cardErr) throw new Error(cardErr.message);
-
-  const { data: regForAudit } = await supabase
-    .from('card_registrations')
-    .select('registration_id')
-    .eq('card_id', report.card_id)
-    .eq('vehicle_id', report.vehicle_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const cardObj = await cardRepository.findCardTypeAndStatus(report.card_id);
+  const regForAudit = await cardRepository.findRegForAudit(report.card_id, report.vehicle_id);
 
   // Lấy plate_number để điền vào card_activity_logs cho dễ tra cứu (cột có sẵn trong schema)
   let plateForAudit = null;
   if (report.vehicle_id) {
-    const { data: vehicleForAudit } = await supabase
-      .from('vehicle')
-      .select('plate_number')
-      .eq('vehicle_id', report.vehicle_id)
-      .maybeSingle();
+    const vehicleForAudit = await cardRepository.findVehicleById(report.vehicle_id);
     plateForAudit = vehicleForAudit?.plate_number ?? null;
   }
 
   if (resolution === 'FOUND') {
     // Tìm lại thẻ -> mở khóa, khôi phục Hoạt động
-    const { error: unlockErr } = await supabase
-      .from('card')
-      .update({ status: 'Hoạt động' })
-      .eq('card_id', report.card_id);
+    await cardRepository.unlockCard(report.card_id);
 
-    if (unlockErr) throw new Error(unlockErr.message);
-
-    await supabase.from('card_activity_logs').insert({
+    await cardRepository.insertActivityLog({
       card_id: report.card_id,
       registration_id: regForAudit?.registration_id ?? null,
       action: 'CARD_UNLOCKED',
@@ -761,30 +489,13 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
       performed_by: performedBy
     });
 
-    const { data: closedReport, error: closeErr } = await supabase
-      .from('card_lost_log')
-      .update({ status: 'Đã tìm lại' })
-      .eq('lost_report_id', reportId)
-      .select()
-      .single();
-
-    if (closeErr) throw new Error(closeErr.message);
-    return closedReport;
+    return await cardRepository.updateLostReport(reportId, { status: 'Đã tìm lại' });
   }
 
   // resolution === 'CANCELLED' -> hủy thẻ vĩnh viễn (soft delete)
-  const { error: cancelErr } = await supabase
-    .from('card')
-    .update({
-      status: 'Đã xóa',
-      deleted_at: new Date().toISOString(),
-      deleted_by: performedBy
-    })
-    .eq('card_id', report.card_id);
+  await cardRepository.cancelCard(report.card_id, performedBy);
 
-  if (cancelErr) throw new Error(cancelErr.message);
-
-  await supabase.from('card_activity_logs').insert({
+  await cardRepository.insertActivityLog({
     card_id: report.card_id,
     registration_id: regForAudit?.registration_id ?? null,
     action: 'CARD_DELETED',
@@ -795,14 +506,7 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
     performed_by: performedBy
   });
 
-  const { data: closedReport, error: closeErr } = await supabase
-    .from('card_lost_log')
-    .update({ status: 'Đã hủy thẻ' })
-    .eq('lost_report_id', reportId)
-    .select()
-    .single();
-
-  if (closeErr) throw new Error(closeErr.message);
+  const closedReport = await cardRepository.updateLostReport(reportId, { status: 'Đã hủy thẻ' });
 
   // LƯU Ý: thẻ đã bị hủy vĩnh viễn -> nếu khách hàng cần tiếp tục gửi xe,
   // cần gọi API tạo thẻ mới (createCard) riêng cho vehicle_id này. Hàm này
@@ -831,18 +535,7 @@ export const updateCard = async (
   // Lấy thông tin card
   // =========================
 
-  const {
-    data: card,
-    error: cardError
-  } = await supabase
-    .from("card")
-    .select("*")
-    .eq("card_id", cardId)
-    .single();
-
-  if (cardError) {
-    throw new Error(cardError.message);
-  }
+  const card = await cardRepository.getCardById(cardId);
 
   // TH5
   if (card.status === "Đã khóa") {
@@ -873,17 +566,7 @@ export const updateCard = async (
   // registration hiện tại
   // =========================
 
-  const {
-    data: registration
-  } = await supabase
-    .from("card_registrations")
-    .select(`
-      registration_id,
-      vehicle_id
-    `)
-    .eq("card_id", cardId)
-    .eq("status", "Hoạt động")
-    .maybeSingle();
+  const registration = await cardRepository.findActiveRegistrationByCardForUpdate(cardId);
 
   // ==================================================
   // TH4
@@ -895,21 +578,8 @@ export const updateCard = async (
     status === "Đang chờ" &&
     registration
   ) {
-
-    await supabase
-      .from("card_registrations")
-      .delete()
-      .eq(
-        "registration_id",
-        registration.registration_id
-      );
-
-    await supabase
-      .from("card")
-      .update({
-        status: "Đang chờ"
-      })
-      .eq("card_id", cardId);
+    await cardRepository.deleteRegistration(registration.registration_id);
+    await cardRepository.updateStatus(cardId, "Đang chờ");
 
     return {
       success: true
@@ -935,33 +605,11 @@ export const updateCard = async (
 
     let vehicleId = null;
 
-    const {
-      data: existingVehicle
-    } = await supabase
-      .from("vehicle")
-      .select("*")
-      .eq(
-        "plate_number",
-        cleanPlate
-      )
-      .maybeSingle();
+    const existingVehicle = await cardRepository.findVehicleByPlateAll(cleanPlate);
 
     if (existingVehicle) {
 
-      const {
-        data: usedReg
-      } = await supabase
-        .from("card_registrations")
-        .select("*")
-        .eq(
-          "vehicle_id",
-          existingVehicle.vehicle_id
-        )
-        .eq(
-          "status",
-          "Hoạt động"
-        )
-        .maybeSingle();
+      const usedReg = await cardRepository.findActiveRegByVehicleIdAll(existingVehicle.vehicle_id);
 
       if (
         usedReg &&
@@ -972,65 +620,32 @@ export const updateCard = async (
         );
       }
 
-      vehicleId =
-        existingVehicle.vehicle_id;
+      vehicleId = existingVehicle.vehicle_id;
 
     } else {
 
-      const {
-        data: vehicleType
-      } = await supabase
-        .from("vehicle_type")
-        .select("vehicle_type_id")
-        .limit(1)
-        .single();
+      const vehicleTypeId = await cardRepository.getFirstVehicleTypeId();
 
-      const {
-        data: newVehicle,
-        error: vehicleError
-      } = await supabase
-        .from("vehicle")
-        .insert({
-          plate_number: cleanPlate,
-          vehicle_type_id:
-            vehicleType.vehicle_type_id,
-          status: "Hoạt động"
-        })
-        .select()
-        .single();
-
-      if (vehicleError) {
-        throw new Error(
-          vehicleError.message
-        );
+      if (!vehicleTypeId) {
+        throw new Error("Không tìm thấy loại xe nào trong hệ thống. Vui lòng cấu hình loại xe trước.");
       }
 
-      vehicleId =
-        newVehicle.vehicle_id;
-    }
-
-    const {
-      error: regError
-    } = await supabase
-      .from("card_registrations")
-      .insert({
-        card_id: cardId,
-        vehicle_id: vehicleId,
+      const newVehicle = await cardRepository.insertVehicle({
+        plate_number: cleanPlate,
+        vehicle_type_id: vehicleTypeId,
         status: "Hoạt động"
       });
 
-    if (regError) {
-      throw new Error(
-        regError.message
-      );
+      vehicleId = newVehicle.vehicle_id;
     }
 
-    await supabase
-      .from("card")
-      .update({
-        status: "Hoạt động"
-      })
-      .eq("card_id", cardId);
+    await cardRepository.insertCardRegistration({
+      card_id: cardId,
+      vehicle_id: vehicleId,
+      status: "Hoạt động"
+    });
+
+    await cardRepository.updateStatus(cardId, "Hoạt động");
 
     return {
       success: true
@@ -1061,21 +676,8 @@ export const updateCard = async (
     registration &&
     !cleanPlate
   ) {
-
-    await supabase
-      .from("card_registrations")
-      .delete()
-      .eq(
-        "registration_id",
-        registration.registration_id
-      );
-
-    await supabase
-      .from("card")
-      .update({
-        status: "Đang chờ"
-      })
-      .eq("card_id", cardId);
+    await cardRepository.deleteRegistration(registration.registration_id);
+    await cardRepository.updateStatus(cardId, "Đang chờ");
 
     return {
       success: true
@@ -1091,16 +693,7 @@ export const updateCard = async (
     cleanPlate
   ) {
 
-    const {
-      data: existingVehicle
-    } = await supabase
-      .from("vehicle")
-      .select("*")
-      .eq(
-        "plate_number",
-        cleanPlate
-      )
-      .maybeSingle();
+    const existingVehicle = await cardRepository.findVehicleByPlateAll(cleanPlate);
 
     if (
       existingVehicle &&
@@ -1108,20 +701,7 @@ export const updateCard = async (
       registration.vehicle_id
     ) {
 
-      const {
-        data: activeReg
-      } = await supabase
-        .from("card_registrations")
-        .select("*")
-        .eq(
-          "vehicle_id",
-          existingVehicle.vehicle_id
-        )
-        .eq(
-          "status",
-          "Hoạt động"
-        )
-        .maybeSingle();
+      const activeReg = await cardRepository.findActiveRegByVehicleIdAll(existingVehicle.vehicle_id);
 
       if (
         activeReg &&
@@ -1132,74 +712,33 @@ export const updateCard = async (
         );
       }
 
-      await supabase
-        .from("card_registrations")
-        .update({
-          vehicle_id:
-            existingVehicle.vehicle_id
-        })
-        .eq(
-          "registration_id",
-          registration.registration_id
-        );
+      await cardRepository.updateRegistrationVehicle(
+        registration.registration_id,
+        existingVehicle.vehicle_id
+      );
 
     } else {
 
-      await supabase
-        .from("vehicle")
-        .update({
-          plate_number: cleanPlate
-        })
-        .eq(
-          "vehicle_id",
-          registration.vehicle_id
-        );
+      await cardRepository.updateVehiclePlate(
+        registration.vehicle_id,
+        cleanPlate
+      );
     }
 
-    const {
-      data: session
-    } = await supabase
-      .from("parking_sessions")
-      .select("session_id")
-      .eq(
-        "vehicle_id",
-        registration.vehicle_id
-      )
-      .order(
-        "entry_time",
-        {
-          ascending: false
-        }
-      )
-      .limit(1)
-      .maybeSingle();
+    const session = await cardRepository.getLatestSessionByVehicleId(registration.vehicle_id);
 
     if (session) {
-
-      await supabase
-        .from("parking_sessions")
-        .update({
-          plate_number: cleanPlate,
-          entry_time:
-            checkInTime || null,
-          exit_time:
-            checkOutTime || null
-        })
-        .eq(
-          "session_id",
-          session.session_id
-        );
+      await cardRepository.updateParkingSession(session.session_id, {
+        plate_number: cleanPlate,
+        entry_time: checkInTime || null,
+        exit_time: checkOutTime || null
+      });
     }
 
-    await supabase
-      .from("card")
-      .update({
-        status:
-          cleanPlate
-            ? "Hoạt động"
-            : "Đang chờ"
-      })
-      .eq("card_id", cardId);
+    await cardRepository.updateStatus(
+      cardId,
+      cleanPlate ? "Hoạt động" : "Đang chờ"
+    );
   }
 
   return {
