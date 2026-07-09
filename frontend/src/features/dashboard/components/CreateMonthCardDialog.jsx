@@ -124,6 +124,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         if (!frontImg || !backImg) return;
         setVerifying(true); setVerifyResult(null); setError(null);
         try {
+            const frontBase64 = frontImg ? await convertToBase64(frontImg) : null;
             const backBase64 = backImg ? await convertToBase64(backImg) : null;
             const res = await axios.post(`${API}/month-card/verify-document`,
                 { front_base64: frontBase64, back_base64: backBase64 },

@@ -3,6 +3,8 @@ import { getMonthCards, deleteMonthCard } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
 import CreateMonthCardDialog from '../components/CreateMonthCardDialog';
+import ContractModal from '../components/ContractModal';
+import { FileText } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 
 const ITEMS_PER_PAGE = 8;
@@ -14,6 +16,10 @@ export default function MonthCardPage() {
     const [renewingCard, setRenewingCard] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    
+    // States cho hợp đồng
+    const [selectedContractCard, setSelectedContractCard] = useState(null);
+    const [isContractOpen, setIsContractOpen] = useState(false);
 
     // Filters & Search
     const [search, setSearch] = useState('');
@@ -142,6 +148,8 @@ export default function MonthCardPage() {
     const { showToast } = useNotification();
 
     // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
+    // ── Xử lý xác nhận xóa thẻ tháng ──────────────────────────────────────────
+
     const handleDelete = async () => {
         if (!deletingCard) return;
         try {
@@ -380,7 +388,33 @@ export default function MonthCardPage() {
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
                                                     </button>
-                                                    {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ KHÔNG ở trạng thái "Hoạt động" */}
+                                                    {/* Nút Xem hợp đồng (Icon FileText) */}
+                                                    <button
+                                                        type="button"
+                                                        className="mc-contract-view-btn"
+                                                        style={{
+                                                            color: '#0284c7',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: row.status === 'Hoạt động' ? 'pointer' : 'not-allowed',
+                                                            opacity: row.status === 'Hoạt động' ? 1 : 0.4,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            padding: '4px'
+                                                        }}
+                                                        onClick={() => {
+                                                            if (row.status !== 'Hoạt động') return;
+                                                            setSelectedContractCard(row);
+                                                            setIsContractOpen(true);
+                                                        }}
+                                                        disabled={row.status !== 'Hoạt động'}
+                                                        title={row.status === 'Hoạt động' ? 'Xem hợp đồng đăng ký' : 'Chỉ khả dụng cho thẻ đang hoạt động'}
+                                                    >
+                                                        <FileText size={20} />
+                                                    </button>
+                                                    
+                                                    {/* Nút Xóa thẻ - chỉ cho phép xóa khi thẻ KHÔNG ở trạng thái "Hoạt động" */}
                                                     <button type="button" className="cp-delete-btn"
                                                         style={{
                                                             color: '#ba1a1a',
@@ -498,6 +532,15 @@ export default function MonthCardPage() {
                     </div>
                 </div>
             )}
+
+            <ContractModal
+                isOpen={isContractOpen}
+                onClose={() => {
+                    setIsContractOpen(false);
+                    setSelectedContractCard(null);
+                }}
+                cardData={selectedContractCard}
+            />
         </div>
     );
 }

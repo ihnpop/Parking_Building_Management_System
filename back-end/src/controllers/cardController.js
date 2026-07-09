@@ -9,35 +9,6 @@ export const getCards = async (req, res) => {
   }
 };
 
-export const getLostCards = async (req, res) => {
-  try {
-    const lostCards = await cardService.getLostCards();
-    res.status(200).json(lostCards);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-
-export const getLostLogs = async (req, res) => {
-  try {
-    // Gọi đến hàm xử lý dữ liệu ở tầng Service mà bạn vừa viết ở phần 2.1
-    const logs = await cardService.getLostCardLogs();
-
-    // Trả về dữ liệu dạng JSON với mã trạng thái thành công 200 cho Frontend
-    return res.status(200).json({
-      success: true,
-      data: logs
-    });
-  } catch (error) {
-    console.error("Lỗi tại cardController - getLostLogs:", error);
-    // Trả về lỗi 500 nếu hệ thống gặp sự cố bất ngờ
-    return res.status(500).json({
-      success: false,
-      message: "Đã xảy ra lỗi khi lấy danh sách nhật ký mất thẻ."
-    });
-  }
-};
 // Delete a card by id
 export const deleteCard = async (req, res) => {
   try {
@@ -89,25 +60,6 @@ export const createCard = async (req, res) => {
   }
 };
 
-// Ghi nhận yêu cầu báo mất thẻ từ phía Client
-export const createLostCard = async (req, res) => {
-  try {
-    // Gọi Service xử lý nghiệp vụ kiểm tra và thêm báo mất thẻ
-    const result = await cardService.createLostCard(req.body);
-
-    // Trả về kết quả thành công HTTP 201 cho Client
-    return res.status(201).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    // Trả về thông báo lỗi HTTP 500 khi xử lý thất bại hoặc không tìm thấy thẻ/xe
-    return res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
 
 export const updateCard = async (
   req,

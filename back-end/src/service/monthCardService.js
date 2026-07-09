@@ -1027,4 +1027,142 @@ export const getNextMonthCode = async () => {
   return { code: nextCode };
 };
 
+/**
+ * Lấy chi tiết thông tin thẻ tháng để tạo hợp đồng
+ * @param {string} cardId 
+ * @returns {Promise<object>}
+ */
+export const getCardDetailsForContract = async (cardId) => {
+  const { data: card, error } = await supabase
+    .from("card")
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        registration_id,
+        status,
+        created_at,
+        vehicle (
+          vehicle_id,
+          plate_number,
+          brand,
+          color,
+          customer (
+            customer_id,
+            full_name,
+            phone,
+            email
+          ),
+          vehicle_type (
+            vehicle_type_id,
+            name
+          ),
+          vehicle_package (
+            vehicle_package_id,
+            start_date,
+            end_date,
+            status,
+            package_id
+          )
+        )
+      )
+    `)
+    .eq("card_id", cardId)
+    .single();
+
+  if (error) throw new Error(error.message);
+  if (!card) throw new Error("Không tìm thấy thông tin thẻ tháng");
+
+  const activeReg = card.card_registrations?.find(r => r.status === "Hoạt động") || card.card_registrations?.[0] || null;
+  const vehicle = activeReg?.vehicle || null;
+  const customer = vehicle?.customer || null;
+  
+  // Lấy cccd_number từ customer_kyc
+  let cccdNumber = "---";
+  if (customer?.customer_id) {
+    const { data: kycData } = await supabase
+      .from('customer_kyc')
+      .select('cccd_number')
+      .eq('customer_id', customer.customer_id)
+      .maybeSingle();
+    if (kycData?.cccd_number) {
+      cccdNumber = kycData.cccd_number;
+    }
+  }
+
+  // Lấy vehicle_package mới nhất (end_date lớn nhất)
+  let latestPackage = null;
+  if (vehicle?.vehicle_package && vehicle.vehicle_package.length > 0) {
+    latestPackage = [...vehicle.vehicle_package].sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+  }
+
+  // Truy vấn chi tiết package nếu có package_id
+  let packageInfo = null;
+  if (latestPackage?.package_id) {
+    const { data: pkg } = await supabase
+      .from('package')
+      .select('name, price, duration_month')
+      .eq('package_id', latestPackage.package_id)
+      .maybeSingle();
+    if (pkg) {
+      packageInfo = pkg;
+    }
+  }
+
+  // Truy vấn thông tin payment liên kết với vehicle_package
+  let paymentInfo = null;
+  if (latestPackage?.vehicle_package_id) {
+    const { data: pay } = await supabase
+      .from('payment')
+      .select('amount, payment_method, status, payment_time')
+      .eq('vehicle_package_id', latestPackage.vehicle_package_id)
+      .order('payment_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pay) {
+      paymentInfo = pay;
+    }
+  }
+
+  return {
+    card_id: card.card_id,
+    card_code: card.code,
+    status: card.status,
+    created_at: card.created_at,
+    expired_date: card.expired_date,
+    customer: customer ? {
+      customer_id: customer.customer_id,
+      full_name: customer.full_name,
+      phone: customer.phone,
+      email: customer.email,
+      cccd_number: cccdNumber
+    } : null,
+    vehicle: vehicle ? {
+      vehicle_id: vehicle.vehicle_id,
+      plate_number: vehicle.plate_number,
+      brand: vehicle.brand,
+      color: vehicle.color,
+      type_name: vehicle.vehicle_type?.name || "",
+    } : null,
+    package: latestPackage ? {
+      start_date: latestPackage.start_date,
+      end_date: latestPackage.end_date,
+      name: packageInfo?.name || `Gói cước tháng ${vehicle?.vehicle_type?.name || "xe máy/ô tô"}`,
+      price: packageInfo?.price || paymentInfo?.amount || 300000,
+      duration_month: packageInfo?.duration_month || 1
+    } : null,
+    payment: paymentInfo ? {
+      amount: paymentInfo.amount,
+      payment_method: paymentInfo.payment_method,
+      status: paymentInfo.status,
+      payment_time: paymentInfo.payment_time
+    } : null
+  };
+};
+
+
 
