@@ -164,7 +164,7 @@ export const createLostCard = async ({
   await lostCardRepository.insertActivityLog({
     card_id: finalCardId,
     registration_id: regForAudit?.registration_id ?? null,
-    action: 'CARD_LOCKED',
+    action: 'Thẻ đã khóa',
     plate_number,
     old_data: { status: cardObj?.status ?? null },
     new_data: { status: 'Đã khóa' },
@@ -200,8 +200,8 @@ export const acceptLostCardReport = async ({ reportId, performedBy }) => {
 export const resolveLostCardReport = async ({ reportId, performedBy, resolution, note }) => {
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
-  if (!['FOUND', 'CANCELLED'].includes(resolution)) {
-    throw new Error("resolution phải là 'FOUND' (tìm lại thẻ) hoặc 'CANCELLED' (hủy thẻ).");
+  if (!['Tìm lại thẻ', 'Hủy thẻ'].includes(resolution)) {
+    throw new Error("resolution phải là 'Tìm lại thẻ' hoặc 'Hủy thẻ'.");
   }
 
   const report = await lostCardRepository.findLostReport(reportId);
@@ -224,13 +224,13 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
     plateForAudit = vehicleForAudit?.plate_number ?? null;
   }
 
-  if (resolution === 'FOUND') {
+  if (resolution === 'Tìm lại thẻ') {
     await cardRepository.unlockCard(report.card_id);
 
     await lostCardRepository.insertActivityLog({
       card_id: report.card_id,
       registration_id: regForAudit?.registration_id ?? null,
-      action: 'CARD_UNLOCKED',
+      action: 'Thẻ đã mở khóa',
       plate_number: plateForAudit,
       old_data: { status: cardObj?.status ?? null },
       new_data: { status: 'Hoạt động' },
@@ -246,7 +246,7 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
   await lostCardRepository.insertActivityLog({
     card_id: report.card_id,
     registration_id: regForAudit?.registration_id ?? null,
-    action: 'CARD_DELETED',
+    action: 'Thẻ đã xóa',
     plate_number: plateForAudit,
     old_data: { status: cardObj?.status ?? null },
     new_data: { status: 'Đã xóa' },
