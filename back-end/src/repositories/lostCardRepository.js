@@ -226,3 +226,19 @@ export const getAllActivityLogs = async () => {
   if (error) throw new Error(error.message);
   return data || [];
 };
+
+/**
+ * Tìm báo cáo mất thẻ theo ID kèm thông tin biển số xe (dùng để xác thực khi cấp lại thẻ)
+ * @param {string} reportId
+ * @returns {Promise<object|null>} { lost_report_id, status, vehicle_id, vehicle: { plate_number } }
+ */
+export const findLostReportByIdWithVehicle = async (reportId) => {
+  const { data, error } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id, status, vehicle_id, vehicle ( plate_number )')
+    .eq('lost_report_id', reportId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};

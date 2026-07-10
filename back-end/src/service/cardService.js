@@ -1,4 +1,7 @@
 import * as cardRepository from "../repositories/cardRepository.js";
+import * as lostCardRepository from "../repositories/lostCardRepository.js";
+import * as vnpayService from "./vnpayService.js";
+import supabase from "../config/supabaseClient.js";
 
 export const getCards = async () => {
   const cards = await cardRepository.getCardsWithType('Thẻ lượt');
@@ -75,7 +78,47 @@ export const getMonthCardLogs = async () => {
 };
 
 
-export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
+export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths, replacesLostReportId, ipAddr }) => {
+  // ================================================================
+  // BƯỚC 0: Xác thực tham số replacesLostReportId (Cấp lại thẻ mất)
+  // ================================================================
+  if (replacesLostReportId) {
+    // 0a. Loại thẻ phải là 'Thẻ tháng'
+    if (type !== 'Thẻ tháng') {
+      throw new Error(
+        `Chỉ có thể cấp lại thẻ tháng (type = 'Thẻ tháng'). ` +
+        `Loại thẻ được cung cấp: '${type}'.`
+      );
+    }
+
+    // 0b. Báo cáo mất thẻ phải tồn tại
+    const lostReport = await lostCardRepository.findLostReportByIdWithVehicle(replacesLostReportId);
+    if (!lostReport) {
+      throw new Error(`Không tìm thấy báo cáo mất thẻ với ID: ${replacesLostReportId}.`);
+    }
+
+    // 0c. Trạng thái báo cáo phải là 'Đã hủy thẻ'
+    if (lostReport.status !== 'Đã hủy thẻ') {
+      throw new Error(
+        `Báo cáo mất thẻ (ID: ${replacesLostReportId}) phải có trạng thái 'Đã hủy thẻ' để được cấp lại. ` +
+        `Trạng thái hiện tại: '${lostReport.status}'.`
+      );
+    }
+
+    // 0d. Biển số xe phải khớp với xe trong báo cáo
+    const reportPlate = lostReport.vehicle?.plate_number || '';
+    const inputCleanPlate = plate ? plate.trim().replace(/[\s\.\-]/g, '').toUpperCase() : '';
+    if (!inputCleanPlate || reportPlate.toUpperCase() !== inputCleanPlate) {
+      throw new Error(
+        `Biển số xe không khớp với báo cáo mất thẻ. ` +
+        `Báo cáo ghi nhận biển số: '${reportPlate}', biển số nhập vào: '${inputCleanPlate}'.`
+      );
+    }
+  }
+
+  // ================================================================
+  // BƯỚC 1: Xác thực định dạng biển số xe
+  // ================================================================
   let cleanPlate = plate ? plate.trim() : undefined;
   if (cleanPlate) {
     cleanPlate = cleanPlate.replace(/[\s\.\-]/g, '').toUpperCase();
@@ -98,92 +141,207 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     }
   }
 
+  // ================================================================
+  // BƯỚC 2: Tạo thẻ mới
+  // ================================================================
+
+  // Theo dõi các bản ghi đã tạo để rollback thủ công nếu có lỗi
   let cardToUse = null;
+  let newVehicleId = null;   // chỉ set nếu vehicle được tạo mới trong request này
+  let newCustomerId = null;  // chỉ set nếu customer được tạo mới trong request này
+  let paymentId = null;      // ID của payment record đã insert (để rollback)
 
-  if (type === 'Thẻ lượt') {
-    // Tìm thẻ lượt có trạng thái "Đang chờ" để tái sử dụng
-    const waitingCard = await cardRepository.findWaitingCard(type);
+  try {
+    if (type === 'Thẻ lượt') {
+      // Tìm thẻ lượt có trạng thái "Đang chờ" để tái sử dụng
+      const waitingCard = await cardRepository.findWaitingCard(type);
 
-    if (waitingCard) {
-      // Trường hợp 1: Tái sử dụng thẻ đang chờ, cập nhật lại trạng thái và ngày tạo
-      cardToUse = await cardRepository.reuseWaitingCard(waitingCard.card_id, startDate);
-    }
-  }
-
-  // Trường hợp 2 hoặc khi không phải Thẻ lượt hoặc không tìm thấy thẻ đang chờ
-  if (!cardToUse) {
-    // Generate a random unique code
-    const generateCode = async () => {
-      const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
-      const exists = await cardRepository.checkCodeExists(random);
-      if (exists) return generateCode();
-      return random;
-    };
-    const code = await generateCode();
-
-    // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
-    let expiredDate = null;
-    if (type === 'Thẻ tháng') {
-      const months = parseInt(durationMonths) || 1;
-      const start = new Date(startDate);
-      start.setMonth(start.getMonth() + months);
-      expiredDate = start.toISOString().split('T')[0];
+      if (waitingCard) {
+        // Trường hợp 1: Tái sử dụng thẻ đang chờ, cập nhật lại trạng thái và ngày tạo
+        cardToUse = await cardRepository.reuseWaitingCard(waitingCard.card_id, startDate);
+      }
     }
 
-    cardToUse = await cardRepository.insertCard({
-      code,
-      type,
-      created_at: startDate,
-      expired_date: expiredDate,
-      status: 'Hoạt động',
-    });
-  }
+    // Trường hợp 2 hoặc khi không phải Thẻ lượt hoặc không tìm thấy thẻ đang chờ
+    if (!cardToUse) {
+      // Generate a random unique code
+      const generateCode = async () => {
+        const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
+        const exists = await cardRepository.checkCodeExists(random);
+        if (exists) return generateCode();
+        return random;
+      };
+      const code = await generateCode();
 
-  // Link to vehicle if plate is provided
-  if (cleanPlate) {
-    // Check if vehicle with plate exists
-    let vehicle = await cardRepository.findVehicleByPlate(cleanPlate);
-
-    if (!vehicle) {
-      let customerId = null;
-
-      // If it's a monthly card, create/use customer
+      // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
+      let expiredDate = null;
       if (type === 'Thẻ tháng') {
-        const customer = await cardRepository.insertCustomer({
-          full_name: fullName || `Chủ xe ${cleanPlate}`,
-          phone: phone || null,
-          email: email || null,
-          status: 'Hoạt động'
-        });
-        customerId = customer ? customer.customer_id : null;
+        const months = parseInt(durationMonths) || 1;
+        const start = new Date(startDate);
+        start.setMonth(start.getMonth() + months);
+        expiredDate = start.toISOString().split('T')[0];
       }
 
-      // Fetch first active vehicle type
-      const vehicleTypeId = await cardRepository.getFirstVehicleTypeId();
-
-      if (!vehicleTypeId) {
-        throw new Error("Không tìm thấy loại xe nào trong hệ thống. Vui lòng cấu hình loại xe trước.");
-      }
-
-      // Insert new vehicle
-      vehicle = await cardRepository.insertVehicle({
-        customer_id: customerId,
-        vehicle_type_id: vehicleTypeId,
-        plate_number: cleanPlate,
-        status: 'Hoạt động'
+      cardToUse = await cardRepository.insertCard({
+        code,
+        type,
+        created_at: startDate,
+        expired_date: expiredDate,
+        status: 'Hoạt động',
       });
     }
 
-    // Link card to vehicle via card_registrations
-    await cardRepository.insertCardRegistration({
-      card_id: cardToUse.card_id,
-      vehicle_id: vehicle.vehicle_id,
-      status: 'Hoạt động',
-      created_at: startDate
-    });
-  }
+    // Link to vehicle if plate is provided
+    if (cleanPlate) {
+      // Check if vehicle with plate exists
+      let vehicle = await cardRepository.findVehicleByPlate(cleanPlate);
 
-  return cardToUse;
+      if (!vehicle) {
+        let customerId = null;
+
+        // If it's a monthly card, create/use customer
+        if (type === 'Thẻ tháng') {
+          const customer = await cardRepository.insertCustomer({
+            full_name: fullName || `Chủ xe ${cleanPlate}`,
+            phone: phone || null,
+            email: email || null,
+            status: 'Hoạt động'
+          });
+          customerId = customer ? customer.customer_id : null;
+          newCustomerId = customerId; // ghi nhớ để rollback nếu cần
+        }
+
+        // Fetch first active vehicle type
+        const vehicleTypeId = await cardRepository.getFirstVehicleTypeId();
+
+        if (!vehicleTypeId) {
+          throw new Error("Không tìm thấy loại xe nào trong hệ thống. Vui lòng cấu hình loại xe trước.");
+        }
+
+        // Insert new vehicle
+        vehicle = await cardRepository.insertVehicle({
+          customer_id: customerId,
+          vehicle_type_id: vehicleTypeId,
+          plate_number: cleanPlate,
+          status: 'Hoạt động'
+        });
+        newVehicleId = vehicle.vehicle_id; // ghi nhớ để rollback nếu cần
+      }
+
+      // Link card to vehicle via card_registrations
+      await cardRepository.insertCardRegistration({
+        card_id: cardToUse.card_id,
+        vehicle_id: vehicle.vehicle_id,
+        status: 'Hoạt động',
+        created_at: startDate
+      });
+    }
+
+    // ================================================================
+    // BƯỚC 3: Tự động tạo phiếu thu phí cấp lại thẻ (nếu là cấp lại thẻ mất)
+    // ================================================================
+    let payUrl = null;
+    let orderCode = null; // scope ờng ngoài để dùng ở bước return
+
+    if (replacesLostReportId) {
+      const REISSUE_FEE = 50000; // VNĐ — cố định theo quy định nghiệp vụ
+      orderCode = `RI${Date.now()}`;
+
+      // Tạo bản ghi thanh toán phí cấp lại thẻ
+      const { data: paymentData, error: paymentErr } = await supabase
+        .from('payment')
+        .insert({
+          amount: REISSUE_FEE,
+          payment_type: 'Phí cấp lại thẻ',
+          status: 'Chờ thanh toán',
+          order_code: orderCode,
+          note: `Phí cấp lại thẻ tháng do mất, liên quan đến Report ID: ${replacesLostReportId}`,
+          payment_time: new Date().toISOString(),
+        })
+        .select('payment_id')
+        .single();
+
+      if (paymentErr) {
+        throw new Error(`Không thể tạo phiếu thu phí cấp lại thẻ: ${paymentErr.message}`);
+      }
+
+      paymentId = paymentData.payment_id;
+
+      // Sinh link thanh toán VNPay cho phí cấp lại thẻ
+      try {
+        const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:'))
+          ? ipAddr
+          : '127.0.0.1';
+        payUrl = vnpayService.createPaymentUrl({
+          orderCode,
+          amount: REISSUE_FEE,
+          orderInfo: `Phi cap lai the thang bien so ${cleanPlate || ''}`,
+          ipAddr: clientIp,
+        });
+      } catch (vnpayErr) {
+        // Lỗi sinh URL không nên rollback toàn bộ — thẻ và payment đã tạo thành công
+        // Ghi log cảnh báo và tiếp tục trả về thẻ mà không có payUrl
+        console.error('[createCard] Lỗi khi sinh URL VNPay cho phí cấp lại thẻ:', vnpayErr.message);
+      }
+    }
+
+    // ================================================================
+    // BƯỚC 4: Trả về kết quả
+    // ================================================================
+    // Với cấp lại thẻ: trả kèm payment URL để frontend redirect sang VNPay
+    // Với tạo thẻ thường: chỉ trả về object thẻ (backward compatible)
+    if (replacesLostReportId) {
+      return {
+        ...cardToUse,
+        reissue_fee: 50000,
+        reissue_order_code: orderCode,
+        payUrl,
+      };
+    }
+
+    return cardToUse;
+
+  } catch (err) {
+    // ================================================================
+    // ROLLBACK THỦ CÔNG — Xóa các bản ghi đã tạo trong request này
+    // ================================================================
+    console.error('[createCard] Lỗi trong quá trình tạo thẻ, bắt đầu rollback thủ công:', err.message);
+
+    // Xóa payment record nếu đã insert
+    if (paymentId) {
+      await supabase.from('payment').delete().eq('payment_id', paymentId).catch(e =>
+        console.error('[createCard Rollback] Lỗi xóa payment:', e.message)
+      );
+    }
+
+    // Xóa card_registration nếu đã tạo (cascade từ card, hoặc xóa thủ công)
+    if (cardToUse?.card_id) {
+      await supabase.from('card_registrations').delete().eq('card_id', cardToUse.card_id).catch(e =>
+        console.error('[createCard Rollback] Lỗi xóa card_registrations:', e.message)
+      );
+      // Xóa card đã tạo
+      await supabase.from('card').delete().eq('card_id', cardToUse.card_id).catch(e =>
+        console.error('[createCard Rollback] Lỗi xóa card:', e.message)
+      );
+    }
+
+    // Xóa vehicle nếu được tạo mới trong request này
+    if (newVehicleId) {
+      await supabase.from('vehicle').delete().eq('vehicle_id', newVehicleId).catch(e =>
+        console.error('[createCard Rollback] Lỗi xóa vehicle:', e.message)
+      );
+    }
+
+    // Xóa customer nếu được tạo mới trong request này
+    if (newCustomerId) {
+      await supabase.from('customer').delete().eq('customer_id', newCustomerId).catch(e =>
+        console.error('[createCard Rollback] Lỗi xóa customer:', e.message)
+      );
+    }
+
+    // Ném lại lỗi gốc để controller trả về 500
+    throw err;
+  }
 };
 
 export const deleteCard = async (cardId, currentUserId) => {
