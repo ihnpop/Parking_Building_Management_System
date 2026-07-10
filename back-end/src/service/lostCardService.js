@@ -49,6 +49,8 @@ export const getLostCards = async () => {
         statusText = 'Đã xong';
       } else if (statusVal === 'Đã hủy thẻ') {
         statusText = 'Đã hủy thẻ';
+      } else if (statusVal === 'Đã hủy (tạo nhầm)') {
+        statusText = 'Đã hủy (tạo nhầm)';
       } else if (statusVal === 'Đang xử lý') {
         statusText = 'Đang xử lý';
       } else {
@@ -134,7 +136,7 @@ export const createLostCard = async ({
   }
 
   // Chặn báo mất trùng lặp
-  const CLOSED_LOST_STATUSES = ['Đã xong', 'Đã xử lý xong', 'Đã tìm lại', 'Đã hủy thẻ'];
+  const CLOSED_LOST_STATUSES = ['Đã xong', 'Đã xử lý xong', 'Đã tìm lại', 'Đã hủy thẻ', 'Đã hủy (tạo nhầm)'];
   const openReports = await lostCardRepository.findOpenLostReports(finalCardId, CLOSED_LOST_STATUSES);
 
   if (openReports && openReports.length > 0) {
@@ -220,6 +222,53 @@ export const acceptLostCardReport = async ({ reportId, performedBy }) => {
 };
 
 /**
+ * Hủy report mất thẻ do nhân viên tạo nhầm (KHÁC "Hủy thẻ" ở resolveLostCardReport
+ * - resolve/Hủy thẻ nghĩa là thẻ bị hủy vĩnh viễn; hàm này nghĩa là report tự nó sai,
+ * thẻ hoàn toàn không có vấn đề gì, cần mở khóa lại ngay).
+ * Chỉ cho phép hủy khi report còn ở trạng thái 'Đang chờ' - tức chưa ai tiếp nhận.
+ * Nếu đã 'Đang xử lý' trở đi, phải đi hết state machine qua resolveLostCardReport.
+ */
+export const cancelLostCardReport = async ({ reportId, performedBy, note }) => {
+  if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
+  if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
+
+  const report = await lostCardRepository.findLostReport(reportId);
+  if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
+
+  if (report.status !== 'Đang chờ') {
+    throw new Error(
+      `Chỉ có thể hủy report khi còn ở trạng thái 'Đang chờ' (chưa ai tiếp nhận). ` +
+      `Trạng thái hiện tại: '${report.status}'.`
+    );
+  }
+
+  const cardObj = await cardRepository.findCardTypeAndStatus(report.card_id);
+  const regForAudit = await lostCardRepository.findRegForAudit(report.card_id, report.vehicle_id);
+
+  let plateForAudit = null;
+  if (report.vehicle_id) {
+    const vehicleForAudit = await cardRepository.findVehicleById(report.vehicle_id);
+    plateForAudit = vehicleForAudit?.plate_number ?? null;
+  }
+
+  // Mở khóa thẻ ngay - hoàn tác đúng bước khóa đã làm lúc tạo report (rule #1)
+  await cardRepository.unlockCard(report.card_id);
+
+  await lostCardRepository.insertActivityLog({
+    card_id: report.card_id,
+    registration_id: regForAudit?.registration_id ?? null,
+    action: 'Thẻ đã mở khóa',
+    plate_number: plateForAudit,
+    old_data: { status: cardObj?.status ?? null },
+    new_data: { status: 'Hoạt động' },
+    note: note || `Hủy report ${reportId} do tạo nhầm - mở khóa lại thẻ`,
+    performed_by: performedBy
+  });
+
+  return await lostCardRepository.updateLostReport(reportId, { status: 'Đã hủy (tạo nhầm)' });
+};
+
+/**
  * Đóng một báo cáo mất thẻ.
  */
 export const resolveLostCardReport = async ({ reportId, performedBy, resolution, note }) => {
@@ -293,9 +342,9 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
  * @param {{ cardId, newCode, reportId, performedBy, ipAddr }} params
  */
 export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr }) => {
-  if (!cardId)     throw new Error("Thiếu card_id.");
+  if (!cardId) throw new Error("Thiếu card_id.");
   if (!newCode?.trim()) throw new Error("Thiếu mã RFID mới (newCode).");
-  if (!reportId)   throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
+  if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
 
   // ── 1. Validate report ──────────────────────────────────────────────────────

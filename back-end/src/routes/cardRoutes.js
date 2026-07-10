@@ -15,6 +15,7 @@ router.get('/lost-logs', lostController.getLostLogs);
 router.post('/lost-card', verifyToken, lostController.createLostCard);
 router.get('/lost-card/history', verifyToken, lostController.getAllHistory);
 router.put('/lost-card/:reportId/accept', verifyToken, lostController.acceptLostCard);
+router.put('/lost-card/:reportId/cancel', verifyToken, lostController.cancelLostCard);
 router.put('/lost-card/:reportId/resolve', verifyToken, lostController.resolveLostCard);
 router.post('/lost-card/reissue', verifyToken, lostController.reissueCard);
 

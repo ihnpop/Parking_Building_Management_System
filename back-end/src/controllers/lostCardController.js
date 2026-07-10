@@ -70,6 +70,29 @@ export const acceptLostCard = async (req, res) => {
   }
 };
 
+/**
+ * PUT /lost-card/:reportId/cancel
+ * Hủy report mất thẻ do nhân viên tạo nhầm (chỉ khi report còn 'Đang chờ').
+ * Khác resolveLostCard('Hủy thẻ'): thẻ KHÔNG bị hủy vĩnh viễn, chỉ mở khóa lại ngay.
+ */
+export const cancelLostCard = async (req, res) => {
+  try {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      return res.status(401).json({ success: false, message: "Không xác định được người thực hiện. Vui lòng đăng nhập lại." });
+    }
+
+    const { reportId } = req.params;
+    const { note } = req.body;
+
+    const result = await lostCardService.cancelLostCardReport({ reportId, performedBy, note });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 export const resolveLostCard = async (req, res) => {
   try {
     const performedBy = req.user?.id;
