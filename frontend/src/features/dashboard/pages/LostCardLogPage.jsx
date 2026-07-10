@@ -190,12 +190,21 @@ export default function LostCardLogPage() {
         }
     };
 
+    // Bắt buộc nhập biển số xe và lí do trước khi tạo báo mất
     const handleCreateLostCard = async () => {
+        if (!newLostCard.plate_number.trim()) {
+            showToast('Vui lòng nhập biển số xe.', 'error');
+            return;
+        }
+        if (!newLostCard.description.trim()) {
+            showToast('Vui lòng nhập lí do báo mất.', 'error');
+            return;
+        }
         try {
-            // Tạo payload gửi đi từ dữ liệu form
+            // Tạo payload gửi đi từ dữ liệu form (description đã được validate không rỗng ở trên)
             const payload = {
                 plate_number: newLostCard.plate_number,
-                description: newLostCard.description || 'Báo mất thẻ'
+                description: newLostCard.description
             };
 
             // Gọi API tạo báo mất thẻ mới
@@ -827,7 +836,7 @@ export default function LostCardLogPage() {
                         </div>
                         <div className="lost-modal-body">
                             <div className="lost-form-group">
-                                <label>Biển số xe</label>
+                                <label>Biển số xe <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input
                                     type="text"
                                     placeholder="Nhập biển số xe..."
@@ -842,7 +851,7 @@ export default function LostCardLogPage() {
                             </div>
 
                             <div className="lost-form-group">
-                                <label>Lí do</label>
+                                <label>Lí do <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input
                                     type="text"
                                     placeholder="Nhập lí do báo mất..."
@@ -871,7 +880,6 @@ export default function LostCardLogPage() {
                             <h2>Lịch sử xử lý</h2>
                         </div>
 
-                        {/* ĐOẠN BẠN VỪA HỎI - dán vào đây */}
                         <div className="lost-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                             {historyLoading ? (
                                 <p className="history-empty">Đang tải...</p>
