@@ -9,6 +9,7 @@ export const getLostCardLogs = async () => {
     .from('card_lost_log')
     .select(`
       lost_report_id,
+      card_id,
       reported_at,
       status,
       description,
@@ -235,10 +236,32 @@ export const getAllActivityLogs = async () => {
 export const findLostReportByIdWithVehicle = async (reportId) => {
   const { data, error } = await supabase
     .from('card_lost_log')
-    .select('lost_report_id, status, vehicle_id, vehicle ( plate_number )')
+    .select('lost_report_id, status, vehicle_id, card_id, vehicle ( plate_number )')
     .eq('lost_report_id', reportId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
   return data;
+};
+
+/**
+ * Lấy snapshot mã thẻ tại thời điểm báo mất từ audit log.
+ * Tìm log có action = 'Thẻ đã khóa' cho card_id đó, sắp xếp mới nhất.
+ * Mã cũ được lưu trong old_data.code kể từ khi ta cập nhật createLostCard.
+ * @param {string} cardId
+ * @param {string} reportId - dùng để xác định log thuộc đúng report
+ * @returns {Promise<string|null>} mã RFID lúc báo mất
+ */
+export const getCodeSnapshotByReportId = async (cardId, reportId) => {
+  const { data } = await supabase
+    .from('card_activity_logs')
+    .select('old_data')
+    .eq('card_id', cardId)
+    .eq('action', 'Thẻ đã khóa')
+    .ilike('note', `%${reportId}%`)
+    .order('performed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data?.old_data?.code ?? null;
 };

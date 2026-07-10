@@ -57,37 +57,44 @@ export default function LostCardLogPage() {
             showToast('Vui lòng nhập mã thẻ RFID mới!', 'error');
             return;
         }
+        if (!editingCard?.card_id) {
+            // Dữ liệu cũ (trước khi backend cập nhật) — tự động làm mới và yêu cầu thử lại
+            showToast('Đang làm mới dữ liệu, vui lòng mở lại báo cáo và thử lại...', 'info');
+            await fetchLostCards();
+            setEditingCard(null);
+            return;
+        }
+        if (!editingCard?.raw_report_id) {
+            showToast('Thiếu mã báo cáo gốc. Vui lòng tải lại trang.', 'error');
+            return;
+        }
         try {
             setActionLoading(true);
             const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
-            
+
             const res = await axios.post(
-                `${import.meta.env.VITE_API_URL}/cards/card`,
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/reissue`,
                 {
-                    type: 'Thẻ tháng',
-                    startDate: reissueStartDate,
-                    plate: editingCard.plate_number,
-                    fullName: editingCard.customer_name || `Chủ xe ${editingCard.plate_number}`,
-                    phone: editingCard.phone || '',
-                    email: editingCard.email || '',
-                    durationMonths: 1,
-                    replacesLostReportId: editingCard.raw_report_id
+                    cardId: editingCard.card_id,
+                    newCode: newRfidCode.trim(),
+                    reportId: editingCard.raw_report_id
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            showToast('Đã tạo yêu cầu cấp lại thẻ thành công!', 'success');
+            showToast('Đã cấp lại thẻ RFID thành công!', 'success');
 
-            if (res.data?.payUrl) {
-                // Mở link thanh toán VNPay trong tab mới
-                window.open(res.data.payUrl, '_blank');
+            // res.data.data.payUrl theo shape { success, data: { card, payUrl, ... } }
+            const payUrl = res.data?.data?.payUrl;
+            if (payUrl) {
+                window.location.href = payUrl;
             }
 
             setEditingCard(null);
             await fetchLostCards();
         } catch (err) {
             console.error(err);
-            const message = err.response?.data?.error || err.message || 'Không thể cấp lại thẻ';
+            const message = err.response?.data?.message || err.message || 'Không thể cấp lại thẻ';
             showToast(message, 'error');
         } finally {
             setActionLoading(false);
@@ -721,26 +728,51 @@ export default function LostCardLogPage() {
                                         ) : (
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                                 <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-                                                    Thông tin cấp lại thẻ tháng
+                                                    Cấp lại RFID cho thẻ tháng
                                                 </h3>
-                                                
-                                                <div className="lost-form-group">
-                                                    <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Nhập hoặc quét mã thẻ RFID mới..."
-                                                        value={newRfidCode}
-                                                        onChange={(e) => setNewRfidCode(e.target.value)}
-                                                    />
-                                                </div>
+                                                <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                                                    Mã RFID mới sẽ được ghi đè trực tiếp lên thẻ cũ. Hợp đồng và đăng ký xe giữ nguyên.
+                                                </p>
 
                                                 <div className="lost-form-group">
-                                                    <label>Ngày bắt đầu hoạt động</label>
-                                                    <input
-                                                        type="date"
-                                                        value={reissueStartDate}
-                                                        onChange={(e) => setReissueStartDate(e.target.value)}
-                                                    />
+                                                    <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Nhập hoặc quét mã thẻ RFID mới..."
+                                                            value={newRfidCode}
+                                                            onChange={(e) => setNewRfidCode(e.target.value)}
+                                                            style={{ flex: 1 }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            title="Tự động sinh mã RFID ngẫu nhiên"
+                                                            onClick={() => {
+                                                                const rand = `MONTH${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0')}`;
+                                                                setNewRfidCode(rand);
+                                                            }}
+                                                            style={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                padding: '8px 12px',
+                                                                background: '#f1f5f9',
+                                                                border: '1px solid #cbd5e1',
+                                                                borderRadius: '8px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '13px',
+                                                                color: '#475569',
+                                                                whiteSpace: 'nowrap',
+                                                                fontWeight: '500',
+                                                                transition: 'all 0.15s'
+                                                            }}
+                                                            onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+                                                            onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                        >
+                                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shuffle</span>
+                                                            Tự động sinh
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
@@ -750,7 +782,7 @@ export default function LostCardLogPage() {
                                                         onClick={handleReissueCard}
                                                         disabled={actionLoading}
                                                     >
-                                                        {actionLoading ? 'Đang xử lý...' : 'Xác nhận & Thanh toán VNPay'}
+                                                        {actionLoading ? 'Đang xử lý...' : 'Xác nhận cấp lại & Thanh toán'}
                                                     </button>
                                                     <button
                                                         type="button"

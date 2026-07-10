@@ -28,7 +28,9 @@ export const deleteCard = async (id, deletedBy) => {
 
 // Gửi yêu cầu tạo báo mất thẻ mới đến API Backend
 export const createLostCard = async (payload) => {
-    const response = await API.post("/cards/lost-card", payload)
+    const response = await API.post("/cards/lost-card", payload, {
+        headers: getAuthHeaders()
+    })
     return response.data.data || response.data
 }
 

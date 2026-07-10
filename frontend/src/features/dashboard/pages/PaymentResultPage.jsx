@@ -56,6 +56,7 @@ const PAYMENT_TYPE_LABEL = {
     "Vé lượt": "Thanh toán gửi xe",
     "Đăng ký vé tháng": "Đăng ký vé tháng",
     "Gia hạn vé tháng": "Gia hạn vé tháng",
+    "Phí cấp lại thẻ": "Cấp lại thẻ tháng (mất thẻ)",
 };
 
 // Định nghĩa hệ thống CSS trong code (inline styles) vì ứng dụng không sử dụng Tailwind CSS

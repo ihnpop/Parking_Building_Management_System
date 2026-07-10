@@ -96,3 +96,40 @@ export const getAllHistory = async (req, res) => {
     return res.status(400).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * POST /lost-card/reissue
+ * Cấp lại thẻ RFID cho thẻ tháng bị mất (update-in-place).
+ * Body: { cardId, newCode, reportId }
+ */
+export const reissueCard = async (req, res) => {
+  try {
+    const performedBy = req.user?.id;
+    if (!performedBy) {
+      return res.status(401).json({
+        success: false,
+        message: "Không xác định được người thực hiện. Vui lòng đăng nhập lại."
+      });
+    }
+
+    const { cardId, newCode, reportId } = req.body;
+
+    // Lấy IP của client (dùng cho VNPay)
+    let ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
+      ipAddr = '127.0.0.1';
+    }
+
+    const result = await lostCardService.reissueCard({
+      cardId,
+      newCode,
+      reportId,
+      performedBy,
+      ipAddr
+    });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};

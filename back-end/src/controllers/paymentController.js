@@ -88,11 +88,12 @@ export const vnpayReturn = async (req, res) => {
         const status = isSuccess ? "success" : "failed";
         
         // Chuyển hướng người dùng về trang Frontend hiển thị hóa đơn kết quả
-        res.redirect(`${frontendUrl}/payment-result?orderCode=${orderCode}&status=${status}`);
+        // Lưu ý: App dùng HashRouter nên route phải theo dạng /#/payment-result
+        res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=${status}`);
     } catch (err) {
         console.error("[VNPAY Return] Lỗi khi xử lý chuyển hướng trả về:", err);
         const orderCode = req.query.vnp_TxnRef || "";
         const frontendUrl = process.env.FRONTEND_URL;
-        res.redirect(`${frontendUrl}/payment-result?orderCode=${orderCode}&status=failed`);
+        res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=failed`);
     }
 };
