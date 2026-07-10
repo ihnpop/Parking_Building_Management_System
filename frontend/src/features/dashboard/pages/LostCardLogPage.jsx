@@ -40,6 +40,60 @@ export default function LostCardLogPage() {
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
 
+    // States và Effect cho chức năng Cấp lại thẻ tháng bị mất
+    const [showReissueForm, setShowReissueForm] = useState(false);
+    const [newRfidCode, setNewRfidCode] = useState('');
+    const [reissueStartDate, setReissueStartDate] = useState(new Date().toISOString().split('T')[0]);
+
+    useEffect(() => {
+        // Reset form cấp lại thẻ khi đóng modal hoặc đổi thẻ đang xem
+        setShowReissueForm(false);
+        setNewRfidCode('');
+        setReissueStartDate(new Date().toISOString().split('T')[0]);
+    }, [editingCard]);
+
+    const handleReissueCard = async () => {
+        if (!newRfidCode.trim()) {
+            showToast('Vui lòng nhập mã thẻ RFID mới!', 'error');
+            return;
+        }
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/cards/card`,
+                {
+                    type: 'Thẻ tháng',
+                    startDate: reissueStartDate,
+                    plate: editingCard.plate_number,
+                    fullName: editingCard.customer_name || `Chủ xe ${editingCard.plate_number}`,
+                    phone: editingCard.phone || '',
+                    email: editingCard.email || '',
+                    durationMonths: 1,
+                    replacesLostReportId: editingCard.raw_report_id
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            showToast('Đã tạo yêu cầu cấp lại thẻ thành công!', 'success');
+
+            if (res.data?.payUrl) {
+                // Mở link thanh toán VNPay trong tab mới
+                window.open(res.data.payUrl, '_blank');
+            }
+
+            setEditingCard(null);
+            await fetchLostCards();
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.error || err.message || 'Không thể cấp lại thẻ';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handleViewHistory = async () => {
         try {
             setHistoryLoading(true);
@@ -639,13 +693,84 @@ export default function LostCardLogPage() {
                                 </div>
                             )}
 
-                            {(editingCard.status === 'Đã xong' || editingCard.status === 'Đã hủy thẻ') && (
+                            {editingCard.status === 'Đã xong' && (
                                 <div className="lost-form-group">
                                     <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
                                         Report này đã được đóng, không thể thao tác thêm.
                                     </p>
                                 </div>
                             )}
+
+                            {editingCard.status === 'Đã hủy thẻ' && (
+                                <div className="lost-form-group" style={{ borderTop: '1px solid #e1e1ee', paddingTop: '16px', marginTop: '16px' }}>
+                                    {editingCard.card_type === 'Thẻ tháng' ? (
+                                        !showReissueForm ? (
+                                            <div>
+                                                <p style={{ fontSize: '13px', color: '#334155', marginBottom: '10px' }}>
+                                                    Thẻ tháng này đã bị hủy vĩnh viễn. Bạn có muốn tiến hành cấp lại thẻ mới không?
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    className="btn-save"
+                                                    style={{ background: '#0284c7', borderColor: '#0284c7' }}
+                                                    onClick={() => setShowReissueForm(true)}
+                                                >
+                                                    Cấp lại thẻ mới (Phí 50.000đ)
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                                                    Thông tin cấp lại thẻ tháng
+                                                </h3>
+                                                
+                                                <div className="lost-form-group">
+                                                    <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Nhập hoặc quét mã thẻ RFID mới..."
+                                                        value={newRfidCode}
+                                                        onChange={(e) => setNewRfidCode(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div className="lost-form-group">
+                                                    <label>Ngày bắt đầu hoạt động</label>
+                                                    <input
+                                                        type="date"
+                                                        value={reissueStartDate}
+                                                        onChange={(e) => setReissueStartDate(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-save"
+                                                        onClick={handleReissueCard}
+                                                        disabled={actionLoading}
+                                                    >
+                                                        {actionLoading ? 'Đang xử lý...' : 'Xác nhận & Thanh toán VNPay'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="btn-cancel"
+                                                        onClick={() => setShowReissueForm(false)}
+                                                        disabled={actionLoading}
+                                                    >
+                                                        Hủy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    ) : (
+                                        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                                            Thẻ bị hủy là thẻ lượt, không áp dụng quy trình cấp lại thẻ tháng.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                         </div>
 
                         <div className="lost-modal-actions">
