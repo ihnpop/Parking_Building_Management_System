@@ -380,9 +380,23 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
   // ── 7. Ghi audit log ─────────────────────────────────────────────────────────
   const regForAudit = await lostCardRepository.findRegForAudit(cardId, report.vehicle_id);
   let plateForAudit = null;
+  let customerNameForAudit = null;
   if (report.vehicle_id) {
-    const v = await cardRepository.findVehicleById(report.vehicle_id);
-    plateForAudit = v?.plate_number ?? null;
+    const { data: vWithCust } = await supabase
+      .from('vehicle')
+      .select(`
+        plate_number,
+        customer (
+          full_name
+        )
+      `)
+      .eq('vehicle_id', report.vehicle_id)
+      .maybeSingle();
+
+    if (vWithCust) {
+      plateForAudit = vWithCust.plate_number;
+      customerNameForAudit = vWithCust.customer?.full_name || null;
+    }
   }
 
   await lostCardRepository.insertActivityLog({
@@ -390,6 +404,8 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     registration_id: regForAudit?.registration_id ?? null,
     action: 'Thẻ đã cấp lại',
     plate_number: plateForAudit,
+    customer_name: customerNameForAudit,
+    amount: REISSUE_FEE,
     old_data: { code: oldCode },
     new_data: { code: newCode.trim(), status: 'Hoạt động' },
     note: `Cấp lại thẻ tháng - mã RFID cũ: ${oldCode} → mới: ${newCode.trim()} - Report ID: ${reportId}`,

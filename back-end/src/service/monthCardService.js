@@ -873,6 +873,7 @@ export const getMonthCardLogs = async () => {
       duration_months,
       performed_at
     `)
+    .in("action", ["Cấp mới", "Gia hạn", "Tạo thẻ tháng mới", "Đã gia hạn", "Thẻ đã cấp lại"])
     .order("performed_at", { ascending: false })
     .limit(100);
 
@@ -881,7 +882,11 @@ export const getMonthCardLogs = async () => {
 
   // Manual join for card codes
   const cardIds = [...new Set(data.map(item => item.card_id).filter(Boolean))];
+  const plates = [...new Set(data.map(item => item.plate_number).filter(Boolean))];
+
   let cardMap = {};
+  let ownerMap = {};
+
   if (cardIds.length > 0) {
     const { data: cards } = await supabase
       .from('card')
@@ -892,15 +897,60 @@ export const getMonthCardLogs = async () => {
         cardMap[c.card_id] = c.code;
       });
     }
+
+    const { data: regs } = await supabase
+      .from('card_registrations')
+      .select(`
+        card_id,
+        vehicle (
+          plate_number,
+          customer (
+            full_name
+          )
+        )
+      `)
+      .in('card_id', cardIds);
+
+    if (regs) {
+      regs.forEach(r => {
+        const name = r.vehicle?.customer?.full_name;
+        if (name) {
+          ownerMap[r.card_id] = name;
+        }
+      });
+    }
+  }
+
+  if (plates.length > 0) {
+    const { data: vehicles } = await supabase
+      .from('vehicle')
+      .select(`
+        plate_number,
+        customer (
+          full_name
+        )
+      `)
+      .in('plate_number', plates);
+    if (vehicles) {
+      vehicles.forEach(v => {
+        const name = v.customer?.full_name;
+        if (name) {
+          ownerMap[v.plate_number] = name;
+        }
+      });
+    }
   }
 
   return data.map((item, idx) => {
-
     const cardCode = cardMap[item.card_id] || `CARD${1000 + idx}`;
     const plate = item.plate_number || "Chưa có";
-    const owner = item.customer_name || "Khách vãng lai";
+    const owner = item.customer_name || ownerMap[item.card_id] || ownerMap[item.plate_number] || "Khách vãng lai";
     const time = new Date(item.performed_at).toLocaleString('vi-VN');
-    const amountVal = item.amount ? Number(item.amount) : 0;
+    
+    let amountVal = item.amount ? Number(item.amount) : 0;
+    if (amountVal === 0 && item.action === 'Thẻ đã cấp lại') {
+      amountVal = 50000;
+    }
     const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal);
     const status = "Thành công";
 
