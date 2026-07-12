@@ -18,7 +18,7 @@ services:
     build:
       context: ./back-end
     ports:
-      - "3639:3636"
+      - "8443:3636"
     environment:
       - OCR_SERVICE_URL=http://ai-service:8000
     volumes:

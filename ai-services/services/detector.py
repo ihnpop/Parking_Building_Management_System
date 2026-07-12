@@ -10,6 +10,11 @@ import os
 # Resolve absolute path to weight file relative to repository root
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 weight_path = os.path.join(repo_root, "weights", "license_plate_detector.pt")
+
+# Fallback for Docker container where /app/weights exists
+if not os.path.exists(weight_path):
+    weight_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "weights", "license_plate_detector.pt"))
+
 plate_detector = YOLO(weight_path)
 
 
