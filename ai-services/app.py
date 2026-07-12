@@ -1,311 +1,171 @@
-import io
-import re
-import json
-import hashlib
 import os
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
-from paddleocr import PaddleOCR
+import time
+import traceback
 import numpy as np
 import cv2
 
-app = FastAPI(title="PaddleOCR License Plate Recognition Service")
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-# ------------------------------------------------------------
-# ORIGINAL MODEL INITIALIZATION (commented out)
-# ------------------------------------------------------------
-# ocr = PaddleOCR(
-#     use_angle_cls=False,
-#     lang="en",
-#     enable_mkldnn=False,
-#     ocr_version="PP-OCRv4",
-#     det_limit_side_len=720
-# )
-# ------------------------------------------------------------
-# UPDATED MODEL INITIALIZATION
-# ------------------------------------------------------------
-# Enable MKL-DNN for CPU acceleration and lower the detection side length
-# to reduce computation while still being sufficient for license‑plate images.
-ocr = PaddleOCR(
-    use_angle_cls=False,
-    lang="en",
-    enable_mkldnn=True,          # <-- ENABLED for speedup on CPU
-    ocr_version="PP-OCRv4",
-    det_limit_side_len=640       # Reduced from 720 to cut inference time
+from services.detector import detect_plate
+from services.ocr import read_plate
+from services.formatter import format_plate
+
+
+# ==========================================================
+# FastAPI
+# ==========================================================
+
+app = FastAPI(title="PBMS AI OCR Service", version="2.0.0")
+
+# ==========================================================
+# CORS
+# ==========================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Production nên giới hạn domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-# ------------------------------------------------------------
 
-# ------------------------------------------------------------
-# Caching configuration (optional but speeds up repeated requests)
-# ------------------------------------------------------------
-CACHE_DIR = "/tmp/ocr_cache"
-os.makedirs(CACHE_DIR, exist_ok=True)
+# ==========================================================
+# Root
+# ==========================================================
 
 
-def _hash_bytes(b: bytes) -> str:
-    """Return a SHA‑256 hash for the given byte payload – used as cache key."""
-    return hashlib.sha256(b).hexdigest()
-
-# ------------------------------------------------------------
-# ORIGINAL ENDPOINT IMPLEMENTATION (commented out)
-# ------------------------------------------------------------
-# @app.post("/ocr")
-# async def ocr_read(file: UploadFile = File(...)):
-#     import os
-#     try:
-#         contents = await file.read()
-#
-#         # Tạo thư mục temp nếu chưa có
-#         temp_dir = "temp"
-#         os.makedirs(temp_dir, exist_ok=True)
-#
-#         # Tạo tên file tạm thời duy nhất
-#         temp_file_path = os.path.join(temp_dir, f"ocr_temp_{os.getpid()}.jpg")
-#
-#         # Đọc và tối ưu kích thước ảnh bằng OpenCV trước khi chạy OCR để tăng tốc độ xử lý CPU
-#         nparr = np.frombuffer(contents, np.uint8)
-#         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-#
-#         if img is not None:
-#             h, w = img.shape[:2]
-#             max_size = 960  # Kích thước tối đa cho cạnh dài nhất của ảnh biển số
-#             if max(h, w) > max_size:
-#                 scale = max_size / max(h, w)
-#                 img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-#         else:
-#             raise ValueError("Không thể giải mã file ảnh.")
-#
-#         # Ghi nội dung file ảnh đã resize xuống đĩa
-#         with open(temp_file_path, "wb") as f:
-#             _, img_encoded = cv2.imencode(".jpg", img)
-#             f.write(img_encoded.tobytes())
-#
-#         try:
-#             # Chạy nhận diện bằng đường dẫn file (khớp với test.py hoạt động ổn định)
-#             result = ocr.ocr(temp_file_path)
-#         finally:
-#             # Luôn dọn dẹp file tạm sau khi chạy xong
-#             if os.path.exists(temp_file_path):
-#                 os.remove(temp_file_path)
-#
-#         # Trích xuất các khối chữ từ kết quả OCR (hỗ trợ cả dạng dict và dạng list truyền thống)
-#         raw_texts = []
-#         if isinstance(result[0], dict):
-#             if 'rec_texts' in result[0]:
-#                 raw_texts = result[0]['rec_texts']
-#         elif isinstance(result[0], list):
-#             for line in result[0]:
-#                 if len(line) > 1 and (isinstance(line[1], list) or isinstance(line[1], tuple)):
-#                     raw_texts.append(line[1][0])
-#
-#         blocks = []
-#         for t in raw_texts:
-#             text = re.sub(r'[^A-Z0-9]', '', t.upper())
-#             if text:
-#                 blocks.append(text)
-#
-#         raw_plate = ""
-#         # 1. Tìm khối chứa đầy đủ biển số (ví dụ: 37E00058, 30A12345)
-#         for text in blocks:
-#             if re.match(r'^\d{2}[A-Z]\d{4,6}$', text) or re.match(r'^\d{2}[A-Z]{1,2}\d{4,6}$', text):
-#                 raw_plate = text
-#                 break
-#
-#         # 2. Nếu không có khối đầy đủ, tìm nửa trên (mã tỉnh + sê‑ri) và nửa dưới (dãy số)
-#         if not raw_plate:
-#             prefix = ""
-#             suffix = ""
-#             for text in blocks:
-#                 if re.match(r'^\d{2}[A-Z][A-Z0-9]?$', text):
-#                     prefix = text
-#                 elif re.match(r'^\d{4,5}$', text):
-#                     suffix = text
-#             if prefix and suffix:
-#                 raw_plate = prefix + suffix
-#
-#         # 3. Nếu vẫn không khớp, lọc ghép các khối có khả năng là biển số
-#         if not raw_plate:
-#             candidate = ""
-#             for text in blocks:
-#                 if re.search(r'\d{2}[A-Z]', text) or re.match(r'^\d{4,5}$', text):
-#                     candidate += text
-#             raw_plate = candidate if candidate else (blocks[0] if blocks else "")
-#
-#         # Áp dụng chuẩn hóa thông minh
-#         corrected_plate = smart_correct_vietnamese_plate(raw_plate)
-#
-#         return {
-#             "success": True,
-#             "raw_plate": raw_plate,
-#             "plate": corrected_plate
-#         }
-#     except Exception as e:
-#         import traceback
-#         traceback.print_exc()
-#         return JSONResponse(
-#             status_code=500,
-#             content={"success": False, "message": str(e)}
-#         )
-# ------------------------------------------------------------
-# NEW OPTIMIZED ENDPOINT IMPLEMENTATION
-# ------------------------------------------------------------
 @app.get("/")
-def home():
-    return {"status": "ok", "message": "PaddleOCR License Plate Recognition Service is running"}
+def root():
+    return {"service": "PBMS AI OCR Service", "status": "running", "version": "2.0.0"}
+
+
+# ==========================================================
+# Health Check
+# ==========================================================
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+# ==========================================================
+# OCR API
+# ==========================================================
 
 
 @app.post("/ocr")
-async def ocr_read(file: UploadFile = File(...)):
-    """Receive an uploaded image, run PaddleOCR directly on the in‑memory image,
-    apply smart Vietnamese‑plate correction and optionally cache results.
-    """
+async def ocr(file: UploadFile = File(...)):
+
+    total_start = time.time()
+
     try:
-        # 1. Read raw bytes
+
+        # ==================================================
+        # Read Image
+        # ==================================================
+
+        decode_start = time.time()
+
         contents = await file.read()
-        if not contents:
-            raise ValueError("File upload is empty.")
 
-        # 2. Cache lookup – if the exact same image was processed before, return it
-        cache_key = _hash_bytes(contents)
-        cache_path = os.path.join(CACHE_DIR, f"{cache_key}.json")
-        if os.path.isfile(cache_path):
-            # Load cached JSON and return immediately
-            with open(cache_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+        np_arr = np.frombuffer(contents, np.uint8)
 
-        # 3. Decode image from bytes into a NumPy array (no disk I/O)
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        if img is None:
-            raise ValueError("Không thể giải mã file ảnh.")
+        image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # 4. Resize only once – keep the longer side <= 720px (sufficient for plates)
-        h, w = img.shape[:2]
-        max_side = 720
-        if max(h, w) > max_side:
-            scale = max_side / max(h, w)
-            img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-            img = img[0]  # cv2.resize returns a tuple when extra parenthesis used
+        if image is None:
+            return JSONResponse(
+                status_code=400, content={"success": False, "message": "Invalid image."}
+            )
 
-        # 5. Run OCR directly on the NumPy image
-        result = ocr.ocr(img)
+        print(f"Decode Time : {(time.time()-decode_start):.3f}s")
 
-        # 6. Extract raw text blocks (support both dict & list outputs)
-        raw_texts = []
-        if isinstance(result[0], dict):
-            raw_texts = result[0].get('rec_texts', [])
-        elif isinstance(result[0], list):
-            for line in result[0]:
-                if isinstance(line, (list, tuple)) and len(line) > 1:
-                    # line[1] can be a list/tuple where the first element is the recognized string
-                    block = line[1][0] if isinstance(line[1], (list, tuple)) else line[1]
-                    raw_texts.append(block)
+        # ==================================================
+        # YOLO Detect
+        # ==================================================
 
-        # 7. Clean and collect candidate strings
-        blocks = []
-        for t in raw_texts:
-            text = re.sub(r'[^A-Z0-9]', '', t.upper())
-            if text:
-                blocks.append(text)
+        detect_start = time.time()
 
-        raw_plate = ""
-        # 7.1 Full‑plate pattern (e.g., 30A12345, 59S123456)
-        for text in blocks:
-            if re.fullmatch(r"\d{2}[A-Z]\d{4,6}", text) or re.fullmatch(r"\d{2}[A-Z]{1,2}\d{4,6}", text):
-                raw_plate = text
-                break
-        # 7.2 If not found, try to combine prefix + suffix
-        if not raw_plate:
-            prefix = suffix = ""
-            for text in blocks:
-                if re.fullmatch(r"\d{2}[A-Z][A-Z0-9]?", text):
-                    prefix = text
-                elif re.fullmatch(r"\d{4,5}", text):
-                    suffix = text
-            if prefix and suffix:
-                raw_plate = prefix + suffix
-        # 7.3 Fallback – concatenate any plausible fragments
-        if not raw_plate and blocks:
-            raw_plate = "".join(blocks)
+        plate_image = detect_plate(image)
 
-        # 8. Apply smart Vietnamese‑plate correction (function defined later in file)
-        corrected_plate = smart_correct_vietnamese_plate(raw_plate)
+        print(f"YOLO Time   : {(time.time()-detect_start):.3f}s")
 
-        final_result = {
+        if plate_image is None:
+
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "License plate not found."},
+            )
+
+        # ==================================================
+        # EasyOCR
+        # ==================================================
+
+        ocr_start = time.time()
+
+        raw_text = read_plate(plate_image)
+
+        print(f"OCR Time    : {(time.time()-ocr_start):.3f}s")
+
+        # ==================================================
+        # Formatter
+        # ==================================================
+
+        format_start = time.time()
+
+        plate_number = format_plate(raw_text)
+
+        print(f"Format Time : {(time.time()-format_start):.3f}s")
+
+        # ==================================================
+        # Validate
+        # ==================================================
+
+        if plate_number == "":
+
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "message": "Cannot recognize license plate.",
+                },
+            )
+
+        # ==================================================
+        # Total
+        # ==================================================
+
+        total_time = time.time() - total_start
+
+        print("=" * 50)
+        print(f"TOTAL TIME  : {total_time:.3f}s")
+        print("=" * 50)
+
+        return {
             "success": True,
-            "raw_plate": raw_plate,
-            "plate": corrected_plate
+            "raw_text": raw_text,
+            "plate": plate_number,
+            "processing_time": round(total_time, 3),
         }
 
-        # 9. Store in cache for future identical requests
-        with open(cache_path, "w", encoding="utf-8") as f:
-            json.dump(final_result, f)
-
-        return final_result
     except Exception as e:
-        import traceback
+
         traceback.print_exc()
-        return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
+
+        return JSONResponse(
+            status_code=500, content={"success": False, "message": str(e)}
+        )
 
 
-# ------------------------------------------------------------
-# SMART CORRECTION FUNCTION (unchanged – kept as‑is)
-# ------------------------------------------------------------
-def smart_correct_vietnamese_plate(plate: str) -> str:
-    """
-    Hàm chuẩn hóa thông minh biển số xe Việt Nam.
-    Tự động sửa các lỗi OCR phổ biến (S->5, B->8,...) dựa theo vị trí và định dạng biển số.
-    """
-    # Chỉ giữ lại ký tự chữ cái và chữ số, viết hoa
-    plate = re.sub(r'[^A-Z0-9]', '', plate.upper())
+# ==========================================================
+# Local Run
+# ==========================================================
 
-    char_to_num = {
-        'O': '0', 'I': '1', 'L': '1', 'Z': '2', 'S': '5', 'B': '8', 'G': '6', 'T': '7'
-    }
-    num_to_char = {
-        '0': 'D', '1': 'I', '2': 'Z', '5': 'S', '8': 'B'
-    }
+if __name__ == "__main__":
 
-    def to_num(c):
-        return char_to_num.get(c, c)
+    import uvicorn
 
-    def to_char(c):
-        return num_to_char.get(c, c)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
-    n = len(plate)
-    if n < 7:
-        return plate
-
-    chars = list(plate)
-    # 1. Hai ký tự đầu tiên bắt buộc phải là số (Mã vùng/Tỉnh thành)
-    chars[0] = to_num(chars[0])
-    chars[1] = to_num(chars[1])
-    # 2. Ký tự thứ 3 bắt buộc phải là chữ (Sê-ri biển số)
-    chars[2] = to_char(chars[2])
-    # 3. Xử lý các ký tự phía sau theo chiều dài chuỗi biển số
-    if len(chars) == 9:
-        # Định dạng xe máy đời mới (ví dụ: 59S1-234.56 -> 9 ký tự: 59S123456)
-        # Ký tự thứ 4 bắt buộc là số sê‑ri phụ
-        chars[3] = to_num(chars[3])
-        # Các ký tự từ thứ 5 đến thứ 9 bắt buộc là số thứ tự
-        for i in range(4, 9):
-            chars[i] = to_num(chars[i])
-    elif len(chars) == 8:
-        # Có 2 trường hợp chính:
-        # - Ô tô: 30A-123.45 -> 8 ký tự: 30A12345 (2 số + 1 chữ + 5 số)
-        # - Xe máy sê‑ri đôi (ví dụ xe điện): 29AA-123.4 -> 8 ký tự: 29AA1234 (2 số + 2 chữ + 4 số)
-        is_double_letter = chars[3] in ('A', 'C', 'E', 'F', 'H', 'K', 'M', 'N', 'P', 'Q', 'R', 'U', 'V', 'W', 'X', 'Y')
-        if is_double_letter:
-            # Trường hợp 29AA1234
-            chars[3] = to_char(chars[3])
-            for i in range(4, 8):
-                chars[i] = to_num(chars[i])
-        else:
-            # Trường hợp 30A12345
-            for i in range(3, 8):
-                chars[i] = to_num(chars[i])
-    elif len(chars) == 7:
-        # Định dạng cũ: 29A-1234 -> 7 ký tự: 29A1234 (2 số + 1 chữ + 4 số)
-        for i in range(3, 7):
-            chars[i] = to_num(chars[i])
-    return "".join(chars)
