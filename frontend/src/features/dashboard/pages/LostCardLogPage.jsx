@@ -153,6 +153,41 @@ export default function LostCardLogPage() {
         }
     };
 
+    // Hủy report do tạo nhầm (Đang chờ -> Đã hủy (tạo nhầm)).
+    // CHỈ cho phép khi report còn 'Đang chờ' - backend sẽ tự chặn nếu sai state.
+    // Khác với "Hủy thẻ" ở resolveLostCardReport: thẻ hoàn toàn không có vấn đề,
+    // nên hành động này sẽ MỞ KHÓA lại thẻ ngay.
+    const handleCancelReport = async () => {
+        if (!editingCard?.raw_report_id) {
+            showToast('Thiếu mã báo cáo gốc (raw_report_id) - không thể hủy report. Vui lòng tải lại trang.', 'error');
+            return;
+        }
+        const confirmed = window.confirm(
+            'Hủy report này do tạo nhầm? Thẻ sẽ được MỞ KHÓA lại ngay lập tức.'
+        );
+        if (!confirmed) return;
+
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            await axios.put(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/${editingCard.raw_report_id}/cancel`,
+                { note: resolveNote || undefined },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            showToast('Đã hủy report và mở khóa lại thẻ.', 'success');
+            setResolveNote('');
+            await fetchLostCards();
+            setEditingCard(null);
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.message || 'Không thể hủy report';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     // RULE #4 - Đóng report: tìm lại thẻ (Tìm lại thẻ) hoặc hủy thẻ vĩnh viễn (Hủy thẻ).
     // Chỉ gọi được khi report đang ở trạng thái 'Đang xử lý' (backend tự chặn nếu sai state).
     const handleResolveReport = async (resolution) => {
@@ -190,12 +225,21 @@ export default function LostCardLogPage() {
         }
     };
 
+    // Bắt buộc nhập biển số xe và lí do trước khi tạo báo mất
     const handleCreateLostCard = async () => {
+        if (!newLostCard.plate_number.trim()) {
+            showToast('Vui lòng nhập biển số xe.', 'error');
+            return;
+        }
+        if (!newLostCard.description.trim()) {
+            showToast('Vui lòng nhập lí do báo mất.', 'error');
+            return;
+        }
         try {
-            // Tạo payload gửi đi từ dữ liệu form
+            // Tạo payload gửi đi từ dữ liệu form (description đã được validate không rỗng ở trên)
             const payload = {
                 plate_number: newLostCard.plate_number,
-                description: newLostCard.description || 'Báo mất thẻ'
+                description: newLostCard.description
             };
 
             // Gọi API tạo báo mất thẻ mới
@@ -319,6 +363,8 @@ export default function LostCardLogPage() {
                 return 'status-recovered';
             case 'Đã hủy thẻ':
                 return 'status-cancelled';
+            case 'Đã hủy (tạo nhầm)':
+                return 'status-cancelled-mistake';
             default:
                 return '';
         }
@@ -652,17 +698,34 @@ export default function LostCardLogPage() {
                             {editingCard.status === 'Đang chờ' && (
                                 <div className="lost-form-group">
                                     <label>Hành động</label>
-                                    <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 8px' }}>
-                                        Report đang chờ - bấm "Tiếp nhận xử lý" để bắt đầu xác minh.
+                                    <p className="lost-action-hint">
+                                        Report đang chờ - bấm "Tiếp nhận xử lý" để bắt đầu xác minh, hoặc "Hủy report" nếu tạo nhầm.
                                     </p>
-                                    <button
-                                        type="button"
-                                        className="btn-save"
-                                        disabled={actionLoading}
-                                        onClick={handleAcceptReport}
-                                    >
-                                        {actionLoading ? 'Đang xử lý...' : 'Tiếp nhận xử lý'}
-                                    </button>
+                                    <input
+                                        type="text"
+                                        className="lost-action-note-input"
+                                        placeholder="Ghi chú (tùy chọn, dùng khi hủy report)..."
+                                        value={resolveNote}
+                                        onChange={(e) => setResolveNote(e.target.value)}
+                                    />
+                                    <div className="lost-action-btn-row">
+                                        <button
+                                            type="button"
+                                            className="btn-save"
+                                            disabled={actionLoading}
+                                            onClick={handleAcceptReport}
+                                        >
+                                            {actionLoading ? 'Đang xử lý...' : 'Tiếp nhận xử lý'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-cancel btn-cancel-mistake"
+                                            disabled={actionLoading}
+                                            onClick={handleCancelReport}
+                                        >
+                                            {actionLoading ? 'Đang xử lý...' : 'Hủy report (tạo nhầm)'}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -689,10 +752,9 @@ export default function LostCardLogPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            className="btn-cancel"
+                                            className="btn-cancel btn-cancel-danger"
                                             disabled={actionLoading}
                                             onClick={() => handleResolveReport('Hủy thẻ')}
-                                            style={{ color: '#ef4444', borderColor: '#ef4444' }}
                                         >
                                             {actionLoading ? 'Đang xử lý...' : 'Hủy thẻ vĩnh viễn'}
                                         </button>
@@ -827,7 +889,7 @@ export default function LostCardLogPage() {
                         </div>
                         <div className="lost-modal-body">
                             <div className="lost-form-group">
-                                <label>Biển số xe</label>
+                                <label>Biển số xe <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input
                                     type="text"
                                     placeholder="Nhập biển số xe..."
@@ -842,7 +904,7 @@ export default function LostCardLogPage() {
                             </div>
 
                             <div className="lost-form-group">
-                                <label>Lí do</label>
+                                <label>Lí do <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input
                                     type="text"
                                     placeholder="Nhập lí do báo mất..."
@@ -871,7 +933,6 @@ export default function LostCardLogPage() {
                             <h2>Lịch sử xử lý</h2>
                         </div>
 
-                        {/* ĐOẠN BẠN VỪA HỎI - dán vào đây */}
                         <div className="lost-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
                             {historyLoading ? (
                                 <p className="history-empty">Đang tải...</p>

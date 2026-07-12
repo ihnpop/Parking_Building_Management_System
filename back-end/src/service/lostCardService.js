@@ -97,6 +97,10 @@ export const createLostCard = async ({
     throw new Error("Vui lòng nhập biển số xe.");
   }
 
+  if (!description || !description.trim()) {
+    throw new Error("Vui lòng nhập lí do báo mất.");
+  }
+
   if (!performedBy) {
     throw new Error("Thiếu thông tin người thực hiện (performedBy) để ghi nhận audit log.");
   }
@@ -166,7 +170,7 @@ export const createLostCard = async ({
   const data = await lostCardRepository.insertLostCardLog({
     card_id: finalCardId,
     vehicle_id: vehicle.vehicle_id,
-    description: description || "Báo mất thẻ",
+    description: description,
     reported_at: new Date().toISOString(),
     status: 'Đang chờ',
     handled_by: null
