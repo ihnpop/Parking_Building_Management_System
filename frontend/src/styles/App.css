@@ -26039,6 +26039,7 @@ body,
     min-height: 0 !important;
   }
 
+  /* Finalized current project UI */
   /* Core 4-row Grid Layout as recommended in spec */
   /* Side-by-side 2-column Grid Layout for zero-scroll desktop dashboard */
   .system-page .system-content {
@@ -26161,13 +26162,13 @@ body,
   }
 
   /* Compact tab switcher styles */
-  .system-page .active-transaction > div:first-child {
+  .system-page .active-transaction>div:first-child {
     margin-bottom: 0 !important;
     padding-bottom: 6px !important;
     gap: 8px !important;
   }
 
-  .system-page .active-transaction > div:first-child button {
+  .system-page .active-transaction>div:first-child button {
     padding: 6px 12px !important;
     border-radius: 6px !important;
     font-size: 12px !important;
@@ -28473,8 +28474,13 @@ body,
 }
 
 @keyframes spin-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-spin {
