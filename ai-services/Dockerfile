@@ -19,6 +19,7 @@ COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code and model weights
+COPY app.py ./app.py
 COPY services ./services
 COPY weights ./weights
 
