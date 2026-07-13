@@ -87,31 +87,33 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
 
           script: |
-            set -e
+            # set -e
 
-            cd ~/Parking_Building_Management_System
+            # cd ~/Parking_Building_Management_System
 
-            git fetch origin
-            git checkout deploy
-            git reset --hard origin/deploy
+            # git fetch origin
+            # git checkout deploy
+            # git reset --hard origin/deploy
 
-            # Kiểm tra dung lượng ổ đĩa
-            USED=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+            # # Kiểm tra dung lượng ổ đĩa
+            # USED=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
 
-            if [ "$USED" -gt 80 ]; then
-              echo "Disk usage: ${USED}% -> Cleaning Docker..."
-              sudo docker builder prune -af
-              sudo docker system prune -af --volumes
-            fi
+            # if [ "$USED" -gt 80 ]; then
+            #   echo "Disk usage: ${USED}% -> Cleaning Docker..."
+            #   sudo docker builder prune -af
+            #   sudo docker system prune -af --volumes
+            # fi
 
-            if [ "${{ needs.changes.outputs.backend }}" = "true" ]; then
-              echo "Deploy Backend..."
-              sudo docker compose up -d --build back-end
-            fi
+            # if [ "${{ needs.changes.outputs.backend }}" = "true" ]; then
+            #   echo "Deploy Backend..."
+            #   sudo docker compose up -d --build back-end
+            # fi
 
-            if [ "${{ needs.changes.outputs.ai }}" = "true" ]; then
-              echo "Deploy AI Service..."
-              sudo docker compose up -d --build ai-service
-            fi
+            # if [ "${{ needs.changes.outputs.ai }}" = "true" ]; then
+            #   echo "Deploy AI Service..."
+            #   sudo docker compose up -d --build ai-service
+            # fi
 
-            sudo docker image prune -f
+            # sudo docker image prune -f
+            script: |
+           ~/deploy.sh
