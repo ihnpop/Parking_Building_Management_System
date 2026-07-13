@@ -14,9 +14,9 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy requirements and install Python packages (including torch with CUDA support)
+# Copy requirements and install Python packages (including torch CPU version)
 COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy application code and model weights
 COPY app.py ./app.py
