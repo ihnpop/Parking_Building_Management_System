@@ -10,20 +10,25 @@ CHAR_TO_NUM = {
     "D": "0",
     "I": "1",
     "L": "1",
+    "J": "1",
     "Z": "2",
+    "E": "3",
+    "A": "4",
     "S": "5",
-    "B": "8",
     "G": "6",
     "T": "7",
+    "B": "8",
 }
 
 NUM_TO_CHAR = {
     "0": "D",
     "1": "I",
     "2": "Z",
-    "3": "E",
+    "3": "A",  # 'A' is often misread as '3' in square fonts
+    "4": "A",  # 'A' is often misread as '4'
     "5": "S",
     "6": "G",
+    "7": "T",
     "8": "B",
     "9": "P",
 }
@@ -39,8 +44,11 @@ def clean_text(text: str) -> str:
 
     text = text.upper()
 
-    # Loại bỏ tên thương hiệu xe thường xuất hiện gần biển số
-    brands = ["HONDA", "H0NDA", "YAMAHA", "SUZUKI", "SYM", "VESPA", "PIAGGIO"]
+    # Loại bỏ tên thương hiệu và từ khóa rác xuất hiện gần biển số
+    brands = [
+        "HONDA", "H0NDA", "YAMAHA", "SUZUKI", "SYM", "VESPA", "PIAGGIO",
+        "VIETNAM", "VIET NAM", "VN", "BIENSO", "BIEN SO"
+    ]
     for brand in brands:
         text = text.replace(brand, "")
 
