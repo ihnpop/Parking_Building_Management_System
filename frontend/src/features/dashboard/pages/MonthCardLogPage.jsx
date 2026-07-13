@@ -117,7 +117,7 @@ export default function MonthCardLogPage() {
     return (
         <div className="lost-card-log-wrapper">
             {/* Stats Grid */}
-            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
+            <div className="lost-kpi-container">
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
@@ -274,10 +274,10 @@ export default function MonthCardLogPage() {
 
             {/* Table */}
             <section className="lost-table-card">
-                {error && <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
+                {error && <div className="table-status-error">{error}</div>}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký vé tháng...</div>
+                    <div className="table-status-loading">Đang tải nhật ký vé tháng...</div>
                 ) : (
                     <>
                         <div className="mc-table-scroll">
@@ -296,11 +296,11 @@ export default function MonthCardLogPage() {
                                     {currentData.length > 0 ? (
                                         currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
-                                                <td className="log-time" style={{ fontFamily: 'monospace' }}>{log.time}</td>
+                                                <td className="log-time log-time-cell">{log.time}</td>
                                                 <td className="mc-td-bold">{log.plate}</td>
                                                 <td>{log.owner}</td>
                                                 <td>{log.type}</td>
-                                                <td className="log-amount" style={{ fontWeight: '700' }}>{log.amount}</td>
+                                                <td className="log-amount log-amount-cell">{log.amount}</td>
                                                 <td>
                                                     <span className={`status-badge-log ${getStatusClass(log.status)}`}>
                                                         {log.status}
@@ -310,7 +310,7 @@ export default function MonthCardLogPage() {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                            <td colSpan="6" className="table-status-empty">
                                                 Không tìm thấy nhật ký giao dịch phù hợp
                                             </td>
                                         </tr>

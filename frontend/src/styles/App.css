@@ -27796,3 +27796,39 @@ body,
 table td, table th {
   white-space: nowrap !important;
 }
+
+/* Common Table Status Utilities */
+.table-status-error {
+  color: #ff4d4d;
+  padding: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.table-status-loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.table-status-empty {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+.log-time-cell {
+  font-family: monospace;
+}
+
+.log-amount-cell {
+  font-weight: 700;
+}
+
+.lost-table td, .lost-table th {
+  white-space: normal !important;
+}
+
+.text-center {
+  text-align: center !important;
+}
