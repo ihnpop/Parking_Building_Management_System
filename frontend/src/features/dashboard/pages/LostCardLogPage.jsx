@@ -723,7 +723,7 @@ export default function LostCardLogPage() {
                                             disabled={actionLoading}
                                             onClick={handleCancelReport}
                                         >
-                                            {actionLoading ? 'Đang xử lý...' : 'Hủy report (tạo nhầm)'}
+                                            {actionLoading ? 'Đang xử lý...' : 'Hủy Báo Cáo'}
                                         </button>
                                     </div>
                                 </div>
