@@ -12,6 +12,9 @@ export default function LoginLogPage() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const loadLogs = async () => {
         setLoading(true);
         try {
@@ -62,6 +65,7 @@ export default function LoginLogPage() {
             return matchesSearch && matchesRole && matchesDate;
         });
         setLogs(filtered);
+        setCurrentPage(1);
     };
 
     useEffect(() => {
@@ -75,9 +79,63 @@ export default function LoginLogPage() {
     };
 
     const totalLogins = logs.length;
-    const failedLogins = logs.filter(log => log.status === 'Thất bại' || log.status === 'Tài khoản bị khóa').length;
-    const successLogins = logs.filter(log => log.status === 'Thành công').length;
-    const activeSessions = successLogins; // Giả lập số phiên hoạt động dựa trên số lần đăng nhập thành công gần đây
+    const failedLogins = logs.filter(log => {
+        const s = (log.status || '').toLowerCase();
+        return s.includes('thất bại') || s.includes('khóa') || s === 'failed';
+    }).length;
+    const successLogins = logs.filter(log => {
+        const s = (log.status || '').toLowerCase();
+        return s.includes('thành công') || s === 'success';
+    }).length;
+    const activeSessions = successLogins;
+
+    const totalPages = Math.ceil(logs.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const currentData = logs.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    const getPageNumbers = () => {
+        const pages = [];
+        const start = Math.max(1, currentPage - 2);
+        const end = Math.min(totalPages, currentPage + 2);
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        if (start > 1) {
+            if (start > 3) {
+                pages.unshift('...');
+                pages.unshift(2);
+                pages.unshift(1);
+            } else if (start === 3) {
+                pages.unshift(2);
+                pages.unshift(1);
+            } else if (start === 2) {
+                pages.unshift(1);
+            }
+        }
+
+        if (end < totalPages) {
+            if (end < totalPages - 2) {
+                pages.push('...');
+                pages.push(totalPages - 1);
+                pages.push(totalPages);
+            } else if (end === totalPages - 2) {
+                pages.push(totalPages - 1);
+                pages.push(totalPages);
+            } else if (end === totalPages - 1) {
+                pages.push(totalPages);
+            }
+        }
+
+        return pages;
+    };
 
     return (
         <div className="lost-card-log-wrapper">
@@ -175,7 +233,7 @@ export default function LoginLogPage() {
 
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Thất bại</span>
+                            <span>Thất bại/Bị khóa</span>
                             <span><span className="lost-dist-val">{failedLogins}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((failedLogins / totalLogins) * 100) : 0}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
@@ -258,19 +316,15 @@ export default function LoginLogPage() {
                                     <th>THIẾT BỊ/TRÌNH DUYỆT</th>
                                     <th>VỊ TRÍ</th>
                                     <th>TRẠNG THÁI</th>
-                                    <th>HÀNH ĐỘNG</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {logs.length > 0 ? (
-                                    logs.map((log, index) => (
+                                {currentData.length > 0 ? (
+                                    currentData.map((log, index) => (
                                         <tr key={index}>
                                             <td className="log-timestamp">{log.timestamp}</td>
                                             <td>
                                                 <div className="log-user-cell">
-                                                    <div className={`user-avatar-circle initials-${log.initials || 'UK'}`}>
-                                                        {log.initials || 'UK'}
-                                                    </div>
                                                     <span className="username-text">{log.username}</span>
                                                 </div>
                                             </td>
@@ -293,19 +347,14 @@ export default function LoginLogPage() {
                                             <td>{log.location}</td>
                                             <td>
                                                 <span className={`status-badge-log ${getStatusClass(log.status)}`}>
-                                                    {log.status}
+                                                    {log.status === 'Tài khoản bị khóa' ? 'Bị khóa' : log.status}
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <button type="button" className="log-action-btn">
-                                                    <span className="material-symbols-outlined">visibility</span>
-                                                </button>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
                                             Không có dữ liệu nhật ký phù hợp
                                         </td>
                                     </tr>
@@ -315,13 +364,35 @@ export default function LoginLogPage() {
 
                         {/* Footer */}
                         <div className="log-table-footer">
-                            <span className="footer-info">Đang hiển thị 1 - {logs.length} của {logs.length} bản ghi</span>
+                            <span className="footer-info">Đang hiển thị {Math.min(startIndex + 1, logs.length)} - {Math.min(startIndex + itemsPerPage, logs.length)} của {logs.length} bản ghi</span>
                             <div className="log-pagination">
-                                <button type="button" className="page-btn" disabled>
+                                <button
+                                    type="button"
+                                    className="page-btn"
+                                    disabled={currentPage === 1}
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                >
                                     <span className="material-symbols-outlined">chevron_left</span>
                                 </button>
-                                <button type="button" className="page-btn active">1</button>
-                                <button type="button" className="page-btn" disabled>
+
+                                {getPageNumbers().map((page, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        className={`page-btn ${page === currentPage ? 'active' : ''} ${page === '...' ? 'dots' : ''}`}
+                                        disabled={page === '...'}
+                                        onClick={() => page !== '...' && handlePageChange(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    className="page-btn"
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                >
                                     <span className="material-symbols-outlined">chevron_right</span>
                                 </button>
                             </div>
