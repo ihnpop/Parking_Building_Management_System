@@ -1,0 +1,46 @@
+# name: Deploy PBMS to AWS EC2
+
+# on:
+#   push:
+#     branches:
+#       - deploy
+
+name: Deploy PBMS to AWS EC2
+
+on:
+  push:
+    branches:
+      - deploy
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+
+          script: |
+            cd ~/Parking_Building_Management_System
+
+            git fetch origin
+
+            git checkout deploy
+
+            git reset --hard origin/deploy
+
+            docker compose down
+
+            docker compose up --build -d
+
+            docker image prune -f
