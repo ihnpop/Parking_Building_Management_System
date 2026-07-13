@@ -14991,7 +14991,7 @@ body {
   background-color: #eff6ff;
   /* light blue matches lost table header */
   color: #1e3a8a;
-  padding: 18px 24px;
+  padding: 16px 12px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -14999,7 +14999,7 @@ body {
 }
 
 .log-table td {
-  padding: 16px 24px;
+  padding: 14px 12px;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
   color: #374151;
@@ -15091,6 +15091,7 @@ body {
   font-weight: 700;
   font-size: 12px;
   text-align: center;
+  min-width: 84px !important;
 }
 
 .status-badge-log.success {
@@ -15112,6 +15113,8 @@ body {
   font-weight: 700 !important;
   color: #fff !important;
   white-space: nowrap !important;
+  min-width: 84px !important;
+  text-align: center !important;
 }
 
 .role-badge.admin {
@@ -23007,6 +23010,10 @@ td {
   background: #10b981;
 }
 
+.bg-red {
+  background: #ef4444;
+}
+
 
 /* Filter Section */
 .lost-filter-card {
@@ -27132,33 +27139,33 @@ body,
 .lost-kpi-container {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 .lost-kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 12px;
 }
 
 .lost-kpi-card {
   background: #fff;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .lost-kpi-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .lost-kpi-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27185,7 +27192,7 @@ body,
 }
 
 .lost-kpi-title {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
   font-weight: 500;
 }
@@ -27197,7 +27204,7 @@ body,
 }
 
 .lost-kpi-value {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: #1e293b;
 }
@@ -27215,7 +27222,7 @@ body,
 }
 
 .lost-kpi-footer {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .txt-gray {
@@ -27237,36 +27244,36 @@ body,
 /* ===== Distribution card ===== */
 .lost-dist-card {
   background: #fff;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .lost-dist-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: 600;
   color: #1e293b;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .lost-dist-divider {
   border: none;
   border-top: 1px solid #e2e8f0;
-  margin: 12px 0;
+  margin: 8px 0;
 }
 
 .lost-dist-item {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .lost-dist-label-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 12px;
   color: #334155;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .lost-dist-val {
@@ -27278,7 +27285,7 @@ body,
 }
 
 .lost-dist-track {
-  height: 6px;
+  height: 4px;
   background: #f1f5f9;
   border-radius: 999px;
   overflow: hidden;
@@ -27304,6 +27311,10 @@ body,
 
 .bg-green {
   background: #22c55e;
+}
+
+.bg-red {
+  background: #ef4444;
 }
 
 /* ===== Filter toolbar ===== */
@@ -27454,8 +27465,8 @@ body,
 }
 
 .status-pending {
-  background: #f1f5f9;
-  color: #64748b;
+  background: #fef9c3;
+  color: #ca8a04;
 }
 
 .status-processing {
@@ -27471,6 +27482,11 @@ body,
 .status-cancelled {
   background: #fee2e2;
   color: #ef4444;
+}
+
+.status-cancelled-mistake {
+  background: transparent;
+  color: #475569;
 }
 
 /* ===== Action button trong bảng ===== */
@@ -27673,41 +27689,82 @@ body,
 }
 
 /* ===== History timeline (modal lịch sử xử lý) ===== */
+.history-modal-wide {
+  width: 900px !important;
+  max-width: 95vw !important;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  padding: 8px 0;
 }
 
 .history-item {
-  border-left: 3px solid #3b82f6;
-  padding-left: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 2.5fr;
+  gap: 20px;
+  align-items: start;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .history-action {
   font-weight: 600;
   color: #1e293b;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .history-action .history-target {
   font-weight: 400;
-  color: #334155;
+  color: #475569;
+  display: block;
+  margin-top: 4px;
 }
 
 .history-meta {
   font-size: 13px;
   color: #64748b;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-meta-time {
+  font-weight: 500;
+  color: #334155;
+}
+
+.history-meta-user {
+  font-style: italic;
+  color: #94a3b8;
 }
 
 .history-note {
   font-size: 13px;
   color: #334155;
-  margin-top: 4px;
+  line-height: 1.6;
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.note-label {
+  font-weight: 600;
+  color: #64748b;
 }
 
 .history-empty {
   text-align: center;
   color: #94a3b8;
+  padding: 40px 0;
 }
 
 /* nut cancel report lost card*/
@@ -27734,4 +27791,44 @@ body,
 .btn-cancel-danger {
   color: #ef4444;
   border-color: #ef4444;
+}
+
+table td, table th {
+  white-space: nowrap !important;
+}
+
+/* Common Table Status Utilities */
+.table-status-error {
+  color: #ff4d4d;
+  padding: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.table-status-loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.table-status-empty {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+.log-time-cell {
+  font-family: monospace;
+}
+
+.log-amount-cell {
+  font-weight: 700;
+}
+
+.lost-table td, .lost-table th {
+  white-space: normal !important;
+}
+
+.text-center {
+  text-align: center !important;
 }

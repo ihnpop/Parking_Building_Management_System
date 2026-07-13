@@ -8,7 +8,7 @@ import axios from "axios";
 
 // Khởi tạo instance Axios kết nối với backend port 3636
 const API = axios.create({
-    baseURL: "http://localhost:3636/api",
+    baseURL: import.meta.env.VITE_API_URL,
 });
 
 // Hàm hỗ trợ đính kèm mã định danh JWT Token tự động vào header để xác thực quyền truy cập

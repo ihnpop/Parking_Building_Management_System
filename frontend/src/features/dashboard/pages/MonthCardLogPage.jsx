@@ -7,6 +7,9 @@ export default function MonthCardLogPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('Tất cả');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
@@ -42,6 +45,7 @@ export default function MonthCardLogPage() {
             return matchesSearch && matchesType && matchesStatus;
         });
         setLogs(filtered);
+        setCurrentPage(1);
     };
 
     useEffect(() => {
@@ -58,15 +62,62 @@ export default function MonthCardLogPage() {
     };
 
     const totalTransactions = allLogs.length;
-    const renewals = allLogs.filter(log => log.type === 'Gia hạn' && log.status === 'Thành công').length;
-    const newRegistrations = allLogs.filter(log => log.type === 'Cấp mới' && log.status === 'Thành công').length;
-    const pendingCount = allLogs.filter(log => log.status === 'Đang xử lý').length;
-    const failedCount = allLogs.filter(log => log.status === 'Thất bại').length;
+    const renewals = allLogs.filter(log => log.type === 'Gia hạn').length;
+    const newRegistrations = allLogs.filter(log => log.type === 'Cấp mới').length;
+    const reissues = allLogs.filter(log => log.type === 'Thẻ đã cấp lại').length;
+
+    const totalPages = Math.ceil(logs.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const currentData = logs.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    const getPageNumbers = () => {
+        const pages = [];
+        const start = Math.max(1, currentPage - 2);
+        const end = Math.min(totalPages, currentPage + 2);
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        if (start > 1) {
+            if (start > 3) {
+                pages.unshift('...');
+                pages.unshift(2);
+                pages.unshift(1);
+            } else if (start === 3) {
+                pages.unshift(2);
+                pages.unshift(1);
+            } else if (start === 2) {
+                pages.unshift(1);
+            }
+        }
+
+        if (end < totalPages) {
+            if (end < totalPages - 2) {
+                pages.push('...');
+                pages.push(totalPages - 1);
+                pages.push(totalPages);
+            } else if (end === totalPages - 2) {
+                pages.push(totalPages - 1);
+                pages.push(totalPages);
+            } else if (end === totalPages - 1) {
+                pages.push(totalPages);
+            }
+        }
+
+        return pages;
+    };
 
     return (
         <div className="lost-card-log-wrapper">
             {/* Stats Grid */}
-            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
+            <div className="lost-kpi-container">
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
@@ -86,11 +137,11 @@ export default function MonthCardLogPage() {
                             <div className="lost-kpi-icon-box icon-green">
                                 <span className="material-symbols-outlined">add_card</span>
                             </div>
-                            <span className="lost-kpi-title">Đăng ký mới</span>
+                            <span className="lost-kpi-title">Cấp mới</span>
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value val-green">{loading ? '...' : newRegistrations}</div>
-                            <div className="lost-kpi-footer txt-green">Cấp mới thành công</div>
+                            <div className="lost-kpi-footer txt-green">Thẻ đăng ký mới</div>
                         </div>
                     </div>
 
@@ -103,20 +154,20 @@ export default function MonthCardLogPage() {
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value val-blue">{loading ? '...' : renewals}</div>
-                            <div className="lost-kpi-footer txt-blue">Gia hạn thành công</div>
+                            <div className="lost-kpi-footer txt-blue">Gia hạn vé tháng</div>
                         </div>
                     </div>
 
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-red">
-                                <span className="material-symbols-outlined">error</span>
+                                <span className="material-symbols-outlined">credit_card</span>
                             </div>
-                            <span className="lost-kpi-title">Thất bại</span>
+                            <span className="lost-kpi-title">Thẻ đã cấp lại</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-red">{loading ? '...' : failedCount}</div>
-                            <div className="lost-kpi-footer txt-red">Giao dịch lỗi</div>
+                            <div className="lost-kpi-value val-red">{loading ? '...' : reissues}</div>
+                            <div className="lost-kpi-footer txt-red">Cấp lại thẻ</div>
                         </div>
                     </div>
                 </div>
@@ -157,6 +208,16 @@ export default function MonthCardLogPage() {
                             <div className="lost-dist-fill bg-blue" style={{ width: `${totalTransactions > 0 ? (renewals / totalTransactions) * 100 : 0}%` }}></div>
                         </div>
                     </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thẻ đã cấp lại</span>
+                            <span><span className="lost-dist-val">{reissues}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((reissues / totalTransactions) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-red" style={{ width: `${totalTransactions > 0 ? (reissues / totalTransactions) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -187,6 +248,7 @@ export default function MonthCardLogPage() {
                             <option value="Tất cả">Tất cả</option>
                             <option value="Gia hạn">Gia hạn</option>
                             <option value="Cấp mới">Cấp mới</option>
+                            <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
@@ -212,10 +274,10 @@ export default function MonthCardLogPage() {
 
             {/* Table */}
             <section className="lost-table-card">
-                {error && <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
+                {error && <div className="table-status-error">{error}</div>}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký vé tháng...</div>
+                    <div className="table-status-loading">Đang tải nhật ký vé tháng...</div>
                 ) : (
                     <>
                         <div className="mc-table-scroll">
@@ -231,14 +293,14 @@ export default function MonthCardLogPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {logs.length > 0 ? (
-                                        logs.map((log, index) => (
+                                    {currentData.length > 0 ? (
+                                        currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
-                                                <td className="log-time" style={{ fontFamily: 'monospace' }}>{log.time}</td>
+                                                <td className="log-time log-time-cell">{log.time}</td>
                                                 <td className="mc-td-bold">{log.plate}</td>
                                                 <td>{log.owner}</td>
                                                 <td>{log.type}</td>
-                                                <td className="log-amount" style={{ fontWeight: '700' }}>{log.amount}</td>
+                                                <td className="log-amount log-amount-cell">{log.amount}</td>
                                                 <td>
                                                     <span className={`status-badge-log ${getStatusClass(log.status)}`}>
                                                         {log.status}
@@ -248,7 +310,7 @@ export default function MonthCardLogPage() {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                            <td colSpan="6" className="table-status-empty">
                                                 Không tìm thấy nhật ký giao dịch phù hợp
                                             </td>
                                         </tr>
@@ -259,13 +321,35 @@ export default function MonthCardLogPage() {
 
                         {/* Footer */}
                         <div className="lost-table-footer">
-                            <span className="footer-info">Hiển thị {logs.length} trong số {allLogs.length} giao dịch</span>
+                            <span className="footer-info">Hiển thị {Math.min(startIndex + 1, logs.length)} - {Math.min(startIndex + itemsPerPage, logs.length)} trong số {logs.length} giao dịch</span>
                             <div className="lost-pagination">
-                                <button type="button" className="page-btn" disabled>
+                                <button
+                                    type="button"
+                                    className="page-btn"
+                                    disabled={currentPage === 1}
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                >
                                     <span className="material-symbols-outlined">chevron_left</span>
                                 </button>
-                                <button type="button" className="page-btn active">1</button>
-                                <button type="button" className="page-btn" disabled>
+
+                                {getPageNumbers().map((page, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        className={`page-btn ${page === currentPage ? 'active' : ''} ${page === '...' ? 'dots' : ''}`}
+                                        disabled={page === '...'}
+                                        onClick={() => page !== '...' && handlePageChange(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    className="page-btn"
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                >
                                     <span className="material-symbols-outlined">chevron_right</span>
                                 </button>
                             </div>

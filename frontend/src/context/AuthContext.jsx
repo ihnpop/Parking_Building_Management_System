@@ -80,7 +80,7 @@ export function AuthProvider({ children }) {
              * Supabase sẽ phát event này
              */
             if (event === "PASSWORD_RECOVERY") {
-                window.location.replace("/reset-password");
+                window.location.replace("/#/reset-password");
                 return;
             }
 
@@ -144,7 +144,7 @@ export function AuthProvider({ children }) {
                 email,
                 {
                     redirectTo:
-                        `${window.location.origin}/reset-password`
+                        `${window.location.origin}/#/reset-password`
                 }
             );
 

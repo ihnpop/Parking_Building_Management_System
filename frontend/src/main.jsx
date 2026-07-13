@@ -10,9 +10,11 @@ import './styles/App.css';
 import App from './App.jsx'
 
 if (window.location.hash && window.location.hash.includes("access_token=")) {
-  setTimeout(() => {
-    window.location.hash = "#/login/dashboard";
-  }, 100);
+  if (!window.location.hash.includes("set-password") && !window.location.hash.includes("reset-password")) {
+    setTimeout(() => {
+      window.location.hash = "#/login/dashboard";
+    }, 100);
+  }
 }
 
 createRoot(document.getElementById('root')).render(
