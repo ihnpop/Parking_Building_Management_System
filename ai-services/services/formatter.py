@@ -31,13 +31,18 @@ NUM_TO_CHAR = {
 
 def clean_text(text: str) -> str:
     """
-    Xóa khoảng trắng và ký tự đặc biệt.
+    Xóa khoảng trắng, ký tự đặc biệt và các từ khóa thương hiệu xe phổ biến.
     """
 
     if text is None:
         return ""
 
     text = text.upper()
+
+    # Loại bỏ tên thương hiệu xe thường xuất hiện gần biển số
+    brands = ["HONDA", "H0NDA", "YAMAHA", "SUZUKI", "SYM", "VESPA", "PIAGGIO"]
+    for brand in brands:
+        text = text.replace(brand, "")
 
     text = re.sub(r"[^A-Z0-9]", "", text)
 
