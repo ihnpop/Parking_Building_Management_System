@@ -17,7 +17,7 @@ export default function OccupancyChart() {
     const [loading, setLoading] = useState(false);
     // selectedDate: 'YYYY-MM-DD' theo giờ địa phương GMT+7
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
-    const [selectedDate, setSelectedDate] = useState(todayStr);
+    const selectedDate = todayStr;
 
     // Column Filters state
     const [columnFilters, setColumnFilters] = useState({
@@ -192,61 +192,6 @@ export default function OccupancyChart() {
                 </button>
                 <h1 className="stats-page-title">Thống kê hoạt động bãi xe</h1>
                 <div className="stats-header-right">
-                    {/* Date Picker */}
-                    <div 
-                        style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: 8, 
-                            background: '#ffffff', 
-                            borderRadius: 10, 
-                            padding: '6px 12px', 
-                            border: '1.5px solid #cbd5e1', 
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            transition: 'border-color 0.2s, box-shadow 0.2s',
-                            color: '#1f2937'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#a94412';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#cbd5e1';
-                        }}
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#6b7280' }}>calendar_today</span>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            max={todayStr}
-                            onChange={(e) => {
-                                if (e.target.value) setSelectedDate(e.target.value);
-                            }}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                color: '#1f2937',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                colorScheme: 'light'
-                            }}
-                        />
-                        {selectedDate !== todayStr && (
-                            <button
-                                type="button"
-                                onClick={() => setSelectedDate(todayStr)}
-                                title="Quay về hôm nay"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
-                            </button>
-                        )}
-                    </div>
-
-                    <button className="stats-bell-btn" onClick={() => fetchData(selectedDate)} title="Làm mới dữ liệu">
-                        <span className="material-symbols-outlined" style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>refresh</span>
-                    </button>
 
                     <div className="avatar-wrapper" ref={dropdownRef}>
                         <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>

@@ -1,18 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createLostCard } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
-export default function LostCardLogPage() {
+export default function LostCardLogPage({ showBackButton = false }) {
     const { showToast } = useNotification();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, userRole, logout } = useAuth();
+
+    // Dropdown state for profile
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+
     // Lấy tên hiển thị: ưu tiên full_name → name → email
     const currentUserName = user?.user_metadata?.full_name
         || user?.user_metadata?.name
         || user?.email
         || '---';
+
+    const userEmail = user?.email || 'admin@parkflow.com';
+    const userInitials = user?.user_metadata?.full_name
+        ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
+        : userEmail.substring(0, 2).toUpperCase();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (err) {
+            console.error('Logout error:', err);
+        }
+    };
+
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
+        }
+    };
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -377,8 +419,46 @@ export default function LostCardLogPage() {
     const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'Đã tìm lại' || c.status === 'Đã xử lý').length;
 
     return (
-        <div className="lost-card-log-wrapper">
-            {/* Stats Cards */}
+        <section className={showBackButton ? "stats-dashboard-page" : ""}>
+            {showBackButton && (
+                <header className="stats-top-bar">
+                    <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
+                        <span className="material-symbols-outlined">arrow_back</span>
+                        Quay lại
+                    </button>
+                    <h1 className="stats-page-title">Nhật ký báo mất thẻ</h1>
+
+                    <div className="stats-header-right">
+                        <div className="avatar-wrapper" ref={dropdownRef}>
+                            <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
+                                <div className="profile-text">
+                                    <span className="profile-name">{userEmail}</span>
+                                </div>
+                                <div className="profile-avatar">{userInitials[0]}</div>
+                            </div>
+
+                            {showDropdown && (
+                                <div className="user-dropdown" style={{ top: '50px' }}>
+                                    <div className="user-dropdown-info">
+                                        <div className="user-dropdown-email">{userEmail}</div>
+                                        <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="user-dropdown-item"
+                                        onClick={handleLogout}
+                                    >
+                                        <span className="material-symbols-outlined">logout</span>
+                                        Đăng xuất
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+            )}
+            <div className={showBackButton ? "stats-container" : "lost-card-log-wrapper"} style={showBackButton ? { display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' } : {}}>
+                {/* Stats Cards */}
             <div className="lost-kpi-container">
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
@@ -963,7 +1043,8 @@ export default function LostCardLogPage() {
                     </div>
                 </div>
             )}
-        </div>
+            </div>
+        </section>
     );
 
 }
