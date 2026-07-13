@@ -71,7 +71,7 @@ def detect_plate(image: np.ndarray):
 
     # thử imgsz sang 512 xem thay đổi như thế nào
     results = plate_detector.predict(
-        source=image, classes=[0], max_det=1, imgsz=512, conf=0.35, verbose=False
+        source=resized_image, classes=[0], max_det=1, imgsz=512, conf=0.35, verbose=False
     )
 
     if not results:
