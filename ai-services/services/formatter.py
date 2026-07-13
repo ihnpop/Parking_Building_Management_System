@@ -17,7 +17,16 @@ CHAR_TO_NUM = {
     "T": "7",
 }
 
-NUM_TO_CHAR = {"0": "D", "1": "I", "2": "Z", "5": "S", "8": "B"}
+NUM_TO_CHAR = {
+    "0": "D",
+    "1": "I",
+    "2": "Z",
+    "3": "E",
+    "5": "S",
+    "6": "G",
+    "8": "B",
+    "9": "P",
+}
 
 
 def clean_text(text: str) -> str:
