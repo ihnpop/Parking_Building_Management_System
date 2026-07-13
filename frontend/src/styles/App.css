@@ -5522,13 +5522,13 @@ body {
 }
 
 .renew-textarea:focus {
-  border-color: #fb923c;
-  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.15);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 .renew-price-box {
-  background-color: #fff7ed;
-  border: 1px solid #ffedd5;
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -5540,13 +5540,13 @@ body {
 .renew-price-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #ea580c;
+  color: #2563eb;
 }
 
 .renew-price-value {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #ea580c;
+  color: #2563eb;
 }
 
 .renew-modal-actions {
@@ -5585,7 +5585,7 @@ body {
   background-color: #2563eb;
   border: none;
   color: #ffffff;
-  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .renew-btn.primary:hover:not(:disabled) {
@@ -18745,8 +18745,8 @@ body {
 }
 
 .dropdown-action-item.edit-item:hover {
-  background-color: #f5f6f7;
-  color: #e65c00;
+  background-color: #eff6ff;
+  color: #2563eb;
 }
 
 .dropdown-action-item.delete-item {
@@ -18855,8 +18855,8 @@ body {
 
 .user-modal-input-group input:focus,
 .modal-select-styled-wrapper select:focus {
-  border-color: #e65c00;
-  box-shadow: 0 0 0 3px rgba(230, 92, 0, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* ChÃ¢n trang Modal chá»©a nÃºt xÃ¡c nháº­n */
@@ -18889,14 +18889,14 @@ body {
 }
 
 .user-modal-btn.submit {
-  background-gradient: linear-gradient(135deg, #2563eb, #e65c00);
-  background-color: #e65c00;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background-color: #2563eb;
   color: #ffffff;
 }
 
 .user-modal-btn.submit:hover {
-  background-color: #cc5200;
-  box-shadow: 0 2px 6px rgba(230, 92, 0, 0.2);
+  background-color: #1d4ed8;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
 
 /* Animation mÆ°á»£t mÃ  */
@@ -21195,6 +21195,137 @@ body {
 }
 
 /* ──── MODALS ────────────────────────────────────────────────────────────────── */
+.mc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: cpModalFadeIn 0.2s ease;
+}
+
+.mc-modal {
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 16px;
+  width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #d0e1fd;
+  animation: cpModalSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.mc-modal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.mc-modal-close {
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.mc-modal-close:hover {
+  background: #f1f5f9;
+}
+
+.mc-form-group {
+  margin-bottom: 14px;
+}
+
+.mc-form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.mc-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.mc-input:focus {
+  border-color: #3b82f6;
+}
+
+.mc-form-error {
+  color: #dc2626;
+  font-size: 0.83rem;
+  margin-top: 4px;
+}
+
+.mc-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.mc-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.mc-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mc-btn-outline {
+  background: #f1f5f9;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+}
+
+.mc-btn-outline:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.mc-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.mc-btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
 .cp-modal,
 .mc-modal,
 .cardpage-modal {
@@ -22650,13 +22781,13 @@ td {
 }
 
 .renew-textarea:focus {
-  border-color: #fb923c;
-  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.15);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 .renew-price-box {
-  background-color: #fff7ed;
-  border: 1px solid #ffedd5;
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -22668,13 +22799,13 @@ td {
 .renew-price-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #ea580c;
+  color: #2563eb;
 }
 
 .renew-price-value {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #ea580c;
+  color: #2563eb;
 }
 
 .renew-modal-actions {
@@ -22710,14 +22841,14 @@ td {
 }
 
 .renew-btn.primary {
-  background-color: #ea580c;
+  background-color: #2563eb;
   border: none;
   color: #ffffff;
-  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
 }
 
 .renew-btn.primary:hover:not(:disabled) {
-  background-color: #d97706;
+  background-color: #1d4ed8;
 }
 
 .renew-btn:disabled {

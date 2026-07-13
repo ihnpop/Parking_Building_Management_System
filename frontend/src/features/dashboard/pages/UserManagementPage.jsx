@@ -188,8 +188,8 @@ export default function UserManagementPage() {
             {/* Khối Banner thông tin */}
             <div className="user-mgmt-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #e1e3e4', borderRadius: '8px', background: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ background: '#ffe8d6', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span className="material-symbols-outlined" style={{ color: '#e65c00', fontSize: '28px' }}>manage_accounts</span>
+                    <div style={{ background: '#dbeafe', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '28px' }}>manage_accounts</span>
                     </div>
                     <div>
                         <h2 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', fontWeight: '600' }}>Quản lý Phân quyền</h2>
@@ -226,12 +226,12 @@ export default function UserManagementPage() {
                             onClick={() => setIsFilterExpanded(!isFilterExpanded)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
-                                border: '1px solid #e1e3e4', borderRadius: '6px', background: isFilterExpanded ? '#ffe8d6' : '#fff',
-                                color: isFilterExpanded ? '#e65c00' : '#555', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease'
+                                border: '1px solid #e1e3e4', borderRadius: '6px', background: isFilterExpanded ? '#dbeafe' : '#fff',
+                                color: isFilterExpanded ? '#2563eb' : '#555', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease'
                             }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
-                            Lọc vai trò: <span style={{ color: '#e65c00', marginLeft: '2px' }}>{roleFilter}</span>
+                            Lọc vai trò: <span style={{ color: '#2563eb', marginLeft: '2px' }}>{roleFilter}</span>
                             <span className="material-symbols-outlined style-arrow-icon" style={{ fontSize: '18px', transition: 'transform 0.2s', transform: isFilterExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>keyboard_arrow_down</span>
                         </button>
 
@@ -262,9 +262,9 @@ export default function UserManagementPage() {
                             onClick={() => setIsInviteModalOpen(true)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
-                                border: 'none', borderRadius: '6px', background: 'linear-gradient(135deg, #e65c00, #ff8c1a)',
+                                border: 'none', borderRadius: '6px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
                                 color: '#fff', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 4px rgba(230, 92, 0, 0.2)'
+                                boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
                             }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '18px', padding: 0 }}>person_add</span>

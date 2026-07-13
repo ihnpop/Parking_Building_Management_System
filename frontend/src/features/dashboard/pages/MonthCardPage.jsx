@@ -7,7 +7,7 @@ import ContractModal from '../components/ContractModal';
 import { FileText } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 10;
 
 export default function MonthCardPage() {
     const [monthCards, setMonthCards] = useState([]);
@@ -16,7 +16,7 @@ export default function MonthCardPage() {
     const [renewingCard, setRenewingCard] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    
+
     // States cho hợp đồng
     const [selectedContractCard, setSelectedContractCard] = useState(null);
     const [isContractOpen, setIsContractOpen] = useState(false);
@@ -368,11 +368,22 @@ export default function MonthCardPage() {
                                                         {row.status}
                                                     </span>
                                                 </td>
-                                                <td className="mc-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                <td className="mc-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                                                     <button
                                                         type="button"
                                                         className="mc-edit-btn"
-                                                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            padding: '0',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            borderRadius: '6px'
+                                                        }}
                                                         title="Chỉnh sửa"
                                                         onClick={() => setEditingCard(row)}
                                                     >
@@ -381,7 +392,19 @@ export default function MonthCardPage() {
                                                     <button
                                                         type="button"
                                                         className="mc-renew-btn"
-                                                        style={{ color: '#004bca', background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        style={{
+                                                            color: '#004bca',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            padding: '0',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            borderRadius: '6px'
+                                                        }}
                                                         title="Gia hạn"
                                                         onClick={() => setRenewingCard(row)}
                                                         disabled={!row.card_id}
@@ -394,14 +417,17 @@ export default function MonthCardPage() {
                                                         className="mc-contract-view-btn"
                                                         style={{
                                                             color: '#0284c7',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            padding: '0',
                                                             background: 'none',
                                                             border: 'none',
                                                             cursor: row.status === 'Hoạt động' ? 'pointer' : 'not-allowed',
                                                             opacity: row.status === 'Hoạt động' ? 1 : 0.4,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            padding: '4px'
+                                                            borderRadius: '6px'
                                                         }}
                                                         onClick={() => {
                                                             if (row.status !== 'Hoạt động') return;
@@ -413,15 +439,22 @@ export default function MonthCardPage() {
                                                     >
                                                         <FileText size={20} />
                                                     </button>
-                                                    
+
                                                     {/* Nút Xóa thẻ - chỉ cho phép xóa khi thẻ KHÔNG ở trạng thái "Hoạt động" */}
                                                     <button type="button" className="cp-delete-btn"
                                                         style={{
                                                             color: '#ba1a1a',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            width: '32px',
+                                                            height: '32px',
+                                                            padding: '0',
                                                             background: 'none',
                                                             border: 'none',
                                                             cursor: row.status === 'Hoạt động' ? 'not-allowed' : 'pointer',
                                                             opacity: row.status === 'Hoạt động' ? 0.4 : 1,
+                                                            borderRadius: '6px'
                                                         }}
                                                         onClick={() => {
                                                             if (row.status === 'Hoạt động') return;
