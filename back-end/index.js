@@ -5,11 +5,11 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import userRoutes from './routes/userRoutes.js';
 
-// Cấu hình dotenv
+// Cấu hình .env
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 8443;
+const port = process.env.PORT || 3636;
 
 // Middleware
 app.use(cors());

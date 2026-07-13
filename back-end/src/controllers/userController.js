@@ -47,7 +47,7 @@ export const inviteUserController = async (req, res) => {
         }
 
         // URL trang custom đặt password trong frontend (đổi domain theo môi trường thực tế)
-        const redirectTo = `${process.env.FRONTEND_URL}/#/set-password`;
+        const redirectTo = `${process.env.FRONTEND_URL}/set-password`;
 
         const profile = await inviteStaff({
             email,

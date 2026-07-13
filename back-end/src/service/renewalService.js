@@ -413,29 +413,6 @@ export async function getRenewalInfo(cardId) {
         availablePackages = pkgs || [];
     }
 
-    // Kiểm tra xem có giao dịch gia hạn nào đang ở trạng thái 'Chờ thanh toán' và chưa bị timeout
-    let pendingPayment = null;
-    if (activeVp && !isExpired) {
-        const timeoutThreshold = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000).toISOString();
-        const { data: pm } = await supabase
-            .from('payment')
-            .select('payment_id, order_code, amount, payment_method, note, payment_time')
-            .eq('vehicle_package_id', activeVp.vehicle_package_id)
-            .eq('status', 'Chờ thanh toán')
-            .eq('payment_type', 'Gia hạn vé tháng')
-            .gte('payment_time', timeoutThreshold)
-            .maybeSingle();
-        if (pm) {
-            pendingPayment = {
-                orderCode: pm.order_code,
-                amount: pm.amount,
-                paymentMethod: pm.payment_method,
-                note: pm.note,
-                paymentTime: pm.payment_time
-            };
-        }
-    }
-
     return {
         cardId: card.card_id,
         cardCode: card.code,
@@ -464,7 +441,6 @@ export async function getRenewalInfo(cardId) {
             }
             : null,
         availablePackages,
-        pendingPayment,
     };
 }
 
