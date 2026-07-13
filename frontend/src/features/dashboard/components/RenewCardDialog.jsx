@@ -198,6 +198,21 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
 
             if (info.isExpired) {
                 setStep('expired');
+            } else if (info.pendingPayment && info.pendingPayment.paymentMethod === 'cash') {
+                // Nếu đang có đơn chờ thanh toán tiền mặt -> Khôi phục bước xác nhận tiền mặt
+                setPendingOrderCode(info.pendingPayment.orderCode);
+                setPendingAmount(info.pendingPayment.amount);
+                
+                // Trích xuất ngày hết hạn mới từ note của payment
+                let newExpiry = null;
+                try {
+                    const noteObj = JSON.parse(info.pendingPayment.note);
+                    newExpiry = noteObj.newExpiry;
+                } catch (e) {
+                    console.error("Lỗi parse note:", e);
+                }
+                setPendingNewExpiry(newExpiry);
+                setStep('cash-pending');
             } else {
                 // Auto-chọn gói đầu tiên
                 if (info.availablePackages?.length > 0) {
