@@ -157,12 +157,12 @@ export default function DashboardView() {
 
             {/* 1. VIEW QUẢN LÝ THẺ */}
             {currentView === 'card-management' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0' }}>
                         {renderTabButton('Thẻ lượt', activeCardTab === 'Thẻ lượt', () => setActiveCardTab('Thẻ lượt'))}
                         {renderTabButton('Thẻ tháng', activeCardTab === 'Thẻ tháng', () => setActiveCardTab('Thẻ tháng'))}
                     </div>
-                    <div style={{ marginTop: '5px' }}>
+                    <div>
                         {activeCardTab === 'Thẻ lượt' ? <CardPage defaultType="Thẻ lượt" /> : <MonthCardPage />}
                     </div>
                 </div>
@@ -170,13 +170,13 @@ export default function DashboardView() {
 
             {/* 2. VIEW NHẬT KÝ VẬN HÀNH */}
             {currentView === 'log-management' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0' }}>
                         {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
                         {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
                         {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
                     </div>
-                    <div style={{ marginTop: '5px' }}>
+                    <div>
                         {activeLogTab === 'Quẹt thẻ' && <LostCardLogPage />}
                         {activeLogTab === 'Vé tháng' && <MonthCardLogPage />}
                         {activeLogTab === 'Đăng nhập' && <LoginLogPage />}
