@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Install OS dependencies (OpenCV needs libgl1)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && \
+    apt-get install -y --no-install-recommends libgl1-mesa-glx && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
