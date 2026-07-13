@@ -140,7 +140,7 @@ export default function LoginLogPage() {
     return (
         <div className="lost-card-log-wrapper">
             {/* Stats Cards */}
-            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
+            <div className="lost-kpi-container">
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
@@ -301,7 +301,7 @@ export default function LoginLogPage() {
             {/* Table */}
             <section className="log-table-card">
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
+                    <div className="table-status-loading">
                         Đang tải dữ liệu nhật ký đăng nhập...
                     </div>
                 ) : (
@@ -354,7 +354,7 @@ export default function LoginLogPage() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="7" className="table-status-empty">
                                             Không có dữ liệu nhật ký phù hợp
                                         </td>
                                     </tr>

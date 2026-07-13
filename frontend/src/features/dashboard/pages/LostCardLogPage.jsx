@@ -42,6 +42,9 @@ export default function LostCardLogPage() {
     const [historyData, setHistoryData] = useState([]);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [historySearchTerm, setHistorySearchTerm] = useState('');
+    const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
+    const historyItemsPerPage = 5;
 
     // States và Effect cho chức năng Cấp lại thẻ tháng bị mất
     const [showReissueForm, setShowReissueForm] = useState(false);
@@ -108,6 +111,8 @@ export default function LostCardLogPage() {
         try {
             setHistoryLoading(true);
             setShowHistoryModal(true);
+            setHistorySearchTerm('');
+            setHistoryCurrentPage(1);
             const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
             const res = await axios.get(
                 `${import.meta.env.VITE_API_URL}/cards/lost-card/history`,
@@ -584,22 +589,22 @@ export default function LostCardLogPage() {
             </div>
 
             {/* Filters Toolbar */}
-            <div className="lost-filter-card">
-                <div className="filter-block">
+            <div className="lost-filter-card" style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'nowrap' }}>
+                <div className="filter-block" style={{ flex: '1 1 auto', minWidth: '200px' }}>
                     <label className="filter-label">Tìm kiếm nâng cao</label>
                     <div className="filter-input-wrapper">
                         <span className="material-symbols-outlined icon-left">search</span>
                         <input
                             type="text"
                             className="filter-input has-icon-left"
-                            placeholder="Nhập mã báo mất, mã thẻ, biển số, chủ xe..."
+                            placeholder="Nhập mã, thẻ, biển số..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
 
-                <div className="filter-block">
+                <div className="filter-block" style={{ flex: '0 0 160px' }}>
                     <label className="filter-label">Trạng thái xử lý</label>
                     <div className="filter-input-wrapper">
                         <select
@@ -618,7 +623,7 @@ export default function LostCardLogPage() {
                     </div>
                 </div>
 
-                <div className="filter-block">
+                <div className="filter-block" style={{ flex: '0 0 250px' }}>
                     <label className="filter-label">Khoảng ngày báo mất</label>
                     <div className="filter-input-wrapper">
                         <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
@@ -638,18 +643,28 @@ export default function LostCardLogPage() {
                         </div>
                     </div>
                 </div>
+
+                <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto', marginLeft: 'auto' }}>
+                    <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory} style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', background: 'white', cursor: 'pointer', color: '#334155', flexShrink: 0 }}>
+                        <span className="material-symbols-outlined">history</span>
+                    </button>
+                    <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)} style={{ height: '40px', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>add</span>
+                        Tạo báo mất
+                    </button>
+                </div>
             </div>
 
             {/* Table */}
             <section className="lost-table-card">
                 {error && (
-                    <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
+                    <div className="table-status-error">
                         {error}
                     </div>
                 )}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                    <div className="table-status-loading">
                         Đang tải nhật ký mất thẻ...
                     </div>
                 ) : (
@@ -665,7 +680,7 @@ export default function LostCardLogPage() {
                                     <th>NỘI DUNG</th>
                                     <th>TRẠNG THÁI</th>
                                     <th>NGƯỜI XỬ LÝ</th>
-                                    <th>THAO TÁC</th>
+                                    <th className="text-center">THAO TÁC</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -703,7 +718,7 @@ export default function LostCardLogPage() {
                                                     </span>
                                                 </td>
                                                 <td>{row.handler_name || '---'}</td>
-                                                <td>
+                                                <td className="text-center">
                                                     <button type="button" className="lost-action-btn" onClick={() => { setEditingCard(row); setResolveNote(''); }}>
                                                         <span className="material-symbols-outlined">edit</span>
                                                     </button>
@@ -713,7 +728,7 @@ export default function LostCardLogPage() {
                                     })
                                 ) : (
                                     <tr>
-                                        <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                        <td colSpan="9" className="table-status-empty">
                                             Không tìm thấy dữ liệu phù hợp
                                         </td>
                                     </tr>
@@ -756,13 +771,6 @@ export default function LostCardLogPage() {
                                         <span className="material-symbols-outlined">chevron_right</span>
                                     </button>
                                 </div>
-                                <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory}>
-                                    <span className="material-symbols-outlined">history</span>
-                                </button>
-                                <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
-                                    <span className="material-symbols-outlined">add</span>
-                                    Tạo báo mất
-                                </button>
                             </div>
                         </div>
                     </>
@@ -1053,49 +1061,214 @@ export default function LostCardLogPage() {
             {showHistoryModal && (
                 <div className="lost-modal-overlay">
                     <div className="lost-modal history-modal-wide">
-                        <div className="lost-modal-header">
-                            <h2>Lịch sử xử lý</h2>
+                        <div className="lost-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                            <h2 style={{ margin: 0, whiteSpace: 'nowrap' }}>Lịch sử xử lý</h2>
+
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm thẻ hoặc biển số..."
+                                value={historySearchTerm}
+                                onChange={(e) => {
+                                    setHistorySearchTerm(e.target.value);
+                                    setHistoryCurrentPage(1);
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '8px 12px',
+                                    borderRadius: '4px',
+                                    border: '1px solid #cbd5e1',
+                                    outline: 'none',
+                                    fontSize: '0.9rem',
+                                    maxWidth: '300px',
+                                    marginLeft: 'auto'
+                                }}
+                            />
+
+                            <button
+                                onClick={() => setShowHistoryModal(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.25rem',
+                                    cursor: 'pointer',
+                                    color: '#64748b',
+                                    transition: 'color 0.2s',
+                                    padding: '4px'
+                                }}
+                                onMouseEnter={(e) => e.target.style.color = '#ef4444'}
+                                onMouseLeave={(e) => e.target.style.color = '#64748b'}
+                            >
+                                ✕
+                            </button>
                         </div>
 
-                        <div className="lost-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                            {historyLoading ? (
-                                <p className="history-empty">Đang tải...</p>
-                            ) : historyData.length === 0 ? (
-                                <p className="history-empty">Chưa có lịch sử hoạt động nào.</p>
-                            ) : (
-                                <div className="history-list">
-                                    {historyData.map((item) => {
-                                        let borderColor = '#cbd5e1';
-                                        const act = (item.action || '').toLowerCase();
-                                        if (act.includes('khóa')) borderColor = '#f59e0b'; // orange
-                                        else if (act.includes('cấp lại')) borderColor = '#3b82f6'; // blue
-                                        else if (act.includes('xóa') || act.includes('hủy')) borderColor = '#ef4444'; // red
-                                        else if (act.includes('tạo') || act.includes('mở')) borderColor = '#10b981'; // green
+                        <div className="lost-modal-body" style={{ minHeight: '300px' }}>
+                            {(() => {
+                                if (historyLoading) return <p className="history-empty">Đang tải...</p>;
 
-                                        return (
-                                            <div key={item.log_id} className="history-item" style={{ borderLeft: `4px solid ${borderColor}` }}>
-                                                <div className="history-action">
-                                                    <span style={{ color: borderColor !== '#cbd5e1' ? borderColor : 'inherit' }}>{item.action}</span> — <span className="history-target">Thẻ {item.card_code} ({item.plate_number || '---'})</span>
-                                                </div>
-                                                <div className="history-meta">
-                                                    <span className="history-meta-time">{new Date(item.performed_at).toLocaleString('vi-VN')}</span>
-                                                    <span className="history-meta-user">bởi {item.performed_by_name}</span>
-                                                </div>
-                                                {item.note && (
-                                                    <div className="history-note" style={{ whiteSpace: 'pre-line' }}>
-                                                        <span className="note-label" style={{ display: 'block', marginBottom: '4px' }}>Ghi chú:</span>
-                                                        {item.note.replace(/ - /g, '\n• ').replace(/\. (?=[A-Z])/g, '.\n')}
+                                const searchLower = historySearchTerm.toLowerCase();
+                                const filteredHistory = historyData.filter(item => {
+                                    return (item.card_code || '').toLowerCase().includes(searchLower) ||
+                                        (item.plate_number || '').toLowerCase().includes(searchLower);
+                                });
+
+                                if (filteredHistory.length === 0) return <p className="history-empty">Chưa có lịch sử hoạt động nào.</p>;
+
+                                const paginatedHistory = filteredHistory.slice(
+                                    (historyCurrentPage - 1) * historyItemsPerPage,
+                                    historyCurrentPage * historyItemsPerPage
+                                );
+
+                                return (
+                                    <div className="history-list">
+                                        {paginatedHistory.map((item) => {
+                                            let borderColor = '#cbd5e1';
+                                            const act = (item.action || '').toLowerCase();
+                                            if (act.includes('khóa')) borderColor = '#f59e0b'; // orange
+                                            else if (act.includes('cấp lại')) borderColor = '#3b82f6'; // blue
+                                            else if (act.includes('xóa') || act.includes('hủy')) borderColor = '#ef4444'; // red
+                                            else if (act.includes('tạo') || act.includes('mở')) borderColor = '#10b981'; // green
+
+                                            return (
+                                                <div key={item.log_id} className="history-item" style={{ borderLeft: `4px solid ${borderColor}` }}>
+                                                    <div className="history-action">
+                                                        <span style={{ color: borderColor !== '#cbd5e1' ? borderColor : 'inherit' }}>{item.action}</span> — <span className="history-target">Thẻ {item.card_code} ({item.plate_number || '---'})</span>
                                                     </div>
-                                                )}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
+                                                    <div className="history-meta">
+                                                        <span className="history-meta-time">{new Date(item.performed_at).toLocaleString('vi-VN')}</span>
+                                                        <span className="history-meta-user">bởi {item.performed_by_name}</span>
+                                                    </div>
+                                                    {item.note && (
+                                                        <div className="history-note" style={{ whiteSpace: 'pre-line' }}>
+                                                            <span className="note-label" style={{ display: 'block', marginBottom: '4px' }}>Ghi chú:</span>
+                                                            {item.note.replace(/ - /g, '\n• ').replace(/\. (?=[A-Z])/g, '.\n')}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
-                        <div className="lost-modal-actions">
-                            <button type="button" className="btn-cancel" onClick={() => setShowHistoryModal(false)}>Đóng</button>
+                        <div className="lost-modal-actions" style={{ justifyContent: 'flex-end', display: 'flex', padding: '12px 24px' }}>
+                            {(() => {
+                                const searchLower = historySearchTerm.toLowerCase();
+                                const filteredHistory = historyData.filter(item => {
+                                    return (item.card_code || '').toLowerCase().includes(searchLower) ||
+                                        (item.plate_number || '').toLowerCase().includes(searchLower);
+                                });
+                                const totalPages = Math.ceil(filteredHistory.length / historyItemsPerPage) || 1;
+
+                                if (totalPages <= 1) return null;
+
+                                return (
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <button
+                                            disabled={historyCurrentPage === 1}
+                                            onClick={() => setHistoryCurrentPage(prev => Math.max(1, prev - 1))}
+                                            style={{
+                                                width: '32px',
+                                                height: '32px',
+                                                padding: 0,
+                                                border: '1px solid #cbd5e1',
+                                                borderRadius: '4px',
+                                                background: 'white',
+                                                color: historyCurrentPage === 1 ? '#94a3b8' : '#334155',
+                                                cursor: historyCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (historyCurrentPage !== 1) e.currentTarget.style.background = '#f1f5f9';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (historyCurrentPage !== 1) e.currentTarget.style.background = 'white';
+                                            }}
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
+                                        </button>
+
+                                        {(() => {
+                                            let startPage = Math.max(1, historyCurrentPage - 1);
+                                            let endPage = Math.min(totalPages, historyCurrentPage + 1);
+
+                                            if (historyCurrentPage === 1) {
+                                                endPage = Math.min(totalPages, 3);
+                                            } else if (historyCurrentPage === totalPages) {
+                                                startPage = Math.max(1, totalPages - 2);
+                                            }
+
+                                            const pagesToShow = [];
+                                            for (let i = startPage; i <= endPage; i++) {
+                                                pagesToShow.push(i);
+                                            }
+
+                                            return pagesToShow.map(page => (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setHistoryCurrentPage(page)}
+                                                    style={{
+                                                        minWidth: '32px',
+                                                        height: '32px',
+                                                        padding: '0 8px',
+                                                        border: '1px solid #cbd5e1',
+                                                        borderRadius: '4px',
+                                                        background: historyCurrentPage === page ? '#3b82f6' : 'white',
+                                                        color: historyCurrentPage === page ? 'white' : '#334155',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (historyCurrentPage !== page) e.currentTarget.style.background = '#f1f5f9';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (historyCurrentPage !== page) e.currentTarget.style.background = 'white';
+                                                    }}
+                                                >
+                                                    {page}
+                                                </button>
+                                            ));
+                                        })()}
+
+                                        <button
+                                            disabled={historyCurrentPage === totalPages}
+                                            onClick={() => setHistoryCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                            style={{
+                                                width: '32px',
+                                                height: '32px',
+                                                padding: 0,
+                                                border: '1px solid #cbd5e1',
+                                                borderRadius: '4px',
+                                                background: 'white',
+                                                color: historyCurrentPage === totalPages ? '#94a3b8' : '#334155',
+                                                cursor: historyCurrentPage === totalPages ? 'not-allowed' : 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                if (historyCurrentPage !== totalPages) e.currentTarget.style.background = '#f1f5f9';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (historyCurrentPage !== totalPages) e.currentTarget.style.background = 'white';
+                                            }}
+                                        >
+                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
