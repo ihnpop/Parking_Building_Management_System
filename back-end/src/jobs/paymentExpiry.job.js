@@ -3,10 +3,10 @@ import supabase from "../config/supabaseClient.js";
 
 /**
  * Khởi động cron job quét và xử lý các giao dịch chờ thanh toán quá 10 phút.
- * Chạy mỗi phút một lần.
+ * Chạy mỗi tiếng một lần.
  */
 export function startPaymentExpiryJob() {
-    cron.schedule("*/1 * * * *", async () => {
+    cron.schedule("0 * * * *", async () => {
         const now = new Date();
         const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
 
@@ -64,5 +64,5 @@ export function startPaymentExpiryJob() {
         }
     });
 
-    console.log("[PaymentExpiryJob] Đã kích hoạt scheduled task kiểm tra giao dịch VNPay hết hạn (mỗi 1 phút).");
+    console.log("[PaymentExpiryJob] Đã kích hoạt scheduled task kiểm tra giao dịch VNPay hết hạn (mỗi 1 giờ).");
 }

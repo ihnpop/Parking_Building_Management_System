@@ -4,7 +4,6 @@ import { checkExitFee, payCash, createVnpayCheckout } from "../../../service/pay
 import { openGateFree } from "../../../service/parkingApi";
 import { useNotification } from "../../../context/NotificationContext";
 import { useAuth } from "../../../context/AuthContext";
-import VNPayPaymentModal from "./VNPayPaymentModal";
 
 /**
  * ExitPaymentPanel Component
@@ -30,13 +29,7 @@ export default function ExitPaymentPanel({
     const [vehicleType, setVehicleType] = useState("Xe máy");
     const [currentTime, setCurrentTime] = useState(new Date());
     
-    // Trạng thái modal VNPay
-    const [showVnpayModal, setShowVnpayModal] = useState(false);
-    const [vnpayData, setVnpayData] = useState({
-        paymentUrl: "",
-        orderCode: "",
-        expiresInSeconds: 600
-    });
+
 
     // Đồng hồ thời gian thực cho ca trực
     useEffect(() => {
@@ -163,13 +156,10 @@ export default function ExitPaymentPanel({
             const resData = res.data?.data ?? res.data;
 
             if (resData?.payment_url) {
-                setVnpayData({
-                    paymentUrl: resData.payment_url,
-                    orderCode: resData.order_code,
-                    expiresInSeconds: resData.expires_in_seconds || 600
-                });
-                setShowVnpayModal(true);
-                showToast("Đã khởi tạo giao dịch VNPay.", "success");
+                showToast("Đang chuyển hướng sang VNPAY...", "success");
+                setTimeout(() => {
+                    window.location.href = resData.payment_url;
+                }, 1000);
             } else {
                 throw new Error("Không nhận được URL thanh toán từ VNPay.");
             }
@@ -367,41 +357,7 @@ export default function ExitPaymentPanel({
                 </div>
             </div>
 
-            {/* VNPay Payment Modal */}
-            <VNPayPaymentModal
-                isOpen={showVnpayModal}
-                onClose={() => setShowVnpayModal(false)}
-                paymentUrl={vnpayData.paymentUrl}
-                orderCode={vnpayData.orderCode}
-                expiresInSeconds={vnpayData.expiresInSeconds}
-                onSuccess={(payment) => {
-                    setShowVnpayModal(false);
-                    showToast("VNPay thanh toán thành công!", "success");
-                    if (onSessionCompleted) {
-                        onSessionCompleted({
-                            ...preCheckResult.session,
-                            status: "Hoàn thành",
-                            fee: preCheckResult.estimated_fee,
-                            exit_time: new Date().toISOString(),
-                            type: "OUT"
-                        });
-                    }
-                    handleReset();
-                }}
-                onFail={() => {
-                    setShowVnpayModal(false);
-                    showToast("Thanh toán thất bại hoặc hủy bỏ.", "error");
-                }}
-                onExpired={() => {
-                    setShowVnpayModal(false);
-                    showToast("Mã QR đã hết hạn thanh toán.", "warning");
-                    handleReset();
-                }}
-                onSwitchToCash={() => {
-                    setShowVnpayModal(false);
-                    handlePayCash();
-                }}
-            />
+
         </div>
     );
 }
