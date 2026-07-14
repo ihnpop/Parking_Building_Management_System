@@ -2,32 +2,17 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsCollapsed }) {
     const { user, userRole, logout } = useAuth();
+    const role = userRole ? userRole.toUpperCase() : null;
     const userEmail = user?.email || 'admin@parkflow.com';
+
     const email = userEmail.toLowerCase().trim();
+    let computedRole = role;
+    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
+    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
+    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
 
-    let role = userRole ? userRole.toUpperCase() : null;
-    if (email === 'admin@gmail.com') role = 'ADMIN';
-    else if (email === 'manager@gmail.com') role = 'MANAGER';
-    else if (email === 'staff@gmail.com') role = 'STAFF';
-
-    let menuItems = [];
-    if (role === 'ADMIN') {
-        menuItems = [
-            { id: 'user-management', label: 'Phân quyền', icon: 'manage_accounts' },
-            { id: 'dashboard', label: 'Bảng điều khiển', icon: 'dashboard' },
-            { id: 'system-settings', label: 'Cài đặt hệ thống', icon: 'settings' }
-        ];
-    } else if (role === 'MANAGER') {
-        menuItems = [
-            { id: 'card-management', label: 'Quản lý Thẻ', icon: 'badge' },
-            { id: 'log-management', label: 'Nhật ký vận hành', icon: 'history' },
-            { id: 'system-settings', label: 'Cài đặt hệ thống', icon: 'settings' }
-        ];
-    } else if (role === 'STAFF') {
-        menuItems = [
-            { id: 'system', label: 'Nghiệp vụ hệ thống', icon: 'business_center' }
-        ];
-    }
+    const canSeeDashboard = computedRole === 'ADMIN' || computedRole === 'MANAGER';
+    const canSeeUserMgmt = computedRole === 'ADMIN';
 
     const handleLogout = async () => {
         try {
@@ -69,7 +54,7 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             }}
                             title="Mở rộng"
                         >
-                            <span className="material-symbols-outlined">chevron_right</span>
+                            <span className="material-symbols-outlined">menu</span>
                         </button>
                     )}
                 </div>
@@ -91,24 +76,72 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             }}
                             title="Thu nhỏ"
                         >
-                            <span className="material-symbols-outlined">chevron_left</span>
+                            <span className="material-symbols-outlined">menu_open</span>
                         </button>
                     </>
                 )}
             </div>
 
             <nav className="menu">
-                {menuItems.map((item) => (
+                {/* 1. Phân quyền (Chỉ Admin) */}
+                {computedRole === 'ADMIN' && (
                     <button
-                        key={item.id}
                         type="button"
-                        className={`menu-item ${activeTab === item.id ? 'active' : ''}`}
-                        onClick={() => onTabChange(item.id)}
+                        className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('user-management')}
                     >
-                        <span className="material-symbols-outlined">{item.icon}</span>
-                        {!isCollapsed && <span>{item.label}</span>}
+                        <span className="material-symbols-outlined">manage_accounts</span>
+                        {!isCollapsed && <span>Phân quyền</span>}
                     </button>
-                ))}
+                )}
+
+                {/* 2. Bảng điều khiển (Chỉ Admin) */}
+                {computedRole === 'ADMIN' && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                        onClick={() => onTabChange('dashboard')}
+                    >
+                        <span className="material-symbols-outlined">dashboard</span>
+                        {!isCollapsed && <span>Bảng điều khiển</span>}
+                    </button>
+                )}
+
+                {/* 3. Quản lý Thẻ (Chỉ Manager) */}
+                {computedRole === 'MANAGER' && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'card-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('card-management')}
+                    >
+                        <span className="material-symbols-outlined">badge</span>
+                        {!isCollapsed && <span>Quản lý Thẻ</span>}
+                    </button>
+                )}
+
+                {/* 4. Nhật ký vận hành (Chỉ Manager) */}
+                {computedRole === 'MANAGER' && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('log-management')}
+                    >
+                        <span className="material-symbols-outlined">history</span>
+                        {!isCollapsed && <span>Nhật ký vận hành</span>}
+                    </button>
+                )}
+
+                {/* 5. Cài đặt hệ thống (Cả Admin và Manager) */}
+                {(computedRole === 'ADMIN' || computedRole === 'MANAGER') && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'system-settings' ? 'active' : ''}`}
+                        onClick={() => onTabChange('system-settings')}
+                    >
+                        <span className="material-symbols-outlined">settings</span>
+                        {!isCollapsed && <span>Cài đặt hệ thống</span>}
+                    </button>
+                )}
             </nav>
 
             <div className="sidebar-footer">
