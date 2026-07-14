@@ -89,8 +89,8 @@ jobs:
           mirror -R \
             --delete \
             --verbose \
-            ./ \
-            /public_html/
+            dist/ \
+            /
 
           bye
 
