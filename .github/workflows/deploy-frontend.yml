@@ -84,8 +84,6 @@ jobs:
 
           open -u $FTP_USER,$FTP_PASSWORD ftp://$FTP_HOST
 
-          lcd dist
-
           mirror -R \
             --delete \
             --verbose \
