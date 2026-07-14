@@ -639,7 +639,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
           .insert({
             session_id: activeSession.session_id,
             amount: fee,
-            payment_method: 'Cash',
+            payment_method: 'Tiền mặt',
             status: 'Đã thanh toán',
             payment_time: exitTime.toISOString(),
             payment_type: 'Vé lượt',

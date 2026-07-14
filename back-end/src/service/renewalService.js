@@ -19,6 +19,16 @@ import * as vnpayService from './vnpayService.js';
 // Timeout mặc định cho payment pending (phút)
 const PAYMENT_TIMEOUT_MINUTES = 15;
 
+// Ánh xạ mã nội bộ → nhãn tiếng Việt theo ràng buộc DB (payment_method_check)
+// DB constraint: CHECK (payment_method IN ('Tiền mặt', 'VNPay'))
+function mapPaymentMethod(method) {
+    if (!method) return null;
+    const m = method.toLowerCase();
+    if (m === 'cash') return 'Tiền mặt';
+    if (m === 'vnpay') return 'VNPay';
+    return method; // giữ nguyên nếu không khớp
+}
+
 // ─────────────────────────────────────────────────────────────
 // Helper: Cộng tháng an toàn (tránh tràn ngày cuối tháng)
 // ─────────────────────────────────────────────────────────────
@@ -179,13 +189,15 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
     };
 
     // Tạo payment record
+    // Lưu ý: mapPaymentMethod chuyển 'cash' → 'Tiền mặt', 'vnpay' → 'VNPay'
+    // để khớp với ràng buộc CHECK của DB (payment_method_check)
     await paymentRepository.create({
         vehicle_package_id: vehiclePackage.vehicle_package_id,
         payment_type: 'Gia hạn vé tháng',
         amount,
         order_code: orderCode,
         status: 'Chờ thanh toán',
-        payment_method: paymentMethod,
+        payment_method: mapPaymentMethod(paymentMethod),
         created_by: userId || null,
         note: JSON.stringify(savedPayload),
     });
@@ -220,7 +232,7 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
 export async function confirmRenewalCash(orderCode) {
     const payment = await paymentRepository.findByOrderCode(orderCode);
     if (!payment) throw new Error('Không tìm thấy giao dịch.');
-    if (payment.payment_method !== 'cash') throw new Error('Giao dịch không phải tiền mặt.');
+    if (payment.payment_method !== 'Tiền mặt') throw new Error('Giao dịch không phải tiền mặt.');
     if (payment.status !== 'Chờ thanh toán') {
         throw new Error('Giao dịch đã được xử lý trước đó.');
     }
