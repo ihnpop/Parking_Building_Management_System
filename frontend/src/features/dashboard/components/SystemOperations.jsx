@@ -1193,31 +1193,6 @@ export default function SystemOperations() {
                              </div>
                          </div>
 
-                        {/* System Hardware Status */}
-                        <div className="system-status-card">
-                            <div className="status-title">
-                                <span className="material-symbols-outlined">settings_ethernet</span>
-                                <span>Kết nối thiết bị</span>
-                            </div>
-                            <div className="status-grid">
-                                <div className="status-item">
-                                    <span className="status-dot online"></span>
-                                    <span className="status-name">Camera LPR IN</span>
-                                </div>
-                                <div className="status-item">
-                                    <span className="status-dot online"></span>
-                                    <span className="status-name">Camera LPR OUT</span>
-                                </div>
-                                <div className="status-item">
-                                    <span className="status-dot online"></span>
-                                    <span className="status-name">Barrier IN</span>
-                                </div>
-                                <div className="status-item">
-                                    <span className="status-dot online"></span>
-                                    <span className="status-name">Barrier OUT</span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </section>
 

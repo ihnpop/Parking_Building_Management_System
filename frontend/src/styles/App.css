@@ -4607,7 +4607,7 @@ body {
   font-size: 20px;
   font-weight: 700;
   align-content: baseline;
-  color: #a94412;
+  color: #2563eb;
   margin: 0;
 }
 
@@ -4736,7 +4736,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #a94412;
+  background-color: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -4748,7 +4748,7 @@ body {
 }
 
 .filter-btn:hover {
-  background-color: #923c10;
+  background-color: #1d4ed8;
   transform: translateY(-1px);
 }
 
@@ -4899,7 +4899,7 @@ body {
 .details-link {
   font-size: 13px;
   font-weight: 750;
-  color: #a94412;
+  color: #2563eb;
   text-decoration: none;
 }
 
@@ -5080,7 +5080,7 @@ body {
   border: none;
   font-size: 13px;
   font-weight: 700;
-  color: #a94412;
+  color: #2563eb;
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -11117,7 +11117,7 @@ body {
   font-size: 20px;
   font-weight: 700;
   align-content: baseline;
-  color: #a94412;
+  color: #2563eb;
   margin: 0;
 }
 
@@ -11246,7 +11246,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #a94412;
+  background-color: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -11258,7 +11258,7 @@ body {
 }
 
 .filter-btn:hover {
-  background-color: #923c10;
+  background-color: #1d4ed8;
   transform: translateY(-1px);
 }
 
@@ -11409,7 +11409,7 @@ body {
 .details-link {
   font-size: 13px;
   font-weight: 750;
-  color: #a94412;
+  color: #2563eb;
   text-decoration: none;
 }
 
@@ -11588,7 +11588,7 @@ body {
   border: none;
   font-size: 13px;
   font-weight: 700;
-  color: #a94412;
+  color: #2563eb;
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -16403,7 +16403,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: #a94412;
+  background-color: #2563eb;
   color: white;
   border: none;
   border-radius: 8px;
@@ -16415,7 +16415,7 @@ body {
 }
 
 .filter-btn:hover {
-  background-color: #923c10;
+  background-color: #1d4ed8;
   transform: translateY(-1px);
 }
 
@@ -16566,7 +16566,7 @@ body {
 .details-link {
   font-size: 13px;
   font-weight: 750;
-  color: #a94412;
+  color: #2563eb;
   text-decoration: none;
 }
 
@@ -16739,7 +16739,7 @@ body {
   border: none;
   font-size: 13px;
   font-weight: 700;
-  color: #a94412;
+  color: #2563eb;
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -23192,11 +23192,15 @@ td {
 }
 
 .bg-blue {
-  background: #3b82f6;
+  background: #2563eb;
 }
 
 .bg-green {
-  background: #10b981;
+  background: #16a34a;
+}
+
+.bg-red {
+  background: #dc2626;
 }
 
 
@@ -23250,7 +23254,7 @@ td {
 .filter-input,
 .filter-select {
   width: 100%;
-  height: 36px;
+  height: 38px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 13px;
@@ -28018,19 +28022,26 @@ body,
 
 .lost-table thead th {
   background: #f8fafc;
-  color: #64748b;
-  font-size: 11px;
+  color: #475569;
+  font-size: 13px;
   font-weight: 600;
   text-align: left;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 18px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
 }
 
 .lost-table tbody td {
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 14px 18px;
+  font-size: 14px;
   color: #334155;
   border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.lost-table tbody tr:hover {
+  background-color: #f8fafc;
 }
 
 .lost-id-cell {

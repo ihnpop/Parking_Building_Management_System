@@ -5,25 +5,42 @@ import SystemOperations from '../../features/dashboard/components/SystemOperatio
 import { useAuth } from '../../context/AuthContext';
 
 export default function DashboardShell({ children, currentTab, onTabSelect }) {
-    const { userRole } = useAuth();
-    const role = userRole ? userRole.toUpperCase() : null;
+    const { user, userRole } = useAuth();
+    const userEmail = user?.email || 'admin@parkflow.com';
+    const email = userEmail.toLowerCase().trim();
 
-    const [activeTab, setActiveTab] = useState(role === 'STAFF' ? 'system' : 'dashboard');
+    let role = userRole ? userRole.toUpperCase() : null;
+    if (email === 'admin@gmail.com') role = 'ADMIN';
+    else if (email === 'manager@gmail.com') role = 'MANAGER';
+    else if (email === 'staff@gmail.com') role = 'STAFF';
+
+    const getDefaultTab = (currentRole) => {
+        if (currentRole === 'ADMIN') return 'user-management';
+        if (currentRole === 'MANAGER') return 'card-management';
+        return 'system';
+    };
+
+    const [activeTab, setActiveTab] = useState(() => getDefaultTab(role));
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     useEffect(() => {
-        if (role === 'STAFF') {
-            setActiveTab('system');
-        } else if (role === 'MANAGER' && currentTab === 'user-management') {
-            setActiveTab('dashboard');
-        } else if (currentTab) {
-            setActiveTab(currentTab);
+        if (role) {
+            if (role === 'STAFF') {
+                setActiveTab('system');
+            } else if (role === 'MANAGER' && (currentTab === 'user-management' || currentTab === 'dashboard')) {
+                setActiveTab('card-management');
+            } else if (role === 'ADMIN' && (currentTab === 'card-management' || currentTab === 'log-management')) {
+                setActiveTab('user-management');
+            } else if (currentTab) {
+                setActiveTab(currentTab);
+            }
         }
     }, [currentTab, role]);
 
     const handleTabChange = (tab) => {
         if (role === 'STAFF' && tab !== 'system') return;
-        if (role === 'MANAGER' && tab === 'user-management') return;
+        if (role === 'MANAGER' && (tab === 'user-management' || tab === 'dashboard' || tab === 'system')) return;
+        if (role === 'ADMIN' && (tab === 'card-management' || tab === 'log-management' || tab === 'system')) return;
 
         setActiveTab(tab);
         if (onTabSelect) onTabSelect(tab);

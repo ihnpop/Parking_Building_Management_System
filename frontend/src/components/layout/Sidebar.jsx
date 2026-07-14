@@ -2,11 +2,32 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsCollapsed }) {
     const { user, userRole, logout } = useAuth();
-    const role = userRole ? userRole.toUpperCase() : null;
     const userEmail = user?.email || 'admin@parkflow.com';
+    const email = userEmail.toLowerCase().trim();
 
-    const canSeeDashboard = role === 'ADMIN' || role === 'MANAGER';
-    const canSeeUserMgmt = role === 'ADMIN';
+    let role = userRole ? userRole.toUpperCase() : null;
+    if (email === 'admin@gmail.com') role = 'ADMIN';
+    else if (email === 'manager@gmail.com') role = 'MANAGER';
+    else if (email === 'staff@gmail.com') role = 'STAFF';
+
+    let menuItems = [];
+    if (role === 'ADMIN') {
+        menuItems = [
+            { id: 'user-management', label: 'Phân quyền', icon: 'manage_accounts' },
+            { id: 'dashboard', label: 'Bảng điều khiển', icon: 'dashboard' },
+            { id: 'system-settings', label: 'Cài đặt hệ thống', icon: 'settings' }
+        ];
+    } else if (role === 'MANAGER') {
+        menuItems = [
+            { id: 'card-management', label: 'Quản lý Thẻ', icon: 'badge' },
+            { id: 'log-management', label: 'Nhật ký vận hành', icon: 'history' },
+            { id: 'system-settings', label: 'Cài đặt hệ thống', icon: 'settings' }
+        ];
+    } else if (role === 'STAFF') {
+        menuItems = [
+            { id: 'system', label: 'Nghiệp vụ hệ thống', icon: 'business_center' }
+        ];
+    }
 
     const handleLogout = async () => {
         try {
@@ -77,69 +98,17 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
             </div>
 
             <nav className="menu">
-                {canSeeDashboard && (
+                {menuItems.map((item) => (
                     <button
+                        key={item.id}
                         type="button"
-                        className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                        onClick={() => onTabChange('dashboard')}
+                        className={`menu-item ${activeTab === item.id ? 'active' : ''}`}
+                        onClick={() => onTabChange(item.id)}
                     >
-                        <span className="material-symbols-outlined">dashboard</span>
-                        {!isCollapsed && <span>Bảng điều khiển</span>}
+                        <span className="material-symbols-outlined">{item.icon}</span>
+                        {!isCollapsed && <span>{item.label}</span>}
                     </button>
-                )}
-
-                {canSeeDashboard && (
-                    <button
-                        type="button"
-                        className={`menu-item ${activeTab === 'card-management' ? 'active' : ''}`}
-                        onClick={() => onTabChange('card-management')}
-                    >
-                        <span className="material-symbols-outlined">badge</span>
-                        {!isCollapsed && <span>Quản lý Thẻ</span>}
-                    </button>
-                )}
-
-                {canSeeDashboard && (
-                    <button
-                        type="button"
-                        className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}
-                        onClick={() => onTabChange('log-management')}
-                    >
-                        <span className="material-symbols-outlined">history</span>
-                        {!isCollapsed && <span>Nhật ký vận hành</span>}
-                    </button>
-                )}
-
-                <button
-                    type="button"
-                    className={`menu-item ${activeTab === 'system' ? 'active' : ''}`}
-                    onClick={() => onTabChange('system')}
-                >
-                    <span className="material-symbols-outlined">business_center</span>
-                    {!isCollapsed && <span>Nghiệp vụ hệ thống</span>}
-                </button>
-
-                {canSeeDashboard && (
-                    <button
-                        type="button"
-                        className={`menu-item ${activeTab === 'system-settings' ? 'active' : ''}`}
-                        onClick={() => onTabChange('system-settings')}
-                    >
-                        <span className="material-symbols-outlined">settings</span>
-                        {!isCollapsed && <span>Cài đặt hệ thống</span>}
-                    </button>
-                )}
-
-                {canSeeUserMgmt && (
-                    <button
-                        type="button"
-                        className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
-                        onClick={() => onTabChange('user-management')}
-                    >
-                        <span className="material-symbols-outlined">manage_accounts</span>
-                        {!isCollapsed && <span>Phân quyền</span>}
-                    </button>
-                )}
+                ))}
             </nav>
 
             <div className="sidebar-footer">

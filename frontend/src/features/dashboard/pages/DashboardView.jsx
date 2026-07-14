@@ -49,14 +49,21 @@ export default function DashboardView() {
 
     // Force role boundary checks
     useEffect(() => {
-        if (!userRole) return;
-        const normalizedRole = userRole.toUpperCase();
-        if (normalizedRole === 'STAFF' && currentView !== 'system') {
+        const email = user?.email ? user.email.toLowerCase().trim() : '';
+        let role = userRole ? userRole.toUpperCase() : null;
+        if (email === 'admin@gmail.com') role = 'ADMIN';
+        else if (email === 'manager@gmail.com') role = 'MANAGER';
+        else if (email === 'staff@gmail.com') role = 'STAFF';
+
+        if (!role) return;
+        if (role === 'STAFF' && currentView !== 'system') {
             setCurrentView('system');
-        } else if (normalizedRole === 'MANAGER' && currentView === 'user-management') {
-            setCurrentView('dashboard');
+        } else if (role === 'MANAGER' && (currentView === 'user-management' || currentView === 'system' || currentView === 'dashboard')) {
+            setCurrentView('card-management');
+        } else if (role === 'ADMIN' && (currentView === 'card-management' || currentView === 'log-management' || currentView === 'system')) {
+            setCurrentView('user-management');
         }
-    }, [userRole, currentView]);
+    }, [user, userRole, currentView]);
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');

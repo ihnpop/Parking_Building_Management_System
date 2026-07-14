@@ -20,11 +20,11 @@ const INITIAL_FORM = {
 // ─────────────────────────────────────────────
 function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
     return (
-        <div className="mc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="mc-modal">
-                <div className="mc-modal-header">
+        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="cp-modal">
+                <div className="cp-modal-header">
                     <h2>Đăng ký thẻ mới</h2>
-                    <button type="button" className="mc-modal-close" onClick={onClose}>
+                    <button type="button" className="cp-modal-close" onClick={onClose}>
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -33,51 +33,51 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
 
 
                     {/* 2. Biển số xe */}
-                    <div className="mc-form-group">
+                    <div className="cp-form-group">
                         <label htmlFor="plate">Biển số xe</label>
                         <input
                             id="plate"
                             name="plate"
                             type="text"
                             placeholder="Ví dụ: 30K12345"
-                            className="mc-input"
+                            className="cp-input"
                             value={formData.plate}
                             onChange={onChange}
                         />
                     </div>
 
                     {/* 3. Ngày bắt đầu */}
-                    <div className="mc-form-group">
+                    <div className="cp-form-group">
                         <label htmlFor="startDate">Ngày bắt đầu</label>
                         <input
                             id="startDate"
                             name="startDate"
                             type="datetime-local"
-                            className="mc-input"
+                            className="cp-input"
                             value={formData.startDate}
                             onChange={onChange}
                         />
                     </div>
 
                     {/* 4. Trạng thái — readonly, luôn là "Hoạt động" khi tạo mới */}
-                    <div className="mc-form-group">
+                    <div className="cp-form-group">
                         <label htmlFor="status">Trạng thái</label>
                         <input
                             id="status"
                             name="status"
                             type="text"
-                            className="mc-input"
+                            className="cp-input"
                             value={formData.status}
                             readOnly
                         />
                     </div>
 
-                    {formError && <p className="mc-form-error">{formError}</p>}
+                    {formError && <p className="cp-form-error">{formError}</p>}
 
-                    <div className="mc-modal-actions">
+                    <div className="cp-modal-actions">
                         <button
                             type="button"
-                            className="mc-btn mc-btn-outline"
+                            className="cp-btn cp-btn-outline"
                             onClick={onClose}
                             disabled={submitting}
                         >
@@ -85,7 +85,7 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                         </button>
                         <button
                             type="submit"
-                            className="mc-btn mc-btn-primary"
+                            className="cp-btn cp-btn-primary"
                             disabled={submitting}
                         >
                             {submitting ? 'Đang lưu...' : 'Đăng ký'}
@@ -104,17 +104,17 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
     const hasPlate = formData.plate && formData.plate.trim() !== '';
 
     return (
-        <div className="mc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="mc-modal">
-                <div className="mc-modal-header">
+        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="cp-modal">
+                <div className="cp-modal-header">
                     <h2>Cập nhật thẻ</h2>
-                    <button type="button" className="mc-modal-close" onClick={onClose}>
+                    <button type="button" className="cp-modal-close" onClick={onClose}>
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
-                <form className="mc-modal-form" onSubmit={onSubmit}>
-                    <div className="mc-form-group">
+                <form className="cp-modal-form" onSubmit={onSubmit}>
+                    <div className="cp-form-group">
                         <label htmlFor="plate">Biển số xe</label>
                         <input
                             id="plate"
@@ -122,43 +122,43 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                             type="text"
                             // readOnly
                             placeholder="Ví dụ: 59G112345 (Nếu có)"
-                            className="mc-input"
+                            className="cp-input"
                             value={formData.plate}
                             onChange={onChange}
                         />
                     </div>
 
-                    <div className="mc-form-group">
+                    <div className="cp-form-group">
                         <label>Thời gian vào</label>
                         <input
                             type="datetime-local"
                             name="checkInTime"
                             value={formData.checkInTime}
                             onChange={onChange}
-                            className="mc-input"
+                            className="cp-input"
                             disabled={!hasPlate}
                         />
                     </div>
 
-                    <div className="mc-form-group">
+                    <div className="cp-form-group">
                         <label>Thời gian ra</label>
                         <input
                             type="datetime-local"
                             name="checkOutTime"
                             value={formData.checkOutTime}
                             onChange={onChange}
-                            className="mc-input"
+                            className="cp-input"
                             disabled={!hasPlate}
                         />
                     </div>
 
-                    <div className="mc-form-group">
+                    <div className="cp-form-group">
                         <label>Trạng thái</label>
                         <select
                             name="status"
                             value={formData.status}
                             onChange={onChange}
-                            className="mc-select"
+                            className="cp-select"
                             disabled={!hasPlate}
                         >
                             <option value="Hoạt động">Hoạt động</option>
@@ -168,7 +168,7 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                         </select>
                     </div>
 
-                    {formError && <p className="mc-form-error">{formError}</p>}
+                    {formError && <p className="cp-form-error">{formError}</p>}
 
                     {!hasPlate && (
                         <p style={{ color: '#f59e0b', fontSize: '14px', marginTop: '8px' }}>
@@ -176,10 +176,10 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                         </p>
                     )}
 
-                    <div className="mc-modal-actions">
+                    <div className="cp-modal-actions">
                         <button
                             type="button"
-                            className="mc-btn mc-btn-outline"
+                            className="cp-btn cp-btn-outline"
                             onClick={onClose}
                             disabled={submitting}
                         >
@@ -187,7 +187,7 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                         </button>
                         <button
                             type="submit"
-                            className="mc-btn mc-btn-primary"
+                            className="cp-btn cp-btn-primary"
                             disabled={submitting}
                         >
                             {submitting ? 'Đang lưu...' : 'Cập nhật'}
