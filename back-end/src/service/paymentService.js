@@ -135,11 +135,14 @@ export async function handleIpn(query) {
             const exitTime = new Date().toISOString();
             
             // Cập nhật trạng thái phiên đỗ xe thành 'Hoàn thành'
+            // Ghi thêm final_fee (= số tiền giao dịch) và staff_out_id (= staff đã khởi tạo giao dịch VNPay)
             await supabase
                 .from("parking_sessions")
                 .update({
                     exit_time: exitTime,
-                    status: "Hoàn thành"
+                    status: "Hoàn thành",
+                    final_fee: payment.amount,
+                    staff_out_id: payment.created_by || null,
                 })
                 .eq("session_id", payment.session_id);
 
