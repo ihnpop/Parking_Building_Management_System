@@ -77,17 +77,20 @@ jobs:
 
           lftp -d <<EOF
 
-          set ftp:ssl-force yes
-          set ftp:ssl-protect-data yes
-          set ssl:verify-certificate no
-          set ftp:passive-mode yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate false
+          set ftp:passive-mode true
 
-          open ftp://$FTP_HOST
+          open -u $FTP_USER,$FTP_PASSWORD ftp://$FTP_HOST
 
-          user $FTP_USER $FTP_PASSWORD
+          lcd dist
 
-          pwd
-          ls
+          mirror -R \
+            --delete \
+            --verbose \
+            ./ \
+            /public_html/
 
           bye
 
