@@ -160,6 +160,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     exit_vehicle_image: exitVehicleUrl,
     exit_plate_image: exitPlateUrl,
     status: "Hoàn thành",
+    final_fee: fee,
   });
 
   return {

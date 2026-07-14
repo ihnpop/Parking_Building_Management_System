@@ -617,7 +617,9 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
-      status: "Hoàn thành"
+      status: "Hoàn thành",
+      final_fee: fee,
+      staff_out_id: staffId || null
     });
 
     // Giải phóng liên kết thẻ và xe (đổi status của registration sang INACTIVE)
@@ -683,7 +685,9 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
-      status: "Hoàn thành"
+      status: "Hoàn thành",
+      final_fee: 0,
+      staff_out_id: staffId || null
     });
   } else {
     throw Object.assign(new Error("Dữ liệu check-out không hợp lệ (cần truyền cardCode hoặc plateNumber)."), { statusCode: 400 });
@@ -808,7 +812,8 @@ export const getSessions = async (dateStr = null) => {
       entry_time,
       exit_time,
       status,
-      card_id
+      card_id,
+      final_fee
     `)
     .lt("entry_time", endOfDay.toISOString())
     .or(`exit_time.is.null,exit_time.gte.${startOfDay.toISOString()}`)
@@ -842,6 +847,7 @@ export const getSessions = async (dateStr = null) => {
   // Ghép thông tin card vào session bằng Javascript
   const mappedSessions = sessions.map(s => ({
     ...s,
+    fee: s.final_fee || 0,
     card: s.card_id ? (cardsMap[s.card_id] || null) : null
   }));
 
