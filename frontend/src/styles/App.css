@@ -7099,9 +7099,9 @@ body {
   gap: 24px;
   background-color: transparent;
   /* Soft ice-blue background */
-  padding: 24px;
+  padding: 0 24px 24px 24px;
   border-radius: 16px;
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 /* ---------- Stats Row ---------- */
@@ -7709,11 +7709,11 @@ body {
   gap: 24px;
   background-color: #f0f6ff;
   /* Soft ice-blue background */
-  padding: 24px;
+  padding: 0 24px 24px 24px;
   border-radius: 16px;
   border: 1px solid #d0e1fd;
   /* Subtle blue border */
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 /* ---------- Stats Row ---------- */
@@ -15750,7 +15750,7 @@ body {
    SYSTEM SETTINGS PAGE (CÃ i Ä‘áº·t há»‡ thá»‘ng)
    ========================================== */
 .settings-page {
-  padding: 38px 32px 60px;
+  padding: 0 32px 60px !important;
   max-width: 100%;
   margin: 0 auto;
   display: flex;
@@ -19451,7 +19451,7 @@ body {
 .db-page {
   background: var(--db-bg);
   min-height: 100%;
-  padding: 24px;
+  padding: 0 24px 24px;
   font-family: 'Inter', system-ui, sans-serif;
   color: var(--db-text);
 }
@@ -20940,7 +20940,7 @@ body {
 
 /* â”€â”€ MAIN CONTENT AREA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .content {
-  padding: clamp(16px, 2.5vw, 36px) clamp(16px, 3vw, 40px) clamp(24px, 4vh, 60px) !important;
+  padding: 20px clamp(16px, 3vw, 40px) clamp(24px, 4vh, 60px) !important;
   overflow-y: auto !important;
   flex: 1 !important;
 }
@@ -21023,7 +21023,7 @@ body {
 
 /* ──── DB (DASHBOARD) PAGE RESPONSIVE ────────────────────────────────────────── */
 .db-page {
-  padding: clamp(16px, 2vw, 26px) clamp(16px, 2.5vw, 28px) !important;
+  padding: 0 clamp(16px, 2.5vw, 28px) clamp(16px, 2vw, 26px) !important;
 }
 
 .db-kpis {
@@ -21053,7 +21053,7 @@ body {
 /* ──── CARD PAGE (cp-*) RESPONSIVE ───────────────────────────────────────────── */
 .cp-page {
   border-radius: clamp(8px, 1.5vw, 16px) !important;
-  padding: clamp(16px, 2vw, 24px) !important;
+  padding: 0 clamp(16px, 2vw, 24px) clamp(16px, 2vw, 24px) clamp(16px, 2vw, 24px) !important;
 }
 
 .cp-stats-row {
@@ -21086,7 +21086,7 @@ body {
 /* ──── MONTH CARD PAGE (mc-*) RESPONSIVE ─────────────────────────────────────── */
 .mc-page {
   border-radius: clamp(8px, 1.5vw, 16px) !important;
-  padding: clamp(16px, 2vw, 24px) !important;
+  padding: 0 clamp(16px, 2vw, 24px) clamp(16px, 2vw, 24px) clamp(16px, 2vw, 24px) !important;
 }
 
 .mc-stats-row {
@@ -21210,184 +21210,6 @@ body {
 .mc-modal,
 .cardpage-modal {
   width: min(480px, calc(100vw - 32px)) !important;
-}
-
-/* ──── MC-* Modal Styles (CardPage) ─────────────────────────────────────────── */
-.mc-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-
-.mc-modal {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.08);
-  width: min(480px, calc(100vw - 32px));
-  overflow: hidden;
-  animation: mc-modal-in 0.2s ease;
-}
-
-@keyframes mc-modal-in {
-  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.mc-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.mc-modal-header h2 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.mc-modal-close {
-  background: #f1f5f9;
-  border: none;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #64748b;
-  transition: background 0.15s, color 0.15s;
-}
-
-.mc-modal-close:hover {
-  background: #e2e8f0;
-  color: #1e293b;
-}
-
-.mc-modal-close .material-symbols-outlined {
-  font-size: 18px;
-}
-
-.mc-modal-form,
-.cp-modal-form {
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mc-form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mc-form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.mc-input,
-.mc-select {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #1f2937;
-  background: #f8fafc;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.mc-input:focus,
-.mc-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-  background: #ffffff;
-}
-
-.mc-input:disabled,
-.mc-select:disabled {
-  background: #f1f5f9;
-  color: #94a3b8;
-  cursor: not-allowed;
-  border-color: #e2e8f0;
-}
-
-.mc-select {
-  cursor: pointer;
-  appearance: auto;
-}
-
-.mc-form-error {
-  font-size: 13px;
-  color: #ef4444;
-  margin: 0;
-  padding: 8px 12px;
-  background: #fef2f2;
-  border-radius: 8px;
-  border: 1px solid #fecaca;
-}
-
-.mc-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px 20px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.mc-btn {
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: inherit;
-}
-
-.mc-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.mc-btn-outline {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1.5px solid #e2e8f0;
-}
-
-.mc-btn-outline:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #1e293b;
-}
-
-.mc-btn-primary {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-.mc-btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
