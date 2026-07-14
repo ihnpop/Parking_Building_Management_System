@@ -36,7 +36,7 @@ jobs:
       # Setup pnpm
       # ============================================
 
-        name: Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
@@ -81,8 +81,7 @@ jobs:
           set net:max-retries 2;
           set net:timeout 30;
 
-          open ftp://$FTP_HOST;
-          user $FTP_USER $FTP_PASSWORD;
+          open -u $FTP_USER,$FTP_PASSWORD ftps://$FTP_HOST;
 
           mirror -R \
             --delete \
