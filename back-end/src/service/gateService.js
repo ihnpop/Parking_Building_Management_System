@@ -309,7 +309,8 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       plate_number: cleanPlate,
       entry_vehicle_image: entryVehicleImage || null,
       entry_plate_image: entryPlateImage || null,
-      card_id: card.card_id
+      card_id: card.card_id,
+      staff_in_id: staffId || null
     });
 
     // Tạo liên kết tạm thời giữa thẻ lượt và xe
@@ -351,7 +352,8 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       plate_number: cleanPlate,
       entry_vehicle_image: entryVehicleImage || null,
       entry_plate_image: entryPlateImage || null,
-      card_id: card.card_id
+      card_id: card.card_id,
+      staff_in_id: staffId || null
     });
   }
 
