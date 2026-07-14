@@ -1,4 +1,4 @@
-# Front-end.
+# Front-end v0.2
 name: Deploy Frontend
 
 on:
@@ -43,6 +43,6 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
-          local-dir: front-end/dist/
+          local-dir: frontend/dist/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
           dangerous-clean-slate: true
