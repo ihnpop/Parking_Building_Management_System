@@ -276,7 +276,7 @@ export async function cashPayment(sessionId, staffId) {
     // 1. Lấy session
     const session = await getSessionById(sessionId);
     if (!session) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
-    if (session.status !== "Đang gửi xe") {
+    if (session.status !== "Đang gửi xe" && session.status !== "Chờ thanh toán") {
         throw Object.assign(
             new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể thanh toán tiền mặt.`),
             { statusCode: 400 }
@@ -420,7 +420,7 @@ export async function createVnpayPayment(sessionId, staffId, ipAddr) {
     // 1. Lấy + validate session
     const session = await getSessionById(sessionId);
     if (!session) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
-    if (session.status !== "Đang gửi xe") {
+    if (session.status !== "Đang gửi xe" && session.status !== "Chờ thanh toán") {
         throw Object.assign(
             new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể tạo giao dịch VNPay.`),
             { statusCode: 400 }

@@ -48,7 +48,7 @@ export const findActiveSessionByPlate = async (plateNumber) => {
     .from("parking_sessions")
     .select("*")
     .eq("plate_number", plateNumber)
-    .eq("status", "Đang gửi xe")
+    .in("status", ["Đang gửi xe", "Chờ thanh toán"])
     .order("entry_time", { ascending: false })
     .limit(1)
     .maybeSingle();

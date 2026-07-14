@@ -32,12 +32,14 @@ export async function calculateExitFee({ plate_number }) {
 
     const cleanPlate = plate_number.trim().toUpperCase();
 
-    // ─── 1. Tìm phiên gửi xe đang mở ────────────────────────────────────────
+    // ─── 1. Tìm phiên gửi xe đang mở (hoặc đang chờ thanh toán VNPay) ────────
     const { data: session, error: sessionErr } = await supabase
         .from("parking_sessions")
         .select("*")
         .eq("plate_number", cleanPlate)
-        .eq("status", "Đang gửi xe")
+        .in("status", ["Đang gửi xe", "Chờ thanh toán"])
+        .order("entry_time", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
     if (sessionErr) throw new Error(sessionErr.message);
