@@ -30,13 +30,13 @@ export default function OccupancyChart() {
         status: 'ALL'
     });
 
-    const isAnyFilterActive = 
-        columnFilters.plate !== '' || 
-        columnFilters.cardCode !== '' || 
-        columnFilters.cardType !== 'ALL' || 
-        columnFilters.entryTime !== '' || 
-        columnFilters.exitTime !== '' || 
-        columnFilters.duration !== '' || 
+    const isAnyFilterActive =
+        columnFilters.plate !== '' ||
+        columnFilters.cardCode !== '' ||
+        columnFilters.cardType !== 'ALL' ||
+        columnFilters.entryTime !== '' ||
+        columnFilters.exitTime !== '' ||
+        columnFilters.duration !== '' ||
         columnFilters.status !== 'ALL';
 
     const handleClearFilters = () => {
@@ -192,61 +192,6 @@ export default function OccupancyChart() {
                 </button>
                 <h1 className="stats-page-title">Thống kê hoạt động bãi xe</h1>
                 <div className="stats-header-right">
-                    {/* Date Picker */}
-                    <div 
-                        style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: 8, 
-                            background: '#ffffff', 
-                            borderRadius: 10, 
-                            padding: '6px 12px', 
-                            border: '1.5px solid #cbd5e1', 
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            transition: 'border-color 0.2s, box-shadow 0.2s',
-                            color: '#1f2937'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = '#a94412';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = '#cbd5e1';
-                        }}
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#6b7280' }}>calendar_today</span>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            max={todayStr}
-                            onChange={(e) => {
-                                if (e.target.value) setSelectedDate(e.target.value);
-                            }}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                color: '#1f2937',
-                                fontSize: 14,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                colorScheme: 'light'
-                            }}
-                        />
-                        {selectedDate !== todayStr && (
-                            <button
-                                type="button"
-                                onClick={() => setSelectedDate(todayStr)}
-                                title="Quay về hôm nay"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
-                            </button>
-                        )}
-                    </div>
-
-                    <button className="stats-bell-btn" onClick={() => fetchData(selectedDate)} title="Làm mới dữ liệu">
-                        <span className="material-symbols-outlined" style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>refresh</span>
-                    </button>
 
                     <div className="avatar-wrapper" ref={dropdownRef}>
                         <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
@@ -277,7 +222,7 @@ export default function OccupancyChart() {
             </header>
 
             <div className="stats-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' }}>
-                
+
                 {/* 3 Stats Cards Grid */}
                 <div className="stats-grid">
                     <article className="stat-card">
@@ -316,7 +261,59 @@ export default function OccupancyChart() {
                             <span className="material-symbols-outlined">analytics</span>
                             Danh sách hoạt động bãi xe
                         </h3>
-                        <div className="system-sessions-filters">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                            {/* Bộ chọn ngày (Date Picker) */}
+                            <div 
+                                style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 8, 
+                                    background: '#ffffff', 
+                                    borderRadius: 10, 
+                                    padding: '6px 12px', 
+                                    border: '1.5px solid #cbd5e1', 
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    color: '#1f2937',
+                                    height: '34px',
+                                    boxSizing: 'border-box'
+                                }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#6b7280' }}>calendar_today</span>
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    max={todayStr}
+                                    onChange={(e) => {
+                                        if (e.target.value) setSelectedDate(e.target.value);
+                                    }}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        outline: 'none',
+                                        color: '#1f2937',
+                                        fontSize: 14,
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        colorScheme: 'light'
+                                    }}
+                                />
+                                {selectedDate !== todayStr && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedDate(todayStr)}
+                                        title="Quay về hôm nay"
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Đường vạch phân cách dọc */}
+                            <div style={{ width: '1px', height: '24px', backgroundColor: '#e2e8f0', margin: '0 4px' }} />
+
+                            {/* Các nút lọc trạng thái */}
+                            <div className="system-sessions-filters" style={{ margin: 0 }}>
                             <button
                                 type="button"
                                 className={`filter-btn ${filterType === 'ALL' ? 'active' : ''}`}
@@ -340,6 +337,7 @@ export default function OccupancyChart() {
                                 <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>logout</span>
                                 Xe đã ra
                             </button>
+                            </div>
                         </div>
                     </header>
                     <div className="system-sessions-table-wrapper">
@@ -387,9 +385,9 @@ export default function OccupancyChart() {
                                             type="text"
                                             placeholder="Lọc biển số..."
                                             value={columnFilters.plate}
-                                            onChange={(e) => setColumnFilters({...columnFilters, plate: e.target.value})}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, plate: e.target.value })}
                                             style={filterInputStyle}
-                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                             onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                         />
                                     </th>
@@ -399,16 +397,16 @@ export default function OccupancyChart() {
                                                 type="text"
                                                 placeholder="Lọc mã thẻ..."
                                                 value={columnFilters.cardCode}
-                                                onChange={(e) => setColumnFilters({...columnFilters, cardCode: e.target.value})}
+                                                onChange={(e) => setColumnFilters({ ...columnFilters, cardCode: e.target.value })}
                                                 style={filterInputStyle}
-                                                onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                                onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                                 onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                             />
                                             <select
                                                 value={columnFilters.cardType}
-                                                onChange={(e) => setColumnFilters({...columnFilters, cardType: e.target.value})}
+                                                onChange={(e) => setColumnFilters({ ...columnFilters, cardType: e.target.value })}
                                                 style={filterSelectStyle}
-                                                onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                                onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                                 onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                             >
                                                 <option value="ALL">Loại: Tất cả</option>
@@ -422,9 +420,9 @@ export default function OccupancyChart() {
                                             type="text"
                                             placeholder="Lọc giờ vào..."
                                             value={columnFilters.entryTime}
-                                            onChange={(e) => setColumnFilters({...columnFilters, entryTime: e.target.value})}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, entryTime: e.target.value })}
                                             style={filterInputStyle}
-                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                             onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                         />
                                     </th>
@@ -433,9 +431,9 @@ export default function OccupancyChart() {
                                             type="text"
                                             placeholder="Lọc giờ ra..."
                                             value={columnFilters.exitTime}
-                                            onChange={(e) => setColumnFilters({...columnFilters, exitTime: e.target.value})}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, exitTime: e.target.value })}
                                             style={filterInputStyle}
-                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                             onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                         />
                                     </th>
@@ -444,18 +442,18 @@ export default function OccupancyChart() {
                                             type="text"
                                             placeholder="Lọc th.gian..."
                                             value={columnFilters.duration}
-                                            onChange={(e) => setColumnFilters({...columnFilters, duration: e.target.value})}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, duration: e.target.value })}
                                             style={filterInputStyle}
-                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                             onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                         />
                                     </th>
                                     <th style={{ padding: '8px' }}>
                                         <select
                                             value={columnFilters.status}
-                                            onChange={(e) => setColumnFilters({...columnFilters, status: e.target.value})}
+                                            onChange={(e) => setColumnFilters({ ...columnFilters, status: e.target.value })}
                                             style={filterSelectStyle}
-                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                                             onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
                                         >
                                             <option value="ALL">Tất cả</option>
@@ -524,7 +522,7 @@ export default function OccupancyChart() {
                                             const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
                                             const hours = Math.floor(durationMs / (1000 * 60 * 60));
                                             const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                                            
+
                                             if (!durationStr.includes(columnFilters.duration)) return false;
                                         }
 
@@ -547,7 +545,7 @@ export default function OccupancyChart() {
                                     }
                                     return filtered.map((session, index) => {
                                         const isInside = session.status === 'Đang gửi xe';
-                                        
+
                                         // Calculate duration in ms
                                         let durationMs = 0;
                                         if (isInside) {
@@ -567,7 +565,7 @@ export default function OccupancyChart() {
                                             }
                                             durationMs = new Date(exitTimeStr).getTime() - new Date(entryTimeStr).getTime();
                                         }
-                                        
+
                                         // Format duration
                                         if (durationMs < 0) durationMs = 0;
                                         const seconds = Math.floor((durationMs / 1000) % 60);

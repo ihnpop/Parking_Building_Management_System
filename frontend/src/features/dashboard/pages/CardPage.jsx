@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getVNDateTimeLocal } from '../../../utils/dateUtils';
 import { useNotification } from '../../../context/NotificationContext';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 10;
 
 const INITIAL_FORM = {
     type: 'Thẻ lượt',
