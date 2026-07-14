@@ -14,7 +14,7 @@ import OccupancyChart from './features/dashboard/pages/OccupancyChart';
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
 import ResetPassword from "./features/auth/pages/ResetPassword";
 import "./styles/App.css";
-import SetPasswordPage from './features/auth/pages/Setpasswordpage';
+import SetPasswordPage from './features/auth/pages/SetPasswordPage';
 import PaymentResultPage from './features/dashboard/pages/PaymentResultPage';
 import ContractSignPage from './features/dashboard/pages/ContractSignPage';
 
