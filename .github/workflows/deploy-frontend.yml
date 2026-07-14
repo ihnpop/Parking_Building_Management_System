@@ -1,4 +1,4 @@
-#Front-end.
+# Front-end.
 name: Deploy Frontend
 
 on:
@@ -13,7 +13,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: front-end
+        working-directory: frontend
 
     steps:
 
