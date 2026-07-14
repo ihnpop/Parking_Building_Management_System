@@ -86,6 +86,8 @@ jobs:
 
           mirror -R \
             --delete \
+            --exclude-glob ".ftpquota" \
+            --exclude-glob ".htaccess" \
             --verbose \
             dist/ \
             /
