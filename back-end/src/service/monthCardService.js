@@ -154,7 +154,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
           .insert({
             vehicle_package_id: vehiclePackageId,
             amount: pkg.price,
-            payment_method: 'Cash',
+            payment_method: 'Tiền mặt',
             status: 'Đã thanh toán',
             payment_time: new Date().toISOString(),
             payment_type: 'Gia hạn vé tháng',
@@ -430,7 +430,7 @@ export const createMonthCard = async ({
           .insert({
             vehicle_package_id: vehiclePackageId,
             amount: price,
-            payment_method: 'Cash',
+            payment_method: 'Tiền mặt',
             status: 'Đã thanh toán',
             payment_time: new Date().toISOString(),
             payment_type: 'Đăng ký vé tháng',
