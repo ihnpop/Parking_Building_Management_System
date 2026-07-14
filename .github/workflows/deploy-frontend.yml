@@ -1,53 +1,4 @@
-# Front-end v0.2
-# name: Deploy Frontend
-
-# on:
-#   push:
-#     branches:
-#       - deploy-backup
-
-# jobs:
-#   build-and-deploy:
-
-#     runs-on: ubuntu-latest
-
-#     defaults:
-#       run:
-#         working-directory: frontend
-
-#     steps:
-
-#       - name: Checkout
-#         uses: actions/checkout@v4
-
-#       - name: Setup Node
-#         uses: actions/setup-node@v4
-#         with:
-#           node-version: 22
-
-#       - name: Setup pnpm
-#         uses: pnpm/action-setup@v4
-#         with:
-#           version: 10
-
-#       - name: Install dependencies
-#         run: pnpm install
-
-#       - name: Build React
-#         run: pnpm run build
-
-#       - name: FTP Deploy
-#         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-#         with:
-#           server: ${{ secrets.FTP_HOST }}
-#           username: ${{ secrets.FTP_USER }}
-#           password: ${{ secrets.FTP_PASSWORD }}
-#           port: ${{ secrets.FTP_PORT }}
-#           local-dir: frontend/dist/
-#           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-#           dangerous-clean-slate: true
-
-  name: Deploy Frontend
+name: Deploy Frontend
 
 on:
   push:
@@ -55,8 +6,7 @@ on:
       - deploy-backup
 
 jobs:
-
-  deploy:
+  build-and-deploy:
 
     runs-on: ubuntu-latest
 
@@ -66,24 +16,79 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      # ============================================
+      # Checkout source
+      # ============================================
 
-      - uses: actions/setup-node@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # ============================================
+      # Setup Node
+      # ============================================
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      # ============================================
+      # Setup pnpm
+      # ============================================
+
+        name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - run: pnpm install
+      # ============================================
+      # Install dependencies
+      # ============================================
 
-      - run: pnpm build
+      - name: Install Dependencies
+        run: pnpm install
 
-      - name: Upload build to cPanel
+      # ============================================
+      # Build React
+      # ============================================
+
+      - name: Build React
+        run: pnpm run build
+
+      # ============================================
+      # Install lftp
+      # ============================================
+
+      - name: Install lftp
         run: |
-          curl \
-          -H "Authorization: cpanel ${{ secrets.CPANEL_USER }}:${{ secrets.CPANEL_TOKEN }}" \
-          -F "dir=/public_html" \
-          -F "file=@frontend/dist/index.html" \
-          https://${{ secrets.CPANEL_HOST }}:2083/execute/Fileman/upload_files
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      # ============================================
+      # Deploy via FTPS
+      # ============================================
+
+      - name: Deploy to OneHost
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          lftp -e "
+          set ftp:ssl-force true;
+          set ftp:ssl-protect-data true;
+          set ssl:verify-certificate false;
+          set net:max-retries 2;
+          set net:timeout 30;
+
+          open ftp://$FTP_HOST;
+          user $FTP_USER $FTP_PASSWORD;
+
+          mirror -R \
+            --delete \
+            --verbose \
+            dist/ \
+            /public_html/;
+
+          bye
+          "
