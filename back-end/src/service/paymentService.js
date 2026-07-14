@@ -8,6 +8,7 @@
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as vnpayService from "./vnpayService.js";
 import supabase from "../config/supabaseClient.js";
+import { calculateExitFee } from "./feeCalculation.service.js";
 
 /**
  * Hàm phụ trợ lấy thông tin chi tiết một lượt gửi xe bằng ID
@@ -244,3 +245,258 @@ export async function getPaymentByOrderCode(orderCode) {
     if (!payment) throw new Error("Không tìm thấy giao dịch");
     return payment;
 }
+
+/**
+ * Lấy trạng thái thanh toán (polling) theo order_code — chỉ SELECT, KHÔNG update
+ */
+export async function getPaymentStatus(orderCode) {
+    const { data, error } = await supabase
+        .from("payment")
+        .select("payment_id, order_code, status, amount, payment_method, paid_at")
+        .eq("order_code", orderCode)
+        .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw Object.assign(new Error("Không tìm thấy giao dịch"), { statusCode: 404 });
+    return data;
+}
+
+/**
+ * Thanh toán tiền mặt cho vé lượt (Prompt 2 — BR-TT-10 → BR-TT-12, BR-TT-24 → BR-TT-25)
+ *
+ * - Tính lại estimated_fee từ DB (KHÔNG tin số tiền client gửi lên)
+ * - Insert payment (Tiền mặt, Đã thanh toán)
+ * - Update parking_sessions (exit_time, final_fee, status, staff_out_id)
+ * - Insert entry_exit_log (Xe ra)
+ *
+ * @param {string} sessionId
+ * @param {string} staffId
+ * @param {string} ipAddr
+ */
+export async function cashPayment(sessionId, staffId) {
+    // 1. Lấy session
+    const session = await getSessionById(sessionId);
+    if (!session) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
+    if (session.status !== "Đang gửi xe") {
+        throw Object.assign(
+            new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể thanh toán tiền mặt.`),
+            { statusCode: 400 }
+        );
+    }
+
+    // 2. Tính lại phí từ DB (không tin client)
+    const feeResult = await calculateExitFee({ plate_number: session.plate_number });
+
+    if (feeResult.estimated_fee === 0 && feeResult.ticket_type === "Thẻ tháng") {
+        throw Object.assign(
+            new Error("Phiên này không cần thanh toán, dùng endpoint mở barie trực tiếp."),
+            { statusCode: 400 }
+        );
+    }
+
+    const amount = feeResult.estimated_fee;
+    const ticketType = feeResult.ticket_type;
+    const exitTime = new Date().toISOString();
+
+    // 3. Insert payment tiền mặt
+    const { data: payment, error: payErr } = await supabase
+        .from("payment")
+        .insert({
+            session_id: sessionId,
+            payment_type: "Vé lượt",
+            payment_method: "Tiền mặt",
+            provider: null,
+            order_code: null,
+            amount,
+            status: "Đã thanh toán",
+            paid_at: exitTime,
+            payment_time: exitTime,
+            created_by: staffId || null,
+        })
+        .select()
+        .single();
+
+    if (payErr) throw new Error("Lỗi tạo payment: " + payErr.message);
+
+    // 4. Update parking_sessions
+    const { error: sessionUpdateErr } = await supabase
+        .from("parking_sessions")
+        .update({
+            exit_time: exitTime,
+            final_fee: amount,
+            status: "Hoàn thành",
+            staff_out_id: staffId || null,
+        })
+        .eq("session_id", sessionId);
+
+    if (sessionUpdateErr) throw new Error("Lỗi cập nhật phiên gửi xe: " + sessionUpdateErr.message);
+
+    // 5. Giải phóng thẻ lượt (nếu có card_id)
+    if (session.card_id) {
+        // Hủy đăng ký thẻ hoạt động
+        const { data: activeReg } = await supabase
+            .from("card_registrations")
+            .select("registration_id")
+            .eq("card_id", session.card_id)
+            .eq("status", "Hoạt động")
+            .maybeSingle();
+
+        if (activeReg) {
+            await supabase
+                .from("card_registrations")
+                .update({ status: "Không hoạt động" })
+                .eq("registration_id", activeReg.registration_id);
+        }
+
+        // Reset thẻ về 'Đang chờ'
+        await supabase
+            .from("card")
+            .update({ status: "Đang chờ" })
+            .eq("card_id", session.card_id);
+    }
+
+    // 6. Lấy thông tin để ghi log
+    const { data: entryLog } = await supabase
+        .from("entry_exit_log")
+        .select("building_id, parking_id, gate_id")
+        .eq("session_id", sessionId)
+        .eq("direction", "Xe vào")
+        .maybeSingle();
+
+    // Tìm cổng ra
+    let exitGateId = null;
+    if (entryLog?.parking_id) {
+        const { data: gates } = await supabase
+            .from("gate")
+            .select("gate_id")
+            .eq("parking_id", entryLog.parking_id)
+            .eq("gate_type", "Cổng ra")
+            .limit(1);
+        if (gates?.length > 0) exitGateId = gates[0].gate_id;
+        // Fallback: bất kỳ cổng nào của bãi đó
+        if (!exitGateId) {
+            const { data: anyGates } = await supabase
+                .from("gate")
+                .select("gate_id")
+                .eq("parking_id", entryLog.parking_id)
+                .limit(1);
+            if (anyGates?.length > 0) exitGateId = anyGates[0].gate_id;
+        }
+    }
+
+    // 7. Insert entry_exit_log (Xe ra)
+    if (entryLog?.building_id && entryLog?.parking_id && exitGateId) {
+        await supabase.from("entry_exit_log").insert({
+            session_id: sessionId,
+            vehicle_id: session.vehicle_id,
+            card_id: session.card_id || null,
+            building_id: entryLog.building_id,
+            parking_id: entryLog.parking_id,
+            gate_id: exitGateId,
+            staff_id: staffId || null,
+            direction: "Xe ra",
+            event_time: exitTime,
+            vehicle_type_id: feeResult.vehicle?.vehicle_type_id || null,
+            plate_number: session.plate_number,
+            ticket_type: ticketType,
+            applied_price: amount,
+            note: "Thanh toán tiền mặt tại quầy",
+        });
+    }
+
+    return {
+        payment,
+        session: { ...session, exit_time: exitTime, final_fee: amount, status: "Hoàn thành" },
+        message: "Thanh toán tiền mặt thành công, có thể mở barie",
+    };
+}
+
+/**
+ * Tạo giao dịch VNPay an toàn cho vé lượt (Prompt 3)
+ * - Tính lại fee từ DB, KHÔNG tin amount từ client
+ * - Sinh order_code duy nhất (PK + timestamp + random)
+ * - Insert payment 'Chờ thanh toán', update session, tạo URL VNPay
+ */
+export async function createVnpayPayment(sessionId, staffId, ipAddr) {
+    // 1. Lấy + validate session
+    const session = await getSessionById(sessionId);
+    if (!session) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
+    if (session.status !== "Đang gửi xe") {
+        throw Object.assign(
+            new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể tạo giao dịch VNPay.`),
+            { statusCode: 400 }
+        );
+    }
+
+    // 2. Tính lại phí từ DB
+    const feeResult = await calculateExitFee({ plate_number: session.plate_number });
+
+    if (feeResult.estimated_fee === 0 && feeResult.ticket_type === "Thẻ tháng") {
+        throw Object.assign(
+            new Error("Phiên này không cần thanh toán, dùng endpoint mở barie trực tiếp."),
+            { statusCode: 400 }
+        );
+    }
+
+    const amount = feeResult.estimated_fee;
+
+    // 3. Sinh order_code duy nhất, retry nếu trùng
+    let orderCode;
+    let attempts = 0;
+    do {
+        const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
+        const rand = Math.floor(Math.random() * 9000) + 1000;
+        orderCode = `PK${ts}${rand}`;
+        const { data: existing } = await supabase
+            .from("payment")
+            .select("payment_id")
+            .eq("order_code", orderCode)
+            .maybeSingle();
+        if (!existing) break;
+        attempts++;
+    } while (attempts < 5);
+
+    // 4. Insert payment 'Chờ thanh toán'
+    const { data: payment, error: payErr } = await supabase
+        .from("payment")
+        .insert({
+            session_id: sessionId,
+            payment_type: "Vé lượt",
+            payment_method: "VNPay",
+            provider: "VNPay",
+            order_code: orderCode,
+            amount,
+            status: "Chờ thanh toán",
+            paid_at: null,
+            created_by: staffId || null,
+        })
+        .select()
+        .single();
+
+    if (payErr) throw new Error("Lỗi tạo payment VNPay: " + payErr.message);
+
+    // 5. Update session status
+    await supabase
+        .from("parking_sessions")
+        .update({ status: "Chờ thanh toán" })
+        .eq("session_id", sessionId);
+
+    // 6. Tạo URL VNPay
+    const normalizedIp =
+        !ipAddr || ipAddr === "::1" || ipAddr.includes("::ffff:")
+            ? "127.0.0.1"
+            : ipAddr;
+
+    const paymentUrl = vnpayService.createPaymentUrl({
+        orderCode,
+        amount,
+        orderInfo: `Thanh toan gui xe ${session.plate_number || ""}`,
+        ipAddr: normalizedIp,
+    });
+
+    return {
+        payment_url: paymentUrl,
+        order_code: orderCode,
+        expires_in_seconds: 600,
+        payment,
+    };
+}

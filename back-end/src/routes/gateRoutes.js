@@ -28,6 +28,13 @@ router.post("/entry/pre-check", gateController.preCheckEntry);
 router.post("/entry", verifyToken, gateController.entryTap);
 
 /**
+ * GET /api/gate/check-exit?plate_number=xxx
+ * Kiểm tra thông tin xe ra + tính phí, KHÔNG tạo payment.
+ * Dùng cho panel XE RA trước khi chọn phương thức thanh toán.
+ */
+router.get("/check-exit", gateController.checkExit);
+
+/**
  * POST /api/gate/exit/pre-check
  */
 router.post("/exit/pre-check", gateController.preCheckExit);

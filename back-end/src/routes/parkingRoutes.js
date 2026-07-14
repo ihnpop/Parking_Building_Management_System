@@ -1,8 +1,15 @@
 import express from "express";
 import upload from "../middlewares/upload.js";
 import * as parkingController from "../controllers/parkingController.js";
+import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
+
+/**
+ * POST /api/parking/open-gate-free
+ * Mở barie miễn phí khi phí = 0
+ */
+router.post("/open-gate-free", verifyToken, parkingController.openGateFree);
 
 /**
  * POST /api/parking/check-in

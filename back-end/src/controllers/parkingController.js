@@ -60,3 +60,23 @@ export const checkOut = async (req, res) => {
     });
   }
 };
+
+/**
+ * POST /api/parking/open-gate-free
+ * Body: { sessionId }
+ */
+export const openGateFree = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const staffId = req.user?.id;
+
+    const result = await parkingService.openGateFree({ sessionId, staffId });
+    return res.status(200).json(result);
+  } catch (err) {
+    const status = err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message || "Lỗi xử lý mở cổng miễn phí."
+    });
+  }
+};
