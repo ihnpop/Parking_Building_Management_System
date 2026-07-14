@@ -689,6 +689,26 @@ export async function fetchHourlyTraffic() {
         const start = startOfToday();
         const end = endOfToday();
 
+        const getHourVN = (dateStr) => {
+            if (!dateStr) return -1;
+            let val = dateStr.trim();
+            if (val.includes(' ') && !val.includes('T')) {
+                val = val.replace(' ', 'T');
+            }
+            if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+                val = val + 'Z';
+            }
+            const d = new Date(val);
+            if (isNaN(d.getTime())) return -1;
+            const hourStr = new Intl.DateTimeFormat('en-US', {
+                hour: 'numeric',
+                hour12: false,
+                timeZone: 'Asia/Ho_Chi_Minh'
+            }).format(d);
+            const h = parseInt(hourStr, 10);
+            return h === 24 ? 0 : h;
+        };
+
         // Thử entry_exit_log trước
         const { data: logData, error: logErr } = await supabase
             .from('entry_exit_log')
@@ -699,7 +719,7 @@ export async function fetchHourlyTraffic() {
 
         if (!logErr && logData && logData.length > 0) {
             logData.forEach((row) => {
-                const h = new Date(row.event_time).getHours();
+                const h = getHourVN(row.event_time);
                 if (h >= 0 && h <= 23) result[h]++;
             });
             return result;
@@ -714,7 +734,7 @@ export async function fetchHourlyTraffic() {
 
         if (sessErr) throw sessErr;
         (sessData ?? []).forEach((row) => {
-            const h = new Date(row.entry_time).getHours();
+            const h = getHourVN(row.entry_time);
             if (h >= 0 && h <= 23) result[h]++;
         });
         return result;
