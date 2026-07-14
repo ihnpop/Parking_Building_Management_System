@@ -125,7 +125,7 @@ export function AuthProvider({ children }) {
                 options: {
 
                     redirectTo:
-                        `${window.location.origin}/login/dashboard`
+                        window.location.origin
 
                 }
 
