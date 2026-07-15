@@ -438,10 +438,28 @@ export async function getRenewalInfo(cardId) {
             .gte('payment_time', timeoutThreshold)
             .maybeSingle();
         if (pm) {
+            let payUrl = null;
+            if (pm.payment_method === 'VNPay') {
+                let noteObj = {};
+                try {
+                    noteObj = JSON.parse(pm.note) || {};
+                } catch (e) {
+                    console.error("Lỗi parse note:", e);
+                }
+                const cCode = noteObj.cardCode || card.code;
+                payUrl = vnpayService.createPaymentUrl({
+                    orderCode: pm.order_code,
+                    amount: pm.amount,
+                    orderInfo: `Gia han ve thang ${cCode}`,
+                    ipAddr: '127.0.0.1',
+                });
+            }
+
             pendingPayment = {
                 orderCode: pm.order_code,
                 amount: pm.amount,
-                paymentMethod: pm.payment_method,
+                paymentMethod: pm.payment_method === 'Tiền mặt' ? 'cash' : 'vnpay',
+                payUrl,
                 note: pm.note,
                 paymentTime: pm.payment_time
             };
