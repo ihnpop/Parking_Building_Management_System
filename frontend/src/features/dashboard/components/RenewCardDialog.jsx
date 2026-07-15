@@ -79,6 +79,68 @@ function ExpiredWarning({ cardCode, onClose }) {
     );
 }
 
+// ─── Sub-component: VNPay pending panel ────────────────────────
+function VNPayPendingPanel({ orderCode, amount, currentExpiry, newExpiry, cardCode, payUrl, onClose }) {
+    const handleGoToPay = () => {
+        if (payUrl) {
+            window.location.href = payUrl;
+        }
+    };
+
+    return (
+        <div>
+            <div style={{
+                background: '#fffbeb', border: '1px solid #fde68a',
+                borderRadius: 10, padding: 16, marginBottom: 20
+            }}>
+                <p style={{ fontWeight: 600, color: '#b45309', fontSize: '0.9rem', marginBottom: 8 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6 }}>
+                        payment
+                    </span>
+                    Đang chờ thanh toán qua VNPay
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#64748b' }}>Mã giao dịch</span>
+                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{orderCode}</span>
+                    <span style={{ color: '#64748b' }}>Số tiền</span>
+                    <span style={{ fontWeight: 700, color: '#b45309' }}>{formatCurrency(amount)}</span>
+                    <span style={{ color: '#64748b' }}>Hạn hiện tại</span>
+                    <span style={{ color: '#1e293b' }}>{formatDate(currentExpiry)}</span>
+                    <span style={{ color: '#64748b' }}>Hạn mới sau gia hạn</span>
+                    <span style={{ fontWeight: 600, color: '#0284c7' }}>{formatDate(newExpiry)}</span>
+                </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                    onClick={onClose}
+                    style={{
+                        flex: 1, padding: '10px', borderRadius: 8,
+                        background: '#f8fafc', border: '1px solid #cbd5e1',
+                        color: '#64748b', cursor: 'pointer', fontWeight: 500
+                    }}
+                >
+                    Để sau
+                </button>
+                <button
+                    onClick={handleGoToPay}
+                    disabled={!payUrl}
+                    style={{
+                        flex: 2, padding: '10px', borderRadius: 8,
+                        background: !payUrl ? '#cbd5e1' : '#f97316',
+                        color: '#fff', border: 'none', cursor: !payUrl ? 'default' : 'pointer',
+                        fontWeight: 600, fontSize: '0.95rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                    }}
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+                    Tiếp tục thanh toán VNPay
+                </button>
+            </div>
+        </div>
+    );
+}
+
 // ─── Sub-component: Cash pending panel ────────────────────────
 function CashPendingPanel({ orderCode, amount, currentExpiry, newExpiry, cardCode, onConfirm, onClose, isConfirming, confirmError, confirmSuccess }) {
     return (
@@ -179,6 +241,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
     const [pendingOrderCode, setPendingOrderCode] = useState(null);
     const [pendingAmount, setPendingAmount] = useState(0);
     const [pendingNewExpiry, setPendingNewExpiry] = useState(null);
+    const [pendingPayUrl, setPendingPayUrl] = useState(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [confirmError, setConfirmError] = useState(null);
     const [confirmSuccess, setConfirmSuccess] = useState(false);
@@ -198,10 +261,11 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
 
             if (info.isExpired) {
                 setStep('expired');
-            } else if (info.pendingPayment && info.pendingPayment.paymentMethod === 'cash') {
-                // Nếu đang có đơn chờ thanh toán tiền mặt -> Khôi phục bước xác nhận tiền mặt
+            } else if (info.pendingPayment) {
+                // Nếu đang có đơn chờ thanh toán (tiền mặt hoặc VNPay) -> Khôi phục
                 setPendingOrderCode(info.pendingPayment.orderCode);
                 setPendingAmount(info.pendingPayment.amount);
+                setPendingPayUrl(info.pendingPayment.payUrl);
 
                 // Trích xuất ngày hết hạn mới từ note của payment
                 let newExpiry = null;
@@ -212,7 +276,14 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                     console.error("Lỗi parse note:", e);
                 }
                 setPendingNewExpiry(newExpiry);
-                setStep('cash-pending');
+                
+                // Đồng bộ phương thức thanh toán và chuyển bước tương ứng
+                setPaymentMethod(info.pendingPayment.paymentMethod);
+                if (info.pendingPayment.paymentMethod === 'cash') {
+                    setStep('cash-pending');
+                } else {
+                    setStep('vnpay-pending');
+                }
             } else {
                 // Auto-chọn gói đầu tiên
                 if (info.availablePackages?.length > 0) {
@@ -240,6 +311,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
             setPaymentMethod('vnpay');
             setSubmitError(null);
             setPendingOrderCode(null);
+            setPendingPayUrl(null);
             setConfirmError(null);
             setConfirmSuccess(false);
             loadRenewalInfo();
@@ -323,7 +395,12 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                 {/* Header */}
                 <div className="renew-modal-header">
                     <h2>
-                        {step === 'cash-pending' ? 'Xác nhận thu tiền mặt' : 'Gia hạn Vé tháng'}
+                        {step === 'cash-pending' 
+                            ? 'Xác nhận thu tiền mặt' 
+                            : step === 'vnpay-pending'
+                                ? 'Thanh toán VNPay đang chờ'
+                                : 'Gia hạn Vé tháng'
+                        }
                     </h2>
                     <button
                         type="button"
@@ -378,6 +455,19 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                             isConfirming={isConfirming}
                             confirmError={confirmError}
                             confirmSuccess={confirmSuccess}
+                        />
+                    )}
+
+                    {/* VNPay pending */}
+                    {step === 'vnpay-pending' && (
+                        <VNPayPendingPanel
+                            orderCode={pendingOrderCode}
+                            amount={pendingAmount}
+                            currentExpiry={renewalInfo?.currentExpiry}
+                            newExpiry={pendingNewExpiry}
+                            cardCode={renewalInfo?.cardCode || cardData.cardNo}
+                            payUrl={pendingPayUrl}
+                            onClose={onClose}
                         />
                     )}
 
