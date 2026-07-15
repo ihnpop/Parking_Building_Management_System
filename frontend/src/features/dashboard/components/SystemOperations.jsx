@@ -841,157 +841,311 @@ export default function SystemOperations() {
                             className="transaction-highlight"
                             onSubmit={handleFormSubmit}
                         >
-                        <p className="transaction-label">
-                            {mode === 'IN' ? 'Biển số xe vào' : 'Biển số xe ra'}
-                        </p>
-                        <input
-                            type="text"
-                            placeholder="NHẬP BIỂN SỐ..."
-                            className="transaction-plate"
-                            value={plateNumber}
-                            onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
-                            disabled={loading}
-                            style={{
-                                width: '100%',
-                                border: '2px dashed #3b82f6',
-                                outline: 'none',
-                                textAlign: 'center',
-                                textTransform: 'uppercase',
-                                cursor: 'text'
-                            }}
-                        />
+                            <p className="transaction-label">
+                                {mode === 'IN' ? 'Biển số xe vào' : 'Biển số xe ra'}
+                            </p>
+                            <input
+                                type="text"
+                                placeholder="NHẬP BIỂN SỐ..."
+                                className="transaction-plate"
+                                value={plateNumber}
+                                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+                                disabled={loading}
+                                style={{
+                                    width: '100%',
+                                    border: '2px dashed #3b82f6',
+                                    outline: 'none',
+                                    textAlign: 'center',
+                                    textTransform: 'uppercase',
+                                    cursor: 'text'
+                                }}
+                            />
 
-                        {/* Selector Loại xe - Luôn hiện, tự động điền đúng khi là xe tháng */}
-                        <div className="vehicle-type-container">
-                            <label className="vehicle-type-label">Loại xe:</label>
-                            <div className="vehicle-type-buttons">
-                                <button
-                                    type="button"
-                                    onClick={() => setVehicleType('Xe máy')}
-                                    className={`vehicle-type-btn ${vehicleType === 'Xe máy' ? 'active' : ''}`}
-                                    disabled={loading}
-                                >
-                                    <span className="material-symbols-outlined">two_wheeler</span>
-                                    <span>Xe máy</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setVehicleType('Ô tô')}
-                                    className={`vehicle-type-btn ${vehicleType === 'Ô tô' ? 'active' : ''}`}
-                                    disabled={loading}
-                                >
-                                    <span className="material-symbols-outlined">directions_car</span>
-                                    <span>Ô tô</span>
-                                </button>
+                            {/* Selector Loại xe - Luôn hiện, tự động điền đúng khi là xe tháng */}
+                            <div className="vehicle-type-container">
+                                <label className="vehicle-type-label">Loại xe:</label>
+                                <div className="vehicle-type-buttons">
+                                    <button
+                                        type="button"
+                                        onClick={() => setVehicleType('Xe máy')}
+                                        className={`vehicle-type-btn ${vehicleType === 'Xe máy' ? 'active' : ''}`}
+                                        disabled={loading}
+                                    >
+                                        <span className="material-symbols-outlined">two_wheeler</span>
+                                        <span>Xe máy</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setVehicleType('Ô tô')}
+                                        className={`vehicle-type-btn ${vehicleType === 'Ô tô' ? 'active' : ''}`}
+                                        disabled={loading}
+                                    >
+                                        <span className="material-symbols-outlined">directions_car</span>
+                                        <span>Ô tô</span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Cảnh báo loại xe không khớp - Chỉ hiện khi là xe tháng và staff đã chọn loại xe sai */}
-                        {mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && (() => {
-                            const registeredType = preCheckResult.vehicleCategory;
-                            const isMismatch = registeredType !== vehicleType;
-                            return (
-                                <div className={`vehicle-mismatch-banner ${isMismatch ? 'mismatch' : ''}`}>
-                                    <span className="material-symbols-outlined mismatch-icon">
-                                        {isMismatch ? 'warning' : 'check_circle'}
-                                    </span>
-                                    <div className="mismatch-text">
-                                        <span>Biển số </span>
-                                        <strong className="mismatch-plate">{preCheckResult.plateNumber}</strong>
-                                        <span> đã đăng ký là </span>
-                                        <strong className={`mismatch-registered-type ${isMismatch ? 'text-invalid' : 'text-valid'}`}>
-                                            {registeredType}
-                                        </strong>
-                                        {isMismatch && (
-                                            <span className="text-invalid"> — không khớp!</span>
+                            {/* Cảnh báo loại xe không khớp - Chỉ hiện khi là xe tháng và staff đã chọn loại xe sai */}
+                            {mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && (() => {
+                                const registeredType = preCheckResult.vehicleCategory;
+                                const isMismatch = registeredType !== vehicleType;
+                                return (
+                                    <div className={`vehicle-mismatch-banner ${isMismatch ? 'mismatch' : ''}`}>
+                                        <span className="material-symbols-outlined mismatch-icon">
+                                            {isMismatch ? 'warning' : 'check_circle'}
+                                        </span>
+                                        <div className="mismatch-text">
+                                            <span>Biển số </span>
+                                            <strong className="mismatch-plate">{preCheckResult.plateNumber}</strong>
+                                            <span> đã đăng ký là </span>
+                                            <strong className={`mismatch-registered-type ${isMismatch ? 'text-invalid' : 'text-valid'}`}>
+                                                {registeredType}
+                                            </strong>
+                                            {isMismatch && (
+                                                <span className="text-invalid"> — không khớp!</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {mode === 'IN' && preCheckResult && preCheckResult.vehicleType === 'VISITOR' && (
+                                <div className="visitor-card-select-container">
+                                    <label className="transaction-label">Chọn thẻ lượt:</label>
+                                    <select
+                                        value={selectedCard}
+                                        onChange={(e) => setSelectedCard(e.target.value)}
+                                    >
+                                        <option value="">-- Chọn thẻ lượt --</option>
+                                        {preCheckResult.availableCards?.map(c => (
+                                            <option key={c.card_id} value={c.code}>{c.code}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Operator Quick Guide */}
+                            <div className="operator-guide-box">
+                                <div className="guide-title">
+                                    <span className="material-symbols-outlined">info</span>
+                                    <span>Quy trình vận hành</span>
+                                </div>
+                                <ul className="guide-steps">
+                                    <li>1. Nhập biển số (hoặc click Camera quét ảnh)</li>
+                                    <li>2. Kiểm tra thông tin thẻ xe ở bảng bên phải</li>
+                                    <li>3. Ấn ENTER hoặc click nút bên dưới để mở barie</li>
+                                </ul>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="shortcut-button shortcut-primary submit-action-btn"
+                                disabled={
+                                    loading ||
+                                    (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.canOpenGate === false) ||
+                                    (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && preCheckResult.vehicleCategory !== vehicleType)
+                                }
+                            >
+                                {loading ? (
+                                    <>
+                                        <span className="material-symbols-outlined loading-spin">hourglass_top</span>
+                                        Đang xử lý...
+                                    </>
+                                ) : !preCheckResult ? (
+                                    mode === 'IN' ? (
+                                        <>
+                                            <span className="material-symbols-outlined">search</span>
+                                            Kiểm tra xe vào
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">search</span>
+                                            Kiểm tra xe ra
+                                        </>
+                                    )
+                                ) : mode === 'IN' ? (
+                                    preCheckResult.vehicleType === 'VISITOR' ? (
+                                        <>
+                                            <span className="material-symbols-outlined">tap_and_play</span>
+                                            Xác nhận vào
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">sensor_door</span>
+                                            Mở cổng vào
+                                        </>
+                                    )
+                                ) : (
+                                    preCheckResult.vehicleType === 'VISITOR' ? (
+                                        <>
+                                            <span className="material-symbols-outlined">check_circle</span>
+                                            Xác nhận ra
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined">sensor_door</span>
+                                            Mở cổng ra
+                                        </>
+                                    )
+                                )}
+                            </button>
+                            {/* Shift Information Card */}
+
+                        </form>
+                    )}
+
+                    <div className="transaction-details">
+                        {mode === 'IN' ? (
+                            preCheckResult ? (
+                                <div className="last-session-card">
+                                    <h4 className="last-session-title">
+                                        <span className="material-symbols-outlined">badge</span>
+                                        <span>Thông tin quét thẻ</span>
+                                    </h4>
+                                    <div className="last-session-grid">
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Chủ xe:</span>
+                                            <strong className="last-session-value">
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.ownerName : 'Khách vãng lai'}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Loại thẻ:</span>
+                                            <strong className="last-session-value">
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? 'Vé tháng' : 'Vé lượt'}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Mã thẻ:</span>
+                                            <strong className="last-session-value">
+                                                {preCheckResult.cardCode || selectedCard || '---'}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Biển số đăng ký:</span>
+                                            <strong className="last-session-value">
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'Vé lượt'}
+                                            </strong>
+                                        </div>
+                                        {preCheckResult.vehicleType === 'MONTHLY' && (
+                                            <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                                                <span className="last-session-label">Hạn thẻ:</span>
+                                                <strong className="last-session-value" style={{ color: preCheckResult.canOpenGate ? '#16a34a' : '#dc2626' }}>
+                                                    {preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}
+                                                </strong>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
-                            );
-                        })()}
-
-                        {mode === 'IN' && preCheckResult && preCheckResult.vehicleType === 'VISITOR' && (
-                            <div className="visitor-card-select-container">
-                                <label className="transaction-label">Chọn thẻ lượt:</label>
-                                <select
-                                    value={selectedCard}
-                                    onChange={(e) => setSelectedCard(e.target.value)}
-                                >
-                                    <option value="">-- Chọn thẻ lượt --</option>
-                                    {preCheckResult.availableCards?.map(c => (
-                                        <option key={c.card_id} value={c.code}>{c.code}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            ) : lastSession ? (
+                                <div className="last-session-card">
+                                    <h4 className="last-session-title">
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                        <span>Giao dịch vừa thực hiện</span>
+                                    </h4>
+                                    <div className="last-session-grid">
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Biển số:</span>
+                                            <strong className="last-session-value">{lastSession.plate_number}</strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Trạng thái:</span>
+                                            <strong className="last-session-value status-done">
+                                                {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
+                                                    (lastSession.status === 'Hoàn thành') ? 'HOÀN THÀNH' : lastSession.status}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item full-width">
+                                            <span className="last-session-label">Giờ vào:</span>
+                                            <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="last-session-card">
+                                    <h4 className="last-session-title">
+                                        <span className="material-symbols-outlined">pending</span>
+                                        <span>Thông tin quét thẻ</span>
+                                    </h4>
+                                    <div className="last-session-grid">
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Chủ xe:</span>
+                                            <strong className="last-session-value">--</strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Loại thẻ:</span>
+                                            <strong className="last-session-value">--</strong>
+                                        </div>
+                                        <div className="last-session-item full-width">
+                                            <span className="last-session-label">Mã thẻ:</span>
+                                            <strong className="last-session-value">--</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        ) : (
+                            /* mode === 'OUT' */
+                            lastSession ? (
+                                <div className="last-session-card">
+                                    <h4 className="last-session-title">
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                        <span>Giao dịch vừa thực hiện</span>
+                                    </h4>
+                                    <div className="last-session-grid">
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Biển số:</span>
+                                            <strong className="last-session-value">{lastSession.plate_number}</strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Trạng thái:</span>
+                                            <strong className="last-session-value status-done">
+                                                {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
+                                                    (lastSession.status === 'Hoàn thành') ? 'HOÀN THÀNH' : lastSession.status}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item full-width">
+                                            <span className="last-session-label">Giờ vào:</span>
+                                            <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                        </div>
+                                        {lastSession.type === 'OUT' && (
+                                            <>
+                                                <div className="last-session-item full-width">
+                                                    <span className="last-session-label">Giờ ra:</span>
+                                                    <strong className="last-session-value">{new Date(lastSession.exit_time).toLocaleString('vi-VN')}</strong>
+                                                </div>
+                                                <div className="last-session-item full-width highlight-row">
+                                                    <span className="last-session-label">Giá tiền:</span>
+                                                    <strong className="last-session-value price-value">
+                                                        {lastSession.fee ? lastSession.fee.toLocaleString('vi-VN') : '0'} VNĐ
+                                                    </strong>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="last-session-card">
+                                    <h4 className="last-session-title">
+                                        <span className="material-symbols-outlined">pending</span>
+                                        <span>Giao dịch vừa thực hiện</span>
+                                    </h4>
+                                    <div className="last-session-grid">
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Biển số:</span>
+                                            <strong className="last-session-value">--</strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Trạng thái:</span>
+                                            <strong className="last-session-value">--</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
                         )}
 
-                        {/* Operator Quick Guide */}
-                        <div className="operator-guide-box">
-                            <div className="guide-title">
-                                <span className="material-symbols-outlined">info</span>
-                                <span>Quy trình vận hành</span>
-                            </div>
-                            <ul className="guide-steps">
-                                <li>1. Nhập biển số (hoặc click Camera quét ảnh)</li>
-                                <li>2. Kiểm tra thông tin thẻ xe ở bảng bên phải</li>
-                                <li>3. Ấn ENTER hoặc click nút bên dưới để mở barie</li>
-                            </ul>
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="shortcut-button shortcut-primary submit-action-btn"
-                            disabled={
-                                loading ||
-                                (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.canOpenGate === false) ||
-                                (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && preCheckResult.vehicleCategory !== vehicleType)
-                            }
-                        >
-                            {loading ? (
-                                <>
-                                    <span className="material-symbols-outlined loading-spin">hourglass_top</span>
-                                    Đang xử lý...
-                                </>
-                            ) : !preCheckResult ? (
-                                mode === 'IN' ? (
-                                    <>
-                                        <span className="material-symbols-outlined">search</span>
-                                        Kiểm tra xe vào
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-symbols-outlined">search</span>
-                                        Kiểm tra xe ra
-                                    </>
-                                )
-                            ) : mode === 'IN' ? (
-                                preCheckResult.vehicleType === 'VISITOR' ? (
-                                    <>
-                                        <span className="material-symbols-outlined">tap_and_play</span>
-                                        Xác nhận vào
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-symbols-outlined">sensor_door</span>
-                                        Mở cổng vào
-                                    </>
-                                )
-                            ) : (
-                                preCheckResult.vehicleType === 'VISITOR' ? (
-                                    <>
-                                        <span className="material-symbols-outlined">check_circle</span>
-                                        Xác nhận ra
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-symbols-outlined">sensor_door</span>
-                                        Mở cổng ra
-                                    </>
-                                )
-                            )}
-                        </button>
-                        {/* Shift Information Card */}
-                        <div className="shift-info-card">
+                        {/* Shift Information Card — Moved to the right column */}
+                        <div className="shift-info-card" style={{ marginTop: '0px', marginBottom: '8px' }}>
                             <div className="shift-title">
                                 <span className="material-symbols-outlined">badge</span>
                                 <span>Thông tin ca trực</span>
@@ -1007,195 +1161,40 @@ export default function SystemOperations() {
                                 </div>
                             </div>
                         </div>
-                    </form>
-                    )}
 
-                    <div className="transaction-details">
-                        {mode === 'IN' && (
-                            preCheckResult ? (
-                            <div className="last-session-card">
-                                <h4 className="last-session-title">
-                                    <span className="material-symbols-outlined">badge</span>
-                                    <span>Thông tin quét thẻ</span>
-                                </h4>
-                                <div className="last-session-grid">
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Chủ xe:</span>
-                                        <strong className="last-session-value">
-                                            {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.ownerName : 'Khách vãng lai'}
-                                        </strong>
-                                    </div>
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Loại thẻ:</span>
-                                        <strong className="last-session-value">
-                                            {preCheckResult.vehicleType === 'MONTHLY' ? 'Vé tháng' : 'Vé lượt'}
-                                        </strong>
-                                    </div>
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Mã thẻ:</span>
-                                        <strong className="last-session-value">
-                                            {preCheckResult.cardCode || selectedCard || '---'}
-                                        </strong>
-                                    </div>
-
-                                    {mode === 'IN' ? (
-                                        <>
-                                            <div className="last-session-item">
-                                                <span className="last-session-label">Biển số đăng ký:</span>
-                                                <strong className="last-session-value">
-                                                    {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'Vé lượt'}
-                                                </strong>
-                                            </div>
-                                            {preCheckResult.vehicleType === 'MONTHLY' && (
-                                                <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
-                                                    <span className="last-session-label">Hạn thẻ:</span>
-                                                    <strong className="last-session-value" style={{ color: preCheckResult.canOpenGate ? '#16a34a' : '#dc2626' }}>
-                                                        {preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}
-                                                    </strong>
+                        {/* Recent Transactions Card — Always visible in both modes */}
+                        <div className="recent-transactions-list-card">
+                            <div className="recent-title">
+                                <span className="material-symbols-outlined">history</span>
+                                <span>Giao dịch gần đây</span>
+                            </div>
+                            <div className="recent-items-container">
+                                {recentSessions.length > 0 ? (
+                                    recentSessions.map((s, idx) => {
+                                        const isOut = !!s.exit_time;
+                                        const timeStr = new Date(isOut ? s.exit_time : s.entry_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                                        return (
+                                            <div className="recent-item" key={s.session_id || idx}>
+                                                <div className="recent-item-left">
+                                                    <span className={`recent-badge ${isOut ? 'badge-out' : 'badge-in'}`}>
+                                                        {isOut ? 'RA' : 'VÀO'}
+                                                    </span>
+                                                    <span className="recent-plate">{s.plate_number}</span>
                                                 </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="last-session-item">
-                                                <span className="last-session-label">Biển số vào:</span>
-                                                <strong className="last-session-value">{preCheckResult.plateNumber || '---'}</strong>
+                                                <div className="recent-item-right">
+                                                    <span className="recent-time">{timeStr}</span>
+                                                    <span className="recent-fee">{isOut ? (s.fee ? s.fee.toLocaleString('vi-VN') + 'đ' : '0đ') : 'Đang gửi'}</span>
+                                                </div>
                                             </div>
-                                            <div className="last-session-item">
-                                                <span className="last-session-label">Biển số ra:</span>
-                                                <strong className="last-session-value" style={{ color: '#1e3a8a' }}>{plateNumber || '---'}</strong>
-                                            </div>
-                                            <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
-                                                <span className="last-session-label">Giờ vào:</span>
-                                                <strong className="last-session-value">
-                                                    {preCheckResult.entryTime ? (new Date(preCheckResult.entryTime).toString() === 'Invalid Date' ? preCheckResult.entryTime : new Date(preCheckResult.entryTime).toLocaleString('vi-VN')) : '---'}
-                                                </strong>
-                                            </div>
-                                            <div className="last-session-item full-width">
-                                                <span className="last-session-label">Thời gian gửi:</span>
-                                                <strong className="last-session-value">{preCheckResult.duration || '---'}</strong>
-                                            </div>
-                                            <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
-                                                <span className="last-session-label">Phí giữ xe:</span>
-                                                <strong className="last-session-value" style={{ fontSize: '13px', color: preCheckResult.fee > 0 ? '#dc2626' : '#16a34a' }}>
-                                                    {preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ
-                                                </strong>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                                {preCheckResult.message && (
-                                    <div style={{
-                                        marginTop: '6px',
-                                        padding: '4px 8px',
-                                        background: preCheckResult.canOpenGate ? '#f0fdf4' : '#fef2f2',
-                                        border: `1px solid ${preCheckResult.canOpenGate ? '#bbf7d0' : '#fecaca'}`,
-                                        borderRadius: '4px',
-                                        fontSize: '10px',
-                                        color: preCheckResult.canOpenGate ? '#15803d' : '#b91c1c',
-                                        fontWeight: '500'
-                                    }}>
-                                        * {preCheckResult.message}
-                                    </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="recent-empty">Chưa có giao dịch nào trong ngày.</div>
                                 )}
                             </div>
-                        ) : lastSession ? (
-                            <div className="last-session-card">
-                                <h4 className="last-session-title">
-                                    <span className="material-symbols-outlined">check_circle</span>
-                                    <span>Giao dịch vừa thực hiện</span>
-                                </h4>
-                                <div className="last-session-grid">
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Biển số:</span>
-                                        <strong className="last-session-value">{lastSession.plate_number}</strong>
-                                    </div>
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Trạng thái:</span>
-                                        <strong className="last-session-value status-done">
-                                            {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
-                                             (lastSession.status === 'Hoàn thành') ? 'HOÀN THÀNH' : lastSession.status}
-                                        </strong>
-                                    </div>
-                                    <div className="last-session-item full-width">
-                                        <span className="last-session-label">Giờ vào:</span>
-                                        <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
-                                    </div>
-                                    {lastSession.type === 'OUT' && (
-                                        <>
-                                            <div className="last-session-item full-width">
-                                                <span className="last-session-label">Giờ ra:</span>
-                                                <strong className="last-session-value">{new Date(lastSession.exit_time).toLocaleString('vi-VN')}</strong>
-                                            </div>
-                                            <div className="last-session-item full-width highlight-row">
-                                                <span className="last-session-label">Giá tiền:</span>
-                                                <strong className="last-session-value price-value">
-                                                    {lastSession.fee ? lastSession.fee.toLocaleString('vi-VN') : '0'} VNĐ
-                                                </strong>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="last-session-card">
-                                <h4 className="last-session-title">
-                                    <span className="material-symbols-outlined">pending</span>
-                                    <span>Thông tin phiên hoạt động</span>
-                                </h4>
-                                <div className="last-session-grid">
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Giờ vào:</span>
-                                        <strong className="last-session-value">-- : --</strong>
-                                    </div>
-                                    <div className="last-session-item">
-                                        <span className="last-session-label">Giờ ra:</span>
-                                        <strong className="last-session-value">-- : --</strong>
-                                    </div>
-                                    <div className="last-session-item full-width">
-                                        <span className="last-session-label">Giá tiền:</span>
-                                        <strong className="last-session-value">-- VNĐ</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        )
-                        )}
-
-                        {/* Recent Transactions Card */}
-                        <div className="recent-transactions-list-card">
-                             <div className="recent-title">
-                                 <span className="material-symbols-outlined">history</span>
-                                 <span>Giao dịch gần đây</span>
-                             </div>
-                             <div className="recent-items-container">
-                                 {recentSessions.length > 0 ? (
-                                     recentSessions.map((s, idx) => {
-                                         const isOut = !!s.exit_time;
-                                         const timeStr = new Date(isOut ? s.exit_time : s.entry_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                                         return (
-                                             <div className="recent-item" key={s.session_id || idx}>
-                                                 <div className="recent-item-left">
-                                                     <span className={`recent-badge ${isOut ? 'badge-out' : 'badge-in'}`}>
-                                                         {isOut ? 'RA' : 'VÀO'}
-                                                     </span>
-                                                     <span className="recent-plate">{s.plate_number}</span>
-                                                 </div>
-                                                 <div className="recent-item-right">
-                                                     <span className="recent-time">{timeStr}</span>
-                                                     <span className="recent-fee">{isOut ? `${s.fee ? s.fee.toLocaleString('vi-VN') : '0'}đ` : 'Đang gửi'}</span>
-                                                 </div>
-                                             </div>
-                                         );
-                                     })
-                                 ) : (
-                                     <div className="recent-empty">Chưa có giao dịch nào trong ngày.</div>
-                                 )}
-                             </div>
-                         </div>
-
+                        </div>
                     </div>
                 </section>
-
                 <section className="shortcut-row">
                     {actionShortcuts.map((action) => (
                         <button

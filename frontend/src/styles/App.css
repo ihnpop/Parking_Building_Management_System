@@ -26029,6 +26029,1613 @@ body,
     flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
+    padding: 10px 16px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .system-page {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* Side-by-side 2-column Grid Layout for zero-scroll desktop dashboard */
+  .system-page .system-content {
+    flex: 1 !important;
+    display: grid !important;
+    grid-template-columns: 48fr 52fr !important;
+    grid-template-rows: auto 1fr auto !important;
+    grid-template-areas:
+      "camera stats"
+      "camera form"
+      "camera shortcuts" !important;
+    gap: 8px !important;
+    min-height: 0 !important;
+    height: 100% !important;
+  }
+
+  /* Row 1: KPI Cards - Compact, high density, on the right side */
+  .system-page .stats-grid {
+    grid-area: stats !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .system-page .stat-card {
+    padding: 4px 10px !important;
+    border-radius: 10px !important;
+    gap: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  .system-page .stat-label {
+    margin-bottom: 1px !important;
+    font-size: 12px !important;
+    color: #64748b !important;
+    font-weight: 600 !important;
+  }
+
+  .system-page .stat-value {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+  }
+
+  .system-page .stat-icon {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .system-page .stat-icon .material-symbols-outlined {
+    font-size: 16px !important;
+  }
+
+  /* Camera Grid on the left side - spanning all three rows in a 2x2 grid */
+  .system-page .camera-grid {
+    grid-area: camera !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    gap: 8px !important;
+    height: 100% !important;
+  }
+
+  .system-page .camera-card {
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    border: 1.5px solid #E2E8F0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    transition: box-shadow 0.2s ease !important;
+  }
+
+  .system-page .camera-card:hover {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1) !important;
+  }
+
+  .system-page .camera-image {
+    flex: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    background-size: cover !important;
+    background-position: center !important;
+    border-radius: 8px !important;
+    position: relative !important;
+  }
+
+  .system-page .camera-label {
+    padding: 4px 8px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    top: 6px !important;
+    left: 6px !important;
+    border-radius: 6px !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    color: #ffffff !important;
+    letter-spacing: 0.02em !important;
+    backdrop-filter: blur(4px) !important;
+  }
+
+  .system-page .camera-badge {
+    padding: 3px 8px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    bottom: 6px !important;
+    right: 6px !important;
+    border-radius: 5px !important;
+  }
+
+  /* Main Operation Card - Form on the right side, two-column side-by-side grid */
+  .system-page .active-transaction {
+    grid-area: form !important;
+    display: grid !important;
+    grid-template-columns: 1.15fr 0.85fr !important;
+    grid-template-rows: auto 1fr !important;
+    padding: 8px 12px !important;
+    gap: 6px 10px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Compact tab switcher styles */
+  .system-page .active-transaction>div:first-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 4px !important;
+    gap: 6px !important;
+  }
+
+  .system-page .active-transaction>div:first-child button {
+    padding: 4px 10px !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    height: 30px !important;
+  }
+
+  .system-page .transaction-highlight {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .system-page .transaction-label {
+    font-size: 13px !important;
+    margin-bottom: 0 !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+  }
+
+  .system-page .transaction-plate {
+    flex: none !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    border-radius: 10px !important;
+    padding: 0 12px !important;
+    box-sizing: border-box !important;
+    letter-spacing: 0.06em !important;
+    color: #0F172A !important;
+    border: 2px dashed #3b82f6 !important;
+  }
+
+  /* High Density Info Cards */
+  .system-page .info-card-container {
+    width: 100% !important;
+  }
+
+  .system-page .info-card {
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    border: 1px solid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    text-align: left !important;
+  }
+
+  .system-page .info-card-visitor {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+  }
+
+  .system-page .info-card-monthly {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+  }
+
+  .system-page .info-card-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .system-page .text-visitor {
+    color: #1d4ed8 !important;
+  }
+
+  .system-page .text-monthly {
+    color: #16a34a !important;
+  }
+
+  .system-page .info-card-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 3px 6px !important;
+  }
+
+  .system-page .info-item {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+  }
+
+  .system-page .info-item.full-width {
+    grid-column: span 2 !important;
+  }
+
+  .system-page .info-label {
+    font-size: 12px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+  }
+
+  .system-page .info-value {
+    font-size: 14px !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .system-page .info-select-label {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #4b5563 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .system-page .info-select {
+    width: 100% !important;
+    padding: 2px 6px !important;
+    border-radius: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: white !important;
+    font-size: 13px !important;
+    outline: none !important;
+    height: 28px !important;
+    color: #1e293b !important;
+    font-weight: 500 !important;
+  }
+
+  .system-page .info-status-badge {
+    display: inline-block !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 1px 6px !important;
+    border-radius: 4px !important;
+    text-align: center !important;
+    width: fit-content !important;
+  }
+
+  .system-page .status-valid {
+    background: #dcfce7 !important;
+    color: #16a34a !important;
+  }
+
+  .system-page .status-invalid {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+  }
+
+  .system-page .highlight-row {
+    grid-column: span 2 !important;
+    border-top: 1px dashed #cbd5e1 !important;
+    padding-top: 4px !important;
+    margin-top: 2px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .system-page .info-card-monthly .highlight-row {
+    border-top-color: #bbf7d0 !important;
+  }
+
+  .system-page .price-highlight {
+    color: #dc2626 !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+  }
+
+  .system-page .price-free {
+    color: #16a34a !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+  }
+
+  .system-page .info-card-msg {
+    margin: 4px 0 0 !important;
+    font-size: 12px !important;
+    color: #dc2626 !important;
+    font-style: italic !important;
+    font-weight: 500 !important;
+  }
+
+  /* Vehicle Type selector */
+  .system-page .vehicle-type-container {
+    margin-top: 1px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    text-align: left !important;
+  }
+
+  .system-page .vehicle-type-label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #4b5563 !important;
+  }
+
+  .system-page .vehicle-type-buttons {
+    display: flex !important;
+    gap: 8px !important;
+  }
+
+  .system-page .vehicle-type-btn {
+    flex: 1 !important;
+    padding: 4px 8px !important;
+    border-radius: 8px !important;
+    border: 1px solid #e5e7eb !important;
+    background: white !important;
+    color: #4b5563 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.2s ease !important;
+    height: 30px !important;
+  }
+
+  .system-page .vehicle-type-btn.active {
+    border: 2px solid #2563eb !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+  }
+
+  .system-page .vehicle-type-btn .material-symbols-outlined {
+    font-size: 16px !important;
+  }
+
+  /* Details list side-by-side with the form, separated by vertical dashed line */
+  .system-page .transaction-details {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding-left: 8px !important;
+    border-left: 1px dashed #cbd5e1 !important;
+    border-top: none !important;
+    padding-top: 0 !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  .system-page .last-session-card {
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 4px 8px !important;
+    background: #f8fafc !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .system-page .last-session-title {
+    margin: 0 0 4px !important;
+    font-size: 13px !important;
+    color: #475569 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-weight: 700 !important;
+  }
+
+  .system-page .last-session-title .material-symbols-outlined {
+    font-size: 16px !important;
+  }
+
+  .system-page .last-session-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .system-page .last-session-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1px !important;
+  }
+
+  .system-page .last-session-item.full-width {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    border-top: 1px dashed #cbd5e1 !important;
+    padding-top: 4px !important;
+    margin-top: 2px !important;
+    width: 100% !important;
+  }
+
+  .system-page .last-session-label {
+    font-size: 12px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+  }
+
+  .system-page .last-session-value {
+    font-size: 14px !important;
+    color: #0f172a !important;
+    font-weight: 700 !important;
+  }
+
+  .system-page .last-session-value.status-done {
+    color: #16a34a !important;
+    font-weight: 700 !important;
+    background: #f0fdf4 !important;
+    padding: 1px 6px !important;
+    border-radius: 12px !important;
+    border: 1px solid #bbf7d0 !important;
+    font-size: 12px !important;
+  }
+
+  .system-page .last-session-value.price-value {
+    color: #dc2626 !important;
+    font-weight: 800 !important;
+    font-size: 18px !important;
+  }
+
+  /* Action Bar (F1 / F2 / ENTER) - Anchored at the bottom right */
+  .system-page .shortcut-row {
+    grid-area: shortcuts !important;
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 0 !important;
+  }
+
+  .system-page .shortcut-row .shortcut-button {
+    flex: 1 !important;
+    padding: 4px 10px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 32px !important;
+  }
+
+  /* Submit/action button - compact but finger-friendly */
+  .system-page .submit-action-btn {
+    flex: none !important;
+    width: 100% !important;
+    height: 40px !important;
+    margin-top: 4px !important;
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    letter-spacing: 0.01em !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .system-page .shortcut-key {
+    min-width: 24px !important;
+    padding: 2px 6px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    border-radius: 4px !important;
+  }
+
+  /* Operator Quick Guide */
+  .system-page .operator-guide-box {
+    margin-top: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    text-align: left !important;
+    flex: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+  }
+
+  .system-page .operator-guide-box .guide-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #1e3a8a !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .system-page .operator-guide-box .guide-title .material-symbols-outlined {
+    font-size: 14px !important;
+  }
+
+  .system-page .operator-guide-box .guide-steps {
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    font-size: 12px !important;
+    color: #475569 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .system-page .operator-guide-box .guide-steps li {
+    line-height: 1.3 !important;
+  }
+
+  /* System Hardware Status */
+  .system-page .system-status-card {
+    margin-top: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .system-page .system-status-card .status-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #475569 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .system-page .system-status-card .status-title .material-symbols-outlined {
+    font-size: 14px !important;
+  }
+
+  .system-page .system-status-card .status-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 3px 6px !important;
+  }
+
+  .system-page .system-status-card .status-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .system-page .system-status-card .status-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: #94a3b8 !important;
+  }
+
+  .system-page .system-status-card .status-dot.online {
+    background: #22c55e !important;
+    box-shadow: 0 0 4px #22c55e !important;
+  }
+
+  .system-page .system-status-card .status-name {
+    font-size: 12px !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+  }
+
+  /* Recent Transactions Card */
+  .system-page .recent-transactions-list-card {
+    margin-top: 4px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #475569 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding-bottom: 4px !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-title .material-symbols-outlined {
+    font-size: 14px !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-items-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 3px 5px !important;
+    border-radius: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #f1f5f9 !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-item-left,
+  .system-page .recent-transactions-list-card .recent-item-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-badge {
+    font-size: 12px !important;
+    font-weight: bold !important;
+    padding: 1px 4px !important;
+    border-radius: 4px !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-badge.badge-in {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-badge.badge-out {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-plate {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-time {
+    font-size: 12px !important;
+    color: #64748b !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-fee {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #0f766e !important;
+  }
+
+  .system-page .recent-transactions-list-card .recent-empty {
+    font-size: 12px !important;
+    color: #64748b !important;
+    text-align: center !important;
+    padding: 6px 0 !important;
+  }
+
+  /* Shift Information Card */
+  .system-page .shift-info-card {
+    margin-top: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 6px 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .system-page .shift-info-card .shift-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #475569 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 4px !important;
+  }
+
+  .system-page .shift-info-card .shift-title .material-symbols-outlined {
+    font-size: 14px !important;
+  }
+
+  .system-page .shift-info-card .shift-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 3px 6px !important;
+  }
+
+  .system-page .shift-info-card .shift-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1px !important;
+  }
+
+  .system-page .shift-info-card .shift-label {
+    font-size: 12px !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    font-weight: 600 !important;
+  }
+
+  .system-page .shift-info-card .shift-value {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+  }
+
+  /* Visitor Card Selector */
+  .system-page .visitor-card-select-container {
+    margin-top: 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+    text-align: left !important;
+  }
+
+  .system-page .visitor-card-select-container select {
+    width: 100% !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 0 10px !important;
+    outline: none !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+}
+/* Primary Blue Theme Overrides for System Operations */
+.system-page .active-transaction::before {
+  background: #2563eb !important;
+}
+
+.system-page .shortcut-primary {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: white !important;
+}
+
+.system-page .shortcut-primary .shortcut-key {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+.system-page .stat-icon-primary {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+.system-page .transaction-price {
+  color: #1d4ed8 !important;
+}
+
+@keyframes scaleUpModal {
+  from {
+    transform: scale(0.92) translateY(8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.custom-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 18px 24px !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+}
+
+.custom-modal-header h3 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+  margin: 0 !important;
+}
+
+.modal-close-x-btn {
+  background: none !important;
+  border: none !important;
+  color: #94A3B8 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+  border-radius: 6px !important;
+  transition: all 0.15s ease !important;
+}
+
+.modal-close-x-btn:hover {
+  background: #F1F5F9 !important;
+  color: #64748B !important;
+}
+
+.custom-modal-body {
+  padding: 24px !important;
+}
+
+.confirm-message,
+.prompt-message {
+  font-size: 14.5px !important;
+  color: #334155 !important;
+  line-height: 1.6 !important;
+  margin: 0 !important;
+}
+
+.prompt-input {
+  margin-top: 16px !important;
+  width: 100% !important;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  border: 1px solid #CBD5E1 !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.prompt-input:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+}
+
+.custom-modal-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 16px 24px !important;
+  border-top: 1px solid #F1F5F9 !important;
+  background: #F8FAFC !important;
+}
+
+/* Modal Actions Buttons */
+.custom-modal-btn {
+  padding: 9px 16px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease !important;
+}
+
+.custom-modal-btn.cancel {
+  background: #ffffff !important;
+  border-color: #CBD5E1 !important;
+  color: #475569 !important;
+}
+
+.custom-modal-btn.cancel:hover {
+  background: #F1F5F9 !important;
+  color: #1E293B !important;
+}
+
+.custom-modal-btn.confirm.primary {
+  background: #2563EB !important;
+  color: #ffffff !important;
+}
+
+.custom-modal-btn.confirm.primary:hover {
+  background: #1D4ED8 !important;
+}
+
+.custom-modal-btn.confirm.dangerous {
+  background: #EF4444 !important;
+  color: #ffffff !important;
+}
+
+.custom-modal-btn.confirm.dangerous:hover {
+  background: #DC2626 !important;
+}
+
+/* =========================================================================
+   ADDITIONAL RESPONSIVE OVERRIDES (MOBILE & TABLET FIXES)
+   ========================================================================= */
+
+@media (max-width: 768px) {
+
+  /* 1. Force the layout flow to remain horizontal, preserving sidebar layout */
+  .layout {
+    flex-direction: row !important;
+  }
+
+  /* 2. Style the sidebar as a vertical sticky collapsed column (64px width) */
+  .sidebar {
+    width: 64px !important;
+    min-width: 64px !important;
+    height: 100vh !important;
+    position: sticky !important;
+    top: 0 !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    border-right: 1px solid var(--db-border) !important;
+    border-bottom: none !important;
+    padding: 0 4px 24px !important;
+    transition: width 0.22s cubic-bezier(.4, 0, .2, 1), min-width 0.22s cubic-bezier(.4, 0, .2, 1) !important;
+    overflow: hidden !important;
+  }
+
+  /* 3. Override global padding on icons within the sidebar to prevent right overflow */
+  .sidebar .material-symbols-outlined {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 4. Center and space collapsed sidebar items properly */
+  .sidebar .menu {
+    padding: 12px 4px !important;
+  }
+
+  .sidebar .menu-item {
+    padding: 10px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  .sidebar .sidebar-footer {
+    padding: 8px 4px 12px !important;
+  }
+
+  .sidebar .sidebar-account-card {
+    padding: 8px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .sidebar .logout {
+    padding: 10px 0 !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 4px 0 !important;
+  }
+
+  .sidebar .brand {
+    padding: 0 !important;
+    justify-content: center !important;
+    margin: 0 0 8px !important;
+  }
+
+  .sidebar .brand-logo-zone {
+    justify-content: center !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+
+  /* 5. Hide labels and toggle icons on mobile/tablet sidebar */
+  .sidebar .brand-text-group,
+  .sidebar .sidebar-gemini-toggle-expanded,
+  .sidebar .sidebar-gemini-toggle-collapsed,
+  .sidebar .menu-item span:not(.material-symbols-outlined),
+  .sidebar .account-info-details,
+  .sidebar .logout span:not(.material-symbols-outlined) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+
+  /* 1. Header spacing and title adjustments */
+  .header {
+    padding: 0 12px !important;
+  }
+
+  .header .page-title {
+    font-size: 16px !important;
+  }
+
+  /* 2. Status badge text hidden on mobile, converting it to a green dot badge */
+  .db-status-badge {
+    font-size: 0 !important;
+    padding: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+
+  .db-status-badge span {
+    margin: 0 !important;
+  }
+
+  /* 3. Dashboard title row wrapping and font size scaling */
+  .db-title-row {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .db-h1 {
+    font-size: 18px !important;
+  }
+
+  .db-sub {
+    font-size: 11px !important;
+  }
+
+  /* 4. Convert the dashboard 'Refresh' button into a circular icon-only button */
+  .db-refresh-btn {
+    font-size: 0 !important;
+    padding: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .db-refresh-btn .material-symbols-outlined {
+    margin: 0 !important;
+    font-size: 20px !important;
+  }
+
+  /* 5. Reduce padding of table headers and cells to avoid text clipping */
+  .content th,
+  .content td {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+
+  /* 1. KPI cards, legends, and summary sections in 1-column layouts */
+  .db-kpis,
+  .db-legend,
+  .stats-grid,
+  .lost-stats-grid,
+  .log-stats-grid,
+  .cp-stats-grid,
+  .mc-stats-grid,
+  .cardpage-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 2. Compact padding inside the dashboard page */
+  .db-page {
+    padding: 12px !important;
+  }
+}
+
+.db-kpi {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+.db-kpi-clickable-cue,
+.db-kpi-status-cue {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  margin-top: auto !important;
+  padding-top: 12px !important;
+  font-size: 0.81rem !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+
+.db-kpi-clickable-cue {
+  color: #2563eb !important;
+}
+
+.db-kpi--clickable:hover .db-kpi-clickable-cue {
+  color: #1d4ed8 !important;
+}
+
+
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   B2B REVENUE DASHBOARD MODAL SYSTEM (Clean, Modern, Premium UI/UX)
+   ───────────────────────────────────────────────────────────────────────────── */
+.revenue-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.revenue-modal {
+  width: min(860px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.revenue-modal--month {
+  width: min(960px, calc(100vw - 48px));
+}
+
+/* Header */
+.revenue-modal-header {
+  padding: 22px 28px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.revenue-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.revenue-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.revenue-modal-icon--today {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.revenue-modal-icon--month {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.revenue-modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.revenue-modal-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.revenue-modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.revenue-modal-close-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Body & Custom Scrollbar */
+.revenue-modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.revenue-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.revenue-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.revenue-modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.revenue-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Summary Card Banner */
+.revenue-summary-card {
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.revenue-summary-card--today {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+}
+
+.revenue-summary-card--month {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.revenue-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.revenue-summary-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.revenue-summary-card--today .revenue-summary-label {
+  color: #166534;
+}
+
+.revenue-summary-card--month .revenue-summary-label {
+  color: #1e40af;
+}
+
+.revenue-summary-amount {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.revenue-summary-card--today .revenue-summary-amount {
+  color: #15803d;
+}
+
+.revenue-summary-card--month .revenue-summary-amount {
+  color: #1d4ed8;
+}
+
+.revenue-summary-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.revenue-chip {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.revenue-chip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.revenue-chip-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Sections */
+.revenue-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+.revenue-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.revenue-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ============================================================
+   System Operations Sessions Table & Real-time Timer Styles
+   ============================================================ */
+
+.system-sessions-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.system-sessions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.system-sessions-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.revenue-section-amount {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.revenue-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.revenue-box-item {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  background-color: #f8fafc;
+}
+
+.revenue-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+}
+
+.revenue-empty-text {
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Accordion Week Item */
+.revenue-accordion-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.revenue-accordion-item--active {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+
+.revenue-accordion-header {
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.revenue-accordion-item--active .revenue-accordion-header {
+  background-color: #eff6ff;
+}
+
+.revenue-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.revenue-accordion-item--active .revenue-accordion-title {
+  color: #1e40af;
+}
+
+.revenue-accordion-amount {
+  font-weight: 700;
+  font-size: 16px;
+  color: #334155;
+}
+
+.revenue-accordion-item--active .revenue-accordion-amount {
+  color: #1d4ed8;
+}
+
+.revenue-accordion-content {
+  padding: 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #dbeafe;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Footer */
+.revenue-modal-footer {
+  padding: 14px 28px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.revenue-modal-btn-close {
+  padding: 9px 24px;
+  border-radius: 10px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.revenue-modal-btn-close:hover {
+  background-color: #1e293b;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .revenue-modal {
+    width: calc(100vw - 32px);
+  }
+
+  .revenue-summary-chips {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .revenue-modal-overlay {
+    padding: 12px;
+  }
+
+  .revenue-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    border-radius: 16px;
+  }
+
+  .revenue-modal-header {
+    padding: 16px 20px;
+  }
+
+  .revenue-modal-body {
+    padding: 16px 20px;
+    gap: 16px;
+  }
+
+  .revenue-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .revenue-summary-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+
+
+/* ==========================================================================
+   SYSTEM OPERATIONS - SENIOR PRODUCTION DASHBOARD SPEC (ZERO-SCROLL VIEWPORT FIT)
+   ========================================================================== */
+
+/* Hide footer specifically for System Operations page */
+.system-page .system-footer {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+
+  /* Enforce exact 100vh viewport fitting on layout parent containers */
+  .layout:has(.system-page),
+  .layout:has(.system-page) .main {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  .layout:has(.system-page) .content {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding: 12px 24px !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
@@ -26044,12 +27651,12 @@ body,
   }
 
   /* Finalized current project UI */
-  /* Core 4-row Grid Layout as recommended in spec */
   /* Side-by-side 2-column Grid Layout for zero-scroll desktop dashboard */
+  /* Task 2: 48% camera left, 52% operation right */
   .system-page .system-content {
     flex: 1 !important;
     display: grid !important;
-    grid-template-columns: 3fr 2fr !important;
+    grid-template-columns: 48fr 52fr !important;
     grid-template-rows: auto 1fr auto !important;
     grid-template-areas:
       "camera stats"
@@ -26103,22 +27710,35 @@ body,
   }
 
   /* Camera Grid on the left side - spanning all three rows */
+  /* Task 2: 2 cameras stacked vertically (Camera 02 VÀO on top, Camera 04 RA below) */
   .system-page .camera-grid {
     grid-area: camera !important;
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    grid-template-rows: repeat(2, 1fr) !important;
-    gap: 12px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    gap: 10px !important;
     height: 100% !important;
   }
 
+  /* When using the two-vertical modifier class (2 cameras stacked) */
+  .system-page .camera-grid--two-vertical {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+  }
+
   .system-page .camera-card {
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     overflow: hidden !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+    border: 1.5px solid #E2E8F0 !important;
     display: flex !important;
     flex-direction: column !important;
     height: 100% !important;
+    transition: box-shadow 0.2s ease !important;
+  }
+
+  .system-page .camera-card:hover {
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12) !important;
   }
 
   .system-page .camera-image {
@@ -26132,21 +27752,27 @@ body,
     position: relative !important;
   }
 
+  /* Task 3: Larger, clearer camera label overlay */
   .system-page .camera-label {
-    padding: 4px 8px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    top: 6px !important;
-    left: 6px !important;
-    border-radius: 6px !important;
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    top: 8px !important;
+    left: 8px !important;
+    border-radius: 8px !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    color: #ffffff !important;
+    letter-spacing: 0.02em !important;
+    backdrop-filter: blur(4px) !important;
   }
 
   .system-page .camera-badge {
-    padding: 3px 8px !important;
+    padding: 4px 10px !important;
     font-size: 10px !important;
     font-weight: 700 !important;
-    bottom: 6px !important;
-    right: 6px !important;
+    bottom: 8px !important;
+    right: 8px !important;
+    border-radius: 6px !important;
   }
 
   /* Main Operation Card - Form on the right side, two-column side-by-side grid */
@@ -26192,16 +27818,20 @@ body,
     color: #64748b !important;
   }
 
+  /* Task 3: Transaction plate input - bigger and clearer */
   .system-page .transaction-plate {
     flex: none !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    max-height: 36px !important;
-    font-size: 18px !important;
-    font-weight: 700 !important;
-    border-radius: 8px !important;
-    padding: 0 10px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    border-radius: 10px !important;
+    padding: 0 12px !important;
     box-sizing: border-box !important;
+    letter-spacing: 0.06em !important;
+    color: #0F172A !important;
+    border: 2px dashed #3b82f6 !important;
   }
 
   /* High Density Info Cards */
@@ -26467,20 +28097,27 @@ body,
     font-weight: 500 !important;
   }
 
+  /* Task 3: Enhanced last-session-value with bigger text for important data */
   .system-page .last-session-value {
-    font-size: 11px !important;
+    font-size: 12px !important;
     color: #0f172a !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
   }
 
   .system-page .last-session-value.status-done {
     color: #16a34a !important;
     font-weight: 700 !important;
+    background: #f0fdf4 !important;
+    padding: 2px 8px !important;
+    border-radius: 12px !important;
+    border: 1px solid #bbf7d0 !important;
+    font-size: 11px !important;
   }
 
   .system-page .last-session-value.price-value {
     color: #16a34a !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
+    font-size: 14px !important;
   }
 
   /* Action Bar (F1 / F2 / ENTER) - Anchored at the bottom right */
@@ -26504,19 +28141,22 @@ body,
     height: 36px !important;
   }
 
+  /* Task 3: Submit/action button - compact but finger-friendly 48px */
   .system-page .submit-action-btn {
     flex: none !important;
     width: 100% !important;
-    height: 36px !important;
+    height: 44px !important;
     margin-top: 10px !important;
     padding: 6px 12px !important;
-    font-size: 12px !important;
-    font-weight: bold !important;
-    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     gap: 6px !important;
+    letter-spacing: 0.01em !important;
+    transition: all 0.2s ease !important;
   }
 
   .system-page .shortcut-key {
@@ -28498,3 +30138,233 @@ body,
   display: inline-block;
   animation: spin-rotate 1s linear infinite;
 }
+
+/* ==========================================================================
+   SYSTEM OPERATIONS — MOBILE & TABLET RESPONSIVE (Task 4 / Task 5)
+   ========================================================================== */
+
+/* Mobile: system-page below 1024px stacks everything vertically */
+@media (max-width: 1023px) {
+  .system-page .system-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Camera grid mobile: 1 column, 2 cameras stacked */
+  .system-page .camera-grid,
+  .system-page .camera-grid--two-vertical {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+    gap: 12px !important;
+    height: auto !important;
+  }
+
+  .system-page .camera-card {
+    height: auto !important;
+  }
+
+  .system-page .camera-image {
+    height: 220px !important;
+    max-height: 220px !important;
+  }
+
+  /* Stats grid on mobile: 3 columns compact */
+  .system-page .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Form and details area on mobile */
+  .system-page .active-transaction {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .system-page .transaction-details {
+    border-left: none !important;
+    border-top: 1px dashed #cbd5e1 !important;
+    padding-left: 0 !important;
+    padding-top: 12px !important;
+  }
+}
+
+/* Tablet: 768px-1023px — 2 column layout but not fixed height */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .system-page .camera-grid,
+  .system-page .camera-grid--two-vertical {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto !important;
+    height: auto !important;
+  }
+
+  .system-page .camera-image {
+    height: 200px !important;
+  }
+}
+
+/* Small mobile below 480px */
+@media (max-width: 479px) {
+  .system-page .camera-image {
+    height: 180px !important;
+  }
+
+  .system-page .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .system-page .transaction-plate {
+    font-size: 18px !important;
+    height: 40px !important;
+  }
+}
+
+/* ==========================================================================
+   EXIT PAYMENT PANEL — Enterprise Light Theme Override (Task 3)
+   Đồng bộ hóa ExitPaymentPanel với blue/white enterprise design
+   ========================================================================== */
+
+/* Override dark input in ExitPaymentPanel to match enterprise theme */
+.system-page .active-transaction input[style*="161820"],
+.system-page .active-transaction input[type="text"][placeholder*="BIỂN SỐ"] {
+  background-color: #ffffff !important;
+  border: 2px dashed #3b82f6 !important;
+  color: #0F172A !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  text-align: center !important;
+}
+
+/* ExitPaymentPanel infoCard — enterprise white theme */
+.system-page .active-transaction div[style*="161820"] {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  color: #0F172A !important;
+}
+
+/* Override text colors inside dark card */
+.system-page .active-transaction [style*="94a3b8"] {
+  color: #64748B !important;
+}
+
+.system-page .active-transaction [style*="f1f5f9"] {
+  color: #0F172A !important;
+}
+
+.system-page .active-transaction [style*="ffffff"][style*="fontWeight"] {
+  color: #0F172A !important;
+}
+
+/* ==========================================================================
+   VEHICLE MISMATCH BANNER STYLING (Task 3)
+   ========================================================================== */
+
+.vehicle-mismatch-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  font-size: 12px;
+  color: #166534;
+}
+
+.vehicle-mismatch-banner.mismatch {
+  background: #fef9c3;
+  border-color: #fde047;
+  color: #713f12;
+}
+
+.mismatch-icon {
+  font-size: 16px !important;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.mismatch-text {
+  line-height: 1.5;
+  flex: 1;
+}
+
+.mismatch-plate {
+  color: #1e3a8a;
+}
+
+.mismatch-registered-type {
+  font-weight: 700;
+}
+
+.text-valid {
+  color: #16a34a !important;
+}
+
+.text-invalid {
+  color: #dc2626 !important;
+}
+
+/* ==========================================================================
+   LAST SESSION GRID — Enhanced layout (Task 3)
+   ========================================================================== */
+
+/* Make last-session-grid more compact with two columns on desktop */
+@media (min-width: 1024px) {
+  .system-page .last-session-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 4px 8px !important;
+  }
+
+  .system-page .last-session-item {
+    grid-column: span 1 !important;
+  }
+
+  .system-page .last-session-item.full-width {
+    grid-column: span 2 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  /* Price/fee highlight in last session */
+  .system-page .highlight-row .last-session-value {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #dc2626 !important;
+  }
+}
+
+/* ==========================================================================
+   SHORTCUT BUTTONS (F1/F2) — Refined (Task 3)
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+  .system-page .shortcut-row .shortcut-button:not(.shortcut-primary) {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
+    font-size: 12px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .system-page .shortcut-row .shortcut-button:not(.shortcut-primary):hover {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: #1d4ed8 !important;
+  }
+}
