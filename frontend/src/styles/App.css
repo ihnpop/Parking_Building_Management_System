@@ -21989,6 +21989,14 @@ body {
   background: #1d4ed8 !important;
 }
 
+.lost-kpi-value.val-green {
+  color: #10b981;
+}
+
+.lost-kpi-value.val-orange {
+  color: #f59e0b;
+}
+
 .login-forgot,
 .login-signup a {
   color: #2563eb !important;
@@ -22842,6 +22850,11 @@ td {
 .icon-green {
   background: #ecfdf5;
   color: #10b981;
+}
+
+.icon-orange {
+  background: #fffbeb;
+  color: #f59e0b;
 }
 
 .lost-kpi-title {

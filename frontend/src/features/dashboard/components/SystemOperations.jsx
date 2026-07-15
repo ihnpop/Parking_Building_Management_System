@@ -18,27 +18,14 @@ import ExitPaymentPanel from './ExitPaymentPanel';
 
 const cameraCards = [
     {
-        id: 'vehicleImage',
-        title: 'Camera 01 - Toàn cảnh VÀO',
-        image:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuDM7hJvEzwj5N8Ecltn_8mNmwCmHC40GPQLUzrPpYJ3Tljm187mQfYN7L2m5AQPX-Z23j1SiukOmWd5mZYS3zwDxGw4zGLe-aLWV6n3yP73FpIXiraqm_cL0Bsy4dN7KpnJQ1SWrczGDUq8JFEQfBzQSLPHpZbEVZyMlaP9VA75RK12SP-5oXHNPf5wNWvnd6Ni7pD_m5VR7e0bfHXaTvRnvwsnV7yzY92x1E-qo4kdpJp473Clxs7tzSKXNTz_tDSx953gGoukxvk',
-        badgeClass: 'camera-badge-record',
-    },
-    {
         id: 'plateImage',
-        title: 'Camera 02 - Biển số VÀO',
+        title: 'Camera 01 - Biển số VÀO',
         image:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuBY_qQ9w1hTwomzRMVxQ_cRALiO7poUpyGH1d3L0BBc0z08g2A6uhN9AdQexl9JYb6VtLi2iuOqTbW3DSJotPZxrJllI0aHC5CPNpLQTmD8UIekVaSmP79O8332EpfIlwC1L22wcXGMvEmYrBRIGbaGtSZGflODD7zMesEs_nUSi8ncvTapJXU9_ntgQdVTCK2CposjUZXTOC40qJ4OMb_eccDmW7JE2u59YBJxOp_x_Mz97TbHeh_hwM1Oczzwci2Qmyhd0XFTHno',
     },
     {
-        id: 'camera3',
-        title: 'Camera 03 - Toàn cảnh RA',
-        image:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuB1utp_U-WKcOZcqCWl6rsHwW8kbASOtTw-vaMhAXERRCZZJm_e2ID2rxbr2zJLynsq0_FL_FHGiGQmxl4wHqA-Ucn3socPr0SK3g0C3yYR-j52-rjoyYe-upJtUXBGHJGLzvuf9l21-GFQ76XBhf1upX4OhAneef7Rg9UdMz0PGryoBCMISIAEhfFc-2N_FjpDI85Rap0ZWoZ69pV5DFYw45Zoq0Ia3er1pH-lQsAxdBPLMIBktImLUiGSL-80wfLmNrtgzTlA-jw',
-    },
-    {
         id: 'camera4',
-        title: 'Camera 04 - Biển số RA',
+        title: 'Camera 02 - Biển số RA',
         image:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuDJCOcqayYGfaWqXDR4TjBRcDUAGQyuvhkTCQ3r2Ivprb_szJonOqtBHW-ICNPYfFv97j3bVpHhH-WnSA4aS2MCIYAuo40ZbNe02ndW35ycuxzb_SF9PEYBs5oL0UVMatcLg6wI6fohgpgo1GWmXT4eX2ujtuTCWlPYYZBc88zmIKNCnhQ8mGiDg5muXtxL4-loBashck6sklVinfS5HN2mCsxrgS2gT725B0SaQ6_FovbCcTfINamNS7eRSyYTR8rsROnXGYm3pdU',
     },
@@ -600,7 +587,7 @@ export default function SystemOperations() {
 
 
                 <section className="camera-grid">
-                    {[cameraCards[0], cameraCards[1], cameraCards[2], cameraCards[3]].map((camera) => {
+                    {cameraCards.map((camera) => {
                         const isCameraIn = camera.id === 'vehicleImage' || camera.id === 'plateImage';
                         const isCurrentlyActiveMode = (mode === 'IN' && isCameraIn) ||
                             (mode === 'OUT' && !isCameraIn) ||
