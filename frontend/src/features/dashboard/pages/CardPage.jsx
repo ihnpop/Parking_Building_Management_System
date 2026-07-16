@@ -2,103 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCards, createCard, deleteCard, updateCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
-import { getVNDateTimeLocal } from '../../../utils/dateUtils';
 import { useNotification } from '../../../context/NotificationContext';
+import CreateCardPageDialog from '../components/CreateCardPageDialog';
+
 
 const ITEMS_PER_PAGE = 10;
 
-const INITIAL_FORM = {
-    type: 'Thẻ lượt',
-    plate: '',
-    checkInTime: '',
-    checkOutTime: '',
-    status: 'Hoạt động'
-};
-
 // ─────────────────────────────────────────────
-// Modal 1: Tạo thẻ mới
-// ─────────────────────────────────────────────
-function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
-    return (
-        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="cp-modal">
-                <div className="cp-modal-header">
-                    <h2>Đăng ký thẻ mới</h2>
-                    <button type="button" className="cp-modal-close" onClick={onClose}>
-                        <span className="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                <form className="cp-modal-form" onSubmit={onSubmit}>
-                    {/* Loại thẻ mặc định là Thẻ lượt — không hiển thị dropdown vì form này chỉ dùng cho Thẻ lượt */}
-
-
-                    {/* 2. Biển số xe */}
-                    <div className="cp-form-group">
-                        <label htmlFor="plate">Biển số xe</label>
-                        <input
-                            id="plate"
-                            name="plate"
-                            type="text"
-                            placeholder="Ví dụ: 30K12345"
-                            className="cp-input"
-                            value={formData.plate}
-                            onChange={onChange}
-                        />
-                    </div>
-
-                    {/* 3. Ngày bắt đầu */}
-                    <div className="cp-form-group">
-                        <label htmlFor="startDate">Ngày bắt đầu</label>
-                        <input
-                            id="startDate"
-                            name="startDate"
-                            type="datetime-local"
-                            className="cp-input"
-                            value={formData.startDate}
-                            onChange={onChange}
-                        />
-                    </div>
-
-                    {/* 4. Trạng thái — readonly, luôn là "Hoạt động" khi tạo mới */}
-                    <div className="cp-form-group">
-                        <label htmlFor="status">Trạng thái</label>
-                        <input
-                            id="status"
-                            name="status"
-                            type="text"
-                            className="cp-input"
-                            value={formData.status}
-                            readOnly
-                        />
-                    </div>
-
-                    {formError && <p className="cp-form-error">{formError}</p>}
-
-                    <div className="cp-modal-actions">
-                        <button
-                            type="button"
-                            className="cp-btn cp-btn-outline"
-                            onClick={onClose}
-                            disabled={submitting}
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            type="submit"
-                            className="cp-btn cp-btn-primary"
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Đang lưu...' : 'Đăng ký'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────
-// Modal 2: Cập nhật thẻ
+// Modal 2: Cập nhật thẻ (Inline)
 // ─────────────────────────────────────────────
 function EditCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
     const hasPlate = formData.plate && formData.plate.trim() !== '';
@@ -120,7 +31,6 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
                             id="plate"
                             name="plate"
                             type="text"
-                            // readOnly
                             placeholder="Ví dụ: 59G112345 (Nếu có)"
                             className="cp-input"
                             value={formData.plate}
@@ -211,12 +121,19 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [error, setError] = useState(null);
 
     // Modal state — tách biệt create / edit
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [formData, setFormData] = useState(INITIAL_FORM);
-    const [submitting, setSubmitting] = useState(false);
-    const [formError, setFormError] = useState(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
+
+    const [editFormData, setEditFormData] = useState({
+        type: 'Thẻ lượt',
+        plate: '',
+        checkInTime: '',
+        checkOutTime: '',
+        status: 'Hoạt động'
+    });
+    const [editSubmitting, setEditSubmitting] = useState(false);
+    const [editFormError, setEditFormError] = useState(null);
 
     // Filters
     const [search, setSearch] = useState('');
@@ -256,19 +173,12 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     // ── Handlers ──────────────────────────────
 
     const handleCreateCard = () => {
-        setFormData({
-            type: 'Thẻ lượt',
-            plate: '',
-            startDate: getVNDateTimeLocal(),
-            status: 'Hoạt động'
-        });
-        setFormError(null);
-        setShowCreateModal(true);
+        setIsCreateOpen(true);
     };
 
     const handleEdit = (card) => {
         setEditingCard(card);
-        setFormData({
+        setEditFormData({
             type: 'Thẻ lượt',
             plate: card.plate || '',
             checkInTime: card.check_in_time
@@ -279,8 +189,42 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 : '',
             status: card.status || 'Hoạt động'
         });
-        setFormError(null);
-        setShowEditModal(true);
+        setEditFormError(null);
+        setIsEditOpen(true);
+    };
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        setEditFormError(null);
+        const hasPlate = editFormData.plate && editFormData.plate.trim() !== '';
+        try {
+            setEditSubmitting(true);
+            await updateCard(editingCard.card_id, {
+                type: 'Thẻ lượt',
+                plate: editFormData.plate,
+                checkInTime: hasPlate ? editFormData.checkInTime : null,
+                checkOutTime: hasPlate ? editFormData.checkOutTime : null,
+                status: hasPlate ? editFormData.status : editingCard.status
+            });
+            showToast("Cập nhật thẻ thành công", "success");
+            setIsEditOpen(false);
+            setEditingCard(null);
+            await fetchCards();
+        } catch (err) {
+            setEditFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
+        } finally {
+            setEditSubmitting(false);
+        }
+    };
+
+    const handleCloseEdit = () => {
+        setIsEditOpen(false);
+        setEditFormError(null);
+        setEditingCard(null);
+    };
+
+    const handleEditFormChange = (e) => {
+        setEditFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
     const handleDelete = async (row) => {
@@ -306,69 +250,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 }
             }
         });
-    };
-
-    const handleCloseCreate = () => { setShowCreateModal(false); setFormError(null); };
-    const handleCloseEdit = () => { setShowEditModal(false); setFormError(null); setEditingCard(null); };
-
-    const handleFormChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
-
-    const handleCreate = async (e) => {
-        e.preventDefault();
-        setFormError(null);
-
-        // Kiểm tra định dạng biển số xe
-        if (formData.plate && formData.plate.trim() !== '') {
-            const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
-            const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
-            if (!plateRegex.test(rawPlate)) {
-                setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
-                return;
-            }
-        }
-
-        try {
-            setSubmitting(true);
-            await createCard({
-                type: 'Thẻ lượt',
-                startDate: formData.startDate,
-                plate: formData.plate.trim() || undefined
-            });
-            showToast("Đăng ký thẻ mới thành công", "success");
-            setShowCreateModal(false);
-            setCurrentPage(1); // Task 2: Reset về trang 1 để item mới đứng đầu danh sách
-            await fetchCards(1);
-        } catch (err) {
-            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleUpdate = async (e) => {
-        e.preventDefault();
-        setFormError(null);
-        const hasPlate = formData.plate && formData.plate.trim() !== '';
-        try {
-            setSubmitting(true);
-            await updateCard(editingCard.card_id, {
-                type: 'Thẻ lượt',
-                plate: formData.plate,
-                checkInTime: hasPlate ? formData.checkInTime : null,
-                checkOutTime: hasPlate ? formData.checkOutTime : null,
-                status: hasPlate ? formData.status : editingCard.status
-            });
-            showToast("Cập nhật thẻ thành công", "success");
-            setShowEditModal(false);
-            setEditingCard(null);
-            await fetchCards();
-        } catch (err) {
-            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
-        } finally {
-            setSubmitting(false);
-        }
     };
 
     // ── Filters & pagination (giữ nguyên) ────
@@ -665,23 +546,22 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             </div>
 
             {/* ── Modals ── */}
-            {showCreateModal && (
-                <CreateCardModal
-                    formData={formData}
-                    formError={formError}
-                    submitting={submitting}
-                    onChange={handleFormChange}
-                    onSubmit={handleCreate}
-                    onClose={handleCloseCreate}
-                />
-            )}
+            <CreateCardPageDialog
+                isOpen={isCreateOpen}
+                onClose={() => setIsCreateOpen(false)}
+                onSuccess={async () => {
+                    setIsCreateOpen(false);
+                    setCurrentPage(1);
+                    await fetchCards(1);
+                }}
+            />
 
-            {showEditModal && (
+            {isEditOpen && (
                 <EditCardModal
-                    formData={formData}
-                    formError={formError}
-                    submitting={submitting}
-                    onChange={handleFormChange}
+                    formData={editFormData}
+                    formError={editFormError}
+                    submitting={editSubmitting}
+                    onChange={handleEditFormChange}
                     onSubmit={handleUpdate}
                     onClose={handleCloseEdit}
                 />
