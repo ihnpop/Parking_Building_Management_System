@@ -373,3 +373,570 @@ export const generateNextMonthCode = async () => {
 
   throw new Error('Không thể sinh mã thẻ MONTH duy nhất sau nhiều lần thử.');
 };
+
+/**
+ * Cập nhật vehicle_id của một registration
+ * @param {string} registrationId
+ * @param {string} vehicleId
+ * @returns {Promise<void>}
+ */
+export const updateRegistrationVehicle = async (registrationId, vehicleId) => {
+  const { error } = await supabase
+    .from('card_registrations')
+    .update({ vehicle_id: vehicleId })
+    .eq('registration_id', registrationId);
+
+  if (error) throw new Error(error.message);
+};
+
+/**
+ * Cập nhật biển số xe
+ * @param {string} vehicleId
+ * @param {string} plate
+ * @returns {Promise<void>}
+ */
+export const updateVehiclePlate = async (vehicleId, plate) => {
+  const { error } = await supabase
+    .from('vehicle')
+    .update({ plate_number: plate })
+    .eq('vehicle_id', vehicleId);
+
+  if (error) throw new Error(error.message);
+};
+
+/**
+ * Lấy vehicle_package mới nhất của xe theo vehicle_id (sắp xếp end_date giảm dần)
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const findLatestVehiclePackageByVehicle = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('vehicle_package')
+    .select('vehicle_package_id')
+    .eq('vehicle_id', vehicleId)
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật vehicle_package
+ * @param {string} vehiclePackageId
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const updateVehiclePackage = async (vehiclePackageId, payload) => {
+  const { data, error } = await supabase
+    .from('vehicle_package')
+    .update(payload)
+    .eq('vehicle_package_id', vehiclePackageId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tạo mới vehicle_package
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const createVehiclePackage = async (payload) => {
+  const { data, error } = await supabase
+    .from('vehicle_package')
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tìm payment trùng lặp dựa trên các điều kiện
+ * @param {object} params
+ * @returns {Promise<object|null>}
+ */
+export const findDuplicatePayment = async ({ vehiclePackageId, paymentType, amount, sinceTime }) => {
+  let query = supabase
+    .from('payment')
+    .select('payment_id')
+    .eq('vehicle_package_id', vehiclePackageId)
+    .eq('payment_type', paymentType)
+    .gte('payment_time', sinceTime);
+
+  if (amount !== undefined) {
+    query = query.eq('amount', amount);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tạo mới payment record
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const createPayment = async (payload) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .insert(payload)
+    .select()
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật customer_id của xe
+ * @param {string} vehicleId
+ * @param {string} customerId
+ * @returns {Promise<void>}
+ */
+export const updateVehicleCustomerId = async (vehicleId, customerId) => {
+  const { error } = await supabase
+    .from('vehicle')
+    .update({ customer_id: customerId })
+    .eq('vehicle_id', vehicleId);
+
+  if (error) throw new Error(error.message);
+};
+
+/**
+ * Tìm thẻ tháng có trạng thái 'Đang chờ'
+ * @returns {Promise<object|null>}
+ */
+export const findPendingMonthCard = async () => {
+  const { data, error } = await supabase
+    .from('card')
+    .select('*')
+    .eq('type', 'Thẻ tháng')
+    .eq('status', 'Đang chờ')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật thông tin thẻ
+ * @param {string} cardId
+ * @param {object} payload
+ * @returns {Promise<object>}
+ */
+export const updateCard = async (cardId, payload) => {
+  const { data, error } = await supabase
+    .from('card')
+    .update(payload)
+    .eq('card_id', cardId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Đếm số lượng thẻ tháng không ở trạng thái 'Đã xóa'
+ * @returns {Promise<number>}
+ */
+export const countActiveMonthCards = async () => {
+  const { count, error } = await supabase
+    .from('card')
+    .select('card_id', { count: 'exact', head: true })
+    .eq('type', 'Thẻ tháng')
+    .not('status', 'eq', 'Đã xóa');
+
+  if (error) throw new Error(error.message);
+  return count || 0;
+};
+
+/**
+ * Tìm package của loại xe đang hoạt động
+ * @param {string} vehicleTypeId
+ * @param {number} duration
+ * @returns {Promise<object|null>}
+ */
+export const findActivePackage = async (vehicleTypeId, duration) => {
+  const { data, error } = await supabase
+    .from('package')
+    .select('package_id, price')
+    .eq('vehicle_type_id', vehicleTypeId)
+    .eq('duration_month', duration)
+    .eq('status', 'Hoạt động')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy trạng thái của thẻ
+ * @param {string} cardId
+ * @returns {Promise<object|null>}
+ */
+export const findCardStatus = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select('status')
+    .eq('card_id', cardId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tìm liên kết đăng ký đang hoạt động theo card_id kèm thông tin customer_id
+ * @param {string} cardId
+ * @returns {Promise<object|null>}
+ */
+export const findActiveRegistrationWithCustomerByCard = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select(`
+      registration_id,
+      vehicle_id,
+      vehicle (
+        customer_id
+      )
+    `)
+    .eq('card_id', cardId)
+    .in('status', ['Hoạt động'])
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật thông tin khách hàng ở bảng customer
+ * @param {string} customerId
+ * @param {object} payload
+ * @returns {Promise<void>}
+ */
+export const updateCustomer = async (customerId, payload) => {
+  const { error } = await supabase
+    .from('customer')
+    .update(payload)
+    .eq('customer_id', customerId);
+
+  if (error) throw new Error(error.message);
+};
+
+/**
+ * Tìm phiên gửi xe mới nhất của xe
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const findLatestParkingSession = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('parking_sessions')
+    .select('session_id')
+    .eq('vehicle_id', vehicleId)
+    .order('entry_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật phiên gửi xe
+ * @param {string} sessionId
+ * @param {object} payload
+ * @returns {Promise<void>}
+ */
+export const updateParkingSession = async (sessionId, payload) => {
+  const { error } = await supabase
+    .from('parking_sessions')
+    .update(payload)
+    .eq('session_id', sessionId);
+
+  if (error) throw new Error(error.message);
+};
+
+/**
+ * Lấy danh sách thẻ tháng cùng thông tin đăng ký xe và khách hàng
+ * @returns {Promise<object[]>}
+ */
+export const getMonthCards = async () => {
+  const { data, error } = await supabase
+    .from('card')
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        registration_id,
+        status,
+        created_at,
+        vehicle (
+          vehicle_id,
+          plate_number,
+          customer (
+            customer_id,
+            full_name,
+            phone,
+            email
+          ),
+          vehicle_type (
+            name
+          )
+        )
+      )
+    `)
+    .eq('type', 'Thẻ tháng')
+    .not('status', 'eq', 'Đã xóa')
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy chi tiết phiên gửi xe mới nhất
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const getLatestParkingSessionDetail = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('parking_sessions')
+    .select(`
+      session_id,
+      entry_time,
+      exit_time
+    `)
+    .eq('vehicle_id', vehicleId)
+    .order('entry_time', { ascending: false })
+    .limit(1);
+
+  if (error) throw new Error(error.message);
+  return data?.[0] || null;
+};
+
+/**
+ * Lấy lịch sử log hoạt động của thẻ tháng
+ * @returns {Promise<object[]>}
+ */
+export const getMonthCardLogs = async () => {
+  const { data, error } = await supabase
+    .from('card_activity_logs')
+    .select(`
+      log_id,
+      card_id,
+      action,
+      plate_number,
+      customer_name,
+      amount,
+      duration_months,
+      performed_at
+    `)
+    .in('action', ['Cấp mới', 'Gia hạn', 'Tạo thẻ tháng mới', 'Đã gia hạn', 'Thẻ đã cấp lại'])
+    .order('performed_at', { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy mã các thẻ tháng theo danh sách ID
+ * @param {string[]} cardIds
+ * @returns {Promise<object[]>}
+ */
+export const getCardsByIds = async (cardIds) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select('card_id, code')
+    .in('card_id', cardIds);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy đăng ký thẻ kèm thông tin khách hàng qua card_id
+ * @param {string[]} cardIds
+ * @returns {Promise<object[]>}
+ */
+export const getRegistrationsWithCustomerByCardIds = async (cardIds) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select(`
+      card_id,
+      vehicle (
+        plate_number,
+        customer (
+          full_name
+        )
+      )
+    `)
+    .in('card_id', cardIds);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy xe kèm thông tin khách hàng qua biển số xe
+ * @param {string[]} plates
+ * @returns {Promise<object[]>}
+ */
+export const getVehiclesWithCustomerByPlates = async (plates) => {
+  const { data, error } = await supabase
+    .from('vehicle')
+    .select(`
+      plate_number,
+      customer (
+        full_name
+      )
+    `)
+    .in('plate_number', plates);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Tìm xe và đăng ký liên kết dựa vào biển số xe
+ * @param {string} plate
+ * @returns {Promise<object|null>}
+ */
+export const findVehicleWithRegistrationsByPlate = async (plate) => {
+  const { data, error } = await supabase
+    .from('vehicle')
+    .select(`
+      vehicle_id,
+      vehicle_type_id,
+      card_registrations (
+        registration_id,
+        status,
+        card (
+          card_id,
+          code,
+          type
+        )
+      )
+    `)
+    .eq('plate_number', plate)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy chi tiết thông tin thẻ tháng để làm hợp đồng
+ * @param {string} cardId
+ * @returns {Promise<object>}
+ */
+export const getCardDetailsForContract = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        registration_id,
+        status,
+        created_at,
+        vehicle (
+          vehicle_id,
+          plate_number,
+          brand,
+          color,
+          customer (
+            customer_id,
+            full_name,
+            phone,
+            email
+          ),
+          vehicle_type (
+            vehicle_type_id,
+            name
+          ),
+          vehicle_package (
+            vehicle_package_id,
+            start_date,
+            end_date,
+            status,
+            package_id
+          )
+        )
+      )
+    `)
+    .eq('card_id', cardId)
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy CCCD khách hàng
+ * @param {string} customerId
+ * @returns {Promise<object|null>}
+ */
+export const getCccdNumberByCustomerId = async (customerId) => {
+  const { data, error } = await supabase
+    .from('customer_kyc')
+    .select('cccd_number')
+    .eq('customer_id', customerId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy package theo ID
+ * @param {string} packageId
+ * @returns {Promise<object|null>}
+ */
+export const getPackageById = async (packageId) => {
+  const { data, error } = await supabase
+    .from('package')
+    .select('name, price, duration_month')
+    .eq('package_id', packageId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy payment mới nhất theo vehicle_package_id
+ * @param {string} vehiclePackageId
+ * @returns {Promise<object|null>}
+ */
+export const getLatestPaymentByVehiclePackage = async (vehiclePackageId) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .select('amount, payment_method, status, payment_time')
+    .eq('vehicle_package_id', vehiclePackageId)
+    .order('payment_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};

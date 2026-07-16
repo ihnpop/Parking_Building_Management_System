@@ -1,5 +1,4 @@
 import * as monthCardRepository from "../repositories/monthCardRepository.js";
-import supabase from "../config/supabaseClient.js";
 
 // Bảng giá gói gia hạn cố định
 export const RENEW_PACKAGES = [
@@ -91,45 +90,22 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   // 6.5. Cập nhật hoặc thêm mới vehicle_package cho xe tháng khi gia hạn
   let vehiclePackageId = null;
   try {
-    const { data: existingVp, error: vpFindErr } = await supabase
-      .from('vehicle_package')
-      .select('vehicle_package_id')
-      .eq('vehicle_id', registration.vehicle_id)
-      .order('end_date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const existingVp = await monthCardRepository.findLatestVehiclePackageByVehicle(registration.vehicle_id);
 
     if (existingVp) {
-      const { data: updatedVp, error: vpUpdateErr } = await supabase
-        .from('vehicle_package')
-        .update({
-          end_date: newExpiryDateStr,
-          status: 'ACTIVE'
-        })
-        .eq('vehicle_package_id', existingVp.vehicle_package_id)
-        .select()
-        .single();
-      if (vpUpdateErr) {
-        console.error("Lỗi cập nhật vehicle_package khi gia hạn:", vpUpdateErr.message);
-      } else {
-        vehiclePackageId = updatedVp.vehicle_package_id;
-      }
+      const updatedVp = await monthCardRepository.updateVehiclePackage(existingVp.vehicle_package_id, {
+        end_date: newExpiryDateStr,
+        status: 'Hoạt động'
+      });
+      vehiclePackageId = updatedVp.vehicle_package_id;
     } else {
-      const { data: newVp, error: vpInsertErr } = await supabase
-        .from('vehicle_package')
-        .insert({
-          vehicle_id: registration.vehicle_id,
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: newExpiryDateStr,
-          status: 'ACTIVE'
-        })
-        .select()
-        .single();
-      if (vpInsertErr) {
-        console.error("Lỗi insert vehicle_package khi gia hạn:", vpInsertErr.message);
-      } else {
-        vehiclePackageId = newVp.vehicle_package_id;
-      }
+      const newVp = await monthCardRepository.createVehiclePackage({
+        vehicle_id: registration.vehicle_id,
+        start_date: startDate.toISOString().split('T')[0],
+        end_date: newExpiryDateStr,
+        status: 'Hoạt động'
+      });
+      vehiclePackageId = newVp.vehicle_package_id;
     }
   } catch (vpEx) {
     console.error("Exception handling vehicle_package on renew:", vpEx);
@@ -139,30 +115,23 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   if (vehiclePackageId) {
     try {
       const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
-      const { data: dupPayment } = await supabase
-        .from('payment')
-        .select('payment_id')
-        .eq('vehicle_package_id', vehiclePackageId)
-        .eq('payment_type', 'Gia hạn vé tháng')
-        .eq('amount', pkg.price)
-        .gte('payment_time', oneMinuteAgo)
-        .maybeSingle();
+      const dupPayment = await monthCardRepository.findDuplicatePayment({
+        vehiclePackageId,
+        paymentType: 'Gia hạn vé tháng',
+        amount: pkg.price,
+        sinceTime: oneMinuteAgo
+      });
 
       if (!dupPayment) {
-        const { error: paymentErr } = await supabase
-          .from('payment')
-          .insert({
-            vehicle_package_id: vehiclePackageId,
-            amount: pkg.price,
-            payment_method: 'Tiền mặt',
-            status: 'Đã thanh toán',
-            payment_time: new Date().toISOString(),
-            payment_type: 'Gia hạn vé tháng',
-            created_by: currentUserId || null
-          });
-        if (paymentErr) {
-          console.error("Lỗi insert payment khi gia hạn:", paymentErr.message);
-        }
+        await monthCardRepository.createPayment({
+          vehicle_package_id: vehiclePackageId,
+          amount: pkg.price,
+          payment_method: 'Tiền mặt',
+          status: 'Đã thanh toán',
+          payment_time: new Date().toISOString(),
+          payment_type: 'Gia hạn vé tháng',
+          created_by: currentUserId || null
+        });
       }
     } catch (payEx) {
       console.error("Exception insert payment on renew:", payEx);
@@ -283,10 +252,7 @@ export const createMonthCard = async ({
     });
   } else if (vehicle.customer_id !== customerId) {
     // Xe đã tồn tại nhưng gắn với khách hàng khác -> cập nhật lại chủ xe mới
-    await supabase
-      .from("vehicle")
-      .update({ customer_id: customerId })
-      .eq("vehicle_id", vehicle.vehicle_id);
+    await monthCardRepository.updateVehicleCustomerId(vehicle.vehicle_id, customerId);
   }
 
   // 5. Tính ngày hết hạn
@@ -299,45 +265,20 @@ export const createMonthCard = async ({
   let card = null;
 
   // 6. Tìm thẻ tháng có trạng thái 'Đang chờ'
-  const { data: pendingCard, error: pendingErr } = await supabase
-    .from('card')
-    .select('*')
-    .eq('type', 'Thẻ tháng')
-    .eq('status', 'Đang chờ')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (pendingErr) {
-    throw new Error("Lỗi tìm thẻ đang chờ: " + pendingErr.message);
-  }
+  const pendingCard = await monthCardRepository.findPendingMonthCard();
 
   let code = "";
   if (pendingCard) {
     // Trường hợp 1: Sử dụng thẻ đang chờ
     code = pendingCard.code;
-    const { data: updatedCard, error: updateErr } = await supabase
-      .from('card')
-      .update({
-        status: cardStatus,
-        expired_date: expiredDateStr,
-        created_at: startDate || new Date().toISOString()
-      })
-      .eq('card_id', pendingCard.card_id)
-      .select()
-      .single();
-
-    if (updateErr) throw new Error("Lỗi cập nhật thẻ đang chờ: " + updateErr.message);
-    card = updatedCard;
+    card = await monthCardRepository.updateCard(pendingCard.card_id, {
+      status: cardStatus,
+      expired_date: expiredDateStr,
+      created_at: startDate || new Date().toISOString()
+    });
   } else {
     // Trường hợp 2: Không còn thẻ đang chờ -> đếm và sinh mã mới
-    const { count, error: countErr } = await supabase
-      .from('card')
-      .select('card_id', { count: 'exact', head: true })
-      .eq('type', 'Thẻ tháng')
-      .not('status', 'eq', 'Đã xóa');
-
-    if (countErr) throw new Error("Lỗi kiểm tra giới hạn thẻ tháng: " + countErr.message);
+    const count = await monthCardRepository.countActiveMonthCards();
 
     if (count >= 50) {
       throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký).");
@@ -366,14 +307,7 @@ export const createMonthCard = async ({
   let price = 0;
   try {
     const duration = Number(durationMonths) || 1;
-    const { data: matchedPkg } = await supabase
-      .from('package')
-      .select('package_id, price')
-      .eq('vehicle_type_id', vehicleTypeId)
-      .eq('duration_month', duration)
-      .eq('status', 'Hoạt động')
-      .limit(1)
-      .maybeSingle();
+    const matchedPkg = await monthCardRepository.findActivePackage(vehicleTypeId, duration);
 
     if (matchedPkg) {
       packageId = matchedPkg.package_id;
@@ -391,23 +325,14 @@ export const createMonthCard = async ({
 
   let vehiclePackageId = null;
   try {
-    const { data: newVp, error: vpInsertErr } = await supabase
-      .from('vehicle_package')
-      .insert({
-        vehicle_id: vehicle.vehicle_id,
-        package_id: packageId,
-        start_date: start.toISOString().split('T')[0],
-        end_date: expiredDateStr,
-        status: 'ACTIVE'
-      })
-      .select()
-      .single();
-
-    if (vpInsertErr) {
-      console.error("Lỗi insert vehicle_package khi tạo thẻ tháng:", vpInsertErr.message);
-    } else {
-      vehiclePackageId = newVp.vehicle_package_id;
-    }
+    const newVp = await monthCardRepository.createVehiclePackage({
+      vehicle_id: vehicle.vehicle_id,
+      package_id: packageId,
+      start_date: start.toISOString().split('T')[0],
+      end_date: expiredDateStr,
+      status: 'Hoạt động'
+    });
+    vehiclePackageId = newVp.vehicle_package_id;
   } catch (vpEx) {
     console.error("Exception insert vehicle_package:", vpEx);
   }
@@ -416,29 +341,22 @@ export const createMonthCard = async ({
   if (vehiclePackageId) {
     try {
       const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
-      const { data: dupPayment } = await supabase
-        .from('payment')
-        .select('payment_id')
-        .eq('vehicle_package_id', vehiclePackageId)
-        .eq('payment_type', 'Đăng ký vé tháng')
-        .gte('payment_time', oneMinuteAgo)
-        .maybeSingle();
+      const dupPayment = await monthCardRepository.findDuplicatePayment({
+        vehiclePackageId,
+        paymentType: 'Đăng ký vé tháng',
+        sinceTime: oneMinuteAgo
+      });
 
       if (!dupPayment) {
-        const { error: paymentErr } = await supabase
-          .from('payment')
-          .insert({
-            vehicle_package_id: vehiclePackageId,
-            amount: price,
-            payment_method: 'Tiền mặt',
-            status: 'Đã thanh toán',
-            payment_time: new Date().toISOString(),
-            payment_type: 'Đăng ký vé tháng',
-            created_by: currentUserId || null
-          });
-        if (paymentErr) {
-          console.error("Lỗi insert payment khi tạo thẻ tháng:", paymentErr.message);
-        }
+        await monthCardRepository.createPayment({
+          vehicle_package_id: vehiclePackageId,
+          amount: price,
+          payment_method: 'Tiền mặt',
+          status: 'Đã thanh toán',
+          payment_time: new Date().toISOString(),
+          payment_type: 'Đăng ký vé tháng',
+          created_by: currentUserId || null
+        });
       }
     } catch (payEx) {
       console.error("Exception insert payment:", payEx);
@@ -493,15 +411,7 @@ export const updateMonthCard = async (cardId, payload) => {
     checkOutTime
   } = payload;
 
-  const { data: currentCard, error: currentCardErr } = await supabase
-    .from("card")
-    .select("status")
-    .eq("card_id", cardId)
-    .single();
-
-  if (currentCardErr) {
-    throw new Error(currentCardErr.message);
-  }
+  const currentCard = await monthCardRepository.findCardStatus(cardId);
 
   // Không tìm thấy thẻ
   if (!currentCard) {
@@ -518,14 +428,7 @@ export const updateMonthCard = async (cardId, payload) => {
       );
     }
     // Chỉ cho cập nhật trạng thái
-    const { error: cardErr } = await supabase
-      .from("card")
-      .update({ status })
-      .eq("card_id", cardId);
-
-    if (cardErr) {
-      throw new Error(cardErr.message);
-    }
+    await monthCardRepository.updateCard(cardId, { status });
 
     return {
       success: true
@@ -544,30 +447,11 @@ export const updateMonthCard = async (cardId, payload) => {
   // 1. Kiểm tra biển số duy nhất của các thẻ đang hoạt động (ngoại trừ thẻ hiện tại)
   let existingVehicle = null;
   if (cleanPlate) {
-    const { data: vehicle, error: vehicleErr } = await supabase
-      .from('vehicle')
-      .select('vehicle_id')
-      .eq('plate_number', cleanPlate)
-      .maybeSingle();
-
-    if (vehicleErr) throw new Error(vehicleErr.message);
+    const vehicle = await monthCardRepository.findVehicleByPlate(cleanPlate);
     existingVehicle = vehicle;
 
     if (existingVehicle) {
-      const { data: activeReg, error: regCheckErr } = await supabase
-        .from('card_registrations')
-        .select(`
-          registration_id,
-          card_id,
-          card (
-            code
-          )
-        `)
-        .eq('vehicle_id', existingVehicle.vehicle_id)
-        .in('status', ['Hoạt động'])
-        .maybeSingle();
-
-      if (regCheckErr) throw new Error(regCheckErr.message);
+      const activeReg = await monthCardRepository.findActiveRegistrationByVehicle(existingVehicle.vehicle_id);
 
       if (activeReg && activeReg.card_id !== cardId) {
         throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
@@ -576,28 +460,10 @@ export const updateMonthCard = async (cardId, payload) => {
   }
 
   // 2. Cập nhật bảng card
-  const { error: cardErr } = await supabase
-    .from("card")
-    .update({ status })
-    .eq("card_id", cardId);
-
-  if (cardErr) throw new Error(cardErr.message);
+  await monthCardRepository.updateCard(cardId, { status });
 
   // 3. Tìm đăng ký hoạt động của thẻ để lấy xe và khách hàng
-  const { data: registration, error: regErr } = await supabase
-    .from("card_registrations")
-    .select(`
-      registration_id,
-      vehicle_id,
-      vehicle (
-        customer_id
-      )
-    `)
-    .eq("card_id", cardId)
-    .in("status", ["Hoạt động"])
-    .maybeSingle();
-
-  if (regErr) throw new Error(regErr.message);
+  const registration = await monthCardRepository.findActiveRegistrationWithCustomerByCard(cardId);
 
   if (registration) {
     let vehicleId = registration.vehicle_id;
@@ -607,67 +473,38 @@ export const updateMonthCard = async (cardId, payload) => {
     if (cleanPlate) {
       if (existingVehicle) {
         if (existingVehicle.vehicle_id !== vehicleId) {
-          const { error: updateRegErr } = await supabase
-            .from("card_registrations")
-            .update({ vehicle_id: existingVehicle.vehicle_id })
-            .eq("registration_id", registration.registration_id);
-
-          if (updateRegErr) throw new Error(updateRegErr.message);
+          await monthCardRepository.updateRegistrationVehicle(registration.registration_id, existingVehicle.vehicle_id);
 
           vehicleId = existingVehicle.vehicle_id;
 
           if (customerId) {
-            await supabase
-              .from("vehicle")
-              .update({ customer_id: customerId })
-              .eq("vehicle_id", vehicleId);
+            await monthCardRepository.updateVehicleCustomerId(vehicleId, customerId);
           }
         }
       } else if (vehicleId) {
-        const { error: vehErr } = await supabase
-          .from("vehicle")
-          .update({ plate_number: cleanPlate })
-          .eq("vehicle_id", vehicleId);
-
-        if (vehErr) throw new Error(vehErr.message);
+        await monthCardRepository.updateVehiclePlate(vehicleId, cleanPlate);
       }
     }
 
     // 5. Cập nhật thông tin khách hàng ở bảng customer
     if (customerId) {
-      const { error: custErr } = await supabase
-        .from("customer")
-        .update({
-          full_name: fullName,
-          phone: phone || null,
-          email: email || null
-        })
-        .eq("customer_id", customerId);
-
-      if (custErr) throw new Error(custErr.message);
+      await monthCardRepository.updateCustomer(customerId, {
+        full_name: fullName,
+        phone: phone || null,
+        email: email || null
+      });
     }
 
     // 6. Cập nhật session đỗ xe mới nhất của xe này (nếu có)
     if (vehicleId) {
-      const { data: session } = await supabase
-        .from("parking_sessions")
-        .select("session_id")
-        .eq("vehicle_id", vehicleId)
-        .order("entry_time", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const session = await monthCardRepository.findLatestParkingSession(vehicleId);
 
       if (session) {
-        const { error: sessErr } = await supabase
-          .from("parking_sessions")
-          .update({
-            plate_number: cleanPlate,
-            entry_time: checkInTime || null,
-            exit_time: checkOutTime || null
-          })
-          .eq("session_id", session.session_id);
-
-        if (sessErr) throw new Error(sessErr.message);
+        await monthCardRepository.updateParkingSession(session.session_id, {
+          plate_number: cleanPlate,
+          entry_time: checkInTime || null,
+          exit_time: checkOutTime || null
+        });
       }
     }
   }
@@ -713,39 +550,7 @@ export const deleteMonthCard = async (cardId, performedBy) => {
 };
 
 export const getMonthCards = async () => {
-  const { data, error } = await supabase
-    .from("card")
-    .select(`
-      card_id,
-      code,
-      type,
-      expired_date,
-      status,
-      created_at,
-      card_registrations (
-        registration_id,
-        status,
-        created_at,
-        vehicle (
-          vehicle_id,
-          plate_number,
-          customer (
-            customer_id,
-            full_name,
-            phone,
-            email
-          ),
-          vehicle_type (
-            name
-          )
-        )
-      )
-    `)
-    .eq("type", "Thẻ tháng")
-    .not("status", "eq", "Đã xóa")
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
+  const data = await monthCardRepository.getMonthCards();
 
   return await Promise.all(
     data.map(async (card, i) => {
@@ -784,23 +589,9 @@ export const getMonthCards = async () => {
       let latestSession = null;
 
       if (activeReg?.vehicle?.vehicle_id) {
-        const { data: sessions } = await supabase
-          .from("parking_sessions")
-          .select(`
-            session_id,
-            entry_time,
-            exit_time
-          `)
-          .eq(
-            "vehicle_id",
-            activeReg.vehicle.vehicle_id
-          )
-          .order("entry_time", {
-            ascending: false,
-          })
-          .limit(1);
-
-        latestSession = sessions?.[0] || null;
+        latestSession = await monthCardRepository.getLatestParkingSessionDetail(
+          activeReg.vehicle.vehicle_id
+        );
       }
 
       return {
@@ -861,23 +652,7 @@ export const getMonthCards = async () => {
 };
 
 export const getMonthCardLogs = async () => {
-  const { data, error } = await supabase
-    .from("card_activity_logs")
-    .select(`
-      log_id,
-      card_id,
-      action,
-      plate_number,
-      customer_name,
-      amount,
-      duration_months,
-      performed_at
-    `)
-    .in("action", ["Cấp mới", "Gia hạn", "Tạo thẻ tháng mới", "Đã gia hạn", "Thẻ đã cấp lại"])
-    .order("performed_at", { ascending: false })
-    .limit(100);
-
-  if (error) throw new Error(error.message);
+  const data = await monthCardRepository.getMonthCardLogs();
   if (!data || data.length === 0) return [];
 
   // Manual join for card codes
@@ -888,28 +663,14 @@ export const getMonthCardLogs = async () => {
   let ownerMap = {};
 
   if (cardIds.length > 0) {
-    const { data: cards } = await supabase
-      .from('card')
-      .select('card_id, code')
-      .in('card_id', cardIds);
+    const cards = await monthCardRepository.getCardsByIds(cardIds);
     if (cards) {
       cards.forEach(c => {
         cardMap[c.card_id] = c.code;
       });
     }
 
-    const { data: regs } = await supabase
-      .from('card_registrations')
-      .select(`
-        card_id,
-        vehicle (
-          plate_number,
-          customer (
-            full_name
-          )
-        )
-      `)
-      .in('card_id', cardIds);
+    const regs = await monthCardRepository.getRegistrationsWithCustomerByCardIds(cardIds);
 
     if (regs) {
       regs.forEach(r => {
@@ -922,15 +683,7 @@ export const getMonthCardLogs = async () => {
   }
 
   if (plates.length > 0) {
-    const { data: vehicles } = await supabase
-      .from('vehicle')
-      .select(`
-        plate_number,
-        customer (
-          full_name
-        )
-      `)
-      .in('plate_number', plates);
+    const vehicles = await monthCardRepository.getVehiclesWithCustomerByPlates(plates);
     if (vehicles) {
       vehicles.forEach(v => {
         const name = v.customer?.full_name;
@@ -946,7 +699,7 @@ export const getMonthCardLogs = async () => {
     const plate = item.plate_number || "Chưa có";
     const owner = item.customer_name || ownerMap[item.card_id] || ownerMap[item.plate_number] || "Khách vãng lai";
     const time = new Date(item.performed_at).toLocaleString('vi-VN');
-    
+
     let amountVal = item.amount ? Number(item.amount) : 0;
     if (amountVal === 0 && item.action === 'Thẻ đã cấp lại') {
       amountVal = 50000;
@@ -984,27 +737,7 @@ export const checkPlateStatus = async (plate) => {
   const cleanPlate = plate.replace(/[\s\.\-]/g, '').toUpperCase();
 
   // Tìm xe theo biển số cùng thẻ đang liên kết hoạt động
-  const { data: vehicle, error } = await supabase
-    .from('vehicle')
-    .select(`
-      vehicle_id,
-      vehicle_type_id,
-      card_registrations (
-        registration_id,
-        status,
-        card (
-          card_id,
-          code,
-          type
-        )
-      )
-    `)
-    .eq('plate_number', cleanPlate)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error("Lỗi truy vấn biển số xe: " + error.message);
-  }
+  const vehicle = await monthCardRepository.findVehicleWithRegistrationsByPlate(cleanPlate);
 
   if (!vehicle) {
     // Trường hợp 2: chưa gán xe (vì chưa tồn tại) và chưa gán thẻ -> Được đi tiếp
@@ -1039,18 +772,7 @@ export const checkPlateStatus = async (plate) => {
  */
 export const getNextMonthCode = async () => {
   // 1. Tìm thẻ tháng có trạng thái 'Đang chờ'
-  const { data: pendingCard, error: pendingErr } = await supabase
-    .from('card')
-    .select('code')
-    .eq('type', 'Thẻ tháng')
-    .eq('status', 'Đang chờ')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (pendingErr) {
-    throw new Error("Lỗi tìm thẻ đang chờ: " + pendingErr.message);
-  }
+  const pendingCard = await monthCardRepository.findPendingMonthCard();
 
   if (pendingCard) {
     // Trường hợp 1: có thẻ đang chờ thì sử dụng mã thẻ đó
@@ -1058,15 +780,7 @@ export const getNextMonthCode = async () => {
   }
 
   // Trường hợp 2: không còn thẻ đang chờ -> đếm số lượng thẻ hiện tại để kiểm tra giới hạn 50
-  const { count, error: countErr } = await supabase
-    .from('card')
-    .select('card_id', { count: 'exact', head: true })
-    .eq('type', 'Thẻ tháng')
-    .not('status', 'eq', 'Đã xóa');
-
-  if (countErr) {
-    throw new Error("Lỗi đếm số lượng thẻ tháng: " + countErr.message);
-  }
+  const count = await monthCardRepository.countActiveMonthCards();
 
   if (count >= 50) {
     throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.");
@@ -1083,62 +797,18 @@ export const getNextMonthCode = async () => {
  * @returns {Promise<object>}
  */
 export const getCardDetailsForContract = async (cardId) => {
-  const { data: card, error } = await supabase
-    .from("card")
-    .select(`
-      card_id,
-      code,
-      type,
-      expired_date,
-      status,
-      created_at,
-      card_registrations (
-        registration_id,
-        status,
-        created_at,
-        vehicle (
-          vehicle_id,
-          plate_number,
-          brand,
-          color,
-          customer (
-            customer_id,
-            full_name,
-            phone,
-            email
-          ),
-          vehicle_type (
-            vehicle_type_id,
-            name
-          ),
-          vehicle_package (
-            vehicle_package_id,
-            start_date,
-            end_date,
-            status,
-            package_id
-          )
-        )
-      )
-    `)
-    .eq("card_id", cardId)
-    .single();
+  const card = await monthCardRepository.getCardDetailsForContract(cardId);
 
-  if (error) throw new Error(error.message);
   if (!card) throw new Error("Không tìm thấy thông tin thẻ tháng");
 
   const activeReg = card.card_registrations?.find(r => r.status === "Hoạt động") || card.card_registrations?.[0] || null;
   const vehicle = activeReg?.vehicle || null;
   const customer = vehicle?.customer || null;
-  
+
   // Lấy cccd_number từ customer_kyc
   let cccdNumber = "---";
   if (customer?.customer_id) {
-    const { data: kycData } = await supabase
-      .from('customer_kyc')
-      .select('cccd_number')
-      .eq('customer_id', customer.customer_id)
-      .maybeSingle();
+    const kycData = await monthCardRepository.getCccdNumberByCustomerId(customer.customer_id);
     if (kycData?.cccd_number) {
       cccdNumber = kycData.cccd_number;
     }
@@ -1153,29 +823,13 @@ export const getCardDetailsForContract = async (cardId) => {
   // Truy vấn chi tiết package nếu có package_id
   let packageInfo = null;
   if (latestPackage?.package_id) {
-    const { data: pkg } = await supabase
-      .from('package')
-      .select('name, price, duration_month')
-      .eq('package_id', latestPackage.package_id)
-      .maybeSingle();
-    if (pkg) {
-      packageInfo = pkg;
-    }
+    packageInfo = await monthCardRepository.getPackageById(latestPackage.package_id);
   }
 
   // Truy vấn thông tin payment liên kết với vehicle_package
   let paymentInfo = null;
   if (latestPackage?.vehicle_package_id) {
-    const { data: pay } = await supabase
-      .from('payment')
-      .select('amount, payment_method, status, payment_time')
-      .eq('vehicle_package_id', latestPackage.vehicle_package_id)
-      .order('payment_time', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (pay) {
-      paymentInfo = pay;
-    }
+    paymentInfo = await monthCardRepository.getLatestPaymentByVehiclePackage(latestPackage.vehicle_package_id);
   }
 
   return {
