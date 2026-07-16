@@ -289,7 +289,15 @@ export async function processRenewalSuccess(orderCode) {
         cardCode,
     } = payload;
 
-    // 1. INSERT vehicle_package mới (kỳ gia hạn)
+    // 1. UPDATE vehicle_package cũ → 'Hết hạn' TRƯỚC (tránh vi phạm unique constraint uq_vehicle_active_package)
+    const { error: vpExpireErr } = await supabase
+        .from('vehicle_package')
+        .update({ status: 'Hết hạn' })
+        .eq('vehicle_package_id', vehiclePackageId);
+
+    if (vpExpireErr) throw new Error('Lỗi cập nhật kỳ cũ: ' + vpExpireErr.message);
+
+    // 2. INSERT vehicle_package mới (kỳ gia hạn)
     const { data: newVp, error: vpInsertErr } = await supabase
         .from('vehicle_package')
         .insert({
@@ -305,12 +313,6 @@ export async function processRenewalSuccess(orderCode) {
         .single();
 
     if (vpInsertErr) throw new Error('Lỗi tạo kỳ gia hạn: ' + vpInsertErr.message);
-
-    // 2. UPDATE vehicle_package cũ → 'Hết hạn'
-    await supabase
-        .from('vehicle_package')
-        .update({ status: 'Hết hạn' })
-        .eq('vehicle_package_id', vehiclePackageId);
 
     // 3. UPDATE card: expired_date + active_vehicle_package_id
     const { error: cardUpdateErr } = await supabase
