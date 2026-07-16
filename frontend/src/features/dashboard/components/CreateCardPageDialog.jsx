@@ -18,6 +18,7 @@ export default function CreateCardPageDialog({ isOpen, onClose, onSuccess }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (isOpen) {
@@ -28,40 +29,73 @@ export default function CreateCardPageDialog({ isOpen, onClose, onSuccess }) {
                 status: 'Hoạt động'
             });
             setFormError(null);
+            setErrors({});
         }
     }, [isOpen]);
 
     if (!isOpen) return null;
 
     const handleFormChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+
+        setErrors(prev => ({
+            ...prev,
+            [name]: ''
+        }));
     };
 
     const handleCreate = async (e) => {
         e.preventDefault();
+
         setFormError(null);
 
-        // Kiểm tra định dạng biển số xe
-        if (formData.plate && formData.plate.trim() !== '') {
-            const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
+        const newErrors = {};
+        const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
+
+        // Bắt buộc nhập
+        if (!formData.plate.trim()) {
+            newErrors.plate = "Vui lòng nhập biển số xe.";
+        } else {
+            // Kiểm tra định dạng
             const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+
             if (!plateRegex.test(rawPlate)) {
-                setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
-                return;
+                newErrors.plate =
+                    "Biển số xe không đúng định dạng. Ví dụ: 30K12345 hoặc 59X312345.";
             }
         }
 
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({});
+
         try {
             setSubmitting(true);
+
             await createCard({
                 type: 'Thẻ lượt',
                 startDate: formData.startDate,
-                plate: formData.plate.trim() || undefined
+                plate: formData.plate.trim()
             });
+
             showToast("Đăng ký thẻ mới thành công", "success");
             onSuccess?.();
+
         } catch (err) {
-            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
+            setFormError(
+                err?.response?.data?.message ||
+                err?.response?.data?.error ||
+                err.message ||
+                'Lỗi khi tạo thẻ.'
+            );
         } finally {
             setSubmitting(false);
         }
@@ -82,16 +116,23 @@ export default function CreateCardPageDialog({ isOpen, onClose, onSuccess }) {
 
                     {/* 2. Biển số xe */}
                     <div className="cp-form-group">
-                        <label htmlFor="plate">Biển số xe</label>
+                        <label htmlFor="plate">
+                            Biển số xe <span style={{ color: "red" }}>*</span>
+                        </label>
+
                         <input
                             id="plate"
                             name="plate"
                             type="text"
                             placeholder="Ví dụ: 30K12345"
-                            className="cp-input"
+                            className={`cp-input ${errors.plate ? "cp-input-error" : ""}`}
                             value={formData.plate}
                             onChange={handleFormChange}
                         />
+
+                        {errors.plate && (
+                            <p className="cp-error-text">{errors.plate}</p>
+                        )}
                     </div>
 
                     {/* 3. Ngày bắt đầu */}
@@ -103,7 +144,7 @@ export default function CreateCardPageDialog({ isOpen, onClose, onSuccess }) {
                             type="datetime-local"
                             className="cp-input"
                             value={formData.startDate}
-                            onChange={handleFormChange}
+                            readOnly
                         />
                     </div>
 

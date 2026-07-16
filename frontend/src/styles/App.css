@@ -26827,6 +26827,7 @@ body,
     color: #1e293b !important;
   }
 }
+
 /* Primary Blue Theme Overrides for System Operations */
 .system-page .active-transaction::before {
   background: #2563eb !important;
@@ -30213,6 +30214,7 @@ body,
 
 /* Tablet: 768px-1023px — 2 column layout but not fixed height */
 @media (min-width: 768px) and (max-width: 1023px) {
+
   .system-page .camera-grid,
   .system-page .camera-grid--two-vertical {
     grid-template-columns: 1fr 1fr !important;
@@ -30380,4 +30382,14 @@ body,
     border-color: #bfdbfe !important;
     color: #1d4ed8 !important;
   }
-}
+}
+
+.cp-input-error {
+  border: 1px solid #dc2626 !important;
+}
+
+.cp-error-text {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 4px;
+}
