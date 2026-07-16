@@ -29,7 +29,14 @@ export const createCard = async (payload) => {
     return response.data.data || response.data
 }
 
+<<<<<<< HEAD
 export const deleteCard = async (cardId) => {
     const response = await API.delete(`/cards/card/${cardId}`)
     return response.data
+=======
+// Gửi yêu cầu tạo báo mất thẻ mới đến API Backend
+export const createLostCard = async (payload) => {
+    const response = await API.post("/cards/lost-card", payload)
+    return response.data.data || response.data
+>>>>>>> Bao
 }

@@ -57,3 +57,23 @@ export const createCard = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Ghi nhận yêu cầu báo mất thẻ từ phía Client
+export const createLostCard = async (req, res) => {
+  try {
+    // Gọi Service xử lý nghiệp vụ kiểm tra và thêm báo mất thẻ
+    const result = await cardService.createLostCard(req.body);
+
+    // Trả về kết quả thành công HTTP 201 cho Client
+    return res.status(201).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    // Trả về thông báo lỗi HTTP 500 khi xử lý thất bại hoặc không tìm thấy thẻ/xe
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
