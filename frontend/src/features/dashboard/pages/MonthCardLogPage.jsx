@@ -15,8 +15,8 @@ export default function MonthCardLogPage() {
         try {
             setLoading(true);
             const data = await getMonthCardLogs();
-            setAllLogs(data);
-            setLogs(data);
+            setAllLogs(data || []);
+            setLogs(data || []);
             setError(null);
         } catch (err) {
             console.error("Error loading month card logs:", err);
@@ -33,8 +33,8 @@ export default function MonthCardLogPage() {
     const handleFilter = () => {
         let filtered = allLogs.filter((log) => {
             const matchesSearch =
-                log.plate.toLowerCase().includes(search.toLowerCase()) ||
-                log.owner.toLowerCase().includes(search.toLowerCase());
+                (log.plate || '').toLowerCase().includes(search.toLowerCase()) ||
+                (log.owner || '').toLowerCase().includes(search.toLowerCase());
 
             const matchesType = typeFilter === 'Tất cả' || log.type === typeFilter;
             const matchesStatus = statusFilter === 'Tất cả' || log.status === statusFilter;
@@ -46,33 +46,26 @@ export default function MonthCardLogPage() {
 
     useEffect(() => {
         handleFilter();
-    }, [typeFilter, statusFilter, allLogs]);
+    }, [search, typeFilter, statusFilter, allLogs]);
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'Thành công': return 'status-success';
-            case 'Đang xử lý': return 'status-processing';
-            case 'Thất bại': return 'status-failed';
+            case 'Thành công': return 'success';
+            case 'Đang xử lý': return 'pending';
+            case 'Thất bại': return 'failed';
             default: return '';
         }
     };
 
-    const totalTransactions = allLogs.length;
-    const renewals = allLogs.filter(log => log.type === 'Gia hạn' && log.status === 'Thành công').length;
-    const newRegistrations = allLogs.filter(log => log.type === 'Cấp mới' && log.status === 'Thành công').length;
-    const pendingCount = allLogs.filter(log => log.status === 'Đang xử lý').length;
-
-    
-    const failedCount = allLogs.filter(log => log.status === 'Thất bại').length;
+    const totalTransactions = logs.length;
+    const renewals = logs.filter(log => log.type === 'Gia hạn' && log.status === 'Thành công').length;
+    const newRegistrations = logs.filter(log => log.type === 'Cấp mới' && log.status === 'Thành công').length;
+    const failedCount = logs.filter(log => log.status === 'Thất bại').length;
 
     return (
         <div className="lost-card-log-wrapper">
-
-            {/* ĐÃ XÓA KHỐI HEADER VÀ PROFILE LẶP LẠI TẠI ĐÂY */}
-
             {/* Stats Grid */}
-            
-            <div className="lost-kpi-container">
+            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
@@ -83,7 +76,7 @@ export default function MonthCardLogPage() {
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value">{loading ? '...' : totalTransactions}</div>
-                            <div className="lost-kpi-footer txt-gray">Tất cả giao dịch</div>
+                            <div className="lost-kpi-footer txt-gray">Ghi nhận giao dịch</div>
                         </div>
                     </div>
 
@@ -116,13 +109,13 @@ export default function MonthCardLogPage() {
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-red">
-                                <span className="material-symbols-outlined">pending_actions</span>
+                                <span className="material-symbols-outlined">error</span>
                             </div>
-                            <span className="lost-kpi-title">Đang chờ xử lý</span>
+                            <span className="lost-kpi-title">Thất bại</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-red">{loading ? '...' : pendingCount}</div>
-                            <div className="lost-kpi-footer txt-orange">Chờ xác nhận</div>
+                            <div className="lost-kpi-value val-red">{loading ? '...' : failedCount}</div>
+                            <div className="lost-kpi-footer txt-red">Giao dịch lỗi</div>
                         </div>
                     </div>
                 </div>
@@ -130,8 +123,9 @@ export default function MonthCardLogPage() {
                 <div className="lost-dist-card">
                     <div className="lost-dist-title">
                         <span className="material-symbols-outlined">monitoring</span>
-                        Tỷ lệ giao dịch
+                        Phân phối giao dịch
                     </div>
+                    <hr className="lost-dist-divider" />
 
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
@@ -162,22 +156,9 @@ export default function MonthCardLogPage() {
                             <div className="lost-dist-fill bg-blue" style={{ width: `${totalTransactions > 0 ? (renewals / totalTransactions) * 100 : 0}%` }}></div>
                         </div>
                     </div>
-
-                    <div className="lost-dist-item">
-                        <div className="lost-dist-label-row">
-                            <span>Đang chờ xử lý</span>
-                            <span><span className="lost-dist-val">{pendingCount}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((pendingCount / totalTransactions) * 100) : 0}%)</span></span>
-                        </div>
-                        <div className="lost-dist-track">
-                            <div className="lost-dist-fill bg-gray" style={{ width: `${totalTransactions > 0 ? (pendingCount / totalTransactions) * 100 : 0}%` }}></div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-
-            {/* Filter Toolbar */}
-            
             {/* Filter Toolbar */}
             <div className="lost-filter-card">
                 <div className="filter-block">
@@ -190,7 +171,6 @@ export default function MonthCardLogPage() {
                             placeholder="Biển số, Chủ xe..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
                         />
                     </div>
                 </div>
@@ -206,7 +186,6 @@ export default function MonthCardLogPage() {
                             <option value="Tất cả">Tất cả</option>
                             <option value="Gia hạn">Gia hạn</option>
                             <option value="Cấp mới">Cấp mới</option>
-                            <option value="Thay đổi xe">Thay đổi xe</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
@@ -230,53 +209,57 @@ export default function MonthCardLogPage() {
                 </div>
             </div>
 
-
             {/* Table */}
-            <section className="month-log-table-card">
+            <section className="lost-table-card">
                 {error && <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
                 {loading ? (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký vé tháng...</div>
                 ) : (
                     <>
-                        <table className="month-log-table">
-                            <thead>
-                                <tr>
-                                    <th>THỜI GIAN</th>
-                                    <th>BIỂN SỐ</th>
-                                    <th>CHỦ XE</th>
-                                    <th>LOẠI GD</th>
-                                    <th>SỐ TIỀN</th>
-                                    <th>TRẠNG THÁI</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.length > 0 ? (
-                                    logs.map((log, index) => (
-                                        <tr key={index}>
-                                            <td className="log-time">{log.time}</td>
-                                            <td>{log.plate}</td>
-                                            <td>{log.owner}</td>
-                                            <td>{log.type}</td>
-                                            <td className="log-amount">{log.amount}</td>
-                                            <td>
-                                                <span className={`status-badge-month ${getStatusClass(log.status)}`}>
-                                                    {log.status}
-                                                </span>
+                        <div className="mc-table-scroll">
+                            <table className="mc-table">
+                                <thead>
+                                    <tr>
+                                        <th>THỜI GIAN GIAO DỊCH</th>
+                                        <th>BIỂN SỐ</th>
+                                        <th>CHỦ XE</th>
+                                        <th>LOẠI GD</th>
+                                        <th>SỐ TIỀN THANH TOÁN</th>
+                                        <th>TRẠNG THÁI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {logs.length > 0 ? (
+                                        logs.map((log, index) => (
+                                            <tr key={index} className="mc-table-row">
+                                                <td className="log-time" style={{ fontFamily: 'monospace' }}>{log.time}</td>
+                                                <td className="mc-td-bold">{log.plate}</td>
+                                                <td>{log.owner}</td>
+                                                <td>{log.type}</td>
+                                                <td className="log-amount" style={{ fontWeight: '700' }}>{log.amount}</td>
+                                                <td>
+                                                    <span className={`status-badge-log ${getStatusClass(log.status)}`}>
+                                                        {log.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                                Không tìm thấy nhật ký giao dịch phù hợp
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>Không tìm thấy nhật ký phù hợp</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <div className="month-log-footer">
-                            <span className="footer-info">Hiển thị {logs.length} trong số {totalTransactions} giao dịch</span>
-                            <div className="month-log-pagination">
+                        {/* Footer */}
+                        <div className="lost-table-footer">
+                            <span className="footer-info">Hiển thị {logs.length} trong số {allLogs.length} giao dịch</span>
+                            <div className="lost-pagination">
                                 <button type="button" className="page-btn" disabled>
                                     <span className="material-symbols-outlined">chevron_left</span>
                                 </button>

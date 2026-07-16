@@ -272,68 +272,78 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
         const { data: sessions } = await supabase
           .from("parking_sessions")
           .select(`
-          session_id,
-          entry_time,
-          exit_time
-        `)
-          .eq(
-            "vehicle_id",
-            activeReg.vehicle.vehicle_id
-          )
-          .order(
-            "entry_time",
-            { ascending: false }
-          )
+            session_id,
+            entry_time,
+            exit_time
+          `)
+          .eq("vehicle_id", activeReg.vehicle.vehicle_id)
+          .order("entry_time", { ascending: false })
           .limit(1);
 
         latestSession = sessions?.[0] || null;
       }
       return {
-
         card_id: item.card_id,
         code: item.code,
         type: item.type,
-
         expired_date: item.expired_date,
         status: item.status,
         created_at: item.created_at,
-
-        plate:
-          activeReg?.vehicle?.plate_number ||
-          "",
-
-        fullName:
-          activeReg?.vehicle?.customer?.full_name ||
-          "",
-
-        phone:
-          activeReg?.vehicle?.customer?.phone ||
-          "",
-
-        email:
-          activeReg?.vehicle?.customer?.email ||
-          "",
-
-        check_in_time:
-          latestSession?.entry_time || '',
-
-        check_out_time:
-          latestSession?.exit_time || '',
-
-        customer_name:
-          activeReg?.vehicle?.customer?.full_name ||
-          "Chưa đăng ký",
-
-        vehicle_id:
-          activeReg?.vehicle?.vehicle_id || null,
-
-        customer_id:
-          activeReg?.vehicle?.customer?.customer_id ||
-          null
+        plate: activeReg?.vehicle?.plate_number || "",
+        fullName: activeReg?.vehicle?.customer?.full_name || "",
+        phone: activeReg?.vehicle?.customer?.phone || "",
+        email: activeReg?.vehicle?.customer?.email || "",
+        check_in_time: latestSession?.entry_time || '',
+        check_out_time: latestSession?.exit_time || '',
+        customer_name: activeReg?.vehicle?.customer?.full_name || "Chưa đăng ký",
+        vehicle_id: activeReg?.vehicle?.vehicle_id || null,
+        customer_id: activeReg?.vehicle?.customer?.customer_id || null
       };
     })
-  )
-}
+  );
+};
+
+export const getMonthCardLogs = async () => {
+  const { data, error } = await supabase
+    .from("payment")
+    .select(`
+      payment_time,
+      amount,
+      status,
+      parking_order (
+        vehicle (
+          plate_number,
+          customer (
+            full_name
+          )
+        )
+      )
+    `);
+
+  if (error) throw new Error(error.message);
+
+  return data.map((item, idx) => {
+    const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
+    const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
+    const time = new Date(item.payment_time).toLocaleString('vi-VN');
+    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
+    const status = item.status === 'PAID'
+      ? 'Thành công'
+      : item.status === 'PENDING'
+        ? 'Đang xử lý'
+        : 'Thất bại';
+
+    return {
+      time,
+      plate,
+      owner,
+      type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
+      amount,
+      status
+    };
+  });
+};
+
 
 export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
   let cleanPlate = plate ? plate.trim() : undefined;
@@ -618,6 +628,7 @@ export const getLostCards = async () => {
         statusText = 'Đang xử lý';
       }
     } else if (log.status === 'CANCELED' || log.status === 'Đã hủy thẻ') {
+<<<<<<< HEAD
 =======
     let statusText = 'Đang xử lý'; // Giá trị mặc định: áp dụng cho trường hợp đã có handled_by nhưng chưa hoàn tất
 
@@ -627,6 +638,8 @@ export const getLostCards = async () => {
     } else if (log.status === 'Đã hủy thẻ') {
       // Báo cáo mất thẻ đã dẫn đến việc hủy/khóa thẻ
 >>>>>>> RegistrationFunction
+=======
+>>>>>>> LoginLog
       statusText = 'Đã hủy thẻ';
     } else if (log.status === 'Chờ xử lý' && !log.handled_by) {
       // Vừa tạo mới (status mặc định khi insert) và chưa có ai nhận xử lý

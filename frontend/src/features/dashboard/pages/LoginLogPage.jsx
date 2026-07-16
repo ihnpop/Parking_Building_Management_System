@@ -6,6 +6,8 @@ export default function LoginLogPage() {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [rawLogs, setRawLogs] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -35,14 +37,36 @@ export default function LoginLogPage() {
 
             const matchesRole = roleFilter === 'Tất cả vai trò' || log.role === roleFilter;
 
-            return matchesSearch && matchesRole;
+            let matchesDate = true;
+            if (startDate || endDate) {
+                const logDateStr = log.login_time || log.timestamp;
+                if (logDateStr) {
+                    const logDate = new Date(logDateStr);
+                    if (!isNaN(logDate.getTime())) {
+                        logDate.setHours(0, 0, 0, 0);
+
+                        if (startDate) {
+                            const sDate = new Date(startDate);
+                            sDate.setHours(0, 0, 0, 0);
+                            if (logDate < sDate) matchesDate = false;
+                        }
+                        if (endDate) {
+                            const eDate = new Date(endDate);
+                            eDate.setHours(23, 59, 59, 999);
+                            if (logDate > eDate) matchesDate = false;
+                        }
+                    }
+                }
+            }
+
+            return matchesSearch && matchesRole && matchesDate;
         });
         setLogs(filtered);
     };
 
     useEffect(() => {
         handleFilter();
-    }, [search, roleFilter, rawLogs]);
+    }, [search, roleFilter, startDate, endDate, rawLogs]);
 
     const getStatusClass = (status) => {
         if (status === 'Thành công') return 'success';
@@ -180,14 +204,21 @@ export default function LoginLogPage() {
                 <div className="filter-block">
                     <label className="filter-label">KHOẢNG THỜI GIAN</label>
                     <div className="filter-input-wrapper">
-                        <span className="material-symbols-outlined icon-left">calendar_today</span>
-                        <input 
-                            type="text" 
-                            className="filter-input has-icon-left"
-                            value="Toàn thời gian" 
-                            style={{ paddingLeft: '36px' }}
-                            readOnly 
-                        />
+                        <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
+                            />
+                            <span style={{ color: '#94a3b8', fontSize: '13px' }}>đến</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
+                            />
+                        </div>
                     </div>
                 </div>
 

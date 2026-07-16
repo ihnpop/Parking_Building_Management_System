@@ -65,7 +65,6 @@ export const createCard = async (req, res) => {
         });
       }
     }
-
     const newCard = await cardService.createCard({
       type,
       startDate,

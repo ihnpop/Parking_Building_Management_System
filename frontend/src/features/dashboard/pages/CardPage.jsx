@@ -228,6 +228,20 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
+<<<<<<< HEAD
+=======
+    const [editingCard, setEditingCard] = useState(null);
+    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+    
+    const getRoleLabel = (r) => {
+        switch (r) {
+            case 'ADMIN': return 'Admin';
+            case 'MANAGER': return 'Manager';
+            case 'STAFF': return 'Staff';
+            default: return r;
+        }
+    };
+>>>>>>> LoginLog
 
 <<<<<<< HEAD
     // Delete modal state
