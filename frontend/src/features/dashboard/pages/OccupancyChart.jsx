@@ -124,7 +124,6 @@ export default function OccupancyChart() {
 
     return (
         <section className="stats-dashboard-page">
-            {/* Top Navigation Header */}
             <header className="stats-top-bar">
                 <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
                     <span className="material-symbols-outlined">arrow_back</span>
