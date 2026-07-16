@@ -27,22 +27,8 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
-
-                <form className="mc-modal-form" onSubmit={onSubmit}>
-                    {/* 1. Loại thẻ */}
-                    <div className="mc-form-group">
-                        <label htmlFor="type">Loại thẻ</label>
-                        <select
-                            id="type"
-                            name="type"
-                            className="mc-select"
-                            value={formData.type}
-                            onChange={onChange}
-                        >
-                            <option value="Thẻ lượt">Thẻ lượt</option>
-                            {/* <option value="Thẻ tháng">Thẻ tháng</option> */}
-                        </select>
-                    </div>
+                <form className="cp-modal-form" onSubmit={onSubmit}>
+                    {/* Loại thẻ mặc định là Thẻ lượt — không hiển thị dropdown vì form này chỉ dùng cho Thẻ lượt */}
 
                     {/* 2. Biển số xe */}
                     <div className="mc-form-group">
@@ -227,18 +213,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
     const [editingCard, setEditingCard] = useState(null);
-
     const { showToast, showConfirm } = useNotification();
-
-    const role = userRole ? userRole.toUpperCase() : 'STAFF';
-    const getRoleLabel = (r) => {
-        switch (r) {
-            case 'ADMIN': return 'Admin';
-            case 'MANAGER': return 'Manager';
-            case 'STAFF': return 'Staff';
-            default: return r;
-        }
-    };
 
     // Filters
     const [search, setSearch] = useState('');
@@ -249,7 +224,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         try {
             setLoading(true);
             const data = await getCards();
-            setCards(data);
+            // Sort data newest first
+            const sortedData = [...data].sort((a, b) => {
+                const dateA = a.created_at ? new Date(a.created_at) : 0;
+                const dateB = b.created_at ? new Date(b.created_at) : 0;
+                if (dateB.getTime() !== dateA.getTime()) {
+                    return dateB - dateA;
+                }
+                return (b.code || '').localeCompare(a.code || '');
+            });
+
+            setCards(sortedData);
             setError(null);
         } catch (err) {
             console.error("Error loading cards:", err);
@@ -304,7 +289,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setShowEditModal(true);
     };
 
-    const handleDelete = (row) => {
+    const handleDelete = async (row) => {
         if (row.status !== 'Đang chờ') return;
         showConfirm({
             title: "Xóa thẻ",
@@ -639,8 +624,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     <div className="mc-loading-message">Đang tải danh sách thẻ...</div>
                 ) : (
                     <>
-                        <div className="mc-table-scroll">
-                            <table className="mc-table">
+                        <div className="cp-table-scroll">
+                            <table className="cp-table">
                                 <thead>
                                     <tr>
                                         <th>STT</th>

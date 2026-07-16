@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { createLostCard } from "../../../service/cardApi"
+import { createLostCard } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
+import { useAuth } from '../../../context/AuthContext';
 export default function LostCardLogPage({ showBackButton = false }) {
     const { showToast } = useNotification();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    // Lấy tên hiển thị: ưu tiên full_name → name → email
+    const currentUserName = user?.user_metadata?.full_name
+        || user?.user_metadata?.name
+        || user?.email
+        || '---';
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,6 +26,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
     // Trạng thái hiển thị modal tạo báo mất thẻ
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [resolveNote, setResolveNote] = useState('');
 
     // Dữ liệu nhập vào của form báo mất thẻ mới
     const [newLostCard, setNewLostCard] = useState({
@@ -27,28 +36,98 @@ export default function LostCardLogPage({ showBackButton = false }) {
     });
 
     // Xử lý gửi yêu cầu tạo báo mất thẻ mới lên server
+    const [historyData, setHistoryData] = useState([]);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
-    const handleUpdateLostCard = async () => {
+    const handleViewHistory = async () => {
         try {
-            // Mock API call or real API call to update
-            // await axios.put(`http://localhost:3636/api/cards/${editingCard.lost_report_id || editingCard.id}`, editingCard);
+            setHistoryLoading(true);
+            setShowHistoryModal(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            const res = await axios.get(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/history`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setHistoryData(res.data.data || []);
+        } catch (err) {
+            const message = err.response?.data?.message || err.message || 'Không thể tải lịch sử';
+            showToast(message, 'error');
+            setShowHistoryModal(false);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
 
-            // Tạm thời update local state vì chưa rõ API put có hỗ trợ hay không
-            setLostCards(prev => prev.map(card =>
-                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id)
-                    ? { ...card, ...editingCard } : card
-            ));
-            setFilteredCards(prev => prev.map(card =>
-                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id)
-                    ? { ...card, ...editingCard } : card
-            ));
-            showToast('Đã lưu thay đổi thành công!', 'success');
+    // RULE #4 - Tiếp nhận xử lý report (Đang chờ -> Đang xử lý).
+    // Gọi đúng API state-machine mới, không tự sửa status tùy tiện như trước.
+    const handleAcceptReport = async () => {
+        if (!editingCard?.raw_report_id) {
+            showToast('Thiếu mã báo cáo gốc (raw_report_id) - không thể tiếp nhận. Vui lòng tải lại trang.', 'error');
+            return;
+        }
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            await axios.put(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/${editingCard.raw_report_id}/accept`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            showToast('Đã tiếp nhận xử lý báo cáo.', 'success');
+            // Cập nhật tên người xử lý ngay lập tức trên UI
+            setEditingCard(prev => ({
+                ...prev,
+                handler_name: currentUserName,
+                status: 'Đang xử lý'
+            }));
+            await fetchLostCards();
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.message || 'Không thể tiếp nhận xử lý';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // RULE #4 - Đóng report: tìm lại thẻ (Tìm lại thẻ) hoặc hủy thẻ vĩnh viễn (Hủy thẻ).
+    // Chỉ gọi được khi report đang ở trạng thái 'Đang xử lý' (backend tự chặn nếu sai state).
+    const handleResolveReport = async (resolution) => {
+        if (!editingCard?.raw_report_id) {
+            showToast('Thiếu mã báo cáo gốc (raw_report_id) - không thể đóng report. Vui lòng tải lại trang.', 'error');
+            return;
+        }
+        if (resolution === 'Hủy thẻ') {
+            const confirmed = window.confirm(
+                'Hủy thẻ là thao tác KHÔNG THỂ hoàn tác - thẻ sẽ bị vô hiệu hóa vĩnh viễn. Bạn chắc chắn muốn tiếp tục?'
+            );
+            if (!confirmed) return;
+        }
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            await axios.put(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/${editingCard.raw_report_id}/resolve`,
+                { resolution, note: resolveNote || undefined },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            showToast(
+                resolution === 'Tìm lại thẻ' ? 'Đã đóng report: tìm lại được thẻ.' : 'Đã đóng report: hủy thẻ vĩnh viễn.',
+                'success'
+            );
+            setResolveNote('');
+            await fetchLostCards();
             setEditingCard(null);
         } catch (err) {
             console.error(err);
-            showToast('Lỗi khi lưu thay đổi!', 'error');
+            const message = err.response?.data?.message || err.message || 'Không thể đóng report';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
         }
     };
+
     const handleCreateLostCard = async () => {
         try {
             // Tạo payload gửi đi từ dữ liệu form
@@ -118,10 +197,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                 reportId.includes(searchKey);
 
             // Đồng bộ chuỗi chữ trạng thái
-            let currentStatus = row.status || 'Chờ xử lý';
-            if (currentStatus === 'PENDING') currentStatus = 'Chờ xử lý';
-            if (currentStatus === 'RESOLVED') currentStatus = 'Đã xong';
-
+            const currentStatus = row.status || 'Đang chờ';
             const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
 
             let matchesDate = true;
@@ -181,13 +257,13 @@ export default function LostCardLogPage({ showBackButton = false }) {
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'Chờ xử lý':
-                return 'status-pending';     /* Màu vàng cam */
+            case 'Đang chờ':
+return 'status-pending';
             case 'Đang xử lý':
-                return 'status-processing';  /* Màu xanh dương vừa thêm */
+                return 'status-processing';
             case 'Đã xong':
             case 'Đã tìm lại':
-                return 'status-recovered';   /* Màu xanh lá */
+                return 'status-recovered';
             case 'Đã hủy thẻ':
                 return 'status-cancelled';
             default:
@@ -197,7 +273,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
 
     // Tính toán số liệu thống kê động chia đều cho 3 trạng thái
     const totalLost = lostCards.length;
-    const pendingCount = lostCards.filter(c => c.status === 'Chờ xử lý' || c.status === 'PENDING').length;
+    const pendingCount = lostCards.filter(c => c.status === 'Đang chờ').length;
     const processingCount = lostCards.filter(c => c.status === 'Đang xử lý').length;
     const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'RESOLVED').length;
 
@@ -214,8 +290,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
                 </header>
             )}
 
-
             <div className="lost-card-log-wrapper">
+                {/* Stats Cards */}
                 <div className="lost-kpi-container">
                     <div className="lost-kpi-grid">
                         <div className="lost-kpi-card">
@@ -227,9 +303,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                             </div>
                             <div className="lost-kpi-body">
                                 <div className="lost-kpi-value">{totalLost}</div>
-                                <div className="lost-kpi-footer txt-gray">
-                                    Hệ thống tổng hợp
-                                </div>
+                                <div className="lost-kpi-footer txt-gray">Hệ thống tổng hợp</div>
                             </div>
                         </div>
 
@@ -242,9 +316,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                             </div>
                             <div className="lost-kpi-body">
                                 <div className="lost-kpi-value val-red">{pendingCount}</div>
-                                <div className="lost-kpi-footer txt-orange">
-                                    Chờ tiếp nhận
-                                </div>
+                                <div className="lost-kpi-footer txt-orange">Chờ tiếp nhận</div>
                             </div>
                         </div>
 
@@ -257,10 +329,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                             </div>
                             <div className="lost-kpi-body">
                                 <div className="lost-kpi-value val-blue">{processingCount}</div>
-                                <div className="lost-kpi-footer txt-blue">
-
-                                    Đối chiếu hình ảnh
-                                </div>
+                                <div className="lost-kpi-footer txt-blue">Đối chiếu hình ảnh</div>
                             </div>
                         </div>
 
@@ -273,9 +342,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                             </div>
                             <div className="lost-kpi-body">
                                 <div className="lost-kpi-value val-green">{resolvedCount}</div>
-                                <div className="lost-kpi-footer txt-green">
-                                    Giải quyết xong
-                                </div>
+                                <div className="lost-kpi-footer txt-green">Giải quyết xong</div>
                             </div>
                         </div>
                     </div>
@@ -299,7 +366,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
 
                         <div className="lost-dist-item">
                             <div className="lost-dist-label-row">
-                                <span>Chờ xử lý</span>
+                                <span>Đang chờ</span>
                                 <span><span className="lost-dist-val">{pendingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((pendingCount / totalLost) * 100) : 0}%)</span></span>
                             </div>
                             <div className="lost-dist-track">
@@ -329,6 +396,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                     </div>
                 </div>
 
+                {/* Filters Toolbar */}
                 <div className="lost-filter-card">
                     <div className="filter-block">
                         <label className="filter-label">Tìm kiếm nâng cao</label>
@@ -340,7 +408,6 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                 placeholder="Nhập mã báo mất, mã thẻ, biển số, chủ xe..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
                             />
                         </div>
                     </div>
@@ -354,7 +421,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                 onChange={(e) => setStatusFilter(e.target.value)}
                             >
                                 <option value="Tất cả">Tất cả trạng thái</option>
-                                <option value="Chờ xử lý">Chờ xử lý</option>
+                                <option value="Đang chờ">Đang chờ</option>
                                 <option value="Đang xử lý">Đang xử lý</option>
                                 <option value="Đã xong">Đã xong</option>
                             </select>
@@ -406,6 +473,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                         <th>BIỂN SỐ XE</th>
                                         <th>LOẠI THẺ</th>
                                         <th>NGÀY BÁO MẤT</th>
+                                        <th>NỘI DUNG</th>
                                         <th>TRẠNG THÁI</th>
                                         <th>NGƯỜI XỬ LÝ</th>
                                         <th>THAO TÁC</th>
@@ -419,6 +487,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                             const plateNumber = row.plate_number || row.plate;
                                             const cardType = row.card_type || 'Thẻ lượt';
                                             const reportDate = row.reported_at || row.date;
+                                            const content = row.description || row.reason || '---';
 
                                             return (
                                                 <tr key={reportId}>
@@ -437,15 +506,16 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                                             })
                                                             : reportDate}
                                                     </td>
+                                                    <td className="lost-content-cell" title={content}>{content}</td>
                                                     <td>
                                                         <span className={`status-badge-lost ${getStatusClass(row.status)}`}>
                                                             <span className="dot"></span>
                                                             {row.status}
                                                         </span>
                                                     </td>
-                                                    <td>{row.handler_name}</td>
+                                                    <td>{row.handler_name || '---'}</td>
                                                     <td>
-                                                        <button type="button" className="lost-action-btn" onClick={() => setEditingCard(row)}>
+                                                        <button type="button" className="lost-action-btn" onClick={() => { setEditingCard(row); setResolveNote(''); }}>
                                                             <span className="material-symbols-outlined">edit</span>
                                                         </button>
                                                     </td>
@@ -454,7 +524,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                         })
                                     ) : (
                                         <tr>
-                                            <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                            <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
                                                 Không tìm thấy dữ liệu phù hợp
                                             </td>
                                         </tr>
@@ -475,6 +545,9 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                             <span className="material-symbols-outlined">chevron_right</span>
                                         </button>
                                     </div>
+                                    <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory}>
+                                        <span className="material-symbols-outlined">history</span>
+                                    </button>
                                     <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
                                         <span className="material-symbols-outlined">add</span>
                                         Tạo báo mất
@@ -483,139 +556,4 @@ export default function LostCardLogPage({ showBackButton = false }) {
                             </div>
                         </>
                     )}
-                </section>
-
-                {editingCard && (
-                    <div className="lost-modal-overlay">
-                        <div className="lost-modal">
-                            <div className="lost-modal-header">
-                                <h2>Chỉnh sửa báo mất</h2>
-                            </div>
-
-                            <div className="lost-modal-body">
-                                <div className="lost-form-group">
-                                    <label>Mã thẻ</label>
-                                    <input
-                                        type="text"
-                                        value={editingCard.card_code || editingCard.cardNo || ''}
-                                        onChange={(e) => setEditingCard({ ...editingCard, card_code: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="lost-form-group">
-                                    <label>Biển số xe</label>
-                                    <input
-                                        type="text"
-                                        value={editingCard.plate_number || editingCard.plate || ''}
-                                        onChange={(e) => setEditingCard({ ...editingCard, plate_number: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="lost-form-group">
-                                    <label>Loại thẻ</label>
-                                    <select
-                                        value={editingCard.card_type || 'Thẻ lượt'}
-                                        onChange={(e) => setEditingCard({ ...editingCard, card_type: e.target.value })}
-                                    >
-                                        <option value="Thẻ tháng">Thẻ tháng</option>
-                                        <option value="Thẻ lượt">Thẻ lượt</option>
-                                        <option value="Thẻ vãng lai">Thẻ vãng lai</option>
-                                    </select>
-                                </div>
-
-                                <div className="lost-form-group">
-                                    <label>Trạng thái</label>
-                                    <select
-                                        value={editingCard.status || 'Chờ xử lý'}
-                                        onChange={(e) => setEditingCard({ ...editingCard, status: e.target.value })}
-                                    >
-                                        <option value="Chờ xử lý">Chờ xử lý</option>
-                                        <option value="Đang xử lý">Đang xử lý</option>
-                                        <option value="Đã xong">Đã xong</option>
-                                    </select>
-                                </div>
-
-                                <div className="lost-form-group">
-                                    <label>Người xử lý</label>
-                                    <input
-                                        type="text"
-                                        value={editingCard.handler_name || ''}
-                                        onChange={(e) => setEditingCard({ ...editingCard, handler_name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="lost-modal-actions">
-                                <button
-                                    type="button"
-                                    className="btn-cancel"
-                                    onClick={() => setEditingCard(null)}
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn-save"
-                                    onClick={handleUpdateLostCard}
-                                >
-                                    Lưu
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {showCreateModal && (
-                    <div className="lost-modal-overlay">
-                        <div className="lost-modal">
-
-                            <div className="lost-modal-header">
-                                <h2>Tạo báo mất mới</h2>
-                            </div>
-                            <div className="lost-modal-body">
-
-                                <div className="lost-form-group">
-                                    <label>Biển số xe</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Nhập biển số xe..."
-                                        value={newLostCard.plate_number}
-                                        onChange={(e) =>
-                                            setNewLostCard({
-                                                ...newLostCard,
-                                                plate_number: e.target.value
-                                            })
-                                        }
-                                    />
-                                </div>
-
-                                <div className="lost-form-group">
-                                    <label>Lí do</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Nhập lí do báo mất..."
-                                        value={newLostCard.description}
-                                        onChange={(e) =>
-                                            setNewLostCard({
-                                                ...newLostCard,
-                                                description: e.target.value
-                                            })
-                                        }
-                                    />
-                                </div>
-
-                            </div>
-
-                            <div className="lost-modal-actions">
-                                <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Hủy</button>
-
-                                <button type="button" className="btn-save" onClick={handleCreateLostCard}>Lưu</button>
-                            </div>
-
-                        </div>
-                    </div>
-                )}
-            </div>
-        </section>
-    );
-}
+                </section>\n    );\n}\n

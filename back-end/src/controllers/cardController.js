@@ -67,6 +67,7 @@ export const createCard = async (req, res) => {
         });
       }
     }
+
     const newCard = await cardService.createCard({
       type,
       startDate,
@@ -95,6 +96,22 @@ export const createLostCard = async (req, res) => {
     });
   } catch (error) {
     // Trả về thông báo lỗi HTTP 500 khi xử lý thất bại hoặc không tìm thấy thẻ/xe
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const updateCard = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await cardService.updateCard(id, req.body);
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
     return res.status(500).json({
       success: false,
       message: error.message

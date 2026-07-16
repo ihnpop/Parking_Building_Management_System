@@ -234,9 +234,8 @@ export async function fetchTodayIncidents() {
     }
 }
 
-// ─── 5. Doanh thu hôm nay ────────────────────────────────────────────────────
-// Nguồn: payment.amount where status = 'Đã thanh toán' and payment_time hôm nay
-export async function fetchTodayRevenue() {
+// ─── 5. Doanh thu hôm nay (Tổng cộng) ──────────────────────────────────────────
+export async function fetchTodayTotalRevenue() {
     try {
         const { data, error } = await supabase
             .from('payment')
@@ -247,14 +246,13 @@ export async function fetchTodayRevenue() {
         if (error) throw error;
         return (data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     } catch (err) {
-        console.error('[Dashboard] fetchTodayRevenue:', err.message);
+        console.error('[Dashboard] fetchTodayTotalRevenue:', err.message);
         return 0;
     }
 }
 
-// ─── 6. Doanh thu tháng ──────────────────────────────────────────────────────
-// Nguồn: payment.amount where status = 'Đã thanh toán' and payment_time tháng này
-export async function fetchMonthRevenue() {
+// ─── 6. Doanh thu tháng (Tổng cộng) ────────────────────────────────────────────
+export async function fetchMonthTotalRevenue() {
     try {
         const { data, error } = await supabase
             .from('payment')
@@ -265,8 +263,419 @@ export async function fetchMonthRevenue() {
         if (error) throw error;
         return (data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     } catch (err) {
-        console.error('[Dashboard] fetchMonthRevenue:', err.message);
+        console.error('[Dashboard] fetchMonthTotalRevenue:', err.message);
         return 0;
+    }
+}
+
+// Backward-compatible aliases
+export const fetchTodayRevenue = fetchTodayTotalRevenue;
+export const fetchMonthRevenue = fetchMonthTotalRevenue;
+
+// ─── 6a. Doanh thu hôm nay (Casual) ──────────────────────────────────────────
+export async function fetchTodayCasualRevenue() {
+    try {
+        const { data, error } = await supabase
+            .from('payment')
+            .select('amount')
+            .eq('status', 'Đã thanh toán')
+            .eq('payment_type', 'CASUAL')
+            .gte('payment_time', startOfToday())
+            .lte('payment_time', endOfToday());
+        if (error) throw error;
+        return (data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    } catch (err) {
+        console.error('[Dashboard] fetchTodayCasualRevenue:', err.message);
+        return 0;
+    }
+}
+
+// ─── 6b. Doanh thu tháng (Casual) ────────────────────────────────────────────
+export async function fetchMonthCasualRevenue() {
+    try {
+        const { data, error } = await supabase
+            .from('payment')
+            .select('amount')
+            .eq('status', 'Đã thanh toán')
+            .eq('payment_type', 'CASUAL')
+            .gte('payment_time', startOfCurrentMonth())
+            .lte('payment_time', endOfCurrentMonth());
+        if (error) throw error;
+        return (data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    } catch (err) {
+        console.error('[Dashboard] fetchMonthCasualRevenue:', err.message);
+        return 0;
+    }
+}
+
+// ─── 6c. Doanh thu hôm nay (Thẻ tháng - New + Renew) ──────────────────────────
+export async function fetchTodayMonthlyRevenue() {
+    try {
+        const { data, error } = await supabase
+            .from('payment')
+            .select('amount')
+            .eq('status', 'Đã thanh toán')
+            .in('payment_type', ['MONTHLY_NEW', 'MONTHLY_RENEW'])
+            .gte('payment_time', startOfToday())
+            .lte('payment_time', endOfToday());
+        if (error) throw error;
+        return (data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    } catch (err) {
+        console.error('[Dashboard] fetchTodayMonthlyRevenue:', err.message);
+        return 0;
+    }
+}
+
+// ─── 6d. Doanh thu tháng (Thẻ tháng - New + Renew) ────────────────────────────
+export async function fetchMonthMonthlyRevenue() {
+    try {
+        const { data, error } = await supabase
+            .from('payment')
+            .select('amount')
+            .eq('status', 'Đã thanh toán')
+            .in('payment_type', ['MONTHLY_NEW', 'MONTHLY_RENEW'])
+            .gte('payment_time', startOfCurrentMonth())
+            .lte('payment_time', endOfCurrentMonth());
+        if (error) throw error;
+        return (data ?? []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    } catch (err) {
+        console.error('[Dashboard] fetchMonthMonthlyRevenue:', err.message);
+        return 0;
+    }
+}
+
+// ─── 6e. Số lượng đăng ký mới thẻ tháng trong tháng ───────────────────────────
+export async function fetchMonthlyNewCount() {
+    try {
+        const { count, error } = await supabase
+            .from('payment')
+            .select('payment_id', { count: 'exact', head: true })
+            .eq('status', 'Đã thanh toán')
+            .eq('payment_type', 'MONTHLY_NEW')
+            .gte('payment_time', startOfCurrentMonth())
+            .lte('payment_time', endOfCurrentMonth());
+        if (error) throw error;
+        return count ?? 0;
+    } catch (err) {
+        console.error('[Dashboard] fetchMonthlyNewCount:', err.message);
+        return 0;
+    }
+}
+
+// ─── 6f. Số lượng gia hạn thẻ tháng trong tháng ────────────────────────────────
+export async function fetchMonthlyRenewCount() {
+    try {
+        const { count, error } = await supabase
+            .from('payment')
+            .select('payment_id', { count: 'exact', head: true })
+            .eq('status', 'Đã thanh toán')
+            .eq('payment_type', 'MONTHLY_RENEW')
+            .gte('payment_time', startOfCurrentMonth())
+            .lte('payment_time', endOfCurrentMonth());
+        if (error) throw error;
+        return count ?? 0;
+    } catch (err) {
+        console.error('[Dashboard] fetchMonthlyRenewCount:', err.message);
+        return 0;
+    }
+}
+
+// ─── Helpers phân loại xe cho Detail Modal ──────────────────────────────────────
+function isCar(typeName) {
+    if (!typeName) return false;
+    const name = typeName.toLowerCase();
+    return name.includes('ô tô') || name.includes('o to') || name.includes('car') || name.includes('4 bánh') || name.includes('4 chỗ') || name.includes('7 chỗ') || name.includes('bán tải');
+}
+
+function isMotorbike(typeName) {
+    if (!typeName) return false;
+    const name = typeName.toLowerCase();
+    return name.includes('máy') || name.includes('may') || name.includes('moped') || name.includes('motorbike') || name.includes('2 bánh') || name.includes('môtô') || name.includes('moto');
+}
+
+// ─── 6g. Chi tiết doanh thu hôm nay (Breakdown Modal) ──────────────────────────
+export async function fetchTodayRevenueDetails() {
+    try {
+        const start = startOfToday();
+        const end = endOfToday();
+
+        const { data: payments, error } = await supabase
+            .from('payment')
+            .select('payment_id, amount, payment_type, session_id, parking_order_id, vehicle_package_id, status')
+            .eq('status', 'Đã thanh toán')
+            .gte('payment_time', start)
+            .lte('payment_time', end);
+
+        if (error) throw error;
+
+        const totalCardRevenue = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        console.log('[Dashboard Check] Today Card Total vs Detail Total:', totalCardRevenue);
+
+        const result = {
+            total: totalCardRevenue,
+            casual: { total: 0, items: {} },
+            monthlyNew: { total: 0, items: {} },
+            renewals: { total: 0, items: {} }
+        };
+
+        const sessionIds = [...new Set((payments || []).map(p => p.session_id).filter(Boolean))];
+        const orderIds = [...new Set((payments || []).map(p => p.parking_order_id).filter(Boolean))];
+        const vpIds = [...new Set((payments || []).map(p => p.vehicle_package_id).filter(Boolean))];
+
+        const sessionMap = {};
+        const orderMap = {};
+        const vpMap = {};
+
+        if (sessionIds.length > 0) {
+            try {
+                const { data: sData } = await supabase.from('parking_sessions').select('session_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))').in('session_id', sessionIds);
+                (sData || []).forEach(s => { sessionMap[s.session_id] = s.vehicle?.vehicle_type?.type_name || null; });
+            } catch (e) { console.warn('[Dashboard] session enrich err:', e); }
+        }
+        if (orderIds.length > 0) {
+            try {
+                const { data: oData } = await supabase.from('parking_order').select('parking_order_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))').in('parking_order_id', orderIds);
+                (oData || []).forEach(o => { orderMap[o.parking_order_id] = o.vehicle?.vehicle_type?.type_name || null; });
+            } catch (e) { console.warn('[Dashboard] order enrich err:', e); }
+        }
+        if (vpIds.length > 0) {
+            try {
+                const { data: vpData } = await supabase.from('vehicle_package').select('vehicle_package_id, package:package_id(package_name, duration_month, vehicle_type:vehicle_type_id(type_name)), vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))').in('vehicle_package_id', vpIds);
+                (vpData || []).forEach(vp => {
+                    const vType = vp.package?.vehicle_type?.type_name || vp.vehicle?.vehicle_type?.type_name || null;
+                    const pName = vp.package?.package_name || (vp.package?.duration_month ? `Gói ${vp.package.duration_month} tháng` : 'Gói thẻ tháng');
+                    vpMap[vp.vehicle_package_id] = { vehicleType: vType, packageName: pName };
+                });
+            } catch (e) { console.warn('[Dashboard] vp enrich err:', e); }
+        }
+
+        (payments || []).forEach(p => {
+            const amt = Number(p.amount) || 0;
+            const pType = p.payment_type || 'CASUAL';
+
+            if (pType === 'CASUAL') {
+                result.casual.total += amt;
+                let rawType = sessionMap[p.session_id] || orderMap[p.parking_order_id] || '';
+                let vTypeLabel = 'Chưa phân loại';
+                if (isCar(rawType)) vTypeLabel = 'Ô tô';
+                else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
+                else if (rawType) vTypeLabel = rawType;
+
+                if (!result.casual.items[vTypeLabel]) {
+                    result.casual.items[vTypeLabel] = { vehicleType: vTypeLabel, count: 0, revenue: 0 };
+                }
+                result.casual.items[vTypeLabel].count += 1;
+                result.casual.items[vTypeLabel].revenue += amt;
+
+            } else if (pType === 'MONTHLY_NEW') {
+                result.monthlyNew.total += amt;
+                const info = vpMap[p.vehicle_package_id];
+                let rawType = info?.vehicleType || '';
+                let vTypeLabel = 'Chưa phân loại';
+                if (isCar(rawType)) vTypeLabel = 'Ô tô';
+                else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
+                else if (rawType) vTypeLabel = rawType;
+
+                const pName = info?.packageName || 'Gói thẻ tháng';
+                const key = `${vTypeLabel}_${pName}`;
+
+                if (!result.monthlyNew.items[key]) {
+                    result.monthlyNew.items[key] = { vehicleType: vTypeLabel, packageName: pName, count: 0, revenue: 0 };
+                }
+                result.monthlyNew.items[key].count += 1;
+                result.monthlyNew.items[key].revenue += amt;
+
+            } else if (pType === 'MONTHLY_RENEW') {
+                result.renewals.total += amt;
+                const info = vpMap[p.vehicle_package_id];
+                let rawType = info?.vehicleType || '';
+                let vTypeLabel = 'Chưa phân loại';
+                if (isCar(rawType)) vTypeLabel = 'Ô tô';
+                else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
+                else if (rawType) vTypeLabel = rawType;
+
+                const pName = info?.packageName || 'Gia hạn gói thẻ tháng';
+                const key = `${vTypeLabel}_${pName}`;
+
+                if (!result.renewals.items[key]) {
+                    result.renewals.items[key] = { vehicleType: vTypeLabel, packageName: pName, count: 0, revenue: 0 };
+                }
+                result.renewals.items[key].count += 1;
+                result.renewals.items[key].revenue += amt;
+            }
+        });
+
+        return {
+            total: result.total,
+            casual: {
+                total: result.casual.total,
+                items: Object.values(result.casual.items)
+            },
+            monthlyNew: {
+                total: result.monthlyNew.total,
+                items: Object.values(result.monthlyNew.items)
+            },
+            renewals: {
+                total: result.renewals.total,
+                items: Object.values(result.renewals.items)
+            }
+        };
+    } catch (err) {
+        console.error('[Dashboard] fetchTodayRevenueDetails error:', err);
+        return { total: 0, casual: { total: 0, items: [] }, monthlyNew: { total: 0, items: [] }, renewals: { total: 0, items: [] } };
+    }
+}
+
+// ─── 6h. Chi tiết doanh thu tháng theo tuần (Breakdown Modal) ───────────────────
+export async function fetchMonthlyRevenueDetails() {
+    try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+
+        const lastDayObj = new Date(year, month + 1, 0);
+        const totalDays = lastDayObj.getDate();
+        const monthStr = month + 1 < 10 ? '0' + (month + 1) : month + 1;
+
+        const weeksConfig = [
+            { id: 'week1', label: `Tuần 1 (01/${monthStr} - 07/${monthStr})`, startDay: 1, endDay: 7 },
+            { id: 'week2', label: `Tuần 2 (08/${monthStr} - 14/${monthStr})`, startDay: 8, endDay: 14 },
+            { id: 'week3', label: `Tuần 3 (15/${monthStr} - 21/${monthStr})`, startDay: 15, endDay: 21 },
+            { id: 'week4', label: `Tuần 4 (22/${monthStr} - 28/${monthStr})`, startDay: 22, endDay: 28 },
+        ];
+
+        if (totalDays > 28) {
+            weeksConfig.push({
+                id: 'week5',
+                label: `Tuần 5 (29/${monthStr} - ${totalDays < 10 ? '0' + totalDays : totalDays}/${monthStr})`,
+                startDay: 29,
+                endDay: totalDays
+            });
+        }
+
+        const monthStartIso = startOfCurrentMonth();
+        const monthEndIso = endOfCurrentMonth();
+
+        const { data: payments, error } = await supabase
+            .from('payment')
+            .select('payment_id, amount, payment_type, payment_time, session_id, parking_order_id, vehicle_package_id, status')
+            .eq('status', 'Đã thanh toán')
+            .gte('payment_time', monthStartIso)
+            .lte('payment_time', monthEndIso);
+
+        if (error) throw error;
+
+        const monthTotal = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        console.log('[Dashboard Check] Month Card Total vs Detail Total:', monthTotal);
+
+        const sessionIds = [...new Set((payments || []).map(p => p.session_id).filter(Boolean))];
+        const orderIds = [...new Set((payments || []).map(p => p.parking_order_id).filter(Boolean))];
+        const vpIds = [...new Set((payments || []).map(p => p.vehicle_package_id).filter(Boolean))];
+
+        const sessionMap = {};
+        const orderMap = {};
+        const vpMap = {};
+
+        if (sessionIds.length > 0) {
+            try {
+                const { data: sData } = await supabase.from('parking_sessions').select('session_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))').in('session_id', sessionIds);
+                (sData || []).forEach(s => { sessionMap[s.session_id] = s.vehicle?.vehicle_type?.type_name || null; });
+            } catch (e) { console.warn(e); }
+        }
+        if (orderIds.length > 0) {
+            try {
+                const { data: oData } = await supabase.from('parking_order').select('parking_order_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))').in('parking_order_id', orderIds);
+                (oData || []).forEach(o => { orderMap[o.parking_order_id] = o.vehicle?.vehicle_type?.type_name || null; });
+            } catch (e) { console.warn(e); }
+        }
+        if (vpIds.length > 0) {
+            try {
+                const { data: vpData } = await supabase.from('vehicle_package').select('vehicle_package_id, package:package_id(package_name, duration_month, vehicle_type:vehicle_type_id(type_name)), vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))').in('vehicle_package_id', vpIds);
+                (vpData || []).forEach(vp => {
+                    const vType = vp.package?.vehicle_type?.type_name || vp.vehicle?.vehicle_type?.type_name || null;
+                    const pName = vp.package?.package_name || (vp.package?.duration_month ? `Gói ${vp.package.duration_month} tháng` : 'Gói thẻ tháng');
+                    vpMap[vp.vehicle_package_id] = { vehicleType: vType, packageName: pName };
+                });
+            } catch (e) { console.warn(e); }
+        }
+
+        const weeksResult = {};
+        weeksConfig.forEach(w => {
+            weeksResult[w.id] = {
+                id: w.id,
+                label: w.label,
+                totalRevenue: 0,
+                casual: {},
+                monthlyNew: {},
+                renewals: {}
+            };
+        });
+
+        (payments || []).forEach(p => {
+            const pDate = new Date(p.payment_time);
+            const dayOfMonth = pDate.getDate();
+            const amt = Number(p.amount) || 0;
+
+            const week = weeksConfig.find(w => dayOfMonth >= w.startDay && dayOfMonth <= w.endDay);
+            if (!week) return;
+
+            const targetWeek = weeksResult[week.id];
+            targetWeek.totalRevenue += amt;
+
+            const pType = p.payment_type || 'CASUAL';
+
+            if (pType === 'CASUAL') {
+                let rawType = sessionMap[p.session_id] || orderMap[p.parking_order_id] || '';
+                let vTypeLabel = 'Chưa phân loại';
+                if (isCar(rawType)) vTypeLabel = 'Ô tô';
+                else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
+                else if (rawType) vTypeLabel = rawType;
+
+                targetWeek.casual[vTypeLabel] = (targetWeek.casual[vTypeLabel] || 0) + amt;
+
+            } else if (pType === 'MONTHLY_NEW') {
+                const info = vpMap[p.vehicle_package_id];
+                let rawType = info?.vehicleType || '';
+                let vTypeLabel = 'Chưa phân loại';
+                if (isCar(rawType)) vTypeLabel = 'Ô tô';
+                else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
+                else if (rawType) vTypeLabel = rawType;
+
+                const pName = info?.packageName || 'Gói thẻ tháng';
+                const key = `${vTypeLabel}_${pName}`;
+
+                if (!targetWeek.monthlyNew[key]) {
+                    targetWeek.monthlyNew[key] = { vehicleType: vTypeLabel, packageName: pName, count: 0, revenue: 0 };
+                }
+                targetWeek.monthlyNew[key].count += 1;
+                targetWeek.monthlyNew[key].revenue += amt;
+
+            } else if (pType === 'MONTHLY_RENEW') {
+                const info = vpMap[p.vehicle_package_id];
+                let rawType = info?.vehicleType || '';
+                let vTypeLabel = 'Chưa phân loại';
+                if (isCar(rawType)) vTypeLabel = 'Ô tô';
+                else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
+                else if (rawType) vTypeLabel = rawType;
+
+                const pName = info?.packageName || 'Gia hạn gói thẻ tháng';
+                const key = `${vTypeLabel}_${pName}`;
+
+                if (!targetWeek.renewals[key]) {
+                    targetWeek.renewals[key] = { vehicleType: vTypeLabel, packageName: pName, count: 0, revenue: 0 };
+                }
+                targetWeek.renewals[key].count += 1;
+                targetWeek.renewals[key].revenue += amt;
+            }
+        });
+
+        return {
+            monthTotal,
+            weeks: weeksResult
+        };
+    } catch (err) {
+        console.error('[Dashboard] fetchMonthlyRevenueDetails error:', err);
+        return { monthTotal: 0, weeks: {} };
     }
 }
 
@@ -701,6 +1110,14 @@ export async function fetchAllDashboardData() {
         recentEntries,
         recentExits,
         recentIncidents,
+        todayTotalRevenue,
+        monthTotalRevenue,
+        todayCasualRevenue,
+        monthCasualRevenue,
+        todayMonthlyRevenue,
+        monthMonthlyRevenue,
+        monthlyNewCount,
+        monthlyRenewCount,
     ] = await Promise.all([
         fetchAvailableSlots(),
         fetchOccupiedSlots(activeSessions), // truyền activeSessions làm fallback
@@ -713,6 +1130,14 @@ export async function fetchAllDashboardData() {
         fetchRecentEntries(),
         fetchRecentExits(),
         fetchRecentIncidents(),
+        fetchTodayTotalRevenue(),
+        fetchMonthTotalRevenue(),
+        fetchTodayCasualRevenue(),
+        fetchMonthCasualRevenue(),
+        fetchTodayMonthlyRevenue(),
+        fetchMonthMonthlyRevenue(),
+        fetchMonthlyNewCount(),
+        fetchMonthlyRenewCount(),
     ]);
 
     return {
@@ -728,5 +1153,13 @@ export async function fetchAllDashboardData() {
         recentEntries,
         recentExits,
         recentIncidents,
+        todayTotalRevenue,
+        monthTotalRevenue,
+        todayCasualRevenue,
+        monthCasualRevenue,
+        todayMonthlyRevenue,
+        monthMonthlyRevenue,
+        monthlyNewCount,
+        monthlyRenewCount,
     };
 }

@@ -57,10 +57,11 @@ export default function MonthCardLogPage() {
         }
     };
 
-    const totalTransactions = logs.length;
-    const renewals = logs.filter(log => log.type === 'Gia hạn' && log.status === 'Thành công').length;
-    const newRegistrations = logs.filter(log => log.type === 'Cấp mới' && log.status === 'Thành công').length;
-    const failedCount = logs.filter(log => log.status === 'Thất bại').length;
+    const totalTransactions = allLogs.length;
+    const renewals = allLogs.filter(log => log.type === 'Gia hạn' && log.status === 'Thành công').length;
+    const newRegistrations = allLogs.filter(log => log.type === 'Cấp mới' && log.status === 'Thành công').length;
+    const pendingCount = allLogs.filter(log => log.status === 'Đang xử lý').length;
+    const failedCount = allLogs.filter(log => log.status === 'Thất bại').length;
 
     return (
         <div className="lost-card-log-wrapper">           {/* ĐÃ XÓA KHỐI HEADER VÀ PROFILE LẶP LẠI TẠI ĐÂY */}

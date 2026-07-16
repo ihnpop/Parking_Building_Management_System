@@ -99,4 +99,11 @@ router.post("/create", monthCardController.createMonthCard);
  */
 router.delete("/:id", monthCardController.deleteMonthCard);
 
+/**
+ * GET /api/month-card/:id/contract
+ * Tải hợp đồng PDF của thẻ tháng
+ */
+router.get("/:id/contract", monthCardController.getContractPdf);
+
 export default router;
+

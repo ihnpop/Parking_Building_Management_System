@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API = axios.create({
     // baseURL: "http://localhost:3636/api"     //sửa chỗ này
-    baseURL: import.meta.env.VITE_API_URL
+    baseURL: `${import.meta.env.VITE_API_URL}/month-card`
 })
 
 // Helper để lấy token xác thực từ localStorage
@@ -50,7 +50,7 @@ export const monthCardApi = {
     verifyEkyc: async (frontBase64, backBase64) => {
         const token = localStorage.getItem('supabase_token'); // Hoặc lấy từ AuthContext
         const response = await axios.post(
-            `${API}/verify-ekyc`,
+            `${import.meta.env.VITE_API_URL}/month-card/verify-document`,
             {
                 img_front_base64: frontBase64,
                 img_back_base64: backBase64

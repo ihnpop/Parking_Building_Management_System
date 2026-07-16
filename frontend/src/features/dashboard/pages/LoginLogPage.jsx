@@ -225,9 +225,9 @@ export default function LoginLogPage() {
                 <div className="filter-block">
                     <label className="filter-label">VAI TRÒ (ROLE)</label>
                     <div className="filter-input-wrapper">
-                        <select 
+                        <select
                             className="filter-select"
-                            value={roleFilter} 
+                            value={roleFilter}
                             onChange={(e) => setRoleFilter(e.target.value)}
                         >
                             <option value="Tất cả vai trò">Tất cả vai trò</option>

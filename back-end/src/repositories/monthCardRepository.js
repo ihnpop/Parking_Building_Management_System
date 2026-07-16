@@ -13,6 +13,7 @@ export const findRegistrationWithCard = async (registrationId) => {
       status,
       created_at,
       card_id,
+      vehicle_id,
       vehicle (
         plate_number,
         customer (

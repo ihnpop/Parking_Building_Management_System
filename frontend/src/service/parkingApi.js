@@ -106,6 +106,8 @@ export const simulateOcrFile = async (file) => {
   return response.data;
 };
 
+
+
 /**
  * Kiểm tra xe vào (Entry Pre-check)
  * @param {string} plateNumber 

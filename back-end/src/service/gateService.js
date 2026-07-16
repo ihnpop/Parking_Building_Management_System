@@ -624,6 +624,35 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     // Trả trạng thái thẻ về AVAILABLE
     await cardRepository.updateStatus(card.card_id, 'Đang chờ');
 
+    // Chèn thông tin payment cho xe vãng lai (CASUAL)
+    try {
+      const { data: existingPayment } = await supabase
+        .from('payment')
+        .select('payment_id')
+        .eq('session_id', activeSession.session_id)
+        .eq('payment_type', 'CASUAL')
+        .maybeSingle();
+
+      if (!existingPayment) {
+        const { error: paymentErr } = await supabase
+          .from('payment')
+          .insert({
+            session_id: activeSession.session_id,
+            amount: fee,
+            payment_method: 'Cash',
+            status: 'Đã thanh toán',
+            payment_time: exitTime.toISOString(),
+            payment_type: 'CASUAL',
+            created_by: staffId || null
+          });
+        if (paymentErr) {
+          console.error("Lỗi insert payment checkout thẻ lượt:", paymentErr.message);
+        }
+      }
+    } catch (paymentEx) {
+      console.error("Lỗi ngoại lệ khi insert payment checkout thẻ lượt:", paymentEx);
+    }
+
   } else if (plateNumber) {
     // --- LƯỢT XE THÁNG (MONTHLY CHECK-OUT) ---
     const cleanPlate = plateNumber.trim().toUpperCase();

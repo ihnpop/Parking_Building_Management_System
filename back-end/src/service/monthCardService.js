@@ -88,6 +88,87 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   // 6. Cập nhật hạn dùng của thẻ tháng (cập nhật table card.expired_date)
   await monthCardRepository.updateCardExpirationDate(card.card_id, newExpiryDateStr);
 
+  // 6.5. Cập nhật hoặc thêm mới vehicle_package cho xe tháng khi gia hạn
+  let vehiclePackageId = null;
+  try {
+    const { data: existingVp, error: vpFindErr } = await supabase
+      .from('vehicle_package')
+      .select('vehicle_package_id')
+      .eq('vehicle_id', registration.vehicle_id)
+      .order('end_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingVp) {
+      const { data: updatedVp, error: vpUpdateErr } = await supabase
+        .from('vehicle_package')
+        .update({
+          end_date: newExpiryDateStr,
+          status: 'ACTIVE'
+        })
+        .eq('vehicle_package_id', existingVp.vehicle_package_id)
+        .select()
+        .single();
+      if (vpUpdateErr) {
+        console.error("Lỗi cập nhật vehicle_package khi gia hạn:", vpUpdateErr.message);
+      } else {
+        vehiclePackageId = updatedVp.vehicle_package_id;
+      }
+    } else {
+      const { data: newVp, error: vpInsertErr } = await supabase
+        .from('vehicle_package')
+        .insert({
+          vehicle_id: registration.vehicle_id,
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: newExpiryDateStr,
+          status: 'ACTIVE'
+        })
+        .select()
+        .single();
+      if (vpInsertErr) {
+        console.error("Lỗi insert vehicle_package khi gia hạn:", vpInsertErr.message);
+      } else {
+        vehiclePackageId = newVp.vehicle_package_id;
+      }
+    }
+  } catch (vpEx) {
+    console.error("Exception handling vehicle_package on renew:", vpEx);
+  }
+
+  // 6.6. Tạo payment record (MONTHLY_RENEW)
+  if (vehiclePackageId) {
+    try {
+      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+      const { data: dupPayment } = await supabase
+        .from('payment')
+        .select('payment_id')
+        .eq('vehicle_package_id', vehiclePackageId)
+        .eq('payment_type', 'MONTHLY_RENEW')
+        .eq('amount', pkg.price)
+        .gte('payment_time', oneMinuteAgo)
+        .maybeSingle();
+
+      if (!dupPayment) {
+        const { error: paymentErr } = await supabase
+          .from('payment')
+          .insert({
+            vehicle_package_id: vehiclePackageId,
+            amount: pkg.price,
+            payment_method: 'Cash',
+            status: 'Đã thanh toán',
+            payment_time: new Date().toISOString(),
+            payment_type: 'MONTHLY_RENEW',
+            created_by: currentUserId || null
+          });
+        if (paymentErr) {
+          console.error("Lỗi insert payment khi gia hạn:", paymentErr.message);
+        }
+      }
+    } catch (payEx) {
+      console.error("Exception insert payment on renew:", payEx);
+    }
+  }
+
   // 7. Ghi hoạt động thẻ (insert table card_activity_logs)
   const oldDataLog = {
     expired_date: currentExpiryStr || null
@@ -281,6 +362,90 @@ export const createMonthCard = async ({
     status: "Hoạt động"
   });
 
+  // 8.5. Tìm package và tạo vehicle_package
+  let packageId = null;
+  let price = 0;
+  try {
+    const duration = Number(durationMonths) || 1;
+    const { data: matchedPkg } = await supabase
+      .from('package')
+      .select('package_id, price')
+      .eq('vehicle_type_id', vehicleTypeId)
+      .eq('duration_month', duration)
+      .eq('status', 'Hoạt động')
+      .limit(1)
+      .maybeSingle();
+
+    if (matchedPkg) {
+      packageId = matchedPkg.package_id;
+      price = Number(matchedPkg.price) || 0;
+    } else {
+      const fallbackPkg = RENEW_PACKAGES.find(p => p.months === duration);
+      price = fallbackPkg ? fallbackPkg.price : (duration * 300000);
+    }
+  } catch (pkgErr) {
+    console.error("Error finding package for new card:", pkgErr);
+    const duration = Number(durationMonths) || 1;
+    const fallbackPkg = RENEW_PACKAGES.find(p => p.months === duration);
+    price = fallbackPkg ? fallbackPkg.price : (duration * 300000);
+  }
+
+  let vehiclePackageId = null;
+  try {
+    const { data: newVp, error: vpInsertErr } = await supabase
+      .from('vehicle_package')
+      .insert({
+        vehicle_id: vehicle.vehicle_id,
+        package_id: packageId,
+        start_date: start.toISOString().split('T')[0],
+        end_date: expiredDateStr,
+        status: 'ACTIVE'
+      })
+      .select()
+      .single();
+
+    if (vpInsertErr) {
+      console.error("Lỗi insert vehicle_package khi tạo thẻ tháng:", vpInsertErr.message);
+    } else {
+      vehiclePackageId = newVp.vehicle_package_id;
+    }
+  } catch (vpEx) {
+    console.error("Exception insert vehicle_package:", vpEx);
+  }
+
+  // 8.6. Tạo payment record (MONTHLY_NEW)
+  if (vehiclePackageId) {
+    try {
+      const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+      const { data: dupPayment } = await supabase
+        .from('payment')
+        .select('payment_id')
+        .eq('vehicle_package_id', vehiclePackageId)
+        .eq('payment_type', 'MONTHLY_NEW')
+        .gte('payment_time', oneMinuteAgo)
+        .maybeSingle();
+
+      if (!dupPayment) {
+        const { error: paymentErr } = await supabase
+          .from('payment')
+          .insert({
+            vehicle_package_id: vehiclePackageId,
+            amount: price,
+            payment_method: 'Cash',
+            status: 'Đã thanh toán',
+            payment_time: new Date().toISOString(),
+            payment_type: 'MONTHLY_NEW',
+            created_by: currentUserId || null
+          });
+        if (paymentErr) {
+          console.error("Lỗi insert payment khi tạo thẻ tháng:", paymentErr.message);
+        }
+      }
+    } catch (payEx) {
+      console.error("Exception insert payment:", payEx);
+    }
+  }
+
   // 9. Ghi log hoạt động
   await monthCardRepository.createActivityLog({
     cardId: card.card_id,
@@ -289,7 +454,7 @@ export const createMonthCard = async ({
     plateNumber: cleanPlate,
     customerName: fullName.trim(),
     durationMonths: Number(durationMonths),
-    amount: null,
+    amount: price,
     expiredDateBefore: null,
     expiredDateAfter: expiredDateStr,
     oldData: null,
@@ -297,7 +462,8 @@ export const createMonthCard = async ({
       code,
       plate: cleanPlate,
       expired_date: expiredDateStr,
-      months: Number(durationMonths)
+      months: Number(durationMonths),
+      price
     },
     note: note || "Tạo thẻ tháng mới",
     performedBy: currentUserId || null
@@ -790,4 +956,140 @@ export const getNextMonthCode = async () => {
   // Tự sinh mã mới
   const nextCode = await monthCardRepository.generateNextMonthCode();
   return { code: nextCode };
+};
+/**
+ * Lấy chi tiết thông tin thẻ tháng để tạo hợp đồng
+ * @param {string} cardId 
+ * @returns {Promise<object>}
+ */
+export const getCardDetailsForContract = async (cardId) => {
+  const { data: card, error } = await supabase
+    .from("card")
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        registration_id,
+        status,
+        created_at,
+        vehicle (
+          vehicle_id,
+          plate_number,
+          brand,
+          color,
+          customer (
+            customer_id,
+            full_name,
+            phone,
+            email
+          ),
+          vehicle_type (
+            vehicle_type_id,
+            name
+          ),
+          vehicle_package (
+            vehicle_package_id,
+            start_date,
+            end_date,
+            status,
+            package_id
+          )
+        )
+      )
+    `)
+    .eq("card_id", cardId)
+    .single();
+
+  if (error) throw new Error(error.message);
+  if (!card) throw new Error("Không tìm thấy thông tin thẻ tháng");
+
+  const activeReg = card.card_registrations?.find(r => r.status === "Hoạt động") || card.card_registrations?.[0] || null;
+  const vehicle = activeReg?.vehicle || null;
+  const customer = vehicle?.customer || null;
+  
+  // Lấy cccd_number từ customer_kyc
+  let cccdNumber = "---";
+  if (customer?.customer_id) {
+    const { data: kycData } = await supabase
+      .from('customer_kyc')
+      .select('cccd_number')
+      .eq('customer_id', customer.customer_id)
+      .maybeSingle();
+    if (kycData?.cccd_number) {
+      cccdNumber = kycData.cccd_number;
+    }
+  }
+
+  // Lấy vehicle_package mới nhất (end_date lớn nhất)
+  let latestPackage = null;
+  if (vehicle?.vehicle_package && vehicle.vehicle_package.length > 0) {
+    latestPackage = [...vehicle.vehicle_package].sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+  }
+
+  // Truy vấn chi tiết package nếu có package_id
+  let packageInfo = null;
+  if (latestPackage?.package_id) {
+    const { data: pkg } = await supabase
+      .from('package')
+      .select('name, price, duration_month')
+      .eq('package_id', latestPackage.package_id)
+      .maybeSingle();
+    if (pkg) {
+      packageInfo = pkg;
+    }
+  }
+
+  // Truy vấn thông tin payment liên kết với vehicle_package
+  let paymentInfo = null;
+  if (latestPackage?.vehicle_package_id) {
+    const { data: pay } = await supabase
+      .from('payment')
+      .select('amount, payment_method, status, payment_time')
+      .eq('vehicle_package_id', latestPackage.vehicle_package_id)
+      .order('payment_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pay) {
+      paymentInfo = pay;
+    }
+  }
+
+  return {
+    card_id: card.card_id,
+    card_code: card.code,
+    status: card.status,
+    created_at: card.created_at,
+    expired_date: card.expired_date,
+    customer: customer ? {
+      customer_id: customer.customer_id,
+      full_name: customer.full_name,
+      phone: customer.phone,
+      email: customer.email,
+      cccd_number: cccdNumber
+    } : null,
+    vehicle: vehicle ? {
+      vehicle_id: vehicle.vehicle_id,
+      plate_number: vehicle.plate_number,
+      brand: vehicle.brand,
+      color: vehicle.color,
+      type_name: vehicle.vehicle_type?.name || "",
+    } : null,
+    package: latestPackage ? {
+      start_date: latestPackage.start_date,
+      end_date: latestPackage.end_date,
+      name: packageInfo?.name || `Gói cước tháng ${vehicle?.vehicle_type?.name || "xe máy/ô tô"}`,
+      price: packageInfo?.price || paymentInfo?.amount || 300000,
+      duration_month: packageInfo?.duration_month || 1
+    } : null,
+    payment: paymentInfo ? {
+      amount: paymentInfo.amount,
+      payment_method: paymentInfo.payment_method,
+      status: paymentInfo.status,
+      payment_time: paymentInfo.payment_time
+    } : null
+  };
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API = 'http://localhost:3636/api';
+const API = import.meta.env.VITE_API_URL;
 
 export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [step, setStep] = useState(1);
@@ -53,8 +53,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     const token = localStorage.getItem('token');
                     const headers = { Authorization: `Bearer ${token}` };
                     const [resType, resPkg] = await Promise.all([
-                        axios.get(`${import.meta.env.VITE_API_URL}/month-card/vehicle-types`, { headers }),
-                        axios.get(`${import.meta.env.VITE_API_URL}/month-card/packages`, { headers })
+                        axios.get(`${API}/month-card/vehicle-types`, { headers }),
+                        axios.get(`${API}/month-card/packages`, { headers })
                     ]);
                     setVehicleTypes(Array.isArray(resType.data) ? resType.data : []);
                     setPackages(Array.isArray(resPkg.data) ? resPkg.data : []);
@@ -74,7 +74,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 setCodeLoading(true);
                 try {
                     const token = localStorage.getItem('token');
-                    const res = await axios.get(`${import.meta.env.VITE_API_URL}/month-card/next-code`, {
+                    const res = await axios.get(`${API}/month-card/next-code`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (res.data?.code) setFormData(prev => ({ ...prev, card_code: res.data.code }));
@@ -124,11 +124,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         if (!frontImg || !backImg) return;
         setVerifying(true); setVerifyResult(null); setError(null);
         try {
-            const frontBase64 = await convertToBase64(frontImg);
+            const frontBase64 = frontImg ? await convertToBase64(frontImg) : null;
             const backBase64 = backImg ? await convertToBase64(backImg) : null;
-
-            const token = localStorage.getItem('token');
-            const res = await axios.post(`${import.meta.env.VITE_API_URL}/month-card/verify-document`,
+            const res = await axios.post(`${API}/month-card/verify-document`,
                 { front_base64: frontBase64, back_base64: backBase64 },
                 { headers: authHeaders() }
             );
@@ -181,10 +179,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             if (!/^\d{2}[A-Z]\d{4,5}$/.test(rawPlate)) { setError('Biển số không đúng định dạng (vd: 30K-12345).'); return; }
             setLoading(true);
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.post(`${import.meta.env.VITE_API_URL}/month-card/check-plate`,
+                const res = await axios.post(`${API}/month-card/check-plate`,
                     { plate: formData.plate_number },
-                    { headers: { Authorization: `Bearer ${token}` } }
+                    { headers: authHeaders() }
                 );
                 if (res.data.allowed) setStep(3);
                 else setError(res.data.message || 'Biển số xe không được phép đăng ký.');
