@@ -21,6 +21,16 @@ const isValidVietnamesePhoneNumber = (phone) => {
 };
 
 /**
+ * Kiểm tra định dạng email cơ bản (local@domain.tld)
+ * @param {string} email
+ * @returns {boolean}
+ */
+const isValidEmail = (email) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+
+/**
  * Cộng thêm tháng vào ngày cụ thể một cách an toàn (tránh tràn ngày)
  * @param {Date} date 
  * @param {number} months 
@@ -463,6 +473,14 @@ export const updateMonthCard = async (cardId, payload) => {
     }
   }
 
+  // 0.1. Validate email (nếu có nhập)
+  let cleanEmail = email ? email.trim() : undefined;
+  if (cleanEmail) {
+    if (!isValidEmail(cleanEmail)) {
+      throw new Error("Email không hợp lệ. Vui lòng nhập đúng định dạng email (ví dụ: ten@domain.com).");
+    }
+  }
+
   // 1. Kiểm tra biển số duy nhất của các thẻ đang hoạt động (ngoại trừ thẻ hiện tại)
   let existingVehicle = null;
   if (cleanPlate) {
@@ -510,7 +528,7 @@ export const updateMonthCard = async (cardId, payload) => {
       await monthCardRepository.updateCustomer(customerId, {
         full_name: fullName,
         phone: cleanPhone || null,
-        email: email || null
+        email: cleanEmail || null
       });
     }
 
