@@ -6,12 +6,9 @@
 
 body {
   font-family: 'Inter', sans-serif;
-<<<<<<< HEAD
-<<<<<<< HEAD
   background: radial-gradient(circle at top left, rgba(255, 140, 0, 0.12), transparent 22%),
     linear-gradient(180deg, #fff6ef 0%, #fff4e6 100%);
   color: #241912;
-=======
 
   background: radial-gradient(circle at top left, rgba(255, 140, 0, 0.12), transparent 22%),
     linear-gradient(180deg, #fff6ef 0%, #fff4e6 100%);
@@ -2307,7 +2304,6 @@ body {
 
 /* ============================================================
    Responsive
-   ============================================================ */
 
 @media (max-width: 768px) {
   .single-card-page {
@@ -2419,7 +2415,6 @@ body {
 
 /* ============================================================
    Occupancy Chart Page - Centered Layout
-   ============================================================ */
 
 .occupancy-chart-page {
   min-height: 100vh;
@@ -2443,7 +2438,6 @@ body {
 
 /* ============================================================
    Lost Card Log Page
-   ============================================================ */
 
 .lost-card-log-page {
   width: 100%;
@@ -2998,7 +2992,6 @@ body {
 
 /* ============================================================
    Login Log Page
-   ============================================================ */
 
 .login-log-page {
   width: 100%;
@@ -3609,7 +3602,6 @@ body {
 
 /* ==========================================
    MONTH CARD LOG PAGE (Nhật ký vé tháng)
-   ========================================== */
 .month-log-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -4054,7 +4046,6 @@ body {
 
 /* ==========================================
    SYSTEM SETTINGS PAGE (Cài đặt hệ thống)
-   ========================================== */
 .settings-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -5242,7 +5233,6 @@ body {
 
 /* =============================================
    RESPONSIVE — Dashboard Layout
-   ============================================= */
 
 /* Tablet: ≤ 900px — thu về 2 cột card */
 @media (max-width: 900px) {
@@ -5620,7 +5610,6 @@ body {
 body {
   background: #f8fafc;
   color: #0f172a;
->>>>>>> RegistrationFunction
   overflow-x: hidden;
 }
 
@@ -7894,7 +7883,6 @@ body {
 
 /* ============================================================
    Responsive
-   ============================================================ */
 
 @media (max-width: 768px) {
   .single-card-page {
@@ -8006,7 +7994,6 @@ body {
 
 /* ============================================================
    Occupancy Chart Page - Centered Layout
-   ============================================================ */
 
 .occupancy-chart-page {
   min-height: 100vh;
@@ -8030,7 +8017,6 @@ body {
 
 /* ============================================================
    Lost Card Log Page
-   ============================================================ */
 
 .lost-card-log-page {
   width: 100%;
@@ -8582,7 +8568,6 @@ body {
 
 /* ============================================================
    Login Log Page
-   ============================================================ */
 
 .login-log-page {
   width: 100%;
@@ -9193,7 +9178,6 @@ body {
 
 /* ==========================================
    MONTH CARD LOG PAGE (Nhật ký vé tháng)
-   ========================================== */
 .month-log-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -9638,7 +9622,6 @@ body {
 
 /* ==========================================
    SYSTEM SETTINGS PAGE (Cài đặt hệ thống)
-   ========================================== */
 .settings-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -10815,7 +10798,6 @@ body {
 
 /* =============================================
    RESPONSIVE — Dashboard Layout
-   ============================================= */
 
 /* Tablet: ≤ 900px — thu về 2 cột card */
 @media (max-width: 900px) {
@@ -10863,16 +10845,13 @@ body {
   padding: 0;
 }
 
-<<<<<<< HEAD
 body {
   font-family: 'Inter', sans-serif;
   background: radial-gradient(circle at top left, rgba(255, 140, 0, 0.12), transparent 22%),
     linear-gradient(180deg, #fff6ef 0%, #fff4e6 100%);
   color: #241912;
-=======
   background: #f8fafc;
   color: #0f172a;
->>>>>>> Hieu
   overflow-x: hidden;
 }
 
@@ -12201,7 +12180,6 @@ body {
   overflow: hidden;
 }
 
-<<<<<<< HEAD
 /* Month Card Page */
 .month-card-page {
   width: 100%;
@@ -12209,11 +12187,9 @@ body {
   padding: 24px 30px;
   background: #f5f2ed;
   color: #241912;
-=======
 /* ============================================================
    MonthCardPage (mc-*) â€” Material Design 3 style
    DÃ¹ng riÃªng cho trang Quáº£n lÃ½ Tháº» thÃ¡ng
-   ============================================================ */
 .mc-page {
   width: 100%;
   display: flex;
@@ -12232,7 +12208,6 @@ body {
 .mc-stats-row {
   display: flex;
   gap: 24px;
->>>>>>> Hieu
 }
 
 .month-header {
@@ -12248,8 +12223,6 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-<<<<<<< HEAD
-=======
   padding: 10px 18px;
   border-radius: 8px;
   font-size: 14px;
@@ -12537,7 +12510,6 @@ body {
 /* ============================================================
    CardPage (cp-*) â€” Warm Orange style
    DÃ¹ng riÃªng cho trang Quáº£n lÃ½ Tháº» (Tháº» lÆ°á»£t)
-   ============================================================ */
 
 .cp-page {
   width: 100%;
@@ -13139,7 +13111,6 @@ body {
 
 .cp-input,
 .cp-select {
->>>>>>> Hieu
   padding: 10px 14px;
   border-radius: 9999px;
   border: 1px solid #cbd5e1;
@@ -13168,7 +13139,6 @@ body {
   gap: 12px;
 }
 
-<<<<<<< HEAD
 .month-user-badge {
   padding: 10px 20px;
   border-radius: 9999px;
@@ -13496,7 +13466,6 @@ body {
   background: #ff6b00;
   color: #ffffff;
   border: none;
-=======
 @keyframes cpModalFadeIn {
   from {
     opacity: 0;
@@ -13554,7 +13523,6 @@ body {
     gap: 12px;
     align-items: center;
   }
->>>>>>> Hieu
 }
 
 /* Single Card Page */
@@ -14007,7 +13975,6 @@ body {
 
 /* ============================================================
    Responsive
-   ============================================================ */
 
 @media (max-width: 768px) {
   .single-card-page {
@@ -14119,7 +14086,6 @@ body {
 
 /* ============================================================
    Occupancy Chart Page - Centered Layout
-   ============================================================ */
 
 .occupancy-chart-page {
   min-height: 100vh;
@@ -14143,7 +14109,6 @@ body {
 
 /* ============================================================
    Lost Card Log Page
-   ============================================================ */
 
 .lost-card-log-page {
   width: 100%;
@@ -14669,16 +14634,13 @@ body {
 }
 
 .lost-create-button {
-<<<<<<< HEAD
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
   background-color: #ea580c;
   /* bright orange button */
-=======
   background: #3b82f6;
->>>>>>> RegistrationFunction
   color: white;
   border: none;
   border-radius: 8px;
@@ -14707,7 +14669,6 @@ body {
 
 /* ============================================================
    Login Log Page
-   ============================================================ */
 
 .login-log-page {
   width: 100%;
@@ -15336,7 +15297,6 @@ body {
 
 /* ==========================================
    MONTH CARD LOG PAGE (Nhật ký vé tháng)
-   ========================================== */
 .month-log-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -15781,7 +15741,6 @@ body {
 
 /* ==========================================
    SYSTEM SETTINGS PAGE (Cài đặt hệ thống)
-   ========================================== */
 .settings-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -16958,7 +16917,6 @@ body {
 
 /* =============================================
    RESPONSIVE — Dashboard Layout
-   ============================================= */
 
 /* Tablet: ≤ 900px — thu về 2 cột card */
 @media (max-width: 900px) {
@@ -16995,9 +16953,7 @@ body {
 
   .card-grid,
   .card-grid.four {
-<<<<<<< HEAD
     /* 1 cột trên điện thoại */
-=======
     /* 1 cá»™t trÃªn Ä‘iá»‡n thoáº¡i */
     grid-template-columns: 1fr;
   }
@@ -19171,7 +19127,6 @@ body {
 
 /* ============================================================
    Responsive
-   ============================================================ */
 
 @media (max-width: 768px) {
   .single-card-page {
@@ -19283,7 +19238,6 @@ body {
 
 /* ============================================================
    Occupancy Chart Page - Centered Layout
-   ============================================================ */
 
 .occupancy-chart-page {
   min-height: 100vh;
@@ -19307,7 +19261,6 @@ body {
 
 /* ============================================================
    Lost Card Log Page
-   ============================================================ */
 
 .lost-card-log-page {
   width: 100%;
@@ -19862,7 +19815,6 @@ body {
 
 /* ============================================================
    Login Log Page
-   ============================================================ */
 
 .login-log-page {
   width: 100%;
@@ -20496,7 +20448,6 @@ body {
 
 /* ==========================================
    MONTH CARD LOG PAGE (Nháº­t kÃ½ vÃ© thÃ¡ng)
-   ========================================== */
 .month-log-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -20941,7 +20892,6 @@ body {
 
 /* ==========================================
    SYSTEM SETTINGS PAGE (CÃ i Ä‘áº·t há»‡ thá»‘ng)
-   ========================================== */
 .settings-page {
   padding: 38px 32px 60px;
   max-width: 100%;
@@ -22112,7 +22062,6 @@ body {
 
 /* =============================================
    RESPONSIVE â€” Dashboard Layout
-   ============================================= */
 
 /* Tablet: â‰¤ 900px â€” thu vá» 2 cá»™t card */
 @media (max-width: 900px) {
@@ -22150,14 +22099,12 @@ body {
   .card-grid,
   .card-grid.four {
     /* 1 cá»™t trÃªn Ä‘iá»‡n thoáº¡i */
->>>>>>> RegistrationFunction
     grid-template-columns: 1fr;
   }
 }
 
 /* =============================================
    REVENUE & TRAFFIC DETAIL PAGE (RTP)
-   ============================================= */
 
 .rtp-page {
   display: flex;
@@ -22866,7 +22813,6 @@ body {
 
 /* ============================================================
    Desktop Dashboard Page Custom Styles
-   ============================================================ */
 
 .dashboard-desktop {
   max-width: 1400px;
@@ -23524,11 +23470,8 @@ body {
 
 /* ============================================
    CARDPAGE - ACTION DROPDOWN MENU
-   ============================================ */
 
-<<<<<<< HEAD
 .cardpage-action-wrapper {
-=======
 /* Khung layout bá»c ngoÃ i cÃ¹ng: Cá»‘ Ä‘á»‹nh 100% chiá»u cao mÃ n hÃ¬nh, cháº·n cuá»™n body */
 .layout {
   display: flex;
@@ -23830,7 +23773,6 @@ body {
 
 /* ==========================================================================
    TINH CHá»ˆNH NÃšT ÄÄ‚NG XUáº¤T (CHá»® Äá»Ž - HOVER CHá»® TRáº®NG Ná»€N Äá»Ž) THEO YÃŠU Cáº¦U
-   ========================================================================== */
 .sidebar .logout {
   border: none !important;
   outline: none !important;
@@ -23858,7 +23800,6 @@ body {
 
 /* ==========================================================================
    CSS TRANG PHÃ‚N QUYá»€N - MENU BA CHáº¤M & MODAL Há»˜P THOáº I CHá»ˆNH Sá»¬A
-   ========================================================================== */
 
 /* NÃºt ba cháº¥m hoáº¡t Ä‘á»™ng */
 .user-action-dots-btn:hover {
@@ -24087,7 +24028,6 @@ body {
 
 /* ==========================================================================
    CSS Bá»” SUNG: THANH Lá»ŒC BUNG NGANG VÃ€ Sá»¬A Äá»”I FORM NHáº¬P TRONG MODAL
-   ========================================================================== */
 
 /* Khung bá»c hiá»‡u á»©ng co giÃ£n nÃºt báº¥m */
 .horizontal-role-buttons {
@@ -24144,11 +24084,9 @@ body {
 
 /* ==========================================================================
    CSS Bá»” SUNG: KHá»I Bá»˜ Lá»ŒC VAI TRÃ’ Xá»” XUá»NG THEO CHIá»€U Dá»ŒC ÄÃˆ LÃŠN Ná»˜I DUNG
-   ========================================================================== */
 
 /* Khung bá»c giá»¯ vá»‹ trÃ­ tÆ°Æ¡ng Ä‘á»‘i cá»§a Dropdown */
 .vertical-filter-dropdown-container {
->>>>>>> Hieu
   position: relative;
   display: inline-block;
 }
@@ -24237,7 +24175,6 @@ body {
 
 /* ============================================
    CARDPAGE - DELETE CONFIRMATION MODAL
-   ============================================ */
 
 .cardpage-modal-overlay {
   position: fixed;
@@ -24249,11 +24186,10 @@ body {
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-<<<<<<< HEAD
-=======
   box-sizing: border-box;
   /* Äáº£m báº£o padding khÃ´ng lÃ m vá»¡ giao diá»‡n */
->>>>>>> Hieu
+  box-sizing: border-box;
+  /* Äáº£m báº£o padding khÃ´ng lÃ m vá»¡ giao diá»‡n */
 }
 
 .cardpage-modal {
@@ -24272,10 +24208,8 @@ body {
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-<<<<<<< HEAD
 .cardpage-delete-modal {
   padding: 36px 32px 32px;
-=======
 .back-button:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
@@ -24341,7 +24275,6 @@ body {
 }
 
 .y-axis {
->>>>>>> Hieu
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -24395,7 +24328,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-<<<<<<< HEAD
   gap: 12px;
 }
 
@@ -24410,11 +24342,9 @@ body {
   font-size: 0.9rem;
   color: #0f172a;
   font-weight: 700;
-=======
   width: 60px;
   /* TÄƒng nháº¹ Ä‘á»ƒ sá»‘ % khÃ´ng bá»‹ Ä‘áº©y xuá»‘ng hÃ ng */
   padding-right: 12px;
->>>>>>> Hieu
   text-align: right;
   word-break: break-all;
 }
@@ -24433,12 +24363,10 @@ body {
   box-sizing: border-box;
 }
 
-<<<<<<< HEAD
 .cardpage-modal-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-=======
 .y-axis span {
   font-size: 0.85rem;
   color: #6b7280;
@@ -25120,15 +25048,12 @@ body {
 
 /* â”€â”€ Data table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .db-table {
->>>>>>> Hieu
   width: 100%;
   margin-top: 4px;
 }
 
-<<<<<<< HEAD
 /* Danger button variant */
 .cardpage-button.danger {
-=======
 .db-table th {
   font-size: 9px;
   text-transform: uppercase;
@@ -25258,7 +25183,6 @@ body {
 }
 
 .db-status-badge {
->>>>>>> Hieu
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -25267,11 +25191,9 @@ body {
   border: none;
 }
 
-<<<<<<< HEAD
 .cardpage-button.danger:hover {
   background: linear-gradient(135deg, #b91c1c, #991b1b);
   box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
-=======
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PREMIUM UI POLISH LAYER  Â·  Modern SaaS Â· Stripe / Linear / Vercel
    Pure CSS overrides â€” zero logic changes. Appended last = highest priority.
@@ -25556,7 +25478,6 @@ body {
   background: linear-gradient(90deg, #2563EB, #60A5FA);
   opacity: 0;
   transition: opacity 0.2s ease;
->>>>>>> Hieu
 }
 
 .cardpage-button.danger:disabled {
@@ -25566,14 +25487,11 @@ body {
   box-shadow: none;
 }
 
-<<<<<<< HEAD
 .cardpage-button.danger .material-symbols-outlined {
   font-size: 18px;
-=======
 .db-kpi:hover {
   transform: translateY(-3px) !important;
   box-shadow: 0 8px 24px rgba(15, 23, 42, .1), 0 2px 8px rgba(37, 99, 235, .06) !important;
->>>>>>> Hieu
 }
 
 /* cardpage-status badges */
@@ -25602,11 +25520,9 @@ body {
   color: #991b1b;
 }
 
-<<<<<<< HEAD
 .cardpage-status.locked .material-symbols-outlined {
   font-size: 10px;
   color: #dc2626;
-=======
 /* â”€â”€ 6. CHART GRID â€” Compact, clean â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .db-grid2 {
   gap: 14px !important;
@@ -27138,10 +27054,7 @@ body {
 
 .lost-create-button {
   background-color: #2563eb !important;
-<<<<<<< HEAD
   box-shadow: 0 4px 12px rgba(37, 99, 235, .25) !important;
-=======
->>>>>>> SystemOperation
   color: white;
   border: none;
   border-radius: 8px;
@@ -27639,7 +27552,6 @@ td {
    TASK: Toast Notification Styling
    Style the toast notification to float in the bottom-right corner of the screen
    with a red box for errors and a green box for success notifications.
-   ========================================================================= */
 
 /* Main toast container - positioned fixed at bottom-right corner */
 .custom-toast {
@@ -27715,9 +27627,6 @@ td {
     transform: translateY(0);
     opacity: 1;
   }
-<<<<<<< HEAD
->>>>>>> Hieu
-=======
 .status-badge-lost.status-processing .dot {
   background-color: #1e88e5;
   /* Chấm tròn màu xanh dương */
@@ -27767,13 +27676,10 @@ td {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
->>>>>>> Bao
-=======
 }
 
 /* =========================================================================
    RENEW & EDIT MONTHLY CARD MODAL STYLE (Shadcn-like custom modal)
-   ========================================================================= */
 .renew-modal-overlay {
   position: fixed;
   inset: 0;
@@ -28501,7 +28407,6 @@ td {
 
 /* ==========================================
    MODAL XÁC NHẬN XÓA THẺ THÁNG (Confirm Delete)
-   ========================================== */
 
 /* Lớp phủ (overlay) che toàn màn hình, căn giữa hộp thoại xác nhận */
 .mc-confirm-overlay {
@@ -28600,7 +28505,6 @@ td {
 
 /* ============================================================
    OCCUPANCY CHART STYLES
-   ============================================================ */
 
 .occupancy-page {
   min-height: 100vh;
@@ -28954,7 +28858,6 @@ td {
 
 /* ==========================================================================
    FIX TOÀN DIỆN LAYOUT THANH BỘ LỌC NGANG VÀ PHÂN TÁCH MÀU SẮC TRẠNG THÁI
-   ========================================================================== */
 
 /* Khung bọc ngoài của bộ lọc dạng khối phẳng liền mạch */
 .lost-card-log-page .lost-toolbar-modern {
@@ -29127,7 +29030,6 @@ td {
 
 /* ==========================================================================
    TÁCH BIỆT MÀU SẮC TRẠNG THÁI: CHỜ XỬ LÝ (ĐỎ CAM) VS ĐANG XỬ LÝ (XANH DƯƠNG)
-   ========================================================================== */
 
 /* Nhuộm ô chỉ số Đang chờ xử lý thành màu đỏ cam nổi bật */
 .lost-card-log-page .pending-icon {
@@ -29166,7 +29068,6 @@ td {
 
 /* ==========================================================================
    BỔ SUNG TOÀN DIỆN CHÂN TRANG NHẬT KÝ MẤT THẺ (TONE XANH NEWCOLOR PHẲNG)
-   ========================================================================== */
 
 /* Khung Analytics phía trên: Chia kịch khung trái (2/3) và biểu đồ phải (1/3) */
 .lost-card-log-page .lost-dashboard-analytics-container {
@@ -29542,7 +29443,6 @@ td {
 
 /* ==========================================================================
    MÀU SẮC PHÂN TÁCH: ĐANG CHỜ XỬ LÝ (ĐỎ CAM KHẨN CẤP) VS ĐANG XỬ LÝ (XANH KHÁC BIỆT)
-   ========================================================================== */
 
 /* 1. Trạng thái: ĐANG CHỜ XỬ LÝ -> ĐỎ CAM CHỦ ĐẠO (Độc lập rực rỡ) */
 .lost-card-log-page .pending-icon {
@@ -29597,7 +29497,6 @@ td {
 
 /* ==========================================================================
    THIẾT KẾ LẠI BẢNG DỮ LIỆU HIỆN ĐẠI FLAT UI CAO CẤP (ANTI-UG LÝ)
-   ========================================================================== */
 
 /* Khung viền bọc ngoài bảng: Bo tròn mềm mại, đổ bóng chìm tinh tế */
 .lost-card-log-page .lost-table-card-premium {
@@ -29808,7 +29707,6 @@ td {
 
 /* ==========================================================================
    THIẾT KẾ PHÂN TẦNG NỀN XÁM FLAT UI & ĐỔ BÓNG MỜ NỔI BẬT KHỐI CHỨA
-   ========================================================================== */
 
 /* 1. Nhuộm riêng phần nền của trang Nhật ký mất thẻ thành màu xám nhạt cao cấp */
 .lost-card-log-page {
@@ -29867,7 +29765,6 @@ td {
 
 /* ==========================================================================
    TRIỆT TIÊU TOÀN BỘ NỀN CAM CŨ - ĐỒNG BỘ KHÔNG GIAN XÁM PHẲNG HIỆN ĐẠI
-   ========================================================================== */
 
 /* Ép thẻ body và cấu trúc layout bọc ngoài trang Mất thẻ phải đổi sang màu xám phẳng */
 body,
@@ -29895,7 +29792,6 @@ body,
 
 /* ==========================================================================
    ĐỒNG BỘ CHỮ NHÃN MÀU XANH THƯƠNG HIỆU & TINH CHỈNH TOOLBAR GỌN GÀNG
-   ========================================================================== */
 
 /* Chuyển các chữ nhãn tiêu đề bộ lọc thành màu xanh và làm sắc nét lên */
 .lost-card-log-page .filter-field-label {
@@ -29984,7 +29880,6 @@ body,
 
 /* ==========================================================================
    TỐI ƯU CỤM PHÂN TRANG SANG TRỌNG & ĐỒNG BỘ AVATAR TOPBAR MÀU XANH
-   ========================================================================== */
 
 /* 1. Thiết kế lại 3 mục nút chuyển trang (.page-btn) cực kỳ sang trọng */
 .lost-card-log-page .lost-pagination .page-btn {
@@ -30059,7 +29954,6 @@ body,
 
 /* ==========================================================================
    NHUỘM XANH KHỐI DROPDOWN VAI TRÒ CŨ CÒN SÓT LẠI (CLEAN ORANGE DROPDOWN)
-   ========================================================================== */
 
 /* 1. Nhuộm nút bấm kích hoạt chính khi đang ở trạng thái mở rộng */
 .vertical-filter-dropdown-container .main-filter-toggle-btn.active,
@@ -30102,7 +29996,6 @@ body,
 
 /* ==========================================================================
    TRIỆT TIÊU TUYỆT ĐỐI MẢNG MÀU CAM CŨ - ĐỒNG BỘ BACKGROUND XÁM SẠCH SẼ
-   ========================================================================== */
 
 /* Ép tất cả các thẻ bọc nền gốc từ body đến nội dung phân hệ đổi sang màu xám phẳng */
 html,
@@ -30134,7 +30027,6 @@ body,
 
 /* ==========================================================================
    ÉP ĐỒNG BỘ 100% CHỮ NHÃN SANG MÀU XANH THƯƠNG HIỆU (ANTI-ORANGE FOR LABELS)
-   ========================================================================== */
 
 /* Ép tất cả các thẻ label nằm trong bộ lọc của trang Nhật ký mất thẻ sang màu xanh */
 .lost-card-log-page .lost-toolbar-modern label,
@@ -30174,7 +30066,6 @@ body,
 
 /* ==========================================================================
    XỬ LÝ TRIỆT ĐỂ: ĐÈ BỎ MÀU NÂU CAM CỦA .LOST-TOOLBAR DIV SANG MÀU XANH
-   ========================================================================== */
 
 /* Nhắm thẳng vào cấu trúc div/label lồng trong bộ lọc để ép sang màu xanh công nghệ */
 .lost-card-log-page .lost-toolbar-modern .lost-filter-item div,
@@ -30201,7 +30092,6 @@ body,
 
 /* ==========================================================================
    ÁP DỤNG ĐỒNG BỘ CHỮ XANH KHÔNG GIAN BỘ LỌC CHO CÁC TRANG NHẬT KÝ HỆ THỐNG
-   ========================================================================== */
 
 /* Ép 100% các chữ nhãn, tiêu đề nhỏ trong toolbar của mọi trang về màu xanh */
 .lost-card-log-page .lost-toolbar-modern .filter-field-label,
@@ -30242,10 +30132,8 @@ body,
   cursor: not-allowed;
 }
 
-<<<<<<< HEAD
 /* =========================================================================
    CUSTOM GLOBAL NOTIFICATIONS, TOASTS & MODALS
-   ========================================================================= */
 
 /* Toast container positioning */
 .custom-toast-container {
@@ -30588,7 +30476,6 @@ body,
 
 /* =========================================================================
    ADDITIONAL RESPONSIVE OVERRIDES (MOBILE & TABLET FIXES)
-   ========================================================================= */
 
 @media (max-width: 768px) {
   /* 1. Force the layout flow to remain horizontal, preserving sidebar layout */
@@ -30755,12 +30642,9 @@ body,
   .db-page {
     padding: 12px !important;
   }
->>>>>>> RegistrationFunction
 }
-=======
 /* ============================================================
    System Operations Sessions Table & Real-time Timer Styles
-   ============================================================ */
 
 .system-sessions-card {
   background: #ffffff;
@@ -30941,4 +30825,4 @@ body,
   }
 }
 
->>>>>>> SystemOperation
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMonthCardLogs } from '../../../service/monthCardApi';
+import { getMonthCardLogs } from '../../../service/cardApi';
 
 export default function MonthCardLogPage() {
     const [allLogs, setAllLogs] = useState([]);
@@ -63,7 +63,8 @@ export default function MonthCardLogPage() {
     const failedCount = logs.filter(log => log.status === 'Thất bại').length;
 
     return (
-        <div className="lost-card-log-wrapper">
+        <div className="lost-card-log-wrapper">           {/* ĐÃ XÓA KHỐI HEADER VÀ PROFILE LẶP LẠI TẠI ĐÂY */}
+
             {/* Stats Grid */}
             <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
                 <div className="lost-kpi-grid">

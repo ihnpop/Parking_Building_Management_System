@@ -471,13 +471,10 @@ export const preCheckExit = async (plateNumber) => {
     entryTime: formattedEntryTime,
     duration: durationStr,
     fee,
-<<<<<<< HEAD
-    sessionId: activeSession.session_id
-=======
+    sessionId: activeSession.session_id,
     entryVehicleImage: activeSession.entry_vehicle_image,
     entryPlateImage: activeSession.entry_plate_image,
     plateNumber: activeSession.plate_number
->>>>>>> SystemOperation
   };
 };
 

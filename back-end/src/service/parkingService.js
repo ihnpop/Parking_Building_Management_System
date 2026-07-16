@@ -161,10 +161,10 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     status: "Hoàn thành",
   });
 
-  return {
-    success: true,
-    message: "Check out successfully",
-    session: updatedSession,
-    fee
+  return { 
+    success: true, 
+    message: "Check out successfully", 
+    session: updatedSession, 
+    fee 
   };
 };

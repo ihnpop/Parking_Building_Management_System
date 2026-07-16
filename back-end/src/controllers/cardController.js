@@ -39,9 +39,14 @@ export const getMonthCardLogs = async (req, res) => {
 export const deleteCard = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id) return res.status(400).json({ error: 'Thiếu card_id.' });
-    await cardService.deleteCard(id);
-    res.status(200).json({ success: true, message: 'Xóa thẻ thành công.' });
+    const { deleted_by } = req.body;
+    if (!id) return res.status(400).json({ success: false, message: 'Thiếu card_id.' });
+
+    await cardService.deleteCard(id, deleted_by);
+    res.status(200).json({
+      success: true,
+      message: 'Xóa thẻ thành công.'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -51,9 +56,6 @@ export const deleteCard = async (req, res) => {
 export const createCard = async (req, res) => {
   try {
     const { type, startDate, plate, fullName, phone, email, durationMonths } = req.body;
-<<<<<<< HEAD
-    const newCard = await cardService.createCard({ type, startDate, plate, fullName, phone, email, durationMonths });
-=======
 
     // Kiểm tra định dạng biển số xe nếu có nhập
     if (plate && plate.trim() !== '') {
@@ -74,7 +76,6 @@ export const createCard = async (req, res) => {
       email,
       durationMonths
     });
->>>>>>> RegistrationFunction
     res.status(201).json(newCard);
   } catch (err) {
     res.status(500).json({ error: err.message });

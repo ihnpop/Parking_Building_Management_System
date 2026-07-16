@@ -51,7 +51,6 @@ export default function MonthCardPage() {
     };
 
     useEffect(() => {
-        document.title = "Quản lý vé tháng | Parking Building Management System";
         fetchMonthCards();
     }, []);
 
@@ -200,7 +199,7 @@ export default function MonthCardPage() {
                             <span className="material-symbols-outlined">warning</span>
                         </div>
                         <div>
-                            <p className="mc-stat-label">Đang chờ</p>
+                            <p className="mc-stat-label">Sắp hết hạn</p>
                             <p className="mc-stat-value">{loading ? '...' : expiring}</p>
                         </div>
                     </div>
@@ -221,12 +220,14 @@ export default function MonthCardPage() {
                     <div className="mc-donut-wrapper">
                         <svg className="mc-donut-svg" viewBox="0 0 36 36">
                             <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#e1e1ee" strokeWidth="3" />
+                            {/* Active */}
                             <circle cx="18" cy="18" r="15.915" fill="transparent"
                                 stroke="#006d38"
                                 strokeWidth="3"
                                 strokeDasharray={`${activeStroke} ${circumference - activeStroke}`}
                                 strokeDashoffset="25"
                             />
+                            {/* Expiring */}
                             {expiringPercent > 0 && (
                                 <circle cx="18" cy="18" r="15.915" fill="transparent"
                                     stroke="#d0c715ff"
@@ -235,6 +236,7 @@ export default function MonthCardPage() {
                                     strokeDashoffset={25 - activeStroke}
                                 />
                             )}
+                            {/* Expired */}
                             {expiredPercent > 0 && (
                                 <circle cx="18" cy="18" r="15.915" fill="transparent"
                                     stroke="#ba1a1a"
@@ -313,7 +315,9 @@ export default function MonthCardPage() {
 
             {/* Data Table */}
             <div className="mc-table-card">
-                {error && <div className="mc-error-message">{error}</div>}
+                {error && (
+                    <div className="mc-error-message">{error}</div>
+                )}
 
                 {loading ? (
                     <div className="mc-loading-message">Đang tải danh sách vé tháng...</div>
@@ -450,7 +454,6 @@ export default function MonthCardPage() {
                     fetchMonthCards();
                 }}
             />
-
             <RenewCardDialog
                 isOpen={!!renewingCard}
                 onClose={() => setRenewingCard(null)}

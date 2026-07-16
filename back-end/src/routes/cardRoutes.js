@@ -7,14 +7,8 @@ router.get("/card", controller.getCards);
 router.get("/month-card", controller.getMonthCards);
 router.get("/lost-card", controller.getLostCards);
 router.get("/month-card-logs", controller.getMonthCardLogs);
-<<<<<<< HEAD
-
-=======
-router.get('/lost-logs', controller.getLostLogs);
-
 // Đăng ký các API cho việc quản lý mất thẻ
 router.post('/lost-card', controller.createLostCard);
->>>>>>> Bao
 router.post("/card", controller.createCard);
 router.delete("/card/:id", controller.deleteCard);
 

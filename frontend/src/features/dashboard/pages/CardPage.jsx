@@ -1,29 +1,19 @@
-<<<<<<< HEAD
-import { useState, useEffect, useRef } from 'react'
-import { getCards, createCard, deleteCard } from '../../../service/cardApi';
-=======
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCards, createCard, deleteCard, updateCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
-import { getVNDateTimeLocal } from '../../../utils/dateUtils';
 import { useNotification } from '../../../context/NotificationContext';
->>>>>>> RegistrationFunction
 
-/**
- * CardPage displays a centralized card management workspace.
- * Fetching data dynamically from Supabase via backend API.
- */
+const ITEMS_PER_PAGE = 8;
 
 const INITIAL_FORM = {
-    code: '',
     type: 'Thẻ lượt',
     plate: '',
-    startDate: new Date().toISOString().split('T')[0],
+    checkInTime: '',
+    checkOutTime: '',
+    status: 'Hoạt động'
 };
 
-<<<<<<< HEAD
-=======
 // ─────────────────────────────────────────────
 // Modal 1: Tạo thẻ mới
 // ─────────────────────────────────────────────
@@ -39,7 +29,20 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                 </div>
 
                 <form className="cp-modal-form" onSubmit={onSubmit}>
-                    {/* Loại thẻ mặc định là Thẻ lượt — không hiển thị dropdown vì form này chỉ dùng cho Thẻ lượt */}
+                    {/* 1. Loại thẻ */}
+                    <div className="cp-form-group">
+                        <label htmlFor="type">Loại thẻ</label>
+                        <select
+                            id="type"
+                            name="type"
+                            className="cp-select"
+                            value={formData.type}
+                            onChange={onChange}
+                        >
+                            <option value="Thẻ lượt">Thẻ lượt</option>
+                            {/* <option value="Thẻ tháng">Thẻ tháng</option> */}
+                        </select>
+                    </div>
 
                     {/* 2. Biển số xe */}
                     <div className="cp-form-group">
@@ -211,14 +214,9 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
 // ─────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────
->>>>>>> Hieu
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
-<<<<<<< HEAD
-=======
     const navigate = useNavigate();
     const { userRole, user } = useAuth();
-    const { showToast, showConfirm } = useNotification();
->>>>>>> RegistrationFunction
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -228,11 +226,11 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [formData, setFormData] = useState(INITIAL_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
-<<<<<<< HEAD
-=======
     const [editingCard, setEditingCard] = useState(null);
+
+    const { showToast, showConfirm } = useNotification();
+
     const role = userRole ? userRole.toUpperCase() : 'STAFF';
-    
     const getRoleLabel = (r) => {
         switch (r) {
             case 'ADMIN': return 'Admin';
@@ -241,52 +239,18 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             default: return r;
         }
     };
->>>>>>> LoginLog
 
-<<<<<<< HEAD
-    // Delete modal state
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [cardToDelete, setCardToDelete] = useState(null);
-    const [deleting, setDeleting] = useState(false);
-    const [deleteError, setDeleteError] = useState(null);
-
-    // Action dropdown state
-    const [openActionMenu, setOpenActionMenu] = useState(null);
-    const actionMenuRef = useRef(null);
-
-    // Filters - Tự động nhận defaultType từ Tab lớn bên ngoài truyền vào
-    const [typeFilter, setTypeFilter] = useState(defaultType);
-=======
     // Filters
     const [search, setSearch] = useState('');
->>>>>>> RegistrationFunction
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
+    const [currentPage, setCurrentPage] = useState(1);
 
-    // Đồng bộ lại bộ lọc nếu defaultType từ Tab lớn thay đổi
-    useEffect(() => {
-        setTypeFilter(defaultType);
-    }, [defaultType]);
-
-    const fetchCards = async (pageOverride) => {
+    const fetchCards = async () => {
         try {
             setLoading(true);
             const data = await getCards();
-            
-            // Sort data newest first
-            const sortedData = [...data].sort((a, b) => {
-                const dateA = a.created_at ? new Date(a.created_at) : 0;
-                const dateB = b.created_at ? new Date(b.created_at) : 0;
-                if (dateB.getTime() !== dateA.getTime()) {
-                    return dateB - dateA;
-                }
-                return (b.code || '').localeCompare(a.code || '');
-            });
-
-            setCards(sortedData);
+            setCards(data);
             setError(null);
-            if (pageOverride !== undefined) {
-                setCurrentPage(pageOverride);
-            }
         } catch (err) {
             console.error("Error loading cards:", err);
             setError("Không thể tải danh sách thẻ. Vui lòng thử lại sau!");
@@ -299,77 +263,48 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         fetchCards();
     }, []);
 
-    // Reset filters
     const handleResetFilters = () => {
-        setTypeFilter(defaultType);
+        setSearch('');
         setStatusFilter('Tất cả trạng thái');
     };
 
-    // Filter logic chuẩn theo các thuộc tính gốc (card.type, card.status)
-    const filteredCards = cards.filter(card => {
-        const matchesType = typeFilter === 'Tất cả loại thẻ' || card.type === typeFilter;
-        const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
-        return matchesType && matchesStatus;
-    });
+    // Filter logic
+    const filteredCards = useMemo(() => {
+        return cards.filter(card => {
+            const codeLower = (card.code || '').toLowerCase();
+            const plateLower = (card.plate || '').toLowerCase();
+            const matchesSearch = search === '' ||
+                codeLower.includes(search.toLowerCase()) ||
+                plateLower.includes(search.toLowerCase());
 
-    // Thống kê số lượng (Stats)
-    const totalCards = cards.length;
-    const activeCards = cards.filter(c => c.status === 'Hoạt động').length;
-    const lockedCards = cards.filter(c => c.status === 'Đã khóa').length;
+            const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
 
-    const summaryItems = [
-        { label: 'TỔNG SỐ THẺ', value: totalCards, note: 'Tất cả các thẻ đang quản lý' },
-        { label: 'ĐANG HOẠT ĐỘNG', value: activeCards, note: 'Thẻ hiện đang sử dụng được' },
-        { label: 'ĐÃ KHÓA', value: lockedCards, note: 'Thẻ bị chặn hoặc vô hiệu' },
-    ];
+            return matchesSearch && matchesStatus;
+        });
+    }, [cards, search, statusFilter]);
 
-    // Open modal
-    const handleCreateCard = () => {
-        setFormData({ ...INITIAL_FORM, type: defaultType }); // Gợi ý sẵn loại thẻ theo tab đang chọn
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
+
+    const handleEdit = (card) => {
+        setEditingCard(card);
+        setFormData({
+            type: 'Thẻ lượt',
+            plate: card.plate || '',
+            checkInTime: card.check_in_time
+                ? new Date(card.check_in_time).toISOString().slice(0, 16)
+                : '',
+            checkOutTime: card.check_out_time
+                ? new Date(card.check_out_time).toISOString().slice(0, 16)
+                : '',
+            status: card.status || 'Hoạt động'
+        });
         setFormError(null);
-        setShowModal(true);
+        setShowEditModal(true);
     };
 
-    // Close modal
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setFormError(null);
-    };
-
-<<<<<<< HEAD
-    // Open delete confirmation modal
-    const handleOpenDeleteModal = (card) => {
-        setCardToDelete(card);
-        setDeleteError(null);
-        setShowDeleteModal(true);
-        setOpenActionMenu(null);
-    };
-
-    // Close delete modal
-    const handleCloseDeleteModal = () => {
-        setShowDeleteModal(false);
-        setCardToDelete(null);
-        setDeleteError(null);
-    };
-
-    // Confirm delete
-    const handleConfirmDelete = async () => {
-        if (!cardToDelete) return;
-        try {
-            setDeleting(true);
-            setDeleteError(null);
-            await deleteCard(cardToDelete.card_id);
-            setShowDeleteModal(false);
-            setCardToDelete(null);
-            await fetchCards();
-        } catch (err) {
-            console.error('Error deleting card:', err);
-            setDeleteError(err?.response?.data?.error || err.message || 'Lỗi khi xóa thẻ.');
-        } finally {
-            setDeleting(false);
-        }
-=======
-const handleDelete = async (row) => {
+    const handleDelete = (row) => {
         if (row.status !== 'Đang chờ') return;
         showConfirm({
             title: "Xóa thẻ",
@@ -392,45 +327,19 @@ const handleDelete = async (row) => {
                 }
             }
         });
->>>>>>> RegistrationFunction
     };
 
-    // Toggle action dropdown
-    const handleToggleActionMenu = (cardCode) => {
-        setOpenActionMenu(prev => prev === cardCode ? null : cardCode);
-    };
+    const handleCloseCreate = () => { setShowCreateModal(false); setFormError(null); };
+    const handleCloseEdit = () => { setShowEditModal(false); setFormError(null); setEditingCard(null); };
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
-                setOpenActionMenu(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Handle form field change
     const handleFormChange = (e) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    // Submit create card
-    const handleSubmit = async (e) => {
+    const handleCreate = async (e) => {
         e.preventDefault();
         setFormError(null);
 
-<<<<<<< HEAD
-        if (!formData.code.trim()) {
-            setFormError('Vui lòng nhập Mã thẻ.');
-            return;
-        }
-
-        if (!formData.startDate) {
-            setFormError('Vui lòng chọn ngày bắt đầu.');
-            return;
-=======
         // Kiểm tra định dạng biển số xe
         if (formData.plate && formData.plate.trim() !== '') {
             const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
@@ -439,41 +348,25 @@ const handleDelete = async (row) => {
                 setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
                 return;
             }
->>>>>>> RegistrationFunction
         }
 
         try {
             setSubmitting(true);
             await createCard({
-                code: formData.code.trim(),
-                type: formData.type,
-                plate: formData.plate.trim() || null,
+                type: 'Thẻ lượt',
                 startDate: formData.startDate,
-                status: 'Hoạt động'
+                plate: formData.plate.trim() || undefined
             });
-<<<<<<< HEAD
-            setShowModal(false);
-            await fetchCards(); // Tải lại bảng dữ liệu ngay lập tức
-=======
             showToast("Đăng ký thẻ mới thành công", "success");
             setShowCreateModal(false);
-            setCurrentPage(1); // Task 2: Reset về trang 1 để item mới đứng đầu danh sách
-            await fetchCards(1);
->>>>>>> RegistrationFunction
+            await fetchCards();
         } catch (err) {
-<<<<<<< HEAD
-            console.error('Error creating card:', err);
             setFormError(err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
-=======
-            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
->>>>>>> Hieu
         } finally {
             setSubmitting(false);
         }
     };
 
-<<<<<<< HEAD
-=======
     const handleUpdate = async (e) => {
         e.preventDefault();
         setFormError(null);
@@ -492,26 +385,14 @@ const handleDelete = async (row) => {
             setEditingCard(null);
             await fetchCards();
         } catch (err) {
-            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
+            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
         } finally {
             setSubmitting(false);
         }
     };
 
-    // ── Filters & pagination (giữ nguyên) ────
 
-    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
-
-    const filteredCards = useMemo(() => cards.filter(card => {
-        const matchesSearch = search === '' ||
-            (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
-            (card.plate || '').toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    }), [cards, search, statusFilter]);
-
-    useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
-
+    // Pagination calculations
     const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
     const paginatedCards = filteredCards.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
@@ -534,8 +415,7 @@ const handleDelete = async (row) => {
         return pages;
     };
 
-    // ── Stats & donut (giữ nguyên) ────────────
-
+    // Stats
     const total = cards.length;
     const active = cards.filter(c => c.status === 'Hoạt động').length;
     const locked = cards.filter(c => c.status === 'Đã khóa').length;
@@ -545,10 +425,67 @@ const handleDelete = async (row) => {
     const lockedPercent = total > 0 ? Math.round((locked / total) * 100) : 0;
     const inactivePercent = total > 0 ? Math.round((inactiveCount / total) * 100) : 0;
 
+    // SVG donut calculations
     const circumference = 2 * Math.PI * 15.915;
     const activeStroke = (activePercent / 100) * circumference;
     const lockedStroke = (lockedPercent / 100) * circumference;
     const inactiveStroke = (inactivePercent / 100) * circumference;
+
+    // Open modal
+    const handleCreateCard = () => {
+        setEditingCard(null);
+        setFormData(INITIAL_FORM);
+        setFormError(null);
+        setShowModal(true);
+    };
+
+    // Close modal
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setFormError(null);
+        setEditingCard(null);
+    };
+
+
+    const hasPlate = formData.plate && formData.plate.trim() !== '';
+
+    // Submit form
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setFormError(null);
+
+        try {
+            setSubmitting(true);
+            if (editingCard) {
+                await updateCard(
+                    editingCard.card_id,
+                    {
+                        type: 'Thẻ lượt',
+                        plate: formData.plate,
+                        checkInTime: hasPlate ? formData.checkInTime : null,
+                        checkOutTime: hasPlate ? formData.checkOutTime : null,
+                        status: hasPlate ? formData.status : editingCard.status
+                    }
+                );
+                showToast("Cập nhật thẻ thành công", "success");
+            } else {
+                await createCard({
+                    type: 'Thẻ lượt',
+                    startDate: formData.startDate,
+                    plate: formData.plate.trim() || undefined
+                });
+                showToast("Đăng ký thẻ mới thành công", "success");
+            }
+            setShowModal(false);
+            setEditingCard(null);
+            await fetchCards();
+        } catch (err) {
+            console.error('Error creating card:', err);
+            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi lưu thẻ.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     const getStatusBadgeClass = (status) => {
         if (status === 'Hoạt động') return 'cp-status-badge cp-status-active';
@@ -556,69 +493,129 @@ const handleDelete = async (row) => {
         return 'cp-status-badge cp-status-inactive';
     };
 
-    // ── Render ────────────────────────────────
-
->>>>>>> Hieu
     return (
-        <main className="card-page" style={{ width: '100%' }}>
-
-            {/* Khối thống kê số lượng thẻ phía trên */}
-            <section className="cardpage-summary-grid" style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                {summaryItems.map((item) => (
-                    <article key={item.label} className="cardpage-summary-card" style={{ flex: 1, padding: '15px', border: '1px solid #eee', borderRadius: '8px' }}>
-                        <p className="summary-label" style={{ margin: '0 0 5px 0', fontSize: '0.85rem', color: '#666' }}>{item.label}</p>
-                        <p className="summary-value" style={{ margin: '0 0 5px 0', fontSize: '1.8rem', fontWeight: 'bold' }}>{loading ? '...' : item.value}</p>
-                        <p className="summary-note" style={{ margin: 0, fontSize: '0.75rem', color: '#999' }}>{item.note}</p>
-                    </article>
-                ))}
-            </section>
-
-            {/* Thanh công cụ tìm kiếm và bộ lọc */}
-            <section className="cardpage-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px', flexWrap: 'wrap' }}>
-                <div className="cardpage-filters" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                    <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#555' }}>Loại thẻ</label>
-                        <select
-                            className="cardpage-select"
-                            value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                        >
-                            <option value="Tất cả loại thẻ">Tất cả loại thẻ</option>
-                            <option value="Thẻ lượt">Thẻ lượt</option>
-                            <option value="Thẻ tháng">Thẻ tháng</option>
-                        </select>
+        <div className="cp-page">
+            {/* Stats Row */}
+            <div className="cp-stats-row">
+                <div className="cp-stats-grid">
+                    {/* Tổng số thẻ */}
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-primary">
+                            <span className="material-symbols-outlined">credit_card</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Tổng số thẻ</p>
+                            <p className="cp-stat-value">{loading ? '...' : total}</p>
+                        </div>
                     </div>
-<<<<<<< HEAD
-
-                    <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ fontSize: '0.85rem', color: '#555' }}>Trạng thái</label>
-                        <select
-                            className="cardpage-select"
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #ddd' }}
-                        >
-                            <option value="Tất cả trạng thái">Tất cả trạng thái</option>
-                            <option value="Hoạt động">Hoạt động</option>
-                            <option value="Đã khóa">Đã khóa</option>
-                        </select>
+                    {/* Đang hoạt động */}
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-secondary">
+                            <span className="material-symbols-outlined">check_circle</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Đang hoạt động</p>
+                            <p className="cp-stat-value">{loading ? '...' : active}</p>
+                        </div>
                     </div>
+                    {/* Đã khóa */}
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-error">
+                            <span className="material-symbols-outlined">block</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Đã khóa</p>
+                            <p className="cp-stat-value">{loading ? '...' : locked}</p>
+                        </div>
+                    </div>
+                    {/* Thẻ đang chờ */}
+                    <div className="cp-stat-card">
+                        <div className="cp-stat-icon cp-stat-icon-warning">
+                            <span className="material-symbols-outlined">date_range</span>
+                        </div>
+                        <div>
+                            <p className="cp-stat-label">Thẻ đang chờ</p>
+                            <p className="cp-stat-value">{loading ? '...' : inactiveCount}</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <button
-                        type="button"
-                        className="cardpage-button secondary"
-                        onClick={handleResetFilters}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', marginTop: '22px' }}
+                {/* Donut Chart */}
+                <div className="cp-donut-card">
+                    <h3 className="cp-donut-title">TỶ LỆ TRẠNG THÁI THẺ</h3>
+                    <div className="cp-donut-wrapper">
+                        <svg className="cp-donut-svg" viewBox="0 0 36 36">
+                            <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#f3f4f6" strokeWidth="3" />
+                            {/* Active */}
+                            <circle cx="18" cy="18" r="15.915" fill="transparent"
+                                stroke="#006d38"
+                                strokeWidth="3"
+                                strokeDasharray={`${activeStroke} ${circumference - activeStroke}`}
+                                strokeDashoffset="25"
+                            />
+                            {/* Locked */}
+                            {lockedPercent > 0 && (
+                                <circle cx="18" cy="18" r="15.915" fill="transparent"
+                                    stroke="#ba1a1a"
+                                    strokeWidth="3"
+                                    strokeDasharray={`${lockedStroke} ${circumference - lockedStroke}`}
+                                    strokeDashoffset={25 - activeStroke}
+                                />
+                            )}
+                            {/* Inactive */}
+                            {inactivePercent > 0 && (
+                                <circle cx="18" cy="18" r="15.915" fill="transparent"
+                                    stroke="hsla(54, 89%, 49%, 1.00)"
+                                    strokeWidth="3"
+                                    strokeDasharray={`${inactiveStroke} ${circumference - inactiveStroke}`}
+                                    strokeDashoffset={25 - activeStroke - lockedStroke}
+                                />
+                            )}
+                        </svg>
+                        <div className="cp-donut-center">
+                            <span className="cp-donut-percent">{loading ? '...' : `${activePercent}%`}</span>
+                            <span className="cp-donut-sub">Hoạt động</span>
+                        </div>
+                    </div>
+                    <div className="cp-donut-legend">
+                        <div className="cp-legend-item">
+                            <div className="cp-legend-dot cp-legend-active"></div>
+                            <span>Hoạt động</span>
+                        </div>
+                        <div className="cp-legend-item">
+                            <div className="cp-legend-dot cp-legend-locked"></div>
+                            <span>Đã khóa</span>
+                        </div>
+                        <div className="cp-legend-item">
+                            <div className="cp-legend-dot cp-legend-inactive"></div>
+                            <span>Đang chờ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Action Bar */}
+            <div className="cp-action-bar">
+                <div className="cp-filters">
+                    <div className="cp-search-wrapper">
+                        <span className="material-symbols-outlined cp-search-icon">search</span>
+                        <input
+                            type="text"
+                            className="cp-search-input"
+                            placeholder="Tìm theo mã thẻ, biển số..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <select
+                        className="cp-filter-select"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
                     >
-                        Làm mới bộ lọc
-=======
-                    <select className="cp-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                         <option value="Tất cả trạng thái">Tất cả trạng thái</option>
                         <option value="Hoạt động">Hoạt động</option>
                         <option value="Đang chờ">Đang chờ</option>
                         <option value="Đã khóa">Đã khóa</option>
-                        <option value="Đã xóa">Đã xóa</option>
                     </select>
                 </div>
                 <div className="cp-action-buttons">
@@ -629,106 +626,53 @@ const handleDelete = async (row) => {
                     <button type="button" className="cp-btn cp-btn-primary" onClick={handleCreateCard}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                         Đăng ký thẻ mới
->>>>>>> Hieu
                     </button>
                 </div>
+            </div>
 
-                <div className="cardpage-actions" style={{ display: 'flex', gap: '10px', marginTop: '22px' }}>
-                    <button
-                        type="button"
-                        className="cardpage-button outline"
-                        onClick={fetchCards}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
-                    >
-                        Tải lại dữ liệu
-                    </button>
-                    <button
-                        type="button"
-                        className="cardpage-button primary"
-                        onClick={handleCreateCard}
-                        style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#e65c00', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
-                    >
-                        + Đăng ký thẻ mới
-                    </button>
-                </div>
-            </section>
-
-            {/* Khối hiển thị Bảng danh sách thẻ */}
-            <section className="cardpage-table-card" style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px' }}>
-                <div className="cardpage-table-header" style={{ marginBottom: '15px' }}>
-                    <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem' }}>Danh sách thẻ</h2>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Quản lý thông tin thẻ, loại thẻ, trạng thái và hành động.</p>
-                </div>
-
+            {/* Data Table */}
+            <div className="cp-table-card">
                 {error && (
-                    <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
-                        {error}
-                    </div>
+                    <div className="cp-error-message">{error}</div>
                 )}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
-                        Đang tải danh sách thẻ...
-                    </div>
+                    <div className="cp-loading-message">Đang tải danh sách thẻ...</div>
                 ) : (
                     <>
-                        <table className="cardpage-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left' }}>
-                                    <th style={{ padding: '12px' }}>MÃ THẺ</th>
-                                    <th style={{ padding: '12px' }}>LOẠI</th>
-                                    <th style={{ padding: '12px' }}>BIỂN SỐ</th>
-                                    <th style={{ padding: '12px' }}>TRẠNG THÁI</th>
-                                    <th style={{ padding: '12px' }}>THAO TÁC</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCards.length > 0 ? (
-                                    filteredCards.map((row) => (
-                                        <tr key={row.code} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px' }}>{row.code}</td>
-                                            <td style={{ padding: '12px' }}>{row.type}</td>
-                                            <td style={{ padding: '12px' }}>{row.plate || '---'}</td>
-                                            <td style={{ padding: '12px' }}>
-                                                <span className={`cardpage-status ${row.status === 'Hoạt động' ? 'active' : 'locked'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '12px', color: row.status === 'Hoạt động' ? '#4caf50' : '#f44336' }}>circle</span>
-                                                    {row.status}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <div className="cardpage-action-wrapper" ref={openActionMenu === row.code ? actionMenuRef : null}>
+                        <div className="cp-table-scroll">
+                            <table className="cp-table">
+                                <thead>
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Mã thẻ</th>
+                                        <th>Biển số</th>
+                                        <th>Trạng thái</th>
+                                        <th className="cp-th-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginatedCards.length > 0 ? (
+                                        paginatedCards.map((row, index) => (
+                                            <tr key={row.code || index} className="cp-table-row">
+                                                <td>{String((currentPage - 1) * ITEMS_PER_PAGE + index + 1).padStart(2, '0')}</td>
+                                                <td className="cp-td-bold">{row.code}</td>
+                                                <td>{row.plate || '---'}</td>
+                                                <td>
+                                                    <span className={getStatusBadgeClass(row.status)}>
+                                                        {row.status}
+                                                    </span>
+                                                </td>
+                                                <td className="cp-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                     <button
                                                         type="button"
-                                                        className="cardpage-icon-button"
-                                                        title="Thao tác"
-                                                        onClick={() => handleToggleActionMenu(row.code)}
+                                                        className="cp-edit-btn"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                                                        onClick={() => handleEdit(row)}
+                                                        title="Chỉnh sửa"
                                                     >
-                                                        <span className="material-symbols-outlined">more_vert</span>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
-<<<<<<< HEAD
-                                                    {openActionMenu === row.code && (
-                                                        <div className="cardpage-action-menu">
-                                                            <button
-                                                                type="button"
-                                                                className="cardpage-action-menu-item"
-                                                                onClick={() => { setOpenActionMenu(null); }}
-                                                            >
-                                                                <span className="material-symbols-outlined">edit</span>
-                                                                Chỉnh sửa
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="cardpage-action-menu-item danger"
-                                                                onClick={() => handleOpenDeleteModal(row)}
-                                                            >
-                                                                <span className="material-symbols-outlined">delete</span>
-                                                                Xóa thẻ
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-=======
 
                                                     {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ ở trạng thái "Đang chờ" */}
                                                     <button type="button" className="cp-delete-btn"
@@ -752,116 +696,156 @@ const handleDelete = async (row) => {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="5" className="cp-empty-row">Không tìm thấy thẻ phù hợp</td>
->>>>>>> RegistrationFunction
+                                            <td colSpan="5" className="cp-empty-row">
+                                                Không tìm thấy thẻ phù hợp
+                                            </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
-                                            Không tìm thấy thẻ phù hợp
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
-                        {/* Phân trang (Pagination) */}
-                        <div className="cardpage-table-footer" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.85rem', color: '#666' }}>Hiển thị {filteredCards.length} trong {totalCards}</span>
-                            <div className="cardpage-pagination" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <button type="button" className="pagination-button" disabled style={{ padding: '5px 8px', cursor: 'not-allowed' }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
+                        {/* Pagination Footer */}
+                        <div className="cp-pagination-footer">
+                            <p className="cp-pagination-info">
+                                Hiển thị {filteredCards.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredCards.length)} của {filteredCards.length} kết quả
+                            </p>
+                            <div className="cp-pagination-controls">
+                                <button
+                                    className="cp-page-nav"
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                >
+                                    <span className="material-symbols-outlined">chevron_left</span>
                                 </button>
-                                <button type="button" className="pagination-button active" style={{ padding: '5px 12px', backgroundColor: '#e65c00', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 'bold' }}>1</button>
-                                <button type="button" className="pagination-button" disabled style={{ padding: '5px 8px', cursor: 'not-allowed' }}>
-                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
+                                {getPageNumbers().map((page, i) => (
+                                    page === '...' ? (
+                                        <span key={`dots-${i}`} className="cp-page-dots">...</span>
+                                    ) : (
+                                        <button
+                                            key={page}
+                                            className={`cp-page-btn ${currentPage === page ? 'cp-page-btn-active' : ''}`}
+                                            onClick={() => setCurrentPage(page)}
+                                        >
+                                            {page}
+                                        </button>
+                                    )
+                                ))}
+                                <button
+                                    className="cp-page-nav"
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                >
+                                    <span className="material-symbols-outlined">chevron_right</span>
                                 </button>
                             </div>
                         </div>
                     </>
                 )}
-            </section>
+            </div>
 
-<<<<<<< HEAD
-            {/* ===== Modal Xác nhận Xóa Thẻ ===== */}
-            {showDeleteModal && cardToDelete && (
-                <div
-                    className="cardpage-modal-overlay"
-                    onClick={(e) => { if (e.target === e.currentTarget) handleCloseDeleteModal(); }}
-                >
-                    <div className="cardpage-modal cardpage-delete-modal">
-                        <div className="cardpage-delete-modal-icon">
-                            <span className="material-symbols-outlined">delete_forever</span>
-                        </div>
-                        <h2 className="cardpage-delete-modal-title">Xác nhận xóa thẻ</h2>
-                        <p className="cardpage-delete-modal-desc">
-                            Bạn có chắc chắn muốn xóa thẻ này không?
-                        </p>
-                        <div className="cardpage-delete-modal-info">
-                            <div className="cardpage-delete-info-row">
-                                <span className="delete-info-label">Mã thẻ</span>
-                                <span className="delete-info-value">{cardToDelete.code}</span>
-                            </div>
-                            <div className="cardpage-delete-info-row">
-                                <span className="delete-info-label">Loại thẻ</span>
-                                <span className="delete-info-value">{cardToDelete.type}</span>
-                            </div>
-                            <div className="cardpage-delete-info-row">
-                                <span className="delete-info-label">Biển số</span>
-                                <span className="delete-info-value">{cardToDelete.plate}</span>
-                            </div>
-                            <div className="cardpage-delete-info-row">
-                                <span className="delete-info-label">Trạng thái</span>
-                                <span className={`cardpage-status ${cardToDelete.status === 'Hoạt động' ? 'active' : 'locked'}`}>
-                                    <span className="material-symbols-outlined">circle</span>
-                                    {cardToDelete.status}
-                                </span>
-                            </div>
-                        </div>
-                        <p className="cardpage-delete-modal-warning">
-                            ⚠️ Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến thẻ này sẽ bị xóa vĩnh viễn.
-                        </p>
-                        {deleteError && (
-                            <p style={{ color: '#ef4444', fontSize: '0.875rem', textAlign: 'center', margin: '0' }}>
-                                {deleteError}
-                            </p>
-                        )}
-                        <div className="cardpage-modal-actions">
-                            <button
-                                type="button"
-                                className="cardpage-button secondary"
-                                onClick={handleCloseDeleteModal}
-                                disabled={deleting}
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button
-                                type="button"
-                                className="cardpage-button danger"
-                                onClick={handleConfirmDelete}
-                                disabled={deleting}
-                            >
-                                <span className="material-symbols-outlined">{deleting ? 'hourglass_empty' : 'delete'}</span>
-                                {deleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+            {/* Registration Modal */}
+            {showModal && (
+                <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) handleCloseModal(); }}>
+                    <div className="cp-modal">
+                        <div className="cp-modal-header">
+                            <h2>{editingCard ? 'Cập nhật thẻ' : 'Đăng ký thẻ mới'}</h2>
+                            <button type="button" className="cp-modal-close" onClick={handleCloseModal}>
+                                <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
+
+                        <form className="cp-modal-form" onSubmit={handleSubmit}>
+                            {/* 2. Biển số xe */}
+                            <div className="cp-form-group">
+                                <label htmlFor="plate">Biển số xe</label>
+                                <input
+                                    id="plate"
+                                    name="plate"
+                                    type="text"
+                                    readOnly
+                                    placeholder="Ví dụ: 59G1-12345 (Nếu có)"
+                                    className="cp-input"
+                                    value={formData.plate}
+                                    onChange={handleFormChange}
+                                />
+                            </div>
+
+                            {/* Edit-only extra fields */}
+                            {editingCard && (
+                                <>
+                                    <div className="cp-form-group">
+                                        <label>Thời gian vào</label>
+                                        <input
+                                            type="datetime-local"
+                                            name="checkInTime"
+                                            value={formData.checkInTime}
+                                            onChange={handleFormChange}
+                                            className="cp-input"
+                                            disabled={!hasPlate}
+                                        />
+                                    </div>
+
+                                    <div className="cp-form-group">
+                                        <label>Thời gian ra</label>
+                                        <input
+                                            type="datetime-local"
+                                            name="checkOutTime"
+                                            value={formData.checkOutTime}
+                                            onChange={handleFormChange}
+                                            className="cp-input"
+                                            disabled={!hasPlate}
+                                        />
+                                    </div>
+
+                                    <div className="cp-form-group">
+                                        <label>Trạng thái</label>
+                                        <select
+                                            name="status"
+                                            value={formData.status}
+                                            onChange={handleFormChange}
+                                            className="cp-select"
+                                            disabled={!hasPlate}
+                                        >
+                                            <option value="Hoạt động">Hoạt động</option>
+                                            <option value="Đang chờ">Đang chờ</option>
+                                            <option value="Đã khóa">Đã khóa</option>
+                                            <option value="Hết hạn">Hết hạn</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+
+                            {formError && (
+                                <p className="cp-form-error">{formError}</p>
+                            )}
+
+                            {!hasPlate && editingCard && (
+                                <p style={{ color: '#f59e0b', fontSize: '14px', marginTop: '8px' }}>
+                                    Thẻ chưa có biển số nên không thể chỉnh sửa thời gian vào, thời gian ra và trạng thái.
+                                </p>
+                            )}
+
+                            <div className="cp-modal-actions">
+                                <button
+                                    type="button"
+                                    className="cp-btn cp-btn-outline"
+                                    onClick={handleCloseModal}
+                                    disabled={submitting}
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="cp-btn cp-btn-primary"
+                                    disabled={submitting}
+                                >
+                                    {submitting ? 'Đang lưu...' : (editingCard ? 'Cập nhật' : 'Đăng ký')}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            )}
-        </main>
-    )
-=======
-            {/* ── Modals ── */}
-            {showCreateModal && (
-                <CreateCardModal
-                    formData={formData}
-                    formError={formError}
-                    submitting={submitting}
-                    onChange={handleFormChange}
-                    onSubmit={handleCreate}
-                    onClose={handleCloseCreate}
-                />
             )}
 
             {showEditModal && (
@@ -875,7 +859,39 @@ const handleDelete = async (row) => {
                 />
             )}
 
+            {deletingCard && (
+                <div className="mc-confirm-overlay">
+                    <div className="mc-confirm-box">
+                        <p>Bạn chắc chắn muốn xóa thẻ <b>{deletingCard.cardNo || deletingCard.code}</b>?</p>
+                        <p style={{ fontSize: '13px', color: '#999' }}>
+                            Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.
+                        </p>
+
+                        {deleteError && (
+                            <p style={{ color: '#ff6b6b', fontSize: '13px', marginTop: '8px' }}>
+                                {deleteError}
+                            </p>
+                        )}
+
+                        <div className="mc-confirm-actions">
+                            <button onClick={closeDeleteModal} disabled={isDeleting}>Hủy</button>
+                            <button onClick={confirmDelete} disabled={isDeleting} className="mc-btn-danger">
+                                {isDeleting ? 'Đang xóa...' : 'Xóa'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast */}
+            {toast.show && (
+                <div className={`custom-toast ${toast.type}`}>
+                    <span className="material-symbols-outlined">
+                        {toast.type === 'success' ? 'check_circle' : 'error'}
+                    </span>
+                    <span className="toast-text">{toast.message}</span>
+                </div>
+            )}
         </div>
     );
->>>>>>> RegistrationFunction
 }

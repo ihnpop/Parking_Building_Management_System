@@ -53,15 +53,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     const token = localStorage.getItem('token');
                     const headers = { Authorization: `Bearer ${token}` };
                     const [resType, resPkg] = await Promise.all([
-<<<<<<< HEAD
-                        axios.get(`${API}/month-card/vehicle-types`, { headers }),
-                        axios.get(`${API}/month-card/packages`, { headers })
-=======
-                        // axios.get('http://localhost:3636/api/month-card/vehicle-types', { headers }), đổi dòng này**************
-                        // axios.get('http://localhost:3636/api/month-card/packages', { headers }) 
                         axios.get(`${import.meta.env.VITE_API_URL}/month-card/vehicle-types`, { headers }),
                         axios.get(`${import.meta.env.VITE_API_URL}/month-card/packages`, { headers })
->>>>>>> SystemOperation
                     ]);
                     setVehicleTypes(Array.isArray(resType.data) ? resType.data : []);
                     setPackages(Array.isArray(resPkg.data) ? resPkg.data : []);
@@ -81,12 +74,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 setCodeLoading(true);
                 try {
                     const token = localStorage.getItem('token');
-<<<<<<< HEAD
-                    const res = await axios.get(`${API}/month-card/next-code`, {
-=======
-                    // const res = await axios.get('http://localhost:3636/api/month-card/next-code', { đổi dòng này*******************
                     const res = await axios.get(`${import.meta.env.VITE_API_URL}/month-card/next-code`, {
->>>>>>> SystemOperation
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (res.data?.code) setFormData(prev => ({ ...prev, card_code: res.data.code }));
@@ -137,16 +125,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         setVerifying(true); setVerifyResult(null); setError(null);
         try {
             const frontBase64 = await convertToBase64(frontImg);
-<<<<<<< HEAD
-            const backBase64 = await convertToBase64(backImg);
-            const res = await axios.post(`${API}/month-card/verify-document`,
-=======
             const backBase64 = backImg ? await convertToBase64(backImg) : null;
 
             const token = localStorage.getItem('token');
-            // const res = await axios.post('http://localhost:3636/api/month-card/verify-document', đổi dòng này *********
             const res = await axios.post(`${import.meta.env.VITE_API_URL}/month-card/verify-document`,
->>>>>>> SystemOperation
                 { front_base64: frontBase64, back_base64: backBase64 },
                 { headers: authHeaders() }
             );
@@ -199,17 +181,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             if (!/^\d{2}[A-Z]\d{4,5}$/.test(rawPlate)) { setError('Biển số không đúng định dạng (vd: 30K-12345).'); return; }
             setLoading(true);
             try {
-<<<<<<< HEAD
-                const res = await axios.post(`${API}/month-card/check-plate`,
-                    { plate: formData.plate_number },
-                    { headers: authHeaders() }
-=======
                 const token = localStorage.getItem('token');
-                // const res = await axios.post('http://localhost:3636/api/month-card/check-plate', dổi dòng này*************88
                 const res = await axios.post(`${import.meta.env.VITE_API_URL}/month-card/check-plate`,
                     { plate: formData.plate_number },
                     { headers: { Authorization: `Bearer ${token}` } }
->>>>>>> SystemOperation
                 );
                 if (res.data.allowed) setStep(3);
                 else setError(res.data.message || 'Biển số xe không được phép đăng ký.');
@@ -248,18 +223,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 payment_method: paymentMethod
             }, { headers: authHeaders() });
 
-<<<<<<< HEAD
             const { data } = res.data;
             setVehiclePackageId(data.vehiclePackageId);
             setPaymentOrderCode(data.orderCode);
             setPaymentStatus('pending');
-=======
-            const token = localStorage.getItem('token');
-            // const response = await axios.post('http://localhost:3636/api/parking/register-monthly', payload, { đổi dòng này**************
-            const response = await axios.post(`${import.meta.env.VITE_API_URL}/parking/register-monthly`, payload, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
->>>>>>> SystemOperation
 
             if (paymentMethod === 'vnpay') {
                 // Mở trang VNPay trong tab mới

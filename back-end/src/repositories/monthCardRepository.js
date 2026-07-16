@@ -372,3 +372,4 @@ export const generateNextMonthCode = async () => {
 
   throw new Error('Không thể sinh mã thẻ MONTH duy nhất sau nhiều lần thử.');
 };
+

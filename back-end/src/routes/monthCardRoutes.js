@@ -40,11 +40,9 @@ router.get("/", monthCardController.getMonthCards);
 router.get("/logs", monthCardController.getMonthCardLogs);
 
 /**
- * GET /api/month-card/renew-packages
  * Lấy danh sách các gói gia hạn thẻ tháng khả dụng
  */
 router.get("/renew-packages", monthCardController.getRenewPackages);
-
 
 /**
  * POST /api/month-card/renew

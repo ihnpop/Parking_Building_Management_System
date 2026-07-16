@@ -134,81 +134,6 @@ export const renewMonthlyCard = async (req, res) => {
   }
 };
 
-
-
-/**
- * Tạo mới thẻ tháng (đăng ký mới)
- */
-export const createMonthCard = async (req, res) => {
-  try {
-    const {
-      plate,
-      startDate,
-      durationMonths,
-      fullName,
-      phone,
-      email,
-      status,
-      vehicleTypeId,
-      note
-    } = req.body;
-
-    if (!plate) {
-      return res.status(400).json({ error: "Thiếu biển số xe (plate)." });
-    }
-    if (!fullName) {
-      return res.status(400).json({ error: "Thiếu tên khách hàng (fullName)." });
-    }
-    if (!durationMonths) {
-      return res.status(400).json({ error: "Thiếu thời hạn đăng ký (durationMonths)." });
-    }
-
-    // Xác thực người thực hiện (performed_by) từ token JWT
-    let currentUserId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) {
-          currentUserId = user.id;
-        }
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-
-    if (!currentUserId) {
-      const { data: profiles } = await supabase.from("profiles").select("id").limit(1);
-      if (profiles && profiles.length > 0) {
-        currentUserId = profiles[0].id;
-      }
-    }
-
-    if (!currentUserId) {
-      return res.status(401).json({ error: "Yêu cầu đăng nhập để thực hiện tác vụ này." });
-    }
-
-    const result = await monthCardService.createMonthCard({
-      plate,
-      startDate,
-      durationMonths: Number(durationMonths),
-      fullName,
-      phone,
-      email,
-      status,
-      vehicleTypeId,
-      note,
-      currentUserId
-    });
-
-    return res.status(201).json(result);
-  } catch (err) {
-    console.error("Lỗi Controller tạo thẻ tháng mới:", err);
-    return res.status(400).json({ error: err.message });
-  }
-};
-
 /**
  * Cập nhật thông tin thẻ tháng
  */
@@ -218,7 +143,8 @@ export const updateMonthCard = async (req, res) => {
     const result = await monthCardService.updateMonthCard(id, req.body);
     return res.status(200).json(result);
   } catch (err) {
-    return res.status(400).json({
+    console.error("Lỗi Controller cập nhật thẻ tháng:", err);
+    return res.status(500).json({
       success: false,
       message: err.message
     });
@@ -400,5 +326,42 @@ export const finalizeRegistration = async (req, res) => {
   } catch (err) {
     console.error("Lỗi finalizeRegistration:", err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Đăng ký thẻ tháng mới
+ */
+export const createMonthCard = async (req, res) => {
+  try {
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          currentUserId = user.id;
+        }
+      } catch (authErr) {
+        console.error("Lỗi giải mã token:", authErr);
+      }
+    }
+
+    if (!currentUserId) {
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
+      if (profiles && profiles.length > 0) {
+        currentUserId = profiles[0].id;
+      }
+    }
+
+    const result = await monthCardService.createMonthCard({
+      ...req.body,
+      currentUserId
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Lỗi Controller tạo thẻ tháng:", err);
+    return res.status(400).json({ error: err.message });
   }
 };

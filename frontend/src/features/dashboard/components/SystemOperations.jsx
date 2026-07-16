@@ -1419,7 +1419,6 @@ export default function SystemOperations() {
                                     </button>
                                 </div>
                             </div>
-<<<<<<< HEAD
                         ) : (
                             <div>
                                 <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>
@@ -1589,8 +1588,6 @@ export default function SystemOperations() {
                                     {preCheckResult.vehicleType === 'MONTHLY' ? 'Open Exit Gate' : 'Confirm Exit'}
                                 </button>
                             </div>
-=======
->>>>>>> SystemOperation
                         </div>
                     </div>
                 )
