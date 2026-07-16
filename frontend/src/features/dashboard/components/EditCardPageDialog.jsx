@@ -41,6 +41,14 @@ export default function EditCardPageDialog({ isOpen, onClose, onSuccess, card })
     };
 
     const handleUpdate = async (e) => {
+        if (
+            formData.checkInTime &&
+            formData.checkOutTime &&
+            new Date(formData.checkOutTime) < new Date(formData.checkInTime)
+        ) {
+            setFormError("Thời gian ra phải sau hoặc bằng thời gian vào.");
+            return;
+        }
         e.preventDefault();
         setFormError(null);
         const hasPlate = formData.plate && formData.plate.trim() !== '';
@@ -81,10 +89,19 @@ export default function EditCardPageDialog({ isOpen, onClose, onSuccess, card })
                             id="plate"
                             name="plate"
                             type="text"
-                            placeholder="Ví dụ: 59G112345 (Nếu có)"
                             className="cp-input"
                             value={formData.plate}
                             onChange={handleFormChange}
+                            placeholder="Ví dụ: 30K12345"
+                            pattern="\d{2}[A-Za-z]\d{4,5}"
+                            onInvalid={(e) => {
+                                if (e.target.validity.patternMismatch) {
+                                    e.target.setCustomValidity(
+                                        "Biển số xe không đúng định dạng. Ví dụ: 30K12345 hoặc 59X312345."
+                                    );
+                                }
+                            }}
+                            onInput={(e) => e.target.setCustomValidity("")}
                         />
                     </div>
 
@@ -124,7 +141,6 @@ export default function EditCardPageDialog({ isOpen, onClose, onSuccess, card })
                             <option value="Hoạt động">Hoạt động</option>
                             <option value="Đang chờ">Đang chờ</option>
                             <option value="Đã khóa">Đã khóa</option>
-                            <option value="Hết hạn">Hết hạn</option>
                         </select>
                     </div>
 
