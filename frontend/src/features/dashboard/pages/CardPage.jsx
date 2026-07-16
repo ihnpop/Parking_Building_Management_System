@@ -13,6 +13,209 @@ const INITIAL_FORM = {
     startDate: new Date().toISOString().split('T')[0],
 };
 
+<<<<<<< HEAD
+=======
+// ─────────────────────────────────────────────
+// Modal 1: Tạo thẻ mới
+// ─────────────────────────────────────────────
+function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
+    return (
+        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="cp-modal">
+                <div className="cp-modal-header">
+                    <h2>Đăng ký thẻ mới</h2>
+                    <button type="button" className="cp-modal-close" onClick={onClose}>
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form className="cp-modal-form" onSubmit={onSubmit}>
+                    {/* 1. Loại thẻ */}
+                    <div className="cp-form-group">
+                        <label htmlFor="type">Loại thẻ</label>
+                        <select
+                            id="type"
+                            name="type"
+                            className="cp-select"
+                            value={formData.type}
+                            onChange={onChange}
+                        >
+                            <option value="Thẻ lượt">Thẻ lượt</option>
+                            {/* <option value="Thẻ tháng">Thẻ tháng</option> */}
+                        </select>
+                    </div>
+
+                    {/* 2. Biển số xe */}
+                    <div className="cp-form-group">
+                        <label htmlFor="plate">Biển số xe</label>
+                        <input
+                            id="plate"
+                            name="plate"
+                            type="text"
+                            placeholder="Ví dụ: 30K12345"
+                            className="cp-input"
+                            value={formData.plate}
+                            onChange={onChange}
+                        />
+                    </div>
+
+                    {/* 3. Ngày bắt đầu */}
+                    <div className="cp-form-group">
+                        <label htmlFor="startDate">Ngày bắt đầu</label>
+                        <input
+                            id="startDate"
+                            name="startDate"
+                            type="datetime-local"
+                            className="cp-input"
+                            value={formData.startDate}
+                            onChange={onChange}
+                        />
+                    </div>
+
+                    {/* 4. Trạng thái — readonly, luôn là "Hoạt động" khi tạo mới */}
+                    <div className="cp-form-group">
+                        <label htmlFor="status">Trạng thái</label>
+                        <input
+                            id="status"
+                            name="status"
+                            type="text"
+                            className="cp-input"
+                            value={formData.status}
+                            readOnly
+                        />
+                    </div>
+
+                    {formError && <p className="cp-form-error">{formError}</p>}
+
+                    <div className="cp-modal-actions">
+                        <button
+                            type="button"
+                            className="cp-btn cp-btn-outline"
+                            onClick={onClose}
+                            disabled={submitting}
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            className="cp-btn cp-btn-primary"
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Đang lưu...' : 'Đăng ký'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// Modal 2: Cập nhật thẻ
+// ─────────────────────────────────────────────
+function EditCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
+    const hasPlate = formData.plate && formData.plate.trim() !== '';
+
+    return (
+        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="cp-modal">
+                <div className="cp-modal-header">
+                    <h2>Cập nhật thẻ</h2>
+                    <button type="button" className="cp-modal-close" onClick={onClose}>
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form className="cp-modal-form" onSubmit={onSubmit}>
+                    <div className="cp-form-group">
+                        <label htmlFor="plate">Biển số xe</label>
+                        <input
+                            id="plate"
+                            name="plate"
+                            type="text"
+                            // readOnly
+                            placeholder="Ví dụ: 59G112345 (Nếu có)"
+                            className="cp-input"
+                            value={formData.plate}
+                            onChange={onChange}
+                        />
+                    </div>
+
+                    <div className="cp-form-group">
+                        <label>Thời gian vào</label>
+                        <input
+                            type="datetime-local"
+                            name="checkInTime"
+                            value={formData.checkInTime}
+                            onChange={onChange}
+                            className="cp-input"
+                            disabled={!hasPlate}
+                        />
+                    </div>
+
+                    <div className="cp-form-group">
+                        <label>Thời gian ra</label>
+                        <input
+                            type="datetime-local"
+                            name="checkOutTime"
+                            value={formData.checkOutTime}
+                            onChange={onChange}
+                            className="cp-input"
+                            disabled={!hasPlate}
+                        />
+                    </div>
+
+                    <div className="cp-form-group">
+                        <label>Trạng thái</label>
+                        <select
+                            name="status"
+                            value={formData.status}
+                            onChange={onChange}
+                            className="cp-select"
+                            disabled={!hasPlate}
+                        >
+                            <option value="Hoạt động">Hoạt động</option>
+                            <option value="Đang chờ">Đang chờ</option>
+                            <option value="Đã khóa">Đã khóa</option>
+                            <option value="Hết hạn">Hết hạn</option>
+                        </select>
+                    </div>
+
+                    {formError && <p className="cp-form-error">{formError}</p>}
+
+                    {!hasPlate && (
+                        <p style={{ color: '#f59e0b', fontSize: '14px', marginTop: '8px' }}>
+                            Thẻ chưa có biển số nên không thể chỉnh sửa thời gian vào, thời gian ra và trạng thái.
+                        </p>
+                    )}
+
+                    <div className="cp-modal-actions">
+                        <button
+                            type="button"
+                            className="cp-btn cp-btn-outline"
+                            onClick={onClose}
+                            disabled={submitting}
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            className="cp-btn cp-btn-primary"
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Đang lưu...' : 'Cập nhật'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────
+>>>>>>> Hieu
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -179,13 +382,104 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             setShowModal(false);
             await fetchCards(); // Tải lại bảng dữ liệu ngay lập tức
         } catch (err) {
+<<<<<<< HEAD
             console.error('Error creating card:', err);
             setFormError(err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
+=======
+            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi tạo thẻ.');
+>>>>>>> Hieu
         } finally {
             setSubmitting(false);
         }
     };
 
+<<<<<<< HEAD
+=======
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        setFormError(null);
+        const hasPlate = formData.plate && formData.plate.trim() !== '';
+        try {
+            setSubmitting(true);
+            await updateCard(editingCard.card_id, {
+                type: 'Thẻ lượt',
+                plate: formData.plate,
+                checkInTime: hasPlate ? formData.checkInTime : null,
+                checkOutTime: hasPlate ? formData.checkOutTime : null,
+                status: hasPlate ? formData.status : editingCard.status
+            });
+            showToast("Cập nhật thẻ thành công", "success");
+            setShowEditModal(false);
+            setEditingCard(null);
+            await fetchCards();
+        } catch (err) {
+            setFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // ── Filters & pagination (giữ nguyên) ────
+
+    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
+
+    const filteredCards = useMemo(() => cards.filter(card => {
+        const matchesSearch = search === '' ||
+            (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
+            (card.plate || '').toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter === 'Tất cả trạng thái' || card.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    }), [cards, search, statusFilter]);
+
+    useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
+
+    const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
+    const paginatedCards = filteredCards.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (currentPage > 3) pages.push('...');
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (currentPage < totalPages - 2) pages.push('...');
+            pages.push(totalPages);
+        }
+        return pages;
+    };
+
+    // ── Stats & donut (giữ nguyên) ────────────
+
+    const total = cards.length;
+    const active = cards.filter(c => c.status === 'Hoạt động').length;
+    const locked = cards.filter(c => c.status === 'Đã khóa').length;
+    const inactiveCount = total - active - locked;
+
+    const activePercent = total > 0 ? Math.round((active / total) * 100) : 0;
+    const lockedPercent = total > 0 ? Math.round((locked / total) * 100) : 0;
+    const inactivePercent = total > 0 ? Math.round((inactiveCount / total) * 100) : 0;
+
+    const circumference = 2 * Math.PI * 15.915;
+    const activeStroke = (activePercent / 100) * circumference;
+    const lockedStroke = (lockedPercent / 100) * circumference;
+    const inactiveStroke = (inactivePercent / 100) * circumference;
+
+    const getStatusBadgeClass = (status) => {
+        if (status === 'Hoạt động') return 'cp-status-badge cp-status-active';
+        if (status === 'Đã khóa') return 'cp-status-badge cp-status-locked';
+        return 'cp-status-badge cp-status-inactive';
+    };
+
+    // ── Render ────────────────────────────────
+
+>>>>>>> Hieu
     return (
         <main className="card-page" style={{ width: '100%' }}>
 
@@ -216,6 +510,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <option value="Thẻ tháng">Thẻ tháng</option>
                         </select>
                     </div>
+<<<<<<< HEAD
 
                     <div className="cardpage-filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <label style={{ fontSize: '0.85rem', color: '#555' }}>Trạng thái</label>
@@ -238,6 +533,24 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer', marginTop: '22px' }}
                     >
                         Làm mới bộ lọc
+=======
+                    <select className="cp-filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        <option value="Tất cả trạng thái">Tất cả trạng thái</option>
+                        <option value="Hoạt động">Hoạt động</option>
+                        <option value="Đang chờ">Đang chờ</option>
+                        <option value="Đã khóa">Đã khóa</option>
+                        <option value="Đã xóa">Đã xóa</option>
+                    </select>
+                </div>
+                <div className="cp-action-buttons">
+                    <button type="button" className="cp-btn cp-btn-outline" onClick={handleResetFilters}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
+                        Làm mới
+                    </button>
+                    <button type="button" className="cp-btn cp-btn-primary" onClick={handleCreateCard}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                        Đăng ký thẻ mới
+>>>>>>> Hieu
                     </button>
                 </div>
 
