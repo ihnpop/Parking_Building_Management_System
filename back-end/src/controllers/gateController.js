@@ -1,4 +1,5 @@
 import * as gateService from "../service/gateService.js";
+import * as ocrService from "../service/ocr.service.js";
 import supabase from "../config/supabaseClient.js";
 
 const BUCKET = "parking-images";
@@ -48,7 +49,7 @@ export const uploadImage = async (req, res) => {
 
 /**
  * POST /api/gate/ocr
- * Giả lập OCR nhận diện biển số xe từ hình ảnh tải lên.
+ * Nhận diện biển số xe thực tế từ hình ảnh tải lên sử dụng PaddleOCR qua ocrService.
  */
 export const simulateOCR = async (req, res) => {
   try {
@@ -57,17 +58,25 @@ export const simulateOCR = async (req, res) => {
       return res.status(400).json({ success: false, message: "Thiếu file biển số để OCR." });
     }
 
-    const plateNumber = await gateService.simulateOCR(file.originalname);
+    // Gọi dịch vụ OCR thực tế bằng PaddleOCR
+    const ocrResult = await ocrService.readPlate(file);
 
-    return res.status(200).json({
-      success: true,
-      plateNumber
-    });
+    if (ocrResult && ocrResult.success) {
+      return res.status(200).json({
+        success: true,
+        plateNumber: ocrResult.plate
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: ocrResult?.message || "Nhận dạng biển số không thành công."
+      });
+    }
   } catch (err) {
     console.error("gateController.simulateOCR error:", err);
     return res.status(500).json({
       success: false,
-      message: err.message || "Lỗi giả lập OCR."
+      message: err.message || "Lỗi xử lý OCR biển số."
     });
   }
 };
@@ -166,3 +175,38 @@ export const exitTap = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET /api/gate/stats?date=YYYY-MM-DD
+ */
+export const getStats = async (req, res) => {
+  try {
+    const dateStr = req.query.date || null; // 'YYYY-MM-DD' hoặc null (hôm nay)
+    const stats = await gateService.getStats(dateStr);
+    return res.status(200).json(stats);
+  } catch (err) {
+    console.error("gateController.getStats error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Lỗi lấy thống kê bãi xe."
+    });
+  }
+};
+
+/**
+ * GET /api/gate/sessions?date=YYYY-MM-DD
+ */
+export const getSessions = async (req, res) => {
+  try {
+    const dateStr = req.query.date || null; // 'YYYY-MM-DD' hoặc null (hôm nay)
+    const sessions = await gateService.getSessions(dateStr);
+    return res.status(200).json(sessions);
+  } catch (err) {
+    console.error("gateController.getSessions error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Lỗi lấy danh sách phiên gửi xe."
+    });
+  }
+};
+

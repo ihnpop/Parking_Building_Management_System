@@ -1,113 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-
-const statsData = {
-    month: {
-        revenue: '125.4M',
-        revenueTrend: '+12.5%',
-        revenueTrendUp: true,
-        inCount: '8,432',
-        inTrend: '+5.2%',
-        inTrendUp: true,
-        outCount: '8,105',
-        outTrend: '+4.8%',
-        outTrendUp: true,
-        newMonthCards: '145',
-        newCardsTrend: '-2.1%',
-        newCardsTrendUp: false,
-        chartData: {
-            revenuePath: 'M 100,240 C 200,160 300,160 400,190 C 500,220 600,110 700,140 C 800,160 900,120 1000,70',
-            trafficPath: 'M 100,260 C 200,210 300,200 400,230 C 500,250 600,170 700,190 C 800,220 900,180 1000,130',
-            points: [
-                { x: 175, rev: '82K', tra: '1.2K', label: 'T1' },
-                { x: 325, rev: '95K', tra: '1.45K', label: 'T2' },
-                { x: 475, rev: '110K', tra: '1.65K', label: 'T3' },
-                { x: 625, rev: '98K', tra: '1.55K', label: 'T4' },
-                { x: 775, rev: '130K', tra: '2.05K', label: 'T5' },
-                { x: 925, rev: '142K', tra: '2.4K', label: 'T6' }
-            ]
-        },
-        transactions: [
-            { id: '#TXN-8439', plate: '30A-123.45', type: 'Ô tô con', time: '10:45 - 24/10/2023', amount: '50.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8438', plate: '29C-678.90', type: 'Ô tô con', time: '10:42 - 24/10/2023', amount: '70.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8437', plate: '59X1-555.55', type: 'Xe máy', time: '10:30 - 24/10/2023', amount: '5.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8436', plate: '30H-992.18', type: 'Xe máy', time: '09:55 - 24/10/2023', amount: '5.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8435', plate: '51F-102.93', type: 'Ô tô con', time: '09:12 - 24/10/2023', amount: '60.000đ', status: 'Hoàn thành' }
-        ]
-    },
-    week: {
-        revenue: '31.2M',
-        revenueTrend: '+8.4%',
-        revenueTrendUp: true,
-        inCount: '2,110',
-        inTrend: '+3.1%',
-        inTrendUp: true,
-        outCount: '2,045',
-        outTrend: '+2.9%',
-        outTrendUp: true,
-        newMonthCards: '38',
-        newCardsTrend: '+4.5%',
-        newCardsTrendUp: true,
-        chartData: {
-            revenuePath: 'M 100,220 C 200,180 300,140 400,170 C 500,200 600,120 700,90 C 800,110 900,130 1000,80',
-            trafficPath: 'M 100,240 C 200,210 300,180 400,200 C 500,220 600,160 700,130 C 800,150 900,160 1000,110',
-            points: [
-                { x: 160, rev: '25K', tra: '0.6K', label: 'Thứ 2' },
-                { x: 290, rev: '40K', tra: '0.9K', label: 'Thứ 3' },
-                { x: 420, rev: '35K', tra: '0.8K', label: 'Thứ 4' },
-                { x: 550, rev: '30K', tra: '0.7K', label: 'Thứ 5' },
-                { x: 680, rev: '55K', tra: '1.2K', label: 'Thứ 6' },
-                { x: 810, rev: '50K', tra: '1.1K', label: 'Thứ 7' },
-                { x: 940, rev: '60K', tra: '1.3K', label: 'Chủ Nhật' }
-            ]
-        },
-        transactions: [
-            { id: '#TXN-8439', plate: '30A-123.45', type: 'Ô tô con', time: '10:45 - 24/10/2023', amount: '50.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8438', plate: '29C-678.90', type: 'Xe tải nhẹ', time: '10:42 - 24/10/2023', amount: '70.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8437', plate: '59X1-555.55', type: 'Xe máy', time: '10:30 - 24/10/2023', amount: '5.000đ', status: 'Hoàn thành' }
-        ]
-    },
-    day: {
-        revenue: '4.8M',
-        revenueTrend: '+15.2%',
-        revenueTrendUp: true,
-        inCount: '320',
-        inTrend: '+8.5%',
-        inTrendUp: true,
-        outCount: '305',
-        outTrend: '+7.4%',
-        outTrendUp: true,
-        newMonthCards: '6',
-        newCardsTrend: '0.0%',
-        newCardsTrendUp: true,
-        chartData: {
-            revenuePath: 'M 100,260 C 200,220 300,180 400,190 C 500,160 600,100 700,110 C 800,140 900,90 1000,60',
-            trafficPath: 'M 100,280 C 200,240 300,200 400,210 C 500,190 600,130 700,140 C 800,170 900,120 1000,90',
-            points: [
-                { x: 160, rev: '10K', tra: '0.1K', label: '00:00' },
-                { x: 290, rev: '15K', tra: '0.2K', label: '04:00' },
-                { x: 420, rev: '30K', tra: '0.4K', label: '08:00' },
-                { x: 550, rev: '45K', tra: '0.6K', label: '12:00' },
-                { x: 680, rev: '55K', tra: '0.8K', label: '16:00' },
-                { x: 810, rev: '60K', tra: '0.9K', label: '20:00' },
-                { x: 940, rev: '75K', tra: '1.1K', label: '23:59' }
-            ]
-        },
-        transactions: [
-            { id: '#TXN-8439', plate: '30A-123.45', type: 'Ô tô con', time: '10:45 - 24/10/2023', amount: '50.000đ', status: 'Hoàn thành' },
-            { id: '#TXN-8438', plate: '29C-678.90', type: 'Xe tải nhẹ', time: '10:42 - 24/10/2023', amount: '70.000đ', status: 'Hoàn thành' }
-        ]
-    }
-};
+import { getParkingStats, getParkingSessions } from '../../../service/parkingApi';
 
 export default function OccupancyChart() {
     const { user, userRole, logout } = useAuth();
-    const [selectedPeriod, setSelectedPeriod] = useState('month');
     const [showDropdown, setShowDropdown] = useState(false);
-    const [tooltip, setTooltip] = useState(null);
     const dropdownRef = useRef(null);
     const navigate = useNavigate();
+
+    // Stats & Sessions state
+    const [stats, setStats] = useState({ insideCount: 0, inCount: 0, outCount: 0 });
+    const [sessions, setSessions] = useState([]);
+    const [filterType, setFilterType] = useState('ALL'); // 'ALL', 'INSIDE', 'OUT'
+    const [now, setNow] = useState(new Date());
+    const [loading, setLoading] = useState(false);
+    // selectedDate: 'YYYY-MM-DD' theo giờ địa phương GMT+7
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const [selectedDate, setSelectedDate] = useState(todayStr);
 
     const getRoleLabel = (r) => {
         if (!r) return 'Nhân viên';
@@ -119,7 +29,70 @@ export default function OccupancyChart() {
         }
     };
 
-    const currentData = statsData[selectedPeriod];
+    const fetchStats = async (dateStr) => {
+        try {
+            const statsRes = await getParkingStats(dateStr);
+            console.log('[OccupancyChart] statsRes:', statsRes);
+            if (statsRes.success) {
+                setStats({
+                    insideCount: statsRes.insideCount || 0,
+                    inCount: statsRes.inCount || 0,
+                    outCount: statsRes.outCount || 0
+                });
+            }
+        } catch (err) {
+            console.error('[OccupancyChart] Error fetching stats:', err?.response?.data || err.message);
+        }
+    };
+
+    const fetchSessions = async (dateStr) => {
+        try {
+            const sessionsRes = await getParkingSessions(dateStr);
+            console.log('[OccupancyChart] sessionsRes:', sessionsRes);
+            if (sessionsRes.success) {
+                setSessions(sessionsRes.sessions || []);
+            }
+        } catch (err) {
+            console.error('[OccupancyChart] Error fetching sessions:', err?.response?.data || err.message);
+        }
+    };
+
+    const fetchData = async (dateStr) => {
+        setLoading(true);
+        await Promise.allSettled([fetchStats(dateStr), fetchSessions(dateStr)]);
+        setLoading(false);
+    };
+
+    // Mount logic: load data + auto-refresh polling every 30s + clock every 1s + refresh on tab focus
+    useEffect(() => {
+        fetchData(selectedDate);
+
+        // Auto-refresh mỗi 30 giây với ngày đang chọn
+        const dataPoll = setInterval(() => {
+            fetchSessions(selectedDate);
+            fetchStats(selectedDate);
+        }, 30000);
+
+        // Clock tick every 1 second
+        const clockTick = setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+
+        // Refresh immediately when user returns to this tab/page
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchData(selectedDate);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearInterval(dataPoll);
+            clearInterval(clockTick);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [selectedDate]); // Re-run khi ngày thay đổi
+
 
     // Close dropdown on click outside
     useEffect(() => {
@@ -155,12 +128,45 @@ export default function OccupancyChart() {
             <header className="stats-top-bar">
                 <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
                     <span className="material-symbols-outlined">arrow_back</span>
-                    Thoát
+                    Quay lại
                 </button>
-                <h1 className="stats-page-title">Thống kê tổng quát</h1>
+                <h1 className="stats-page-title">Thống kê hoạt động bãi xe</h1>
                 <div className="stats-header-right">
-                    <button className="stats-bell-btn">
-                        <span className="material-symbols-outlined">notifications</span>
+                    {/* Date Picker */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '6px 12px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'inherit', opacity: 0.85 }}>calendar_today</span>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            max={todayStr}
+                            onChange={(e) => {
+                                if (e.target.value) setSelectedDate(e.target.value);
+                            }}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                outline: 'none',
+                                color: 'inherit',
+                                fontSize: 14,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                colorScheme: 'dark'
+                            }}
+                        />
+                        {selectedDate !== todayStr && (
+                            <button
+                                type="button"
+                                onClick={() => setSelectedDate(todayStr)}
+                                title="Quay về hôm nay"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
+                            </button>
+                        )}
+                    </div>
+
+                    <button className="stats-bell-btn" onClick={() => fetchData(selectedDate)} title="Làm mới dữ liệu">
+                        <span className="material-symbols-outlined" style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }}>refresh</span>
                     </button>
 
                     <div className="avatar-wrapper" ref={dropdownRef}>
@@ -191,248 +197,170 @@ export default function OccupancyChart() {
                 </div>
             </header>
 
+            <div className="stats-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' }}>
+                
+                {/* 3 Stats Cards Grid */}
+                <div className="stats-grid">
+                    <article className="stat-card">
+                        <div className="stat-card-text">
+                            <p className="stat-label">Số lượng xe trong bãi</p>
+                            <p className="stat-value">{stats.insideCount}</p>
+                        </div>
+                        <div className="stat-icon stat-icon-primary">
+                            <span className="material-symbols-outlined">local_parking</span>
+                        </div>
+                    </article>
+                    <article className="stat-card">
+                        <div className="stat-card-text">
+                            <p className="stat-label">Xe đã vào</p>
+                            <p className="stat-value">{stats.inCount}</p>
+                        </div>
+                        <div className="stat-icon stat-icon-secondary">
+                            <span className="material-symbols-outlined">login</span>
+                        </div>
+                    </article>
+                    <article className="stat-card">
+                        <div className="stat-card-text">
+                            <p className="stat-label">Xe đã ra</p>
+                            <p className="stat-value">{stats.outCount}</p>
+                        </div>
+                        <div className="stat-icon stat-icon-tertiary">
+                            <span className="material-symbols-outlined">logout</span>
+                        </div>
+                    </article>
+                </div>
 
-            <div className="stats-container">
-                {/* Time Range Filter Card */}
-                <div className="filter-card">
-                    <div className="filter-group">
-                        <label className="filter-label">Khoảng thời gian</label>
-                        <div className="select-input-wrapper">
-                            <span className="material-symbols-outlined select-calendar-icon">calendar_today</span>
-                            <select
-                                className="filter-select"
-                                value={selectedPeriod}
-                                onChange={(e) => setSelectedPeriod(e.target.value)}
+                {/* Real-time Parking Sessions List Card */}
+                <div className="system-sessions-card">
+                    <header className="system-sessions-header">
+                        <h3>
+                            <span className="material-symbols-outlined">analytics</span>
+                            Danh sách hoạt động bãi xe
+                        </h3>
+                        <div className="system-sessions-filters">
+                            <button
+                                type="button"
+                                className={`filter-btn ${filterType === 'ALL' ? 'active' : ''}`}
+                                onClick={() => setFilterType('ALL')}
                             >
-                                <option value="day">Hôm nay</option>
-                                <option value="week">Tuần này</option>
-                                <option value="month">Tháng này</option>
-                            </select>
+                                Tất cả
+                            </button>
+                            <button
+                                type="button"
+                                className={`filter-btn ${filterType === 'INSIDE' ? 'active' : ''}`}
+                                onClick={() => setFilterType('INSIDE')}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>login</span>
+                                Xe đang gửi
+                            </button>
+                            <button
+                                type="button"
+                                className={`filter-btn ${filterType === 'OUT' ? 'active' : ''}`}
+                                onClick={() => setFilterType('OUT')}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>logout</span>
+                                Xe đã ra
+                            </button>
                         </div>
-                    </div>
-                    <button className="filter-btn">
-                        <span className="material-symbols-outlined">filter_list</span>
-                        Lọc dữ liệu
-                    </button>
-                </div>
-
-                {/* 4 Stats Cards Grid */}
-                <div className="stats-cards-grid">
-                    {/* Revenue Card */}
-                    <div className="stat-overview-card">
-                        <div className="stat-card-main">
-                            <div>
-                                <p className="stat-card-title">TỔNG DOANH THU</p>
-                                <h2 className="stat-card-value">{currentData.revenue}</h2>
-                            </div>
-                            <div className="stat-card-icon-wrapper wallet-bg">
-                                <span className="material-symbols-outlined text-orange">account_balance_wallet</span>
-                            </div>
-                        </div>
-                        <div className="stat-card-footer">
-                            <span className={`trend-tag ${currentData.revenueTrendUp ? 'trend-up' : 'trend-down'}`}>
-                                {currentData.revenueTrendUp ? '▲' : '▼'} {currentData.revenueTrend}
-                            </span>
-                            <span className="trend-lbl">vs tháng trước</span>
-                        </div>
-                    </div>
-
-                    {/* Entries Card */}
-                    <div className="stat-overview-card">
-                        <div className="stat-card-main">
-                            <div>
-                                <p className="stat-card-title">LƯỢT XE VÀO</p>
-                                <h2 className="stat-card-value">{currentData.inCount}</h2>
-                            </div>
-                            <div className="stat-card-icon-wrapper login-bg">
-                                <span className="material-symbols-outlined text-blue">login</span>
-                            </div>
-                        </div>
-                        <div className="stat-card-footer">
-                            <span className={`trend-tag ${currentData.inTrendUp ? 'trend-up' : 'trend-down'}`}>
-                                {currentData.inTrendUp ? '▲' : '▼'} {currentData.inTrend}
-                            </span>
-                            <span className="trend-lbl">vs tháng trước</span>
-                        </div>
-                    </div>
-
-                    {/* Exits Card */}
-                    <div className="stat-overview-card">
-                        <div className="stat-card-main">
-                            <div>
-                                <p className="stat-card-title">LƯỢT XE RA</p>
-                                <h2 className="stat-card-value">{currentData.outCount}</h2>
-                            </div>
-                            <div className="stat-card-icon-wrapper logout-bg">
-                                <span className="material-symbols-outlined text-red">logout</span>
-                            </div>
-                        </div>
-                        <div className="stat-card-footer">
-                            <span className={`trend-tag ${currentData.outTrendUp ? 'trend-up' : 'trend-down'}`}>
-                                {currentData.outTrendUp ? '▲' : '▼'} {currentData.outTrend}
-                            </span>
-                            <span className="trend-lbl">vs tháng trước</span>
-                        </div>
-                    </div>
-
-                    {/* Month Card Registers Card */}
-                    <div className="stat-overview-card">
-                        <div className="stat-card-main">
-                            <div>
-                                <p className="stat-card-title">VÉ THÁNG ĐĂNG KÝ MỚI</p>
-                                <h2 className="stat-card-value">{currentData.newMonthCards}</h2>
-                            </div>
-                            <div className="stat-card-icon-wrapper monitor-bg">
-                                <span className="material-symbols-outlined text-purple">desktop_windows</span>
-                            </div>
-                        </div>
-                        <div className="stat-card-footer">
-                            <span className={`trend-tag ${currentData.newCardsTrendUp ? 'trend-up' : 'trend-down'}`}>
-                                {currentData.newCardsTrendUp ? '▲' : '▼'} {currentData.newCardsTrend}
-                            </span>
-                            <span className="trend-lbl">vs tháng trước</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="chart-panel-card">
-                    <div className="chart-panel-header">
-                        <h3>Biểu đồ Doanh thu & Lưu lượng</h3>
-                        <a href="#details" className="details-link" onClick={(e) => e.preventDefault()}>Xem chi tiết</a>
-                    </div>
-
-                    <div className="chart-svg-container">
-                        <svg className="analytics-svg" viewBox="0 0 1100 420" preserveAspectRatio="none" style={{ width: '100%', height: 'auto', display: 'block' }}>
-                            {/* Grid Lines & Labels */}
-                            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => {
-                                const y = 350 - (i * 35); // Range = 280px. 350 is 0, 70 is max
-                                return (
-                                    <g key={`grid-${i}`}>
-                                        <line x1="120" y1={y} x2="980" y2={y} stroke="rgba(238, 236, 236, 1)" strokeWidth="1" />
-                                        <text x="110" y={y + 5} fill="#6b7280" fontSize="13" textAnchor="end">{i * 20}K</text>
-                                        <text x="990" y={y + 5} fill="#6b7280" fontSize="13" textAnchor="start">{(i * 2.5 / 8).toFixed(1)}K</text>
-                                    </g>
-                                );
-                            })}
-
-                            {/* Left Axis Title */}
-                            <text x="30" y="210" fill="#888" fontSize="14" transform="rotate(-90 30 210)" textAnchor="middle">Revenue (S$)</text>
-                            {/* Right Axis Title */}
-                            <text x="1060" y="210" fill="#888" fontSize="14" transform="rotate(90 1060 210)" textAnchor="middle">Traffic (Units)</text>
-
-                            {/* Bars */}
-                            {currentData.chartData.points.map((pt, index) => {
-                                const BASELINE = 350;
-                                const BAR_WIDTH = 38;
-                                const GAP = 2;
-                                const RANGE_Y = 280;
-
-                                // Extract value from string (e.g., "82K" -> 82)
-                                const revValue = parseFloat(pt.rev.replace('K', '')) || 0;
-                                const traValue = parseFloat(pt.tra.replace('K', '')) || 0;
-
-                                // Calculate heights relative to 160K max revenue and 2.5K max traffic
-                                const revenueHeight = Math.max((revValue / 160) * RANGE_Y, 0);
-                                const trafficHeight = Math.max((traValue / 2.5) * RANGE_Y, 0);
-
-                                const revenueX = pt.x - BAR_WIDTH - GAP;
-                                const trafficX = pt.x + GAP;
-
-                                return (
-                                    <g key={index}>
-                                        {/* Cột Doanh thu */}
-                                        <rect
-                                            x={revenueX}
-                                            y={BASELINE - revenueHeight}
-                                            width={BAR_WIDTH}
-                                            height={revenueHeight}
-                                            fill="#d84315"
-                                            style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
-                                            onMouseEnter={() => setTooltip({ x: revenueX + BAR_WIDTH / 2, y: BASELINE - revenueHeight - 35, value: pt.rev })}
-                                            onMouseLeave={() => setTooltip(null)}
-                                        />
-                                        {/* Cột Lưu lượng */}
-                                        <rect
-                                            x={trafficX}
-                                            y={BASELINE - trafficHeight}
-                                            width={BAR_WIDTH}
-                                            height={trafficHeight}
-                                            fill="#2563eb"
-                                            style={{ cursor: 'pointer', transition: 'opacity 0.2s' }}
-                                            onMouseEnter={() => setTooltip({ x: trafficX + BAR_WIDTH / 2, y: BASELINE - trafficHeight - 35, value: pt.tra })}
-                                            onMouseLeave={() => setTooltip(null)}
-                                        />
-
-                                        {/* X-axis labels */}
-                                        <text x={pt.x} y="380" fill="#888" fontSize="14" textAnchor="middle">{pt.label}</text>
-                                    </g>
-                                );
-                            })}
-
-                            {/* Tooltip Overlay */}
-                            {tooltip && (
-                                <g transform={`translate(${tooltip.x}, ${tooltip.y})`} style={{ pointerEvents: 'none' }}>
-                                    <rect x="-24" y="0" width="48" height="26" fill="rgba(30,30,30,0.95)" rx="4" stroke="#444" strokeWidth="1" />
-                                    <text x="0" y="18" fill="#fff" fontSize="13" fontWeight="bold" textAnchor="middle">{tooltip.value}</text>
-                                </g>
-                            )}
-                        </svg>
-                    </div>
-                    <div className="chart-legend-box">
-                        <div className="legend-item">
-                            <span className="legend-dot red-dot"></span>
-                            <span>Doanh thu (Revenue)</span>
-                        </div>
-                        <div className="legend-item">
-                            <span className="legend-dot blue-dot"></span>
-                            <span>Lưu lượng (Traffic)</span>
-                        </div>
-                    </div>
-                </div>
-                {/* Transactions Table Panel */}
-                <div className="table-panel-card">
-                    <div className="table-panel-header">
-                        <h3>Giao dịch gần đây</h3>
-                    </div>
-
-                    <div className="stats-table-wrapper">
-                        <table className="stats-table">
+                    </header>
+                    <div className="system-sessions-table-wrapper">
+                        <table className="system-sessions-table">
                             <thead>
                                 <tr>
-                                    <th>MÃ GD</th>
-                                    <th>BIỂN SỐ</th>
-                                    <th>LOẠI XE</th>
-                                    <th>THỜI GIAN</th>
-                                    <th>SỐ TIỀN</th>
-                                    <th>TRẠNG THÁI</th>
+                                    <th>STT</th>
+                                    <th>Biển số xe</th>
+                                    <th>Loại vé / Thẻ</th>
+                                    <th>Thời gian vào</th>
+                                    <th>Thời gian ra</th>
+                                    <th>Thời gian gửi</th>
+                                    <th>Trạng thái</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {currentData.transactions.map((txn) => (
-                                    <tr key={txn.id}>
-                                        <td className="txn-id-col">{txn.id}</td>
-                                        <td className="font-semibold">{txn.plate}</td>
-                                        <td>{txn.type}</td>
-                                        <td className="text-gray-500">{txn.time}</td>
-                                        <td className="font-semibold text-gray-800">{txn.amount}</td>
-                                        <td>
-                                            <span className="status-tag success">
-                                                {txn.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {(() => {
+                                    const filtered = sessions.filter(session => {
+                                        if (filterType === 'INSIDE') return session.status === 'Đang gửi xe';
+                                        if (filterType === 'OUT') return session.status === 'Hoàn thành';
+                                        return true;
+                                    });
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <tr>
+                                                <td colSpan="7" style={{ textAlign: 'center', color: '#64748b', padding: '24px 0' }}>
+                                                    Không có dữ liệu phiên gửi xe nào phù hợp.
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                    return filtered.map((session, index) => {
+                                        const isInside = session.status === 'Đang gửi xe';
+                                        
+                                        // Calculate duration in ms
+                                        let durationMs = 0;
+                                        if (isInside) {
+                                            let entryTimeStr = session.entry_time;
+                                            if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                                                entryTimeStr += "Z";
+                                            }
+                                            durationMs = now.getTime() - new Date(entryTimeStr).getTime();
+                                        } else {
+                                            let entryTimeStr = session.entry_time;
+                                            let exitTimeStr = session.exit_time;
+                                            if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                                                entryTimeStr += "Z";
+                                            }
+                                            if (typeof exitTimeStr === "string" && !exitTimeStr.endsWith("Z") && !exitTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                                                exitTimeStr += "Z";
+                                            }
+                                            durationMs = new Date(exitTimeStr).getTime() - new Date(entryTimeStr).getTime();
+                                        }
+                                        
+                                        // Format duration
+                                        if (durationMs < 0) durationMs = 0;
+                                        const seconds = Math.floor((durationMs / 1000) % 60);
+                                        const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+                                        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                                        const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                                        return (
+                                            <tr key={session.session_id}>
+                                                <td>{index + 1}</td>
+                                                <td style={{ fontWeight: 'bold', color: '#1e293b' }}>{session.plate_number}</td>
+                                                <td>
+                                                    {session.card ? (
+                                                        <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
+                                                            <strong>{session.card.code}</strong>
+                                                            <span style={{ fontSize: 11, color: '#64748b' }}>{session.card.type}</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ color: '#94a3b8' }}>Không rõ thẻ</span>
+                                                    )}
+                                                </td>
+                                                <td>{new Date(session.entry_time).toLocaleString('vi-VN')}</td>
+                                                <td>{session.exit_time ? new Date(session.exit_time).toLocaleString('vi-VN') : '-- : --'}</td>
+                                                <td>
+                                                    <div className={`realtime-timer ${isInside ? '' : 'stopped'}`}>
+                                                        <span className="material-symbols-outlined timer-icon">
+                                                            {isInside ? 'schedule' : 'hourglass_empty'}
+                                                        </span>
+                                                        {durationStr}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`session-status-badge ${isInside ? 'inside' : 'out'}`}>
+                                                        <span className="badge-dot"></span>
+                                                        {isInside ? 'Đang gửi' : 'Đã ra'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    });
+                                })()}
                             </tbody>
                         </table>
                     </div>
-
-                    <div className="table-panel-footer">
-                        <button className="view-all-btn">
-                            Xem tất cả
-                            <span className="material-symbols-outlined">arrow_right_alt</span>
-                        </button>
-                    </div>
                 </div>
+
             </div>
         </section >
     );

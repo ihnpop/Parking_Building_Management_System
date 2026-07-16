@@ -44,13 +44,14 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
 
     return (
         <div className={`layout ${sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`}>
-            {/* Đã truyền đầy đủ hai thuộc tính điều khiển thu mở vào Sidebar */}
-            <Sidebar
-                activeTab={activeViewTab}
-                onTabChange={handleTabChange}
-                isCollapsed={sidebarCollapsed}
-                setIsCollapsed={setSidebarCollapsed}
-            />
+            {role !== 'STAFF' && (
+                <Sidebar
+                    activeTab={activeViewTab}
+                    onTabChange={handleTabChange}
+                    isCollapsed={sidebarCollapsed}
+                    setIsCollapsed={setSidebarCollapsed}
+                />
+            )}
 
             <div className="main">
                 {activeViewTab !== 'settings' && (
