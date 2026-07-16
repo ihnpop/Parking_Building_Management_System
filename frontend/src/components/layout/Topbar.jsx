@@ -60,7 +60,7 @@ export default function Topbar({ title, showExtras = false, currentTab }) {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            color: '#ff6b00',
+                            color: 'var(--primary, #2563eb)',
                             padding: '4px',
                             borderRadius: '50%',
                             transition: 'background 0.2s',

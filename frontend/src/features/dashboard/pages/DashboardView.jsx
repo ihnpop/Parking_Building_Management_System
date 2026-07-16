@@ -59,7 +59,7 @@ export default function DashboardView() {
     }, [userRole, currentView]);
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
-    const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
+    const [activeLogTab, setActiveLogTab] = useState('Mất thẻ');
     const [selectedPeriod, setSelectedPeriod] = useState('30 ngày qua');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -172,12 +172,16 @@ export default function DashboardView() {
             {currentView === 'log-management' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
+<<<<<<< HEAD
                         {renderTabButton('Nhật ký quẹt thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
+=======
+                        {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Mất thẻ', () => setActiveLogTab('Mất thẻ'))}
+>>>>>>> deploy
                         {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
                         {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
                     </div>
                     <div style={{ marginTop: '5px' }}>
-                        {activeLogTab === 'Quẹt thẻ' && <LostCardLogPage />}
+                        {activeLogTab === 'Mất thẻ' && <LostCardLogPage />}
                         {activeLogTab === 'Vé tháng' && <MonthCardLogPage />}
                         {activeLogTab === 'Đăng nhập' && <LoginLogPage />}
                     </div>

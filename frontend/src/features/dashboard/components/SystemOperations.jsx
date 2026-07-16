@@ -6,36 +6,38 @@ import {
     entryGate,
     preCheckExitGate,
     exitGate,
-    getParkingStats
+    getParkingStats,
+    getParkingSessions
 } from '../../../service/parkingApi';
 import { createCheckoutPayment } from '../../../service/paymentApi';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
+import { useNotification } from '../../../context/NotificationContext';
 
 const cameraCards = [
     {
         id: 'vehicleImage',
-        title: 'Camera 01 - Toàn cảnh IN',
+        title: 'Camera 01 - Toàn cảnh VÀO',
         image:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuDM7hJvEzwj5N8Ecltn_8mNmwCmHC40GPQLUzrPpYJ3Tljm187mQfYN7L2m5AQPX-Z23j1SiukOmWd5mZYS3zwDxGw4zGLe-aLWV6n3yP73FpIXiraqm_cL0Bsy4dN7KpnJQ1SWrczGDUq8JFEQfBzQSLPHpZbEVZyMlaP9VA75RK12SP-5oXHNPf5wNWvnd6Ni7pD_m5VR7e0bfHXaTvRnvwsnV7yzY92x1E-qo4kdpJp473Clxs7tzSKXNTz_tDSx953gGoukxvk',
         badgeClass: 'camera-badge-record',
     },
     {
         id: 'plateImage',
-        title: 'Camera 02 - Biển số IN',
+        title: 'Camera 02 - Biển số VÀO',
         image:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuBY_qQ9w1hTwomzRMVxQ_cRALiO7poUpyGH1d3L0BBc0z08g2A6uhN9AdQexl9JYb6VtLi2iuOqTbW3DSJotPZxrJllI0aHC5CPNpLQTmD8UIekVaSmP79O8332EpfIlwC1L22wcXGMvEmYrBRIGbaGtSZGflODD7zMesEs_nUSi8ncvTapJXU9_ntgQdVTCK2CposjUZXTOC40qJ4OMb_eccDmW7JE2u59YBJxOp_x_Mz97TbHeh_hwM1Oczzwci2Qmyhd0XFTHno',
     },
     {
         id: 'camera3',
-        title: 'Camera 03 - Toàn cảnh OUT',
+        title: 'Camera 03 - Toàn cảnh RA',
         image:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuB1utp_U-WKcOZcqCWl6rsHwW8kbASOtTw-vaMhAXERRCZZJm_e2ID2rxbr2zJLynsq0_FL_FHGiGQmxl4wHqA-Ucn3socPr0SK3g0C3yYR-j52-rjoyYe-upJtUXBGHJGLzvuf9l21-GFQ76XBhf1upX4OhAneef7Rg9UdMz0PGryoBCMISIAEhfFc-2N_FjpDI85Rap0ZWoZ69pV5DFYw45Zoq0Ia3er1pH-lQsAxdBPLMIBktImLUiGSL-80wfLmNrtgzTlA-jw',
     },
     {
         id: 'camera4',
-        title: 'Camera 04 - Biển số OUT',
+        title: 'Camera 04 - Biển số RA',
         image:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuDJCOcqayYGfaWqXDR4TjBRcDUAGQyuvhkTCQ3r2Ivprb_szJonOqtBHW-ICNPYfFv97j3bVpHhH-WnSA4aS2MCIYAuo40ZbNe02ndW35ycuxzb_SF9PEYBs5oL0UVMatcLg6wI6fohgpgo1GWmXT4eX2ujtuTCWlPYYZBc88zmIKNCnhQ8mGiDg5muXtxL4-loBashck6sklVinfS5HN2mCsxrgS2gT725B0SaQ6_FovbCcTfINamNS7eRSyYTR8rsROnXGYm3pdU',
     },
@@ -44,12 +46,12 @@ const cameraCards = [
 
 const actionShortcuts = [
     { label: 'F1', text: 'Thống kê', primary: false },
-    { label: 'F2', text: 'Báo Cáo', primary: false },
-    { label: 'ENTER', text: 'Xác nhận', primary: true },
+    { label: 'F2', text: 'Báo cáo', primary: false },
 ]
 
 
 export default function SystemOperations() {
+    const { showToast } = useNotification();
     // ── Mode State ───────────────────────────────────────────────────────────
     const [mode, setMode] = useState('IN'); // 'IN' or 'OUT'
 
@@ -85,8 +87,33 @@ export default function SystemOperations() {
     const [loading, setLoading] = useState(false);
     const [hoveredCamera, setHoveredCamera] = useState(null);
     const [lastSession, setLastSession] = useState(null);
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [stats, setStats] = useState({ insideCount: 0, inCount: 0, outCount: 0 });
+    const [recentSessions, setRecentSessions] = useState([]);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    const fetchRecentSessions = async () => {
+        try {
+            const data = await getParkingSessions();
+            if (data.success) {
+                const sorted = (data.sessions || []).sort((a, b) => {
+                    const timeA = new Date(a.exit_time || a.entry_time).getTime();
+                    const timeB = new Date(b.exit_time || b.entry_time).getTime();
+                    return timeB - timeA;
+                });
+                setRecentSessions(sorted.slice(0, 3));
+            }
+        } catch (err) {
+            console.error("Error fetching recent sessions:", err);
+        }
+    };
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const fetchStats = async () => {
         try {
             const data = await getParkingStats();
@@ -124,11 +151,7 @@ export default function SystemOperations() {
                     .maybeSingle();
 
                 if (data && !data.building_id) {
-                    setToast({
-                        show: true,
-                        message: 'Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out.',
-                        type: 'error'
-                    });
+                    showToast('Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out.', 'error');
                 }
             } catch (err) {
                 console.error("Error checking building assignment:", err);
@@ -138,12 +161,6 @@ export default function SystemOperations() {
     }, [user]);
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        if (type !== 'error') {
-            setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 5000);
-        }
-    };
 
     const resetInForm = () => {
         setPlateNumber('');
@@ -276,6 +293,7 @@ export default function SystemOperations() {
                 });
                 resetInForm();
                 fetchStats();
+                fetchRecentSessions();
             } else {
                 showToast(result.message || 'Check in thất bại.', 'error');
             }
@@ -328,6 +346,7 @@ export default function SystemOperations() {
                 });
                 resetOutForm();
                 fetchStats();
+                fetchRecentSessions();
             } else {
                 showToast(result.message || 'Check out thất bại.', 'error');
             }
@@ -385,10 +404,30 @@ export default function SystemOperations() {
     };
     useEffect(() => {
         fetchStats();
+        fetchRecentSessions();
     }, []);
+    const latestHandlersRef = useRef({
+        handleCheckInSubmit,
+        handleCheckOutSubmit,
+        handlePreCheck,
+        mode,
+        plateNumber,
+        preCheckResult
+    });
+
+    useEffect(() => {
+        latestHandlersRef.current = {
+            handleCheckInSubmit,
+            handleCheckOutSubmit,
+            handlePreCheck,
+            mode,
+            plateNumber,
+            preCheckResult
+        };
+    });
+
     useEffect(() => {
         const handleKeyDown = (event) => {
-
             if (event.key === 'F1') {
                 event.preventDefault();
                 navigate('/login/dashboard/OccupancyChart');
@@ -400,11 +439,23 @@ export default function SystemOperations() {
 
             if (event.key === 'Enter') {
                 event.preventDefault();
+                const {
+                    handleCheckInSubmit: latestCheckIn,
+                    handleCheckOutSubmit: latestCheckOut,
+                    handlePreCheck: latestPreCheck,
+                    mode: currentMode,
+                    plateNumber: currentPlate,
+                    preCheckResult: currentPreCheck
+                } = latestHandlersRef.current;
 
-                if (mode === 'IN') {
-                    handleCheckInSubmit();
+                if (currentPreCheck) {
+                    if (currentMode === 'IN') {
+                        latestCheckIn();
+                    } else {
+                        latestCheckOut();
+                    }
                 } else {
-                    handleCheckOutSubmit();
+                    latestPreCheck(currentPlate);
                 }
             }
         };
@@ -414,7 +465,7 @@ export default function SystemOperations() {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [navigate, mode]);
+    }, [navigate]);
     return (
         <div className="system-page">
             {/* Hidden File Inputs for uploads */}
@@ -513,27 +564,7 @@ export default function SystemOperations() {
                 style={{ display: 'none' }}
             />
 
-            {toast.show && (
-                <div className="parking-alert-container">
-                    <div className={`parking-alert parking-alert-${toast.type}`}>
-                        <div className="parking-alert-body">
-                            <div className="parking-alert-icon-bg">
-                                <span className="material-symbols-outlined">
-                                    {toast.type === 'error' ? 'error' : 'check_circle'}
-                                </span>
-                            </div>
-                            <span className="parking-alert-text">{toast.message}</span>
-                        </div>
-                        <button
-                            type="button"
-                            className="parking-alert-close"
-                            onClick={() => setToast({ show: false, message: '', type: 'success' })}
-                        >
-                            <span className="material-symbols-outlined">close</span>
-                        </button>
-                    </div>
-                </div>
-            )}
+
 
             <main className="system-content">
                 <section className="stats-grid">
@@ -746,7 +777,7 @@ export default function SystemOperations() {
                             }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>login</span>
-                            XE VÀO (CHECK-IN)
+                            XE VÀO
                         </button>
                         <button
                             type="button"
@@ -778,7 +809,7 @@ export default function SystemOperations() {
                             }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
-                            XE RA (CHECK-OUT)
+                            XE RA
                         </button>
                     </div>
 
@@ -806,255 +837,95 @@ export default function SystemOperations() {
                             }}
                         />
 
-                        {/* Biểu thị thông tin xe sau khi precheck */}
-                        {preCheckResult && (
-                            <div style={{ marginTop: '16px', textAlign: 'left' }}>
-                                {mode === 'IN' ? (
-                                    preCheckResult.vehicleType === 'VISITOR' ? (
-                                        <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
-                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <span className="material-symbols-outlined">directions_car</span>
-                                                Visitor Vehicle
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                                                Biển số: <strong style={{ color: '#1d4ed8' }}>{preCheckResult.plateNumber}</strong>
-                                            </p>
-
-                                            <div style={{ marginTop: '10px' }}>
-                                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600' }}>Available Cards</label>
-                                                <select
-                                                    value={selectedCard}
-                                                    onChange={(e) => setSelectedCard(e.target.value)}
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '8px 12px',
-                                                        borderRadius: '8px',
-                                                        border: '1px solid #cbd5e1',
-                                                        background: 'white',
-                                                        fontSize: '14px',
-                                                        outline: 'none',
-                                                        color: '#1e293b',
-                                                        fontWeight: '500'
-                                                    }}
-                                                >
-                                                    <option value="">-- Chọn thẻ lượt --</option>
-                                                    {preCheckResult.availableCards?.map(c => (
-                                                        <option key={c.card_id} value={c.code}>{c.code}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
-                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#16a34a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <span className="material-symbols-outlined">verified</span>
-                                                Monthly Vehicle
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Biển số:</span>
-                                                <strong>{preCheckResult.plateNumber}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Chủ xe:</span>
-                                                <strong>{preCheckResult.ownerName}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Thẻ đăng ký:</span>
-                                                <strong>{preCheckResult.cardCode}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Hạn thẻ:</span>
-                                                <strong>{preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}</strong>
-                                            </p>
-                                            <p style={{ margin: '8px 0 4px', fontSize: '14px', display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #bbf7d0', color: '#1e293b' }}>
-                                                <span>Subscription:</span>
-                                                <span style={{ color: preCheckResult.canOpenGate ? '#16a34a' : '#dc2626', fontWeight: 'bold' }}>
-                                                    {preCheckResult.canOpenGate ? 'Valid' : 'Expired/Invalid'}
-                                                </span>
-                                            </p>
-                                            {preCheckResult.message && (
-                                                <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#dc2626', fontStyle: 'italic', fontWeight: '500' }}>
-                                                    * {preCheckResult.message}
-                                                </p>
-                                            )}
-                                        </div>
-                                    )
-                                ) : (
-                                    preCheckResult.vehicleType === 'VISITOR' ? (
-                                        <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe' }}>
-                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <span className="material-symbols-outlined">exit_to_app</span>
-                                                Visitor Vehicle
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Biển số:</span>
-                                                <strong>{plateNumber}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Mã thẻ:</span>
-                                                <strong>{preCheckResult.cardCode}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Giờ vào:</span>
-                                                <strong>{preCheckResult.entryTime}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Thời gian:</span>
-                                                <strong>{preCheckResult.duration}</strong>
-                                            </p>
-                                            <p style={{ margin: '8px 0 4px', fontSize: '15px', display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #bfdbfe', color: '#1e293b' }}>
-                                                <span>Phí gửi:</span>
-                                                <strong style={{ color: '#1d4ed8', fontSize: '16px' }}>{preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ</strong>
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
-                                            <p style={{ margin: '0 0 6px', fontWeight: 'bold', color: '#16a34a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <span className="material-symbols-outlined">verified</span>
-                                                Monthly Vehicle
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Biển số:</span>
-                                                <strong>{plateNumber}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Mã thẻ:</span>
-                                                <strong>{preCheckResult.cardCode}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Giờ vào:</span>
-                                                <strong>{preCheckResult.entryTime}</strong>
-                                            </p>
-                                            <p style={{ margin: '4px 0', fontSize: '14px', display: 'flex', justifyContent: 'space-between', color: '#1e293b' }}>
-                                                <span>Thời gian:</span>
-                                                <strong>{preCheckResult.duration}</strong>
-                                            </p>
-                                            <p style={{ margin: '8px 0 4px', fontSize: '15px', display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px dashed #bbf7d0', color: '#1e293b' }}>
-                                                <span>Phí gửi:</span>
-                                                <strong style={{ color: '#16a34a', fontSize: '16px' }}>0 VNĐ (Miễn phí)</strong>
-                                            </p>
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        )}
-
                         {/* Selector Loại xe - Luôn hiện, tự động điền đúng khi là xe tháng */}
-                        {(
-                            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'left' }}>
-                                <label style={{ fontSize: '13px', fontWeight: '600', color: '#4b5563' }}>Loại xe:</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setVehicleType('Xe máy')}
-                                        style={{
-                                            flex: 1,
-                                            padding: '10px 12px',
-                                            borderRadius: '10px',
-                                            border: vehicleType === 'Xe máy' ? '2px solid #2563eb' : '1px solid #e5e7eb',
-                                            background: vehicleType === 'Xe máy' ? '#eff6ff' : 'white',
-                                            color: vehicleType === 'Xe máy' ? '#1d4ed8' : '#4b5563',
-                                            fontWeight: '600',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>two_wheeler</span>
-                                        Xe máy
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setVehicleType('Ô tô')}
-                                        style={{
-                                            flex: 1,
-                                            padding: '10px 12px',
-                                            borderRadius: '10px',
-                                            border: vehicleType === 'Ô tô' ? '2px solid #2563eb' : '1px solid #e5e7eb',
-                                            background: vehicleType === 'Ô tô' ? '#eff6ff' : 'white',
-                                            color: vehicleType === 'Ô tô' ? '#1d4ed8' : '#4b5563',
-                                            fontWeight: '600',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '8px',
-                                            transition: 'all 0.2s ease'
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>directions_car</span>
-                                        Ô tô
-                                    </button>
-                                </div>
+                        <div className="vehicle-type-container">
+                            <label className="vehicle-type-label">Loại xe:</label>
+                            <div className="vehicle-type-buttons">
+                                <button
+                                    type="button"
+                                    onClick={() => setVehicleType('Xe máy')}
+                                    className={`vehicle-type-btn ${vehicleType === 'Xe máy' ? 'active' : ''}`}
+                                    disabled={loading}
+                                >
+                                    <span className="material-symbols-outlined">two_wheeler</span>
+                                    <span>Xe máy</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setVehicleType('Ô tô')}
+                                    className={`vehicle-type-btn ${vehicleType === 'Ô tô' ? 'active' : ''}`}
+                                    disabled={loading}
+                                >
+                                    <span className="material-symbols-outlined">directions_car</span>
+                                    <span>Ô tô</span>
+                                </button>
                             </div>
-                        )}
+                        </div>
 
                         {/* Cảnh báo loại xe không khớp - Chỉ hiện khi là xe tháng và staff đã chọn loại xe sai */}
                         {mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && (() => {
                             const registeredType = preCheckResult.vehicleCategory;
                             const isMismatch = registeredType !== vehicleType;
                             return (
-                                <div style={{
-                                    marginTop: '12px',
-                                    padding: '10px 14px',
-                                    borderRadius: '10px',
-                                    border: `1px solid ${isMismatch ? '#fca5a5' : '#86efac'}`,
-                                    background: isMismatch ? '#fef2f2' : '#f0fdf4',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px'
-                                }}>
-                                    <span className="material-symbols-outlined" style={{
-                                        color: isMismatch ? '#dc2626' : '#16a34a',
-                                        fontSize: '22px',
-                                        flexShrink: 0
-                                    }}>
+                                <div className={`vehicle-mismatch-banner ${isMismatch ? 'mismatch' : ''}`}>
+                                    <span className="material-symbols-outlined mismatch-icon">
                                         {isMismatch ? 'warning' : 'check_circle'}
                                     </span>
-                                    <div style={{ fontSize: '13px', lineHeight: 1.5 }}>
-                                        <span style={{ color: '#374151' }}>Biển số </span>
-                                        <strong style={{ color: '#1e293b' }}>{preCheckResult.plateNumber}</strong>
-                                        <span style={{ color: '#374151' }}> đã đăng ký là </span>
-                                        <strong style={{ color: isMismatch ? '#dc2626' : '#16a34a' }}>
+                                    <div className="mismatch-text">
+                                        <span>Biển số </span>
+                                        <strong className="mismatch-plate">{preCheckResult.plateNumber}</strong>
+                                        <span> đã đăng ký là </span>
+                                        <strong className={`mismatch-registered-type ${isMismatch ? 'text-invalid' : 'text-valid'}`}>
                                             {registeredType}
                                         </strong>
                                         {isMismatch && (
-                                            <span style={{ color: '#dc2626' }}> — không khớp với loại xe đang chọn ({vehicleType})!</span>
+                                            <span className="text-invalid"> — không khớp!</span>
                                         )}
                                     </div>
                                 </div>
                             );
                         })()}
 
+                        {mode === 'IN' && preCheckResult && preCheckResult.vehicleType === 'VISITOR' && (
+                            <div className="visitor-card-select-container">
+                                <label className="transaction-label">Chọn thẻ lượt:</label>
+                                <select
+                                    value={selectedCard}
+                                    onChange={(e) => setSelectedCard(e.target.value)}
+                                >
+                                    <option value="">-- Chọn thẻ lượt --</option>
+                                    {preCheckResult.availableCards?.map(c => (
+                                        <option key={c.card_id} value={c.code}>{c.code}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Operator Quick Guide */}
+                        <div className="operator-guide-box">
+                            <div className="guide-title">
+                                <span className="material-symbols-outlined">info</span>
+                                <span>Quy trình vận hành</span>
+                            </div>
+                            <ul className="guide-steps">
+                                <li>1. Nhập biển số (hoặc click Camera quét ảnh)</li>
+                                <li>2. Kiểm tra thông tin thẻ xe ở bảng bên phải</li>
+                                <li>3. Ấn ENTER hoặc click nút bên dưới để mở barie</li>
+                            </ul>
+                        </div>
+
                         <button
                             type="submit"
-                            className="shortcut-button shortcut-primary"
+                            className="shortcut-button shortcut-primary submit-action-btn"
                             disabled={
                                 loading ||
                                 (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.canOpenGate === false) ||
                                 (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && preCheckResult.vehicleCategory !== vehicleType)
                             }
-                            style={{
-                                width: '100%',
-                                marginTop: 12,
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: 8,
-                                minHeight: 44,
-                                borderRadius: 12,
-                                border: 'none',
-                                fontSize: 15,
-                                fontWeight: 'bold',
-                                cursor: 'pointer'
-                            }}
                         >
                             {loading ? (
                                 <>
-                                    <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite' }}>hourglass_top</span>
+                                    <span className="material-symbols-outlined loading-spin">hourglass_top</span>
                                     Đang xử lý...
                                 </>
                             ) : !preCheckResult ? (
@@ -1073,105 +944,253 @@ export default function SystemOperations() {
                                 preCheckResult.vehicleType === 'VISITOR' ? (
                                     <>
                                         <span className="material-symbols-outlined">tap_and_play</span>
-                                        Simulate Tap
+                                        Xác nhận vào
                                     </>
                                 ) : (
                                     <>
                                         <span className="material-symbols-outlined">sensor_door</span>
-                                        Open Gate
+                                        Mở cổng vào
                                     </>
                                 )
                             ) : (
                                 preCheckResult.vehicleType === 'VISITOR' ? (
                                     <>
                                         <span className="material-symbols-outlined">check_circle</span>
-                                        Confirm Exit
+                                        Xác nhận ra
                                     </>
                                 ) : (
                                     <>
                                         <span className="material-symbols-outlined">sensor_door</span>
-                                        Open Exit Gate
+                                        Mở cổng ra
                                     </>
                                 )
                             )}
                         </button>
+                        {/* Shift Information Card */}
+                        <div className="shift-info-card">
+                            <div className="shift-title">
+                                <span className="material-symbols-outlined">badge</span>
+                                <span>Thông tin ca trực</span>
+                            </div>
+                            <div className="shift-grid">
+                                <div className="shift-item">
+                                    <span className="shift-label">Nhân viên</span>
+                                    <span className="shift-value">{user?.email || 'staff@gmail.com'}</span>
+                                </div>
+                                <div className="shift-item">
+                                    <span className="shift-label">Thời gian</span>
+                                    <span className="shift-value">{currentTime.toLocaleTimeString('vi-VN')}</span>
+                                </div>
+                            </div>
+                        </div>
                     </form>
 
                     <div className="transaction-details">
-                        {lastSession ? (
-                            <>
-                                <h4 style={{ margin: '0 0 10px', color: '#22c55e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span className="material-symbols-outlined">check_circle</span>
-                                    Giao dịch vừa thực hiện
+                        {preCheckResult ? (
+                            <div className="last-session-card">
+                                <h4 className="last-session-title">
+                                    <span className="material-symbols-outlined">badge</span>
+                                    <span>Thông tin quét thẻ</span>
                                 </h4>
-                                <div className="transaction-row">
-                                    <div className="transaction-row-label">
-                                        <span className="material-symbols-outlined">badge</span>
-                                        Biển số:
+                                <div className="last-session-grid">
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Chủ xe:</span>
+                                        <strong className="last-session-value">
+                                            {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.ownerName : 'Khách vãng lai'}
+                                        </strong>
                                     </div>
-                                    <div className="transaction-row-value">{lastSession.plate_number}</div>
-                                </div>
-                                <div className="transaction-row">
-                                    <div className="transaction-row-label">
-                                        <span className="material-symbols-outlined">login</span>
-                                        Thời gian vào:
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Loại thẻ:</span>
+                                        <strong className="last-session-value">
+                                            {preCheckResult.vehicleType === 'MONTHLY' ? 'Vé tháng' : 'Vé lượt'}
+                                        </strong>
                                     </div>
-                                    <div className="transaction-row-value">
-                                        {new Date(lastSession.entry_time).toLocaleString('vi-VN')}
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Mã thẻ:</span>
+                                        <strong className="last-session-value">
+                                            {preCheckResult.cardCode || selectedCard || '---'}
+                                        </strong>
                                     </div>
-                                </div>
 
-                                {lastSession.type === 'OUT' && (
-                                    <>
-                                        <div className="transaction-row">
-                                            <div className="transaction-row-label">
-                                                <span className="material-symbols-outlined">logout</span>
-                                                Thời gian ra:
+                                    {mode === 'IN' ? (
+                                        <>
+                                            <div className="last-session-item">
+                                                <span className="last-session-label">Biển số đăng ký:</span>
+                                                <strong className="last-session-value">
+                                                    {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'Vé lượt'}
+                                                </strong>
                                             </div>
-                                            <div className="transaction-row-value">
-                                                {new Date(lastSession.exit_time).toLocaleString('vi-VN')}
+                                            {preCheckResult.vehicleType === 'MONTHLY' && (
+                                                <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                                                    <span className="last-session-label">Hạn thẻ:</span>
+                                                    <strong className="last-session-value" style={{ color: preCheckResult.canOpenGate ? '#16a34a' : '#dc2626' }}>
+                                                        {preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}
+                                                    </strong>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="last-session-item">
+                                                <span className="last-session-label">Biển số vào:</span>
+                                                <strong className="last-session-value">{preCheckResult.plateNumber || '---'}</strong>
                                             </div>
-                                        </div>
-                                        <div className="transaction-row transaction-total">
-                                            <div className="transaction-row-label">Giá tiền:</div>
-                                            <div className="transaction-row-value transaction-price">
-                                                {lastSession.fee ? lastSession.fee.toLocaleString('vi-VN') : '0'} VNĐ
+                                            <div className="last-session-item">
+                                                <span className="last-session-label">Biển số ra:</span>
+                                                <strong className="last-session-value" style={{ color: '#1e3a8a' }}>{plateNumber || '---'}</strong>
                                             </div>
-                                        </div>
-                                    </>
+                                            <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                                                <span className="last-session-label">Giờ vào:</span>
+                                                <strong className="last-session-value">
+                                                    {preCheckResult.entryTime ? (new Date(preCheckResult.entryTime).toString() === 'Invalid Date' ? preCheckResult.entryTime : new Date(preCheckResult.entryTime).toLocaleString('vi-VN')) : '---'}
+                                                </strong>
+                                            </div>
+                                            <div className="last-session-item full-width">
+                                                <span className="last-session-label">Thời gian gửi:</span>
+                                                <strong className="last-session-value">{preCheckResult.duration || '---'}</strong>
+                                            </div>
+                                            <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                                                <span className="last-session-label">Phí giữ xe:</span>
+                                                <strong className="last-session-value" style={{ fontSize: '13px', color: preCheckResult.fee > 0 ? '#dc2626' : '#16a34a' }}>
+                                                    {preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ
+                                                </strong>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                {preCheckResult.message && (
+                                    <div style={{
+                                        marginTop: '6px',
+                                        padding: '4px 8px',
+                                        background: preCheckResult.canOpenGate ? '#f0fdf4' : '#fef2f2',
+                                        border: `1px solid ${preCheckResult.canOpenGate ? '#bbf7d0' : '#fecaca'}`,
+                                        borderRadius: '4px',
+                                        fontSize: '10px',
+                                        color: preCheckResult.canOpenGate ? '#15803d' : '#b91c1c',
+                                        fontWeight: '500'
+                                    }}>
+                                        * {preCheckResult.message}
+                                    </div>
                                 )}
-
-                                <div className={lastSession.type === 'OUT' ? "" : "transaction-row transaction-total"}>
-                                    <div className="transaction-row-label">Trạng thái:</div>
-                                    <div className="transaction-row-value" style={{ color: lastSession.type === 'OUT' ? '#3b82f6' : '#22c55e' }}>
-                                        {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
-                                            (lastSession.status === 'Hoàn thành') ? 'HOÀN THÀNH' : lastSession.status}
+                            </div>
+                        ) : lastSession ? (
+                            <div className="last-session-card">
+                                <h4 className="last-session-title">
+                                    <span className="material-symbols-outlined">check_circle</span>
+                                    <span>Giao dịch vừa thực hiện</span>
+                                </h4>
+                                <div className="last-session-grid">
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Biển số:</span>
+                                        <strong className="last-session-value">{lastSession.plate_number}</strong>
                                     </div>
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Trạng thái:</span>
+                                        <strong className="last-session-value status-done">
+                                            {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
+                                             (lastSession.status === 'Hoàn thành') ? 'HOÀN THÀNH' : lastSession.status}
+                                        </strong>
+                                    </div>
+                                    <div className="last-session-item full-width">
+                                        <span className="last-session-label">Giờ vào:</span>
+                                        <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                    </div>
+                                    {lastSession.type === 'OUT' && (
+                                        <>
+                                            <div className="last-session-item full-width">
+                                                <span className="last-session-label">Giờ ra:</span>
+                                                <strong className="last-session-value">{new Date(lastSession.exit_time).toLocaleString('vi-VN')}</strong>
+                                            </div>
+                                            <div className="last-session-item full-width highlight-row">
+                                                <span className="last-session-label">Giá tiền:</span>
+                                                <strong className="last-session-value price-value">
+                                                    {lastSession.fee ? lastSession.fee.toLocaleString('vi-VN') : '0'} VNĐ
+                                                </strong>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
-                            </>
+                            </div>
                         ) : (
-                            <>
-                                <h4 style={{ margin: '0 0 10px', color: '#4b5563' }}>Thông tin phiên hoạt động</h4>
-                                <div className="transaction-row">
-                                    <div className="transaction-row-label">
-                                        <span className="material-symbols-outlined">login</span>
-                                        Thời gian vào:
+                            <div className="last-session-card">
+                                <h4 className="last-session-title">
+                                    <span className="material-symbols-outlined">pending</span>
+                                    <span>Thông tin phiên hoạt động</span>
+                                </h4>
+                                <div className="last-session-grid">
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Giờ vào:</span>
+                                        <strong className="last-session-value">-- : --</strong>
                                     </div>
-                                    <div className="transaction-row-value">-- : --</div>
-                                </div>
-                                <div className="transaction-row">
-                                    <div className="transaction-row-label">
-                                        <span className="material-symbols-outlined">logout</span>
-                                        Thời gian ra:
+                                    <div className="last-session-item">
+                                        <span className="last-session-label">Giờ ra:</span>
+                                        <strong className="last-session-value">-- : --</strong>
                                     </div>
-                                    <div className="transaction-row-value">-- : --</div>
+                                    <div className="last-session-item full-width">
+                                        <span className="last-session-label">Giá tiền:</span>
+                                        <strong className="last-session-value">-- VNĐ</strong>
+                                    </div>
                                 </div>
-                                <div className="transaction-row transaction-total">
-                                    <div className="transaction-row-label">Giá tiền:</div>
-                                    <div className="transaction-row-value transaction-price">-- VNĐ</div>
-                                </div>
-                            </>
+                            </div>
                         )}
+
+                        {/* Recent Transactions Card */}
+                        <div className="recent-transactions-list-card">
+                             <div className="recent-title">
+                                 <span className="material-symbols-outlined">history</span>
+                                 <span>Giao dịch gần đây</span>
+                             </div>
+                             <div className="recent-items-container">
+                                 {recentSessions.length > 0 ? (
+                                     recentSessions.map((s, idx) => {
+                                         const isOut = !!s.exit_time;
+                                         const timeStr = new Date(isOut ? s.exit_time : s.entry_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                                         return (
+                                             <div className="recent-item" key={s.session_id || idx}>
+                                                 <div className="recent-item-left">
+                                                     <span className={`recent-badge ${isOut ? 'badge-out' : 'badge-in'}`}>
+                                                         {isOut ? 'RA' : 'VÀO'}
+                                                     </span>
+                                                     <span className="recent-plate">{s.plate_number}</span>
+                                                 </div>
+                                                 <div className="recent-item-right">
+                                                     <span className="recent-time">{timeStr}</span>
+                                                     <span className="recent-fee">{isOut ? `${s.fee ? s.fee.toLocaleString('vi-VN') : '0'}đ` : 'Đang gửi'}</span>
+                                                 </div>
+                                             </div>
+                                         );
+                                     })
+                                 ) : (
+                                     <div className="recent-empty">Chưa có giao dịch nào trong ngày.</div>
+                                 )}
+                             </div>
+                         </div>
+
+                        {/* System Hardware Status */}
+                        <div className="system-status-card">
+                            <div className="status-title">
+                                <span className="material-symbols-outlined">settings_ethernet</span>
+                                <span>Kết nối thiết bị</span>
+                            </div>
+                            <div className="status-grid">
+                                <div className="status-item">
+                                    <span className="status-dot online"></span>
+                                    <span className="status-name">Camera LPR IN</span>
+                                </div>
+                                <div className="status-item">
+                                    <span className="status-dot online"></span>
+                                    <span className="status-name">Camera LPR OUT</span>
+                                </div>
+                                <div className="status-item">
+                                    <span className="status-dot online"></span>
+                                    <span className="status-name">Barrier IN</span>
+                                </div>
+                                <div className="status-item">
+                                    <span className="status-dot online"></span>
+                                    <span className="status-name">Barrier OUT</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -1211,46 +1230,29 @@ export default function SystemOperations() {
             </main>
 
             <footer className="system-footer">
-                <p>© 2024 Parking Building Management Systems. All rights reserved.</p>
+                <p>© 2024 Hệ thống Quản lý Tòa nhà & Bãi xe. Toàn bộ bản quyền được bảo lưu.</p>
                 <div className="footer-links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Support</a>
-                    <a href="#">System Status</a>
+                    <a href="#">Chính sách Bảo mật</a>
+                    <a href="#">Hỗ trợ</a>
+                    <a href="#">Trạng thái Hệ thống</a>
                 </div>
             </footer>
 
             {/* Entry Simulator Modal */}
             {
                 showEntryModal && preCheckResult && (
-                    <div style={{
-                        position: 'fixed',
-                        inset: 0,
-                        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 9999,
-                        backdropFilter: 'blur(4px)'
-                    }}>
-                        <div style={{
-                            background: 'white',
-                            width: '100%',
-                            maxWidth: '480px',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                            color: '#1e293b'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span className="material-symbols-outlined" style={{ color: preCheckResult.vehicleType === 'MONTHLY' ? '#16a34a' : '#ea580c' }}>
+                    <div className="op-modal-overlay">
+                        <div className="op-modal-content">
+                            <div className="op-modal-header">
+                                <h3 className="op-modal-title">
+                                    <span className={`material-symbols-outlined op-modal-title-icon ${preCheckResult.vehicleType === 'MONTHLY' ? 'icon-monthly' : 'icon-visitor'}`}>
                                         {preCheckResult.vehicleType === 'MONTHLY' ? 'verified' : 'style'}
                                     </span>
                                     {preCheckResult.vehicleType === 'MONTHLY' ? 'Thông tin Xe tháng' : 'Chọn thẻ xe vãng lai'}
                                 </h3>
                                 <button
                                     onClick={() => setShowEntryModal(false)}
-                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}
+                                    className="op-modal-close-btn"
                                 >
                                     <span className="material-symbols-outlined">close</span>
                                 </button>
@@ -1258,42 +1260,41 @@ export default function SystemOperations() {
 
                             {preCheckResult.vehicleType === 'MONTHLY' ? (
                                 <div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                            <span style={{ color: '#64748b' }}>Biển số xe:</span>
-                                            <strong style={{ fontSize: '16px' }}>{preCheckResult.plateNumber}</strong>
+                                    <div className="op-modal-details">
+                                        <div className="op-modal-detail-row">
+                                            <span className="op-modal-detail-label">Biển số xe:</span>
+                                            <strong className="op-modal-detail-value value-large">{preCheckResult.plateNumber}</strong>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                            <span style={{ color: '#64748b' }}>Chủ xe:</span>
-                                            <strong>{preCheckResult.ownerName}</strong>
+                                        <div className="op-modal-detail-row">
+                                            <span className="op-modal-detail-label">Chủ xe:</span>
+                                            <strong className="op-modal-detail-value">{preCheckResult.ownerName}</strong>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                            <span style={{ color: '#64748b' }}>Mã thẻ:</span>
-                                            <strong>{preCheckResult.cardCode}</strong>
+                                        <div className="op-modal-detail-row">
+                                            <span className="op-modal-detail-label">Mã thẻ:</span>
+                                            <strong className="op-modal-detail-value">{preCheckResult.cardCode}</strong>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                            <span style={{ color: '#64748b' }}>Hạn thẻ:</span>
-                                            <strong>{preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}</strong>
+                                        <div className="op-modal-detail-row">
+                                            <span className="op-modal-detail-label">Hạn thẻ:</span>
+                                            <strong className="op-modal-detail-value">{preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}</strong>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px' }}>
-                                            <span style={{ color: '#64748b' }}>Trạng thái cước:</span>
-                                            <strong style={{ color: preCheckResult.canOpenGate ? '#16a34a' : '#dc2626' }}>
-                                                {preCheckResult.canOpenGate ? 'Valid (Hợp lệ)' : 'Invalid (Không hợp lệ)'}
+                                        <div className="op-modal-detail-row highlight-row no-border">
+                                            <span className="op-modal-detail-label">Trạng thái cước:</span>
+                                            <strong className={`op-modal-detail-value ${preCheckResult.canOpenGate ? 'fee-monthly' : 'text-invalid'}`}>
+                                                {preCheckResult.canOpenGate ? 'Hợp lệ' : 'Không hợp lệ'}
                                             </strong>
                                         </div>
                                     </div>
 
                                     {preCheckResult.message && (
-                                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px', borderRadius: '8px', color: '#dc2626', fontSize: '13px', marginBottom: '20px' }}>
+                                        <div className="op-modal-alert-box">
                                             * {preCheckResult.message}
                                         </div>
                                     )}
 
-                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                    <div className="op-modal-actions">
                                         <button
                                             onClick={() => setShowEntryModal(false)}
-                                            className="cardpage-button secondary"
-                                            style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                            className="cardpage-button secondary op-modal-btn"
                                         >
                                             Hủy
                                         </button>
@@ -1303,8 +1304,7 @@ export default function SystemOperations() {
                                                 await handleCheckInSubmit();
                                             }}
                                             disabled={preCheckResult.canOpenGate === false}
-                                            className="cardpage-button primary"
-                                            style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                            className="cardpage-button primary op-modal-btn"
                                         >
                                             Xác nhận mở cổng
                                         </button>
@@ -1312,52 +1312,42 @@ export default function SystemOperations() {
                                 </div>
                             ) : (
                                 <div>
-                                    <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '16px' }}>
+                                    <p className="lost-action-hint" style={{ marginBottom: '16px', color: '#64748b' }}>
                                         Biển số vào: <strong>{preCheckResult.plateNumber}</strong>. Vui lòng chọn 1 trong 3 thẻ lượt khả dụng bên dưới:
                                     </p>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                                    <div className="op-card-grid">
                                         {preCheckResult.availableCards?.slice(0, 3).map((card) => {
                                             const isSelected = selectedCard === card.code;
                                             return (
                                                 <div
                                                     key={card.card_id}
                                                     onClick={() => setSelectedCard(card.code)}
-                                                    style={{
-                                                        border: isSelected ? '2px solid #fb923c' : '1px solid #cbd5e1',
-                                                        background: isSelected ? '#fff7ed' : '#f8fafc',
-                                                        borderRadius: '12px',
-                                                        padding: '16px 8px',
-                                                        textAlign: 'center',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s ease',
-                                                        boxShadow: isSelected ? '0 4px 6px -1px rgba(251, 146, 60, 0.2)' : 'none'
-                                                    }}
+                                                    className={`op-card-item ${isSelected ? 'selected' : ''}`}
                                                 >
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '28px', color: isSelected ? '#fb923c' : '#64748b', marginBottom: '8px' }}>
+                                                    <span className="material-symbols-outlined op-card-icon">
                                                         credit_card
                                                     </span>
-                                                    <div style={{ fontWeight: 'bold', fontSize: '14px', color: isSelected ? '#ea580c' : '#334155' }}>
+                                                    <div className="op-card-code">
                                                         {card.code}
                                                     </div>
-                                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                                                    <div className="op-card-meta">
                                                         Thẻ lượt
                                                     </div>
                                                 </div>
                                             );
                                         })}
                                         {(!preCheckResult.availableCards || preCheckResult.availableCards.length === 0) && (
-                                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '16px', color: '#dc2626', background: '#fef2f2', borderRadius: '8px' }}>
+                                            <div className="op-card-empty-state">
                                                 Không có thẻ lượt nào trống trong hệ thống!
                                             </div>
                                         )}
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                    <div className="op-modal-actions">
                                         <button
                                             onClick={() => setShowEntryModal(false)}
-                                            className="cardpage-button secondary"
-                                            style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                            className="cardpage-button secondary op-modal-btn"
                                         >
                                             Hủy
                                         </button>
@@ -1371,10 +1361,9 @@ export default function SystemOperations() {
                                                 await handleCheckInSubmit();
                                             }}
                                             disabled={!selectedCard}
-                                            className="cardpage-button primary"
-                                            style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                            className="cardpage-button primary op-modal-btn"
                                         >
-                                            Simulate Tap
+                                            Xác nhận vào
                                         </button>
                                     </div>
                                 </div>
@@ -1387,74 +1376,53 @@ export default function SystemOperations() {
             {/* Exit Simulator Modal */}
             {
                 showExitModal && preCheckResult && (
-                    <div style={{
-                        position: 'fixed',
-                        inset: 0,
-                        backgroundColor: 'rgba(15, 23, 42, 0.7)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 9999,
-                        backdropFilter: 'blur(4px)'
-                    }}>
-                        <div style={{
-                            background: 'white',
-                            width: '100%',
-                            maxWidth: '480px',
-                            borderRadius: '16px',
-                            padding: '24px',
-                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                            color: '#1e293b'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span className="material-symbols-outlined" style={{ color: preCheckResult.vehicleType === 'MONTHLY' ? '#16a34a' : '#ea580c' }}>
+                    <div className="op-modal-overlay">
+                        <div className="op-modal-content">
+                            <div className="op-modal-header">
+                                <h3 className="op-modal-title">
+                                    <span className={`material-symbols-outlined op-modal-title-icon ${preCheckResult.vehicleType === 'MONTHLY' ? 'icon-monthly' : 'icon-visitor'}`}>
                                         sensor_door
                                     </span>
                                     {preCheckResult.vehicleType === 'MONTHLY' ? 'Thông tin Xe tháng ra' : 'Xác nhận xe vãng lai ra'}
                                 </h3>
                                 <button
                                     onClick={() => setShowExitModal(false)}
-                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}
+                                    className="op-modal-close-btn"
                                 >
                                     <span className="material-symbols-outlined">close</span>
                                 </button>
                             </div>
 
                             <div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        <span style={{ color: '#64748b' }}>Biển số xe:</span>
-                                        <strong style={{ fontSize: '16px' }}>{plateNumber}</strong>
+                                <div className="op-modal-details">
+                                    <div className="op-modal-detail-row">
+                                        <span className="op-modal-detail-label">Biển số xe:</span>
+                                        <strong className="op-modal-detail-value value-large">{plateNumber}</strong>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        <span style={{ color: '#64748b' }}>Mã thẻ:</span>
-                                        <strong>{preCheckResult.cardCode}</strong>
+                                    <div className="op-modal-detail-row">
+                                        <span className="op-modal-detail-label">Mã thẻ:</span>
+                                        <strong className="op-modal-detail-value">{preCheckResult.cardCode}</strong>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        <span style={{ color: '#64748b' }}>Giờ vào:</span>
-                                        <strong>{preCheckResult.entryTime}</strong>
+                                    <div className="op-modal-detail-row">
+                                        <span className="op-modal-detail-label">Giờ vào:</span>
+                                        <strong className="op-modal-detail-value">{preCheckResult.entryTime}</strong>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                                        <span style={{ color: '#64748b' }}>Thời gian gửi:</span>
-                                        <strong>{preCheckResult.duration}</strong>
+                                    <div className="op-modal-detail-row">
+                                        <span className="op-modal-detail-label">Thời gian gửi:</span>
+                                        <strong className="op-modal-detail-value">{preCheckResult.duration}</strong>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px' }}>
-                                        <span style={{ color: '#64748b', fontWeight: 'bold' }}>Phí thanh toán:</span>
-                                        <strong style={{
-                                            color: preCheckResult.vehicleType === 'MONTHLY' ? '#16a34a' : '#ea580c',
-                                            fontSize: '18px'
-                                        }}>
+                                    <div className="op-modal-detail-row highlight-row no-border">
+                                        <span className="op-modal-detail-label label-bold">Phí thanh toán:</span>
+                                        <strong className={`op-modal-detail-value ${preCheckResult.vehicleType === 'MONTHLY' ? 'fee-monthly' : 'fee-visitor'}`}>
                                             {preCheckResult.fee?.toLocaleString('vi-VN')} VNĐ
                                         </strong>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                <div className="op-modal-actions">
                                     <button
                                         onClick={() => setShowExitModal(false)}
-                                        className="cardpage-button secondary"
-                                        style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                        className="cardpage-button secondary op-modal-btn"
                                     >
                                         Hủy
                                     </button>
@@ -1464,8 +1432,7 @@ export default function SystemOperations() {
                                                 setShowExitModal(false);
                                                 await handleVnpayCheckout();
                                             }}
-                                            className="cardpage-button primary"
-                                            style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#0068ff', color: 'white' }}
+                                            className="cardpage-button primary op-modal-btn btn-vnpay"
                                         >
                                             Thanh toán VNPAY
                                         </button>
@@ -1475,10 +1442,9 @@ export default function SystemOperations() {
                                             setShowExitModal(false);
                                             await handleCheckOutSubmit();
                                         }}
-                                        className="cardpage-button primary"
-                                        style={{ padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}
+                                        className="cardpage-button primary op-modal-btn"
                                     >
-                                        {preCheckResult.vehicleType === 'MONTHLY' ? 'Open Exit Gate' : 'Confirm Exit'}
+                                        {preCheckResult.vehicleType === 'MONTHLY' ? 'Mở cổng ra' : 'Xác nhận ra'}
                                     </button>
                                 </div>
                             </div>
@@ -1488,17 +1454,6 @@ export default function SystemOperations() {
                 )
             }
 
-            {/* Toast notifications */}
-            {
-                toast.show && (
-                    <div className={`custom-toast ${toast.type}`} style={{ zIndex: 9999 }}>
-                        <span className="material-symbols-outlined">
-                            {toast.type === 'success' ? 'check_circle' : 'error'}
-                        </span>
-                        <span className="toast-text">{toast.message}</span>
-                    </div>
-                )
-            }
         </div >
     );
 }

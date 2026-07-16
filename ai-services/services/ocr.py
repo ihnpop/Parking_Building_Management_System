@@ -1,30 +1,66 @@
+from paddleocr import PaddleOCR
 import numpy as np
-from easyocr import Reader
 
 # =====================================================
-# Load EasyOCR once when service starts
+# Load PaddleOCR duy nhất khi service khởi động
 # =====================================================
 
-easy_reader = Reader(['en'], gpu=True)
+ocr = PaddleOCR(
+    use_angle_cls=False,
+    lang="en",
+    enable_mkldnn=True,
+    cpu_threads=2,
+    ocr_version="PP-OCRv4",
+    det_limit_side_len=480,
+    show_log=False,
+)
 
 
-def read_plate(plate_image: np.ndarray) -> str:
-    """Perform OCR on a cropped license‑plate image using EasyOCR.
-
-    Args:
-        plate_image: NumPy image array (BGR) of the plate region.
-
-    Returns:
-        Recognized text string (may contain spaces). Empty string on failure.
+def read_plate(plate_image: np.ndarray):
     """
+    OCR biển số.
+
+    Parameters
+    ----------
+    plate_image : numpy.ndarray
+
+    Returns
+    -------
+    str
+    """
+
     if plate_image is None:
         return ""
 
-    # EasyOCR expects RGB images
-    rgb_image = plate_image[..., ::-1]
-    results = easy_reader.readtext(rgb_image, detail=0)
-    # results is a list of strings
-    if not results:
+    result = ocr.ocr(plate_image, cls=False)
+
+    if not result:
         return ""
-    # Join with space to mimic previous behaviour
-    return " ".join(results)
+
+    if len(result) == 0:
+        return ""
+
+    lines = result[0]
+
+    if not lines:
+        return ""
+
+    texts = []
+
+    # PaddleOCR 3.x
+    if isinstance(lines, dict):
+
+        if "rec_texts" in lines:
+
+            texts = lines["rec_texts"]
+
+    # PaddleOCR 2.x
+    else:
+
+        for line in lines:
+
+            if len(line) > 1:
+
+                texts.append(line[1][0])
+
+    return " ".join(texts)
