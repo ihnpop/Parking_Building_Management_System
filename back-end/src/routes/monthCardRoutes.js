@@ -46,7 +46,7 @@ router.get("/renew-packages", monthCardController.getRenewPackages);
 
 /**
  * POST /api/month-card/renew
- * Thực hiện gia hạn thẻ tháng
+ * Thực hiện gia hạn thẻ tháng (legacy - tiền mặt, staff thực hiện thủ công)
  */
 router.post("/renew", monthCardController.renewMonthlyCard);
 
@@ -80,6 +80,29 @@ router.post("/confirm-cash-payment/:orderCode", monthCardController.confirmCashP
  */
 router.post("/finalize-registration", monthCardController.finalizeRegistration);
 
+// ─────────────────────────────────────────────────────────────
+// RENEWAL ROUTES (Gia hạn vé tháng qua VNPay / tiền mặt)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/month-card/initiate-renewal
+ * Khởi tạo giao dịch gia hạn: trả về VNPay URL hoặc orderCode tiền mặt
+ * Body: { cardId, packageId, paymentMethod: 'vnpay'|'cash' }
+ */
+router.post("/initiate-renewal", monthCardController.initiateRenewal);
+
+/**
+ * POST /api/month-card/confirm-renewal-cash/:orderCode
+ * Xác nhận thu tiền mặt gia hạn (dành cho cashier)
+ */
+router.post("/confirm-renewal-cash/:orderCode", monthCardController.confirmRenewalCash);
+
+/**
+ * GET /api/month-card/renewal-status/:orderCode
+ * Kiểm tra trạng thái giao dịch gia hạn
+ */
+router.get("/renewal-status/:orderCode", monthCardController.getRenewalStatus);
+
 /**
  * PUT /api/month-card/:id
  * Cập nhật thông tin thẻ tháng
@@ -98,6 +121,12 @@ router.post("/create", monthCardController.createMonthCard);
  * Xóa mềm thẻ tháng (đánh dấu deleted_at, chuyển status sang "Đã khóa")
  */
 router.delete("/:id", monthCardController.deleteMonthCard);
+
+/**
+ * GET /api/month-card/:cardId/renewal-info
+ * Lấy thông tin gia hạn (phải đặt sau /logs, /next-code, etc. để tránh conflict)
+ */
+router.get("/:cardId/renewal-info", monthCardController.getRenewalInfo);
 
 /**
  * GET /api/month-card/:id/contract

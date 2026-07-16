@@ -106,3 +106,52 @@ export const deleteMonthCard = async (id) => {
     });
     return response.data;
 };
+
+// ─────────────────────────────────────────────────────────────
+// RENEWAL APIs (Gia hạn vé tháng qua VNPay / tiền mặt)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Lấy thông tin gia hạn: trạng thái thẻ, ngày hết hạn, danh sách gói khả dụng
+ * @param {string} cardId
+ */
+export const getRenewalInfo = async (cardId) => {
+    const response = await API.get(`/${cardId}/renewal-info`, {
+        headers: getAuthHeaders()
+    });
+    return response.data.data || response.data;
+};
+
+/**
+ * Khởi tạo giao dịch gia hạn
+ * @param {{ cardId, packageId, paymentMethod: 'vnpay'|'cash' }} payload
+ * @returns {{ orderCode, payUrl, amount, currentExpiry, newExpiry, packageName }}
+ */
+export const initiateRenewal = async (payload) => {
+    const response = await API.post('/initiate-renewal', payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data.data || response.data;
+};
+
+/**
+ * Xác nhận thu tiền mặt gia hạn (cashier)
+ * @param {string} orderCode
+ */
+export const confirmRenewalCash = async (orderCode) => {
+    const response = await API.post(`/confirm-renewal-cash/${orderCode}`, {}, {
+        headers: getAuthHeaders()
+    });
+    return response.data;
+};
+
+/**
+ * Kiểm tra trạng thái giao dịch gia hạn
+ * @param {string} orderCode
+ */
+export const getRenewalStatus = async (orderCode) => {
+    const response = await API.get(`/renewal-status/${orderCode}`, {
+        headers: getAuthHeaders()
+    });
+    return response.data.data || response.data;
+};

@@ -55,7 +55,7 @@ export const deleteCard = async (req, res) => {
 // Create a new card
 export const createCard = async (req, res) => {
   try {
-    const { type, startDate, plate, fullName, phone, email, durationMonths } = req.body;
+    const { type, startDate, plate, fullName, phone, email, durationMonths, replacesLostReportId } = req.body;
 
     // Kiểm tra định dạng biển số xe nếu có nhập
     if (plate && plate.trim() !== '') {
@@ -68,16 +68,26 @@ export const createCard = async (req, res) => {
       }
     }
 
-    const newCard = await cardService.createCard({
+    // Lấy địa chỉ IP của client (dùng cho VNPay khi cấp lại thẻ tháng)
+    let ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
+      ipAddr = '127.0.0.1';
+    }
+
+    const result = await cardService.createCard({
       type,
       startDate,
       plate,
       fullName,
       phone,
       email,
-      durationMonths
+      durationMonths,
+      replacesLostReportId,
+      ipAddr
     });
-    res.status(201).json(newCard);
+
+    // Trả về thẻ mới kèm link thanh toán VNPay (nếu có — trường hợp cấp lại thẻ)
+    res.status(201).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

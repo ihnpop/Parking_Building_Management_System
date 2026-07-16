@@ -20392,7 +20392,7 @@ body {
   background-color: #eff6ff;
   /* light blue matches lost table header */
   color: #1e3a8a;
-  padding: 18px 24px;
+  padding: 16px 12px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -20400,7 +20400,7 @@ body {
 }
 
 .log-table td {
-  padding: 16px 24px;
+  padding: 14px 12px;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
   color: #374151;
@@ -20492,6 +20492,7 @@ body {
   font-weight: 700;
   font-size: 12px;
   text-align: center;
+  min-width: 84px !important;
 }
 
 .status-badge-log.success {
@@ -20513,6 +20514,8 @@ body {
   font-weight: 700 !important;
   color: #fff !important;
   white-space: nowrap !important;
+  min-width: 84px !important;
+  text-align: center !important;
 }
 
 .role-badge.admin {
@@ -28067,6 +28070,7 @@ box-sizing: border-box;
   inset: 0;
   background-color: rgba(15, 23, 42, 0.45);
   /* backdrop-filter: blur(4px); */
+<<<<<<< HEAD
               display: flex;
               justify-content: center;
               align-items: center;
@@ -28789,6 +28793,734 @@ box-sizing: border-box;
 
 
             /* ==========================================
+=======
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.renew-modal {
+  background: #ffffff;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  position: relative;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.renew-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.renew-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.renew-modal-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.renew-modal-close:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.renew-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  background-color: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+}
+
+.renew-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.renew-info-label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.renew-info-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.renew-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.renew-form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.renew-select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.renew-select:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.15);
+}
+
+.renew-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-size: 0.95rem;
+  min-height: 80px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.renew-textarea:focus {
+  border-color: #fb923c;
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.15);
+}
+
+.renew-price-box {
+  background-color: #fff7ed;
+  border: 1px solid #ffedd5;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.renew-price-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ea580c;
+}
+
+.renew-price-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ea580c;
+}
+
+.renew-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+}
+
+.renew-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.925rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.renew-btn.secondary {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.renew-btn.secondary:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.renew-btn.primary {
+  background-color: #ea580c;
+  border: none;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.2);
+}
+
+.renew-btn.primary:hover:not(:disabled) {
+  background-color: #d97706;
+}
+
+.renew-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* --- Lost Card Log Page Styles --- */
+.lost-card-log-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+}
+
+/* KPI Container */
+.lost-kpi-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+.lost-kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  /* Tăng gap để bảng bên phải có thêm không gian thở */
+}
+
+.lost-kpi-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100px;
+  /* Tăng thêm nữa để cách xa nhau hơn */
+  position: relative;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.lost-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  /* Bóng nổi khi hover */
+}
+
+.lost-kpi-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lost-kpi-icon-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lost-kpi-icon-box .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Colors for icon boxes */
+.icon-gray {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.icon-red {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.icon-blue {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.icon-green {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.lost-kpi-title {
+  font-size: 14px;
+  /* Chữ to hơn 1 tí */
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.lost-kpi-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  /* Ép tất cả nằm sát đáy box để số luôn cách đều viền dưới */
+}
+
+.lost-kpi-value {
+  font-size: 26px;
+  /* Số to hơn tí */
+  font-weight: 700;
+  line-height: 1;
+  color: #111827;
+}
+
+.lost-kpi-value.val-red {
+  color: #ef4444;
+}
+
+.lost-kpi-value.val-blue {
+  color: #0052cc;
+}
+
+.lost-kpi-value.val-green {
+  color: #10b981;
+}
+
+.lost-kpi-footer {
+  display: flex;
+  align-items: flex-end;
+  /* Đổi thành flex-end để chữ và icon cùng chạm đáy */
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  /* Xóa khoảng trống của chữ để thẳng hàng với số */
+  padding-bottom: 2px;
+  /* Tinh chỉnh nhẹ cho chữ ngang hàng với số 1 cách tương đối */
+}
+
+.lost-kpi-footer.txt-gray {
+  color: #94a3b8;
+}
+
+.lost-kpi-footer.txt-orange {
+  color: #f59e0b;
+}
+
+.lost-kpi-footer.txt-blue {
+  color: #64748b;
+}
+
+.lost-kpi-footer.txt-green {
+  color: #10b981;
+}
+
+.lost-kpi-footer .material-symbols-outlined {
+  font-size: 16px;
+  /* Chỉnh icon cho to và cân bằng */
+  line-height: 1;
+}
+
+/* Distribution Card */
+.lost-dist-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* Dàn đều 5 phần tử */
+  height: 100%;
+}
+
+.lost-dist-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  /* Hover cho cả bảng bên phải */
+}
+
+.lost-dist-title {
+  font-size: 12px;
+  /* Thu nhỏ nữa */
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e2e8f0;
+  /* Tích hợp đường kẻ vào title để giảm số lượng flex items */
+}
+
+.lost-dist-title .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.lost-dist-divider {
+  display: none;
+  /* Đã tích hợp vào title nên ẩn đi để còn đúng 5 flex items */
+}
+
+.lost-dist-item {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  /* Gần lại tí để các row giãn ra được xa nhau hơn */
+}
+
+/* removed */
+
+.lost-dist-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #4b5563;
+  margin-bottom: 0;
+  /* Đã dùng gap ở parent nên ko cần margin */
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.lost-dist-val {
+  font-weight: 600;
+  color: #111827;
+}
+
+.lost-dist-pct {
+  color: #64748b;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.lost-dist-track {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.lost-dist-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  /* Chậm lại tí, dùng easing mượt */
+}
+
+/* Progress bar colors */
+.bg-dark {
+  background: #475569;
+}
+
+.bg-gray {
+  background: #cbd5e1;
+}
+
+.bg-blue {
+  background: #3b82f6;
+}
+
+.bg-green {
+  background: #10b981;
+}
+
+.bg-red {
+  background: #ef4444;
+}
+
+
+/* Filter Section */
+.lost-filter-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  display: flex;
+  gap: 20px;
+}
+
+.filter-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-input-wrapper .material-symbols-outlined {
+  position: absolute;
+  color: #64748b;
+  font-size: 18px;
+}
+
+.filter-input-wrapper .icon-left {
+  left: 10px;
+}
+
+.filter-input-wrapper .icon-right {
+  right: 10px;
+  pointer-events: none;
+}
+
+.filter-input,
+.filter-select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1e293b;
+  padding: 0 12px;
+  outline: none;
+  transition: all 0.2s;
+  background: #ffffff;
+}
+
+.filter-input.has-icon-left {
+  padding-left: 36px;
+}
+
+.filter-input.has-icon-right {
+  padding-right: 36px;
+}
+
+.filter-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.date-range-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+  font-size: 13px;
+}
+
+.date-range-display span {
+  color: #94a3b8;
+}
+
+/* Remove original header/toolbar from old component */
+.lost-header,
+.lost-stats-grid,
+.lost-toolbar {
+  display: none;
+}
+
+/* Adjust table card */
+.lost-table-card {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+/* Modal Styling Improvements */
+.lost-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 0;
+  /* Bỏ padding tổng, chia vào từng phần */
+  width: 480px;
+  max-width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lost-modal-header {
+  background: #f8fafc;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lost-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.lost-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lost-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lost-form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.lost-form-group input,
+.lost-form-group select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.lost-form-group input:focus,
+.lost-form-group select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.lost-modal-actions {
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.lost-modal-actions .btn-cancel {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #4b5563;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.lost-modal-actions .btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.lost-modal-actions .btn-save {
+  padding: 8px 16px;
+  border: none;
+  background: #3b82f6;
+  color: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.lost-modal-actions .btn-save:hover {
+  background: #2563eb;
+}
+
+/* Ẩn các css mặc định cũ của modal nếu có bị trùng */
+.lost-modal>h2 {
+  display: none;
+}
+
+/* Nếu dư header h2 ở root */
+
+
+/* ==========================================
+>>>>>>> origin/OperationLog_UXUI
    MODAL XÁC NHẬN XÓA THẺ THÁNG (Confirm Delete)
 
 /* Lớp phủ (overlay) che toàn màn hình, căn giữa hộp thoại xác nhận */
@@ -33118,6 +33850,7 @@ box-sizing: border-box;
 }
 
 /* Badge Trạng thái */
+<<<<<<< HEAD
           .session-status-badge {
             display: inline-flex;
             align-items: center;
@@ -33793,3 +34526,1399 @@ box-sizing: border-box;
         }
 
         >>>>>>>origin/OperationLog3
+=======
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.session-status-badge.inside {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.session-status-badge.out {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.session-status-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.session-status-badge.inside .badge-dot {
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* Realtime timer cell styling */
+.realtime-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ea580c;
+}
+
+.realtime-timer.stopped {
+  font-family: inherit;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.realtime-timer span.timer-icon {
+  font-size: 16px;
+  color: #ea580c;
+  animation: rotate-timer 2s linear infinite;
+}
+
+.realtime-timer.stopped span.timer-icon {
+  color: #94a3b8;
+  animation: none;
+}
+
+@keyframes pulse-dot {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes rotate-timer {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CONTRACT MODAL — Hợp đồng đăng ký thẻ tháng
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.contract-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.contract-container {
+  background-color: #f8fafc;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 800px;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.contract-header {
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contract-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.contract-close-top {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.contract-close-top:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.contract-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  background-color: #f1f5f9;
+}
+
+/* Mô phỏng tờ giấy A4 */
+.contract-paper {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 700px;
+  /* Bỏ min-height cứng để nội dung tự co giãn, tránh tạo cảm giác 2 trang */
+  padding: 40px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid #e2e8f0;
+  font-family: "Times New Roman", Times, serif;
+  color: #1e293b;
+  line-height: 1.5;
+  font-size: 14px;
+  user-select: none;
+  pointer-events: none;
+  /* Ngăn chặn bôi đen hoặc click vào văn bản */
+  /* Đảm bảo paper luôn kết thúc tại ký tên, không bị kéo dài thừa */
+  align-self: flex-start;
+}
+
+.contract-national-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.contract-national-title p:first-child {
+  font-weight: bold;
+  font-size: 13px;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+}
+
+.contract-national-title p:last-child {
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0;
+}
+
+.contract-national-title .line-separator {
+  width: 150px;
+  height: 1.5px;
+  background-color: #1e293b;
+  margin: 8px auto 0 auto;
+}
+
+.contract-title {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.contract-title h2 {
+  font-weight: bold;
+  font-size: 18px;
+  margin: 0 0 6px 0;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.contract-title p {
+  font-style: italic;
+  font-size: 13px;
+  margin: 0;
+  color: #475569;
+}
+
+.contract-intro {
+  text-align: justify;
+  margin-bottom: 20px;
+  text-indent: 25px;
+}
+
+.contract-section-title {
+  font-weight: bold;
+  font-size: 14px;
+  text-transform: uppercase;
+  margin: 18px 0 8px 0;
+}
+
+.contract-party-info {
+  margin-bottom: 16px;
+}
+
+.contract-party-info p {
+  margin: 4px 0;
+  padding-left: 15px;
+}
+
+/* Bảng hợp đồng */
+.contract-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+}
+
+.contract-table th,
+.contract-table td {
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.contract-table th {
+  background-color: #f8fafc;
+  font-weight: bold;
+}
+
+.contract-table td:first-child {
+  font-weight: bold;
+  width: 40%;
+}
+
+.contract-terms {
+  margin-top: 15px;
+}
+
+.contract-terms p {
+  margin: 6px 0;
+  text-align: justify;
+}
+
+.contract-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  padding: 0 20px;
+}
+
+.contract-sign-block {
+  width: 45%;
+  text-align: center;
+}
+
+.contract-sign-block p:first-child {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.contract-sign-block p:nth-child(2) {
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.contract-sign-block .signed-name {
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+/* Con dấu hợp đồng */
+.contract-stamp-wrapper {
+  width: 130px;
+  height: 130px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.contract-stamp-img {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+  opacity: 0.88;
+  mix-blend-mode: multiply;
+  display: block;
+}
+
+/* Footer Modal */
+.contract-footer {
+  padding: 16px 24px;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.contract-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.contract-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contract-btn-close {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.contract-btn-close:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.contract-btn-download {
+  background-color: #0284c7;
+  color: #ffffff;
+}
+
+.contract-btn-download:hover:not(:disabled) {
+  background-color: #0369a1;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fix cho html2pdf: đảm bảo contract-paper render đúng màu nền và border khi chụp ảnh */
+.contract-paper * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Đảm bảo nền trắng và chữ đen khi xuất PDF */
+.contract-paper .contract-table th {
+  background-color: #f8fafc !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* =========================================================================
+   GIAO DIỆN TRANG KÝ HỢP ĐỒNG ĐIỆN TỬ (CONTRACT SIGN PAGE)
+   ========================================================================= */
+.sign-page-layout {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(255, 140, 0, 0.08), transparent 30%),
+    linear-gradient(180deg, #fbf7f4 0%, #f4eae1 100%);
+  color: #2d3748;
+  display: flex;
+  flex-direction: column;
+}
+
+.sign-page-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sign-header-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sign-brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #4a5568;
+}
+
+.sign-security-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #10b981;
+  background-color: #ecfdf5;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.sign-page-main {
+  max-width: 900px;
+  width: 100%;
+  margin: 32px auto;
+  padding: 0 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Panel Action / Success */
+.sign-action-panel,
+.sign-success-panel {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  border-left: 6px solid #ff8c00;
+  animation: slideDown 0.4s ease;
+}
+
+.sign-success-panel {
+  border-left-color: #10b981;
+}
+
+.action-text-wrapper h3,
+.success-text-wrapper h3 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.action-text-wrapper p,
+.success-text-wrapper p {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.success-icon-wrapper {
+  background-color: #ecfdf5;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sign-btn-primary {
+  background-color: #ff8c00;
+  color: #ffffff;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.18);
+}
+
+.sign-btn-primary:hover:not(:disabled) {
+  background-color: #e57a00;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 140, 0, 0.24);
+}
+
+.sign-btn-primary:active {
+  transform: translateY(0);
+}
+
+.sign-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sign-btn-secondary {
+  background-color: #edf2f7;
+  color: #4a5568;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sign-btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #2d3748;
+}
+
+/* loading / error */
+.sign-page-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #fbf7f4;
+}
+
+.sign-page-error-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: #fbf7f4;
+}
+
+.sign-page-error-card {
+  background-color: #ffffff;
+  padding: 40px 32px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  border-top: 4px solid #ef4444;
+}
+
+/* Paper view alignment */
+.contract-paper-wrapper {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.06), 0 5px 15px -5px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.contract-paper-wrapper .contract-paper {
+  border: none;
+  box-shadow: none;
+  padding: 48px;
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive sign actions */
+@media (max-width: 768px) {
+
+  .sign-action-panel,
+  .sign-success-panel {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+
+  .sign-btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .contract-paper-wrapper .contract-paper {
+    padding: 24px 16px;
+  }
+}
+
+/* Badge trạng thái hợp đồng */
+.contract-status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.contract-status-badge.status-Chưa\ gửi {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.contract-status-badge.status-Chờ\ ký {
+  background-color: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #ffedd5;
+  animation: pulseLight 2s infinite;
+}
+
+.contract-status-badge.status-Đã\ ký {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #d1fae5;
+}
+
+.contract-status-badge.status-Hết\ hạn {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+}
+
+@keyframes pulseLight {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ===== Layout tổng ===== */
+.lost-card-log-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* ===== KPI Cards ===== */
+.lost-kpi-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+
+.lost-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.lost-kpi-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.lost-kpi-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lost-kpi-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-gray {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.icon-red {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.icon-blue {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.icon-green {
+  background: #dcfce7;
+  color: #22c55e;
+}
+
+.lost-kpi-title {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.lost-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lost-kpi-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.val-red {
+  color: #ef4444;
+}
+
+.val-blue {
+  color: #3b82f6;
+}
+
+.val-green {
+  color: #22c55e;
+}
+
+.lost-kpi-footer {
+  font-size: 11px;
+}
+
+.txt-gray {
+  color: #94a3b8;
+}
+
+.txt-orange {
+  color: #f97316;
+}
+
+.txt-blue {
+  color: #3b82f6;
+}
+
+.txt-green {
+  color: #22c55e;
+}
+
+/* ===== Distribution card ===== */
+.lost-dist-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.lost-dist-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.lost-dist-divider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 8px 0;
+}
+
+.lost-dist-item {
+  margin-bottom: 8px;
+}
+
+.lost-dist-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.lost-dist-val {
+  font-weight: 600;
+}
+
+.lost-dist-pct {
+  color: #94a3b8;
+}
+
+.lost-dist-track {
+  height: 4px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.lost-dist-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.bg-dark {
+  background: #1e293b;
+}
+
+.bg-gray {
+  background: #94a3b8;
+}
+
+.bg-blue {
+  background: #3b82f6;
+}
+
+.bg-green {
+  background: #22c55e;
+}
+
+.bg-red {
+  background: #ef4444;
+}
+
+/* ===== Filter toolbar ===== */
+.lost-filter-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr;
+  gap: 16px;
+}
+
+.filter-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.filter-input-wrapper {
+  position: relative;
+}
+
+.filter-input,
+.filter-select {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.filter-input.has-icon-left {
+  padding-left: 36px;
+}
+
+.icon-left {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 18px;
+}
+
+.icon-right {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.filter-select {
+  appearance: none;
+}
+
+/* ===== Table card ===== */
+.lost-table-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.lost-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lost-table thead th {
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lost-table tbody td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.lost-id-cell {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.lost-content-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lost-plate-box {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+.lost-plate-top {
+  line-height: 1.2;
+}
+
+.lost-plate-bottom {
+  line-height: 1.2;
+}
+
+/* ===== Status badge ===== */
+.status-badge-lost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge-lost .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pending {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.status-processing {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.status-recovered {
+  background: #dcfce7;
+  color: #22c55e;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.status-cancelled-mistake {
+  background: transparent;
+  color: #475569;
+}
+
+/* ===== Action button trong bảng ===== */
+.lost-action-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lost-action-btn:hover {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+/* ===== Footer + Pagination ===== */
+.lost-table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.footer-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.footer-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lost-pagination {
+  display: flex;
+  gap: 6px;
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-btn.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.lost-create-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lost-create-button:hover {
+  background: #334155;
+}
+
+/* ===== Modal ===== */
+.lost-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.lost-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lost-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lost-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.lost-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lost-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lost-form-group label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.lost-form-group input {
+  height: 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.lost-form-group input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.lost-modal-actions {
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-save,
+.btn-cancel {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-save {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+}
+
+.btn-save:hover {
+  background: #2563eb;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background: #fff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+}
+
+/* ===== History timeline (modal lịch sử xử lý) ===== */
+.history-modal-wide {
+  width: 900px !important;
+  max-width: 95vw !important;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.history-item {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 2.5fr;
+  gap: 20px;
+  align-items: start;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.history-action {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.history-action .history-target {
+  font-weight: 400;
+  color: #475569;
+  display: block;
+  margin-top: 4px;
+}
+
+.history-meta {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-meta-time {
+  font-weight: 500;
+  color: #334155;
+}
+
+.history-meta-user {
+  font-style: italic;
+  color: #94a3b8;
+}
+
+.history-note {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.6;
+  background: #ffffff;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid #f1f5f9;
+}
+
+.note-label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.history-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 40px 0;
+}
+
+/* nut cancel report lost card*/
+.lost-action-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.lost-action-note-input {
+  margin-bottom: 8px;
+}
+
+.lost-action-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-cancel-mistake {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.btn-cancel-danger {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+table td, table th {
+  white-space: nowrap !important;
+}
+
+/* Common Table Status Utilities */
+.table-status-error {
+  color: #ff4d4d;
+  padding: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.table-status-loading {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.table-status-empty {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+.log-time-cell {
+  font-family: monospace;
+}
+
+.log-amount-cell {
+  font-weight: 700;
+}
+
+.lost-table td, .lost-table th {
+  white-space: normal !important;
+}
+
+.text-center {
+  text-align: center !important;
+}
+>>>>>>> origin/OperationLog_UXUI

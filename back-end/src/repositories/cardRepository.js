@@ -290,9 +290,33 @@ export const cancelCard = async (cardId, performedBy) => {
 export const findCardTypeAndStatus = async (cardId) => {
   const { data, error } = await supabase
     .from('card')
-    .select('type, status')
+    .select('type, status, code')
     .eq('card_id', cardId)
     .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cấp lại thẻ tháng (update-in-place): ghi đè mã RFID mới và khôi phục trạng thái 'Hoạt động'.
+ * Đồng thời xóa deleted_at / deleted_by để thẻ hoạt động bình thường trở lại.
+ * @param {string} cardId
+ * @param {string} newCode  - Mã RFID mới
+ * @returns {Promise<object>} row thẻ sau khi cập nhật
+ */
+export const reissueCardUpdate = async (cardId, newCode) => {
+  const { data, error } = await supabase
+    .from('card')
+    .update({
+      code: newCode,
+      status: 'Hoạt động',
+      deleted_at: null,
+      deleted_by: null
+    })
+    .eq('card_id', cardId)
+    .select()
+    .single();
 
   if (error) throw new Error(error.message);
   return data;

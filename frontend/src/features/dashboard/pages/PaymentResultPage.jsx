@@ -56,6 +56,7 @@ const PAYMENT_TYPE_LABEL = {
     "Vé lượt": "Thanh toán gửi xe",
     "Đăng ký vé tháng": "Đăng ký vé tháng",
     "Gia hạn vé tháng": "Gia hạn vé tháng",
+    "Phí cấp lại thẻ": "Cấp lại thẻ tháng (mất thẻ)",
 };
 
 // Định nghĩa hệ thống CSS trong code (inline styles) vì ứng dụng không sử dụng Tailwind CSS
@@ -258,11 +259,14 @@ export default function PaymentResultPage() {
                 <div style={styles.actions}>
                     <button
                         style={styles.btnSecondary}
-                        onClick={() => navigate("/login/dashboard")}
+                        onClick={() => {
+                            const isMonthCardTx = ["Đăng ký vé tháng", "Gia hạn vé tháng", "Phí cấp lại thẻ"].includes(payment?.payment_type);
+                            navigate(isMonthCardTx ? "/login/dashboard/month-card" : "/login/dashboard");
+                        }}
                         onMouseEnter={e => e.target.style.background = "#343849"}
                         onMouseLeave={e => e.target.style.background = "#2a2e3d"}
                     >
-                        Về trang chủ
+                        {payment && ["Đăng ký vé tháng", "Gia hạn vé tháng", "Phí cấp lại thẻ"].includes(payment?.payment_type) ? "Về trang vé tháng" : "Về trang chủ"}
                     </button>
                     {!isSuccess && (
                         <button

@@ -19,6 +19,67 @@ export default function OccupancyChart() {
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
     const [selectedDate, setSelectedDate] = useState(todayStr);
 
+    // Column Filters state
+    const [columnFilters, setColumnFilters] = useState({
+        plate: '',
+        cardCode: '',
+        cardType: 'ALL',
+        entryTime: '',
+        exitTime: '',
+        duration: '',
+        status: 'ALL'
+    });
+
+    const isAnyFilterActive = 
+        columnFilters.plate !== '' || 
+        columnFilters.cardCode !== '' || 
+        columnFilters.cardType !== 'ALL' || 
+        columnFilters.entryTime !== '' || 
+        columnFilters.exitTime !== '' || 
+        columnFilters.duration !== '' || 
+        columnFilters.status !== 'ALL';
+
+    const handleClearFilters = () => {
+        setColumnFilters({
+            plate: '',
+            cardCode: '',
+            cardType: 'ALL',
+            entryTime: '',
+            exitTime: '',
+            duration: '',
+            status: 'ALL'
+        });
+    };
+
+    const filterInputStyle = {
+        width: '100%',
+        padding: '6px 10px',
+        border: '1px solid #cbd5e1',
+        borderRadius: '6px',
+        fontSize: '12px',
+        fontWeight: '500',
+        color: '#1f2937',
+        backgroundColor: '#f8fafc',
+        outline: 'none',
+        transition: 'all 0.15s ease-in-out',
+        boxSizing: 'border-box'
+    };
+
+    const filterSelectStyle = {
+        width: '100%',
+        padding: '6px 8px',
+        border: '1px solid #cbd5e1',
+        borderRadius: '6px',
+        fontSize: '12px',
+        fontWeight: '500',
+        color: '#1f2937',
+        backgroundColor: '#f8fafc',
+        outline: 'none',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease-in-out',
+        boxSizing: 'border-box'
+    };
+
     const getRoleLabel = (r) => {
         if (!r) return 'Nhân viên';
         switch (r.toUpperCase()) {
@@ -132,8 +193,27 @@ export default function OccupancyChart() {
                 <h1 className="stats-page-title">Thống kê hoạt động bãi xe</h1>
                 <div className="stats-header-right">
                     {/* Date Picker */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '6px 12px', border: '1px solid rgba(255,255,255,0.2)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'inherit', opacity: 0.85 }}>calendar_today</span>
+                    <div 
+                        style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 8, 
+                            background: '#ffffff', 
+                            borderRadius: 10, 
+                            padding: '6px 12px', 
+                            border: '1.5px solid #cbd5e1', 
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'border-color 0.2s, box-shadow 0.2s',
+                            color: '#1f2937'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#a94412';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = '#cbd5e1';
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#6b7280' }}>calendar_today</span>
                         <input
                             type="date"
                             value={selectedDate}
@@ -145,11 +225,11 @@ export default function OccupancyChart() {
                                 background: 'transparent',
                                 border: 'none',
                                 outline: 'none',
-                                color: 'inherit',
+                                color: '#1f2937',
                                 fontSize: 14,
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                colorScheme: 'dark'
+                                colorScheme: 'light'
                             }}
                         />
                         {selectedDate !== todayStr && (
@@ -157,7 +237,7 @@ export default function OccupancyChart() {
                                 type="button"
                                 onClick={() => setSelectedDate(todayStr)}
                                 title="Quay về hôm nay"
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', opacity: 0.75, padding: 0, display: 'flex', alignItems: 'center' }}
                             >
                                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>today</span>
                             </button>
@@ -274,12 +354,186 @@ export default function OccupancyChart() {
                                     <th>Thời gian gửi</th>
                                     <th>Trạng thái</th>
                                 </tr>
+                                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                    <th style={{ padding: '8px' }}>
+                                        {isAnyFilterActive && (
+                                            <button
+                                                type="button"
+                                                onClick={handleClearFilters}
+                                                title="Xóa tất cả bộ lọc"
+                                                style={{
+                                                    background: '#fee2e2',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    color: '#ef4444',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    padding: '4px 6px',
+                                                    margin: '0 auto',
+                                                    fontSize: '11px',
+                                                    fontWeight: 'bold',
+                                                    gap: '2px'
+                                                }}
+                                            >
+                                                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>filter_alt_off</span>
+                                                Xóa
+                                            </button>
+                                        )}
+                                    </th>
+                                    <th style={{ padding: '8px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Lọc biển số..."
+                                            value={columnFilters.plate}
+                                            onChange={(e) => setColumnFilters({...columnFilters, plate: e.target.value})}
+                                            style={filterInputStyle}
+                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </th>
+                                    <th style={{ padding: '8px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Lọc mã thẻ..."
+                                                value={columnFilters.cardCode}
+                                                onChange={(e) => setColumnFilters({...columnFilters, cardCode: e.target.value})}
+                                                style={filterInputStyle}
+                                                onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                            />
+                                            <select
+                                                value={columnFilters.cardType}
+                                                onChange={(e) => setColumnFilters({...columnFilters, cardType: e.target.value})}
+                                                style={filterSelectStyle}
+                                                onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                                onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                            >
+                                                <option value="ALL">Loại: Tất cả</option>
+                                                <option value="Thẻ tháng">Thẻ tháng</option>
+                                                <option value="Thẻ lượt">Thẻ lượt</option>
+                                            </select>
+                                        </div>
+                                    </th>
+                                    <th style={{ padding: '8px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Lọc giờ vào..."
+                                            value={columnFilters.entryTime}
+                                            onChange={(e) => setColumnFilters({...columnFilters, entryTime: e.target.value})}
+                                            style={filterInputStyle}
+                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </th>
+                                    <th style={{ padding: '8px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Lọc giờ ra..."
+                                            value={columnFilters.exitTime}
+                                            onChange={(e) => setColumnFilters({...columnFilters, exitTime: e.target.value})}
+                                            style={filterInputStyle}
+                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </th>
+                                    <th style={{ padding: '8px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Lọc th.gian..."
+                                            value={columnFilters.duration}
+                                            onChange={(e) => setColumnFilters({...columnFilters, duration: e.target.value})}
+                                            style={filterInputStyle}
+                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        />
+                                    </th>
+                                    <th style={{ padding: '8px' }}>
+                                        <select
+                                            value={columnFilters.status}
+                                            onChange={(e) => setColumnFilters({...columnFilters, status: e.target.value})}
+                                            style={filterSelectStyle}
+                                            onFocus={(e) => e.target.style.borderColor = '#a94412'}
+                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                        >
+                                            <option value="ALL">Tất cả</option>
+                                            <option value="INSIDE">Đang gửi</option>
+                                            <option value="OUT">Đã ra</option>
+                                        </select>
+                                    </th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {(() => {
                                     const filtered = sessions.filter(session => {
-                                        if (filterType === 'INSIDE') return session.status === 'Đang gửi xe';
-                                        if (filterType === 'OUT') return session.status === 'Hoàn thành';
+                                        // 1. Top filterType
+                                        if (filterType === 'INSIDE' && session.status !== 'Đang gửi xe') return false;
+                                        if (filterType === 'OUT' && session.status !== 'Hoàn thành') return false;
+
+                                        // 2. Column: Biển số xe
+                                        if (columnFilters.plate && !session.plate_number.toLowerCase().includes(columnFilters.plate.toLowerCase())) {
+                                            return false;
+                                        }
+
+                                        // 3. Column: Loại vé / Thẻ
+                                        const cardType = session.card?.type || 'Thẻ lượt';
+                                        if (columnFilters.cardType !== 'ALL' && cardType !== columnFilters.cardType) {
+                                            return false;
+                                        }
+                                        if (columnFilters.cardCode && !(session.card?.code || '').toLowerCase().includes(columnFilters.cardCode.toLowerCase())) {
+                                            return false;
+                                        }
+
+                                        // 4. Column: Thời gian vào
+                                        if (columnFilters.entryTime) {
+                                            const entryStr = new Date(session.entry_time).toLocaleString('vi-VN').toLowerCase();
+                                            if (!entryStr.includes(columnFilters.entryTime.toLowerCase())) return false;
+                                        }
+
+                                        // 5. Column: Thời gian ra
+                                        if (columnFilters.exitTime) {
+                                            const exitStr = session.exit_time ? new Date(session.exit_time).toLocaleString('vi-VN').toLowerCase() : '-- : --';
+                                            if (!exitStr.includes(columnFilters.exitTime.toLowerCase())) return false;
+                                        }
+
+                                        // 6. Column: Thời gian gửi (duration)
+                                        if (columnFilters.duration) {
+                                            const isInside = session.status === 'Đang gửi xe';
+                                            let durationMs = 0;
+                                            if (isInside) {
+                                                let entryTimeStr = session.entry_time;
+                                                if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                                                    entryTimeStr += "Z";
+                                                }
+                                                durationMs = now.getTime() - new Date(entryTimeStr).getTime();
+                                            } else {
+                                                let entryTimeStr = session.entry_time;
+                                                let exitTimeStr = session.exit_time;
+                                                if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                                                    entryTimeStr += "Z";
+                                                }
+                                                if (typeof exitTimeStr === "string" && !exitTimeStr.endsWith("Z") && !exitTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                                                    exitTimeStr += "Z";
+                                                }
+                                                durationMs = new Date(exitTimeStr).getTime() - new Date(entryTimeStr).getTime();
+                                            }
+                                            if (durationMs < 0) durationMs = 0;
+                                            const seconds = Math.floor((durationMs / 1000) % 60);
+                                            const minutes = Math.floor((durationMs / (1000 * 60)) % 60);
+                                            const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                                            const durationStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                                            
+                                            if (!durationStr.includes(columnFilters.duration)) return false;
+                                        }
+
+                                        // 7. Column: Trạng thái
+                                        if (columnFilters.status !== 'ALL') {
+                                            if (columnFilters.status === 'INSIDE' && session.status !== 'Đang gửi xe') return false;
+                                            if (columnFilters.status === 'OUT' && session.status !== 'Hoàn thành') return false;
+                                        }
+
                                         return true;
                                     });
                                     if (filtered.length === 0) {

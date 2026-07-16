@@ -73,10 +73,10 @@ export const simulateOCR = async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("gateController.simulateOCR error:", err);
+    console.error("gateController.simulateOCR error:", err.response?.data || err);
     return res.status(500).json({
       success: false,
-      message: err.message || "Lỗi xử lý OCR biển số."
+      message: err.response?.data?.message || err.message || "Lỗi xử lý OCR biển số."
     });
   }
 };

@@ -224,27 +224,12 @@ export async function handleIpn(query) {
                     });
             }
         } 
-        // --- TRƯỜNG HỢP 2: Gia hạn vé tháng (Tự động kéo dài thời hạn thẻ) ---
-        else if (payment.payment_type === "Gia hạn vé tháng" && payment.vehicle_package_id) {
-            // Danh mục gói dịch vụ vé tháng tương ứng với mệnh giá thanh toán
-            const RENEW_PACKAGES = [
-                { months: 1, price: 300000 },
-                { months: 3, price: 850000 },
-                { months: 6, price: 1650000 },
-                { months: 9, price: 2400000 },
-                { months: 12, price: 3000000 }
-            ];
-            const pkg = RENEW_PACKAGES.find(p => p.price === Number(payment.amount));
-            const months = pkg ? pkg.months : 1;
-
-            // Gọi dịch vụ gia hạn để cộng thêm ngày hạn dùng cho thẻ tháng
-            const { renewMonthlyCard } = await import("./monthCardService.js");
-            await renewMonthlyCard({
-                registrationId: payment.vehicle_package_id,
-                months: months,
-                note: `Gia hạn thanh toán qua VNPay - GD ${orderCode}`,
-                currentUserId: payment.created_by
-            });
+        // --- TRƯỜNG HỢP 2: Gia hạn vé tháng (Nhánh A — cộng kỳ mới nối tiếp) ---
+        else if (payment.payment_type === "Gia hạn vé tháng") {
+            // Gọi renewalService để xử lý toàn bộ DB operations sau khi payment thành công
+            // (tạo vehicle_package mới, cập nhật card.expired_date, ghi log)
+            const { processRenewalSuccess } = await import("./renewalService.js");
+            await processRenewalSuccess(orderCode);
         }
     }
 

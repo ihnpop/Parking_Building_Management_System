@@ -389,7 +389,7 @@ export default function MonthCardPage() {
                                                         style={{ color: '#004bca', background: 'none', border: 'none', cursor: 'pointer' }}
                                                         title="Gia hạn"
                                                         onClick={() => setRenewingCard(row)}
-                                                        disabled={!row.registrationId || row.status === 'Đã khóa'}
+                                                        disabled={!row.card_id}
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>calendar_today</span>
                                                     </button>

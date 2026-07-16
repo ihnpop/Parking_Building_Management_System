@@ -630,7 +630,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
         .from('payment')
         .select('payment_id')
         .eq('session_id', activeSession.session_id)
-        .eq('payment_type', 'CASUAL')
+        .eq('payment_type', 'Vé lượt')
         .maybeSingle();
 
       if (!existingPayment) {
@@ -642,7 +642,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
             payment_method: 'Cash',
             status: 'Đã thanh toán',
             payment_time: exitTime.toISOString(),
-            payment_type: 'CASUAL',
+            payment_type: 'Vé lượt',
             created_by: staffId || null
           });
         if (paymentErr) {
@@ -742,7 +742,8 @@ const getDayRange = (dateStr = null) => {
  */
 export const getStats = async (dateStr = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
-  const isToday = !dateStr;
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const isToday = !dateStr || dateStr === todayStr;
 
   // 1. Số lượng xe trong bãi (status = 'Đang gửi xe') — chỉ có nghĩa khi xem hôm nay
   let insideCount = 0;
@@ -807,8 +808,8 @@ export const getSessions = async (dateStr = null) => {
       status,
       card_id
     `)
-    .gte("entry_time", startOfDay.toISOString())
     .lt("entry_time", endOfDay.toISOString())
+    .or(`exit_time.is.null,exit_time.gte.${startOfDay.toISOString()}`)
     .order("entry_time", { ascending: false });
 
   if (sessionsErr) throw new Error("Lỗi lấy danh sách phiên gửi xe: " + sessionsErr.message);

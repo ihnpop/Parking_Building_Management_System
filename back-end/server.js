@@ -160,6 +160,20 @@ const PORT = process.env.PORT;
 app.listen(
   PORT,
   () => {
-    console.log(`Server running at ${PORT}`)
+    console.log(`Server running at ${PORT}`);
+    
+    // Tự động chạy Expiry Job để cập nhật các gói hết hạn (BR-11)
+    import("./src/service/renewalService.js")
+      .then(({ runExpiryJob }) => {
+        // Chạy lần đầu sau 5 giây khi server start
+        setTimeout(() => {
+          runExpiryJob().catch(err => console.error("[ExpiryJob] Lỗi:", err.message));
+        }, 5000);
+        // Lặp lại mỗi 24 giờ (86400000 ms)
+        setInterval(() => {
+          runExpiryJob().catch(err => console.error("[ExpiryJob] Lỗi:", err.message));
+        }, 24 * 60 * 60 * 1000);
+      })
+      .catch(err => console.error("[ExpiryJob] Không thể import renewalService:", err.message));
   }
 );
