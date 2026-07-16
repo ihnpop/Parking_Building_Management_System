@@ -1,8 +1,9 @@
 import supabase from "../config/supabaseClient.js";
 
 export const getCards = async () => {
-  const { data, error } = await supabase
+  const { data: cards, error: cardError } = await supabase
     .from('card')
+<<<<<<< HEAD
     .select(`
       card_id,
       code,
@@ -20,9 +21,47 @@ export const getCards = async () => {
         )
       )
     `);
+=======
+    .select('card_id, code, type, expired_date, status, created_at')
+    .eq('type', 'Thẻ lượt')
+    .not('status', 'eq', 'Đã xóa');
+>>>>>>> RegistrationFunction
 
-  if (error) throw new Error(error.message);
+  if (cardError) throw new Error(cardError.message);
 
+  if (!cards || cards.length === 0) return [];
+
+  const cardIds = cards.map(c => c.card_id);
+
+  const { data: registrations, error: regError } = await supabase
+    .from('card_registrations')
+    .select(`
+      card_id,
+      status,
+      vehicle (
+        vehicle_id,
+        plate_number,
+        customer (
+          customer_id,
+          full_name,
+          phone,
+          email
+        )
+      )
+    `)
+    .in('card_id', cardIds);
+
+  if (regError) throw new Error(regError.message);
+
+  const regMap = {};
+  registrations?.forEach(reg => {
+    if (!regMap[reg.card_id]) {
+      regMap[reg.card_id] = [];
+    }
+    regMap[reg.card_id].push(reg);
+  });
+
+<<<<<<< HEAD
   return data.map(item => {
     const activeReg = item.card_registrations?.find(r => r.status === 'ACTIVE') || item.card_registrations?.[0];
     return {
@@ -221,29 +260,190 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     return random;
   };
   const code = await generateCode();
+=======
+  return await Promise.all(
+    cards.map(async (item) => {
+      const cardRegs = regMap[item.card_id] || [];
+      const activeReg = cardRegs.find(r => r.status === 'Hoạt động') ?? null;
 
-  // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
-  let expiredDate = null;
-  if (type === 'Thẻ tháng') {
-    const months = parseInt(durationMonths) || 1;
-    const start = new Date(startDate);
-    start.setMonth(start.getMonth() + months);
-    expiredDate = start.toISOString().split('T')[0];
+      let latestSession = null;
+
+      if (activeReg?.vehicle?.vehicle_id) {
+        const { data: sessions } = await supabase
+          .from("parking_sessions")
+          .select(`
+          session_id,
+          entry_time,
+          exit_time
+        `)
+          .eq(
+            "vehicle_id",
+            activeReg.vehicle.vehicle_id
+          )
+          .order(
+            "entry_time",
+            { ascending: false }
+          )
+          .limit(1);
+
+        latestSession = sessions?.[0] || null;
+      }
+      return {
+
+        card_id: item.card_id,
+        code: item.code,
+        type: item.type,
+
+        expired_date: item.expired_date,
+        status: item.status,
+        created_at: item.created_at,
+
+        plate:
+          activeReg?.vehicle?.plate_number ||
+          "",
+
+        fullName:
+          activeReg?.vehicle?.customer?.full_name ||
+          "",
+
+        phone:
+          activeReg?.vehicle?.customer?.phone ||
+          "",
+
+        email:
+          activeReg?.vehicle?.customer?.email ||
+          "",
+
+        check_in_time:
+          latestSession?.entry_time || '',
+
+        check_out_time:
+          latestSession?.exit_time || '',
+
+        customer_name:
+          activeReg?.vehicle?.customer?.full_name ||
+          "Chưa đăng ký",
+
+        vehicle_id:
+          activeReg?.vehicle?.vehicle_id || null,
+
+        customer_id:
+          activeReg?.vehicle?.customer?.customer_id ||
+          null
+      };
+    })
+  )
+}
+
+export const createCard = async ({ type, startDate, plate, fullName, phone, email, durationMonths }) => {
+  let cleanPlate = plate ? plate.trim() : undefined;
+  if (cleanPlate) {
+    cleanPlate = cleanPlate.replace(/[\s\.\-]/g, '').toUpperCase();
+    const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+    if (!plateRegex.test(cleanPlate)) {
+      throw new Error("Biển số xe không đúng định dạng xx(A-Z)xxxxx hoặc xx(A-Z)xxxx (Ví dụ: 29A12345)");
+    }
   }
 
-  const { data: newCard, error: cardError } = await supabase
-    .from('card')
-    .insert({
-      code,
-      type,
-      created_at: startDate,
-      expired_date: expiredDate,
-      status: 'Hoạt động',
-    })
-    .select()
-    .single();
+  // Validate plate uniqueness among active cards
+  if (cleanPlate) {
+    const { data: vehicle, error: vehicleErr } = await supabase
+      .from('vehicle')
+      .select('vehicle_id')
+      .eq('plate_number', cleanPlate)
+      .maybeSingle();
 
-  if (cardError) throw new Error(cardError.message);
+    if (vehicleErr) throw new Error(vehicleErr.message);
+
+    if (vehicle) {
+      const { data: activeReg, error: regCheckErr } = await supabase
+        .from('card_registrations')
+        .select(`
+          registration_id,
+          card (
+            code
+          )
+        `)
+        .eq('vehicle_id', vehicle.vehicle_id)
+        .in('status', ['Hoạt động'])
+        .maybeSingle();
+
+      if (regCheckErr) throw new Error(regCheckErr.message);
+
+      if (activeReg) {
+        throw new Error(`Biển số xe ${cleanPlate} đã được đăng ký và đang hoạt động trên thẻ ${activeReg.card?.code || ''}.`);
+      }
+    }
+  }
+
+  let cardToUse = null;
+>>>>>>> RegistrationFunction
+
+  if (type === 'Thẻ lượt') {
+    // Tìm thẻ lượt có trạng thái "Đang chờ" để tái sử dụng
+    const { data: waitingCard, error: waitingCardErr } = await supabase
+      .from('card')
+      .select('*')
+      .eq('type', 'Thẻ lượt')
+      .eq('status', 'Đang chờ')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (waitingCardErr) throw new Error(waitingCardErr.message);
+
+    if (waitingCard) {
+      // Trường hợp 1: Tái sử dụng thẻ đang chờ, cập nhật lại trạng thái và ngày tạo
+      const { data: updatedCard, error: updateErr } = await supabase
+        .from('card')
+        .update({
+          status: 'Hoạt động',
+          created_at: startDate || new Date().toISOString()
+        })
+        .eq('card_id', waitingCard.card_id)
+        .select()
+        .single();
+
+      if (updateErr) throw new Error(updateErr.message);
+      cardToUse = updatedCard;
+    }
+  }
+
+  // Trường hợp 2 hoặc khi không phải Thẻ lượt hoặc không tìm thấy thẻ đang chờ
+  if (!cardToUse) {
+    // Generate a random unique code
+    const generateCode = async () => {
+      const random = `CARD${Math.floor(1000 + Math.random() * 9000)}`;
+      const { data: existing } = await supabase.from('card').select('code').eq('code', random).maybeSingle();
+      if (existing) return generateCode();
+      return random;
+    };
+    const code = await generateCode();
+
+    // For monthly cards, calculate the expired date based on durationMonths (default to 1 month if not provided)
+    let expiredDate = null;
+    if (type === 'Thẻ tháng') {
+      const months = parseInt(durationMonths) || 1;
+      const start = new Date(startDate);
+      start.setMonth(start.getMonth() + months);
+      expiredDate = start.toISOString().split('T')[0];
+    }
+
+    const { data: newCard, error: cardError } = await supabase
+      .from('card')
+      .insert({
+        code,
+        type,
+        created_at: startDate,
+        expired_date: expiredDate,
+        status: 'Hoạt động',
+      })
+      .select()
+      .single();
+
+    if (cardError) throw new Error(cardError.message);
+    cardToUse = newCard;
+  }
 
   // Link to vehicle if plate is provided
   if (plate) {
@@ -309,7 +509,7 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     const { error: regErr } = await supabase
       .from('card_registrations')
       .insert({
-        card_id: newCard.card_id,
+        card_id: cardToUse.card_id,
         vehicle_id: vehicle.vehicle_id,
         status: 'ACTIVE',
         created_at: startDate
@@ -318,15 +518,46 @@ export const createCard = async ({ type, startDate, plate, fullName, phone, emai
     if (regErr) throw new Error(regErr.message);
   }
 
-  return newCard;
+  return cardToUse;
 };
 
+<<<<<<< HEAD
 export const deleteCard = async (cardId) => {
   // First, remove all card_registrations linked to this card (FK constraint)
   const { error: regErr } = await supabase
     .from('card_registrations')
     .delete()
     .eq('card_id', cardId);
+=======
+export const deleteCard = async (cardId, currentUserId) => {
+  // 1. Kiểm tra card tồn tại
+  const card = await cardRepository.findById(cardId);
+  if (!card) {
+    throw new Error("Không tìm thấy card");
+  }
+
+  const statusUpper = (card.status || '').toUpperCase();
+
+  // 2. Chặn xóa nếu thẻ đang hoạt động
+  if (statusUpper === 'HOẠT ĐỘNG') {
+    throw new Error("Không thể xóa card hoạt động");
+  }
+
+  // 3. Chặn xóa nếu thẻ đã bị khóa (đã từng xóa mềm trước đó)
+  if (statusUpper === 'ĐÃ KHÓA') {
+    throw new Error("Không thể xóa thẻ đã khóa");
+  }
+
+  // 4. Chỉ còn lại trạng thái "Đang chờ" được phép xóa
+  if (statusUpper !== 'ĐANG CHỜ') {
+    throw new Error("Chỉ có thể xóa thẻ ở trạng thái Đang chờ");
+  }
+
+  // 5. Thực hiện Soft Delete thông qua Repository
+  await cardRepository.softDelete(cardId, currentUserId);
+  return { success: true };
+};
+>>>>>>> RegistrationFunction
 
 <<<<<<< HEAD
   if (regErr) throw new Error(`Lỗi xóa đăng ký thẻ: ${regErr.message}`);
@@ -376,6 +607,7 @@ export const getLostCards = async () => {
     const handlerName = log.profiles?.full_name || "---";
 
     // PHÂN LOẠI CHÍNH XÁC THÀNH 3 TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
+<<<<<<< HEAD
     let statusText = 'Đang xử lý';
     if (log.status === 'RESOLVED' || log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
       statusText = 'Đã xong';
@@ -386,8 +618,23 @@ export const getLostCards = async () => {
         statusText = 'Đang xử lý';
       }
     } else if (log.status === 'CANCELED' || log.status === 'Đã hủy thẻ') {
+=======
+    let statusText = 'Đang xử lý'; // Giá trị mặc định: áp dụng cho trường hợp đã có handled_by nhưng chưa hoàn tất
+
+    if (log.status === 'Đã xử lý xong' || log.status === 'Đã xong') {
+      // Nhân viên đã xử lý xong báo cáo mất thẻ
+      statusText = 'Đã xong';
+    } else if (log.status === 'Đã hủy thẻ') {
+      // Báo cáo mất thẻ đã dẫn đến việc hủy/khóa thẻ
+>>>>>>> RegistrationFunction
       statusText = 'Đã hủy thẻ';
+    } else if (log.status === 'Chờ xử lý' && !log.handled_by) {
+      // Vừa tạo mới (status mặc định khi insert) và chưa có ai nhận xử lý
+      // -> giữ đúng trạng thái ban đầu, không để rơi về "Đang xử lý"
+      statusText = 'Chờ xử lý';
     }
+    // Trường hợp còn lại: status vẫn là 'Chờ xử lý' nhưng đã có handled_by
+    // (nhân viên đã bắt đầu xử lý) -> giữ giá trị default 'Đang xử lý' ở trên
 
     return {
       // Khớp hoàn toàn cả định dạng trường cũ (Dự phòng cho UI)

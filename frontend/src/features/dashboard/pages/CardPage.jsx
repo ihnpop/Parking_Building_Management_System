@@ -1,5 +1,14 @@
+<<<<<<< HEAD
 import { useState, useEffect, useRef } from 'react'
 import { getCards, createCard, deleteCard } from '../../../service/cardApi';
+=======
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getCards, createCard, deleteCard, updateCard } from '../../../service/cardApi';
+import { useAuth } from '../../../context/AuthContext';
+import { getVNDateTimeLocal } from '../../../utils/dateUtils';
+import { useNotification } from '../../../context/NotificationContext';
+>>>>>>> RegistrationFunction
 
 /**
  * CardPage displays a centralized card management workspace.
@@ -30,20 +39,7 @@ function CreateCardModal({ formData, formError, submitting, onChange, onSubmit, 
                 </div>
 
                 <form className="cp-modal-form" onSubmit={onSubmit}>
-                    {/* 1. Loại thẻ */}
-                    <div className="cp-form-group">
-                        <label htmlFor="type">Loại thẻ</label>
-                        <select
-                            id="type"
-                            name="type"
-                            className="cp-select"
-                            value={formData.type}
-                            onChange={onChange}
-                        >
-                            <option value="Thẻ lượt">Thẻ lượt</option>
-                            {/* <option value="Thẻ tháng">Thẻ tháng</option> */}
-                        </select>
-                    </div>
+                    {/* Loại thẻ mặc định là Thẻ lượt — không hiển thị dropdown vì form này chỉ dùng cho Thẻ lượt */}
 
                     {/* 2. Biển số xe */}
                     <div className="cp-form-group">
@@ -217,6 +213,12 @@ function EditCardModal({ formData, formError, submitting, onChange, onSubmit, on
 // ─────────────────────────────────────────────
 >>>>>>> Hieu
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
+<<<<<<< HEAD
+=======
+    const navigate = useNavigate();
+    const { userRole, user } = useAuth();
+    const { showToast, showConfirm } = useNotification();
+>>>>>>> RegistrationFunction
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -227,6 +229,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState(null);
 
+<<<<<<< HEAD
     // Delete modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [cardToDelete, setCardToDelete] = useState(null);
@@ -239,6 +242,10 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     // Filters - Tự động nhận defaultType từ Tab lớn bên ngoài truyền vào
     const [typeFilter, setTypeFilter] = useState(defaultType);
+=======
+    // Filters
+    const [search, setSearch] = useState('');
+>>>>>>> RegistrationFunction
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
 
     // Đồng bộ lại bộ lọc nếu defaultType từ Tab lớn thay đổi
@@ -246,12 +253,26 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setTypeFilter(defaultType);
     }, [defaultType]);
 
-    const fetchCards = async () => {
+    const fetchCards = async (pageOverride) => {
         try {
             setLoading(true);
             const data = await getCards();
-            setCards(data);
+            
+            // Sort data newest first
+            const sortedData = [...data].sort((a, b) => {
+                const dateA = a.created_at ? new Date(a.created_at) : 0;
+                const dateB = b.created_at ? new Date(b.created_at) : 0;
+                if (dateB.getTime() !== dateA.getTime()) {
+                    return dateB - dateA;
+                }
+                return (b.code || '').localeCompare(a.code || '');
+            });
+
+            setCards(sortedData);
             setError(null);
+            if (pageOverride !== undefined) {
+                setCurrentPage(pageOverride);
+            }
         } catch (err) {
             console.error("Error loading cards:", err);
             setError("Không thể tải danh sách thẻ. Vui lòng thử lại sau!");
@@ -301,6 +322,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         setFormError(null);
     };
 
+<<<<<<< HEAD
     // Open delete confirmation modal
     const handleOpenDeleteModal = (card) => {
         setCardToDelete(card);
@@ -332,6 +354,31 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         } finally {
             setDeleting(false);
         }
+=======
+const handleDelete = async (row) => {
+        if (row.status !== 'Đang chờ') return;
+        showConfirm({
+            title: "Xóa thẻ",
+            message: `Bạn chắc chắn muốn xóa thẻ ${row.code}? Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.`,
+            confirmText: "Xóa thẻ",
+            cancelText: "Hủy",
+            isDangerous: true,
+            onConfirm: async () => {
+                try {
+                    const res = await deleteCard(row.card_id, user?.id);
+                    if (res.success) {
+                        showToast(res.message || "Xóa thẻ thành công", "success");
+                        await fetchCards();
+                    } else {
+                        showToast(res.message || "Xóa thẻ thất bại", "error");
+                    }
+                } catch (err) {
+                    const errMsg = err.response?.data?.message || err.message || "Xóa thẻ thất bại";
+                    showToast(errMsg, "error");
+                }
+            }
+        });
+>>>>>>> RegistrationFunction
     };
 
     // Toggle action dropdown
@@ -360,6 +407,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         e.preventDefault();
         setFormError(null);
 
+<<<<<<< HEAD
         if (!formData.code.trim()) {
             setFormError('Vui lòng nhập Mã thẻ.');
             return;
@@ -368,6 +416,16 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         if (!formData.startDate) {
             setFormError('Vui lòng chọn ngày bắt đầu.');
             return;
+=======
+        // Kiểm tra định dạng biển số xe
+        if (formData.plate && formData.plate.trim() !== '') {
+            const rawPlate = formData.plate.replace(/[\s.\-]/g, '').toUpperCase();
+            const plateRegex = /^\d{2}[A-Z]\d{4,5}$/;
+            if (!plateRegex.test(rawPlate)) {
+                setFormError('Biển số xe không đúng định dạng. Vui lòng nhập theo định dạng xx[A-Z]xxxx hoặc xx[A-Z]xxxxx (Ví dụ: 30K12345 hoặc 59X312345).');
+                return;
+            }
+>>>>>>> RegistrationFunction
         }
 
         try {
@@ -379,8 +437,15 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 startDate: formData.startDate,
                 status: 'Hoạt động'
             });
+<<<<<<< HEAD
             setShowModal(false);
             await fetchCards(); // Tải lại bảng dữ liệu ngay lập tức
+=======
+            showToast("Đăng ký thẻ mới thành công", "success");
+            setShowCreateModal(false);
+            setCurrentPage(1); // Task 2: Reset về trang 1 để item mới đứng đầu danh sách
+            await fetchCards(1);
+>>>>>>> RegistrationFunction
         } catch (err) {
 <<<<<<< HEAD
             console.error('Error creating card:', err);
@@ -626,6 +691,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                     >
                                                         <span className="material-symbols-outlined">more_vert</span>
                                                     </button>
+<<<<<<< HEAD
                                                     {openActionMenu === row.code && (
                                                         <div className="cardpage-action-menu">
                                                             <button
@@ -648,6 +714,32 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                     )}
                                                 </div>
                                             </td>
+=======
+
+                                                    {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ ở trạng thái "Đang chờ" */}
+                                                    <button type="button" className="cp-delete-btn"
+                                                        style={{
+                                                            color: '#ba1a1a',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: row.status !== 'Đang chờ' ? 'not-allowed' : 'pointer',
+                                                            opacity: row.status !== 'Đang chờ' ? 0.4 : 1,
+                                                        }}
+                                                        onClick={() => handleDelete(row)}
+                                                        disabled={row.status !== 'Đang chờ'}
+                                                        title={row.status !== 'Đang chờ'
+                                                            ? 'Chỉ có thể xóa thẻ ở trạng thái Đang chờ'
+                                                            : 'Xóa thẻ'}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>delete</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="cp-empty-row">Không tìm thấy thẻ phù hợp</td>
+>>>>>>> RegistrationFunction
                                         </tr>
                                     ))
                                 ) : (
@@ -677,6 +769,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 )}
             </section>
 
+<<<<<<< HEAD
             {/* ===== Modal Xác nhận Xóa Thẻ ===== */}
             {showDeleteModal && cardToDelete && (
                 <div
@@ -744,4 +837,31 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
             )}
         </main>
     )
+=======
+            {/* ── Modals ── */}
+            {showCreateModal && (
+                <CreateCardModal
+                    formData={formData}
+                    formError={formError}
+                    submitting={submitting}
+                    onChange={handleFormChange}
+                    onSubmit={handleCreate}
+                    onClose={handleCloseCreate}
+                />
+            )}
+
+            {showEditModal && (
+                <EditCardModal
+                    formData={formData}
+                    formError={formError}
+                    submitting={submitting}
+                    onChange={handleFormChange}
+                    onSubmit={handleUpdate}
+                    onClose={handleCloseEdit}
+                />
+            )}
+
+        </div>
+    );
+>>>>>>> RegistrationFunction
 }

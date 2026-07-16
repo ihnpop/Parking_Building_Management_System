@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { createLostCard } from "../../../service/cardApi"
+import { createLostCard } from "../../../service/cardApi";
+import { useNotification } from '../../../context/NotificationContext';
 export default function LostCardLogPage() {
+    const { showToast } = useNotification();
     const navigate = useNavigate();
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
@@ -11,9 +13,12 @@ export default function LostCardLogPage() {
 
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     // Trạng thái hiển thị modal tạo báo mất thẻ
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [editingCard, setEditingCard] = useState(null);
 
     // Dữ liệu nhập vào của form báo mất thẻ mới
     const [newLostCard, setNewLostCard] = useState({
@@ -22,6 +27,29 @@ export default function LostCardLogPage() {
     });
 
     // Xử lý gửi yêu cầu tạo báo mất thẻ mới lên server
+    
+    const handleUpdateLostCard = async () => {
+        try {
+            // Mock API call or real API call to update
+            // await axios.put(`http://localhost:3636/api/cards/${editingCard.lost_report_id || editingCard.id}`, editingCard);
+            
+            // Tạm thời update local state vì chưa rõ API put có hỗ trợ hay không
+            setLostCards(prev => prev.map(card => 
+                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id) 
+                ? { ...card, ...editingCard } : card
+            ));
+            setFilteredCards(prev => prev.map(card => 
+                (card.lost_report_id === editingCard.lost_report_id || card.id === editingCard.id) 
+                ? { ...card, ...editingCard } : card
+            ));
+            
+            showToast('Đã lưu thay đổi thành công!', 'success');
+            setEditingCard(null);
+        } catch (err) {
+            console.error(err);
+            showToast('Lỗi khi lưu thay đổi!', 'error');
+        }
+    };
     const handleCreateLostCard = async () => {
         try {
             // Tạo payload gửi đi từ dữ liệu form
@@ -44,7 +72,7 @@ export default function LostCardLogPage() {
             console.error(err);
             // Hiển thị thông báo lỗi chi tiết từ Server nếu có
             const message = err.response?.data?.message || err.message || 'Không thể tạo báo mất';
-            alert(message);
+            showToast(message, 'error');
         }
     };
     const fetchLostCards = async () => {
@@ -97,14 +125,36 @@ export default function LostCardLogPage() {
 
             const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
 
-            return matchesSearch && matchesStatus;
+            let matchesDate = true;
+            if (startDate || endDate) {
+                const rowDateStr = row.reported_at || row.date;
+                if (rowDateStr) {
+                    const rowDate = new Date(rowDateStr);
+                    if (!isNaN(rowDate.getTime())) {
+                        rowDate.setHours(0, 0, 0, 0);
+
+                        if (startDate) {
+                            const sDate = new Date(startDate);
+                            sDate.setHours(0, 0, 0, 0);
+                            if (rowDate < sDate) matchesDate = false;
+                        }
+                        if (endDate) {
+                            const eDate = new Date(endDate);
+                            eDate.setHours(23, 59, 59, 999);
+                            if (rowDate > eDate) matchesDate = false;
+                        }
+                    }
+                }
+            }
+
+            return matchesSearch && matchesStatus && matchesDate;
         });
         setFilteredCards(filtered);
     };
 
     useEffect(() => {
         handleFilter();
-    }, [statusFilter, search, lostCards]);
+    }, [statusFilter, search, lostCards, startDate, endDate]);
 
     const renderPlate = (plateStr) => {
         if (!plateStr || plateStr === "N/A" || plateStr === "Chưa có xe") {
@@ -151,109 +201,174 @@ export default function LostCardLogPage() {
     const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'RESOLVED').length;
 
     return (
-        <div className="lost-card-log-page">
-            {/* Header */}
-            <header className="lost-header">
-                <div className="lost-header-left">
-                    <button type="button" className="lost-back-button" onClick={() => navigate('/login/dashboard')}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <h1>Nhật ký xử lý mất thẻ</h1>
-                </div>
-
-                <div className="lost-header-right">
-                    <button type="button" className="lost-bell-button" onClick={fetchLostCards}>
-                        <span className="material-symbols-outlined">refresh</span>
-                    </button>
-                    <div className="lost-avatar">
-                        <span className="material-symbols-outlined">person</span>
-                    </div>
-                </div>
-            </header>
-
-            {/* Thống kê 3 trạng thái động */}
-            <section className="lost-stats-grid">
-                <article className="lost-stat-card">
-                    <div className="lost-stat-content">
-                        <p className="lost-stat-label">Chờ xử lý</p>
-                        <p className="lost-stat-value" style={{ color: '#ff9800' }}>{loading ? '...' : pendingCount}</p>
-                        <p className="lost-stat-note warning-note">Hệ thống vừa ghi nhận</p>
-                    </div>
-                    <div className="lost-stat-icon warning">
-                        <span className="material-symbols-outlined">hourglass_empty</span>
-                    </div>
-                </article>
-
-                <article className="lost-stat-card">
-                    <div className="lost-stat-content">
-                        <p className="lost-stat-label">Đang xử lý</p>
-                        <p className="lost-stat-value" style={{ color: '#2196f3' }}>{loading ? '...' : processingCount}</p>
-                        <p className="lost-stat-note" style={{ color: '#2196f3' }}>Nhân viên đang làm việc</p>
-                    </div>
-                    <div className="lost-stat-icon" style={{ backgroundColor: '#e3f2fd', color: '#2196f3' }}>
-                        <span className="material-symbols-outlined">sync</span>
-                    </div>
-                </article>
-
-                <article className="lost-stat-card">
-                    <div className="lost-stat-content">
-                        <p className="lost-stat-label">Đã xong</p>
-                        <p className="lost-stat-value" style={{ color: '#4caf50' }}>{loading ? '...' : resolvedCount}</p>
-                        <div className="lost-stat-progress-bar">
-                            <div className="progress-fill" style={{ width: totalLost > 0 ? `${(resolvedCount / totalLost) * 100}%` : '0%', backgroundColor: '#4caf50' }}></div>
+        <div className="lost-card-log-wrapper">
+            <div className="lost-kpi-container">
+                <div className="lost-kpi-grid">
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-gray">
+                                <span className="material-symbols-outlined">badge</span>
+                            </div>
+                            <span className="lost-kpi-title">Tổng thẻ báo mất</span>
                         </div>
-                    </div>
-                    <div className="lost-stat-icon success">
-                        <span className="material-symbols-outlined">check_circle</span>
-                    </div>
-                </article>
-            </section>
-
-            {/* Filter Toolbar */}
-            <section className="lost-toolbar">
-                <div className="lost-filters">
-                    <div className="lost-filter-group search-group">
-                        <label>Tìm kiếm</label>
-                        <div className="search-input-wrapper">
-                            <span className="material-symbols-outlined">search</span>
-                            <input
-                                type="text"
-                                placeholder="Tìm theo Mã thẻ hoặc Biển số..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
-                            />
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value">{totalLost}</div>
+                            <div className="lost-kpi-footer txt-gray">
+                                Hệ thống tổng hợp
+                            </div>
                         </div>
                     </div>
 
-                    <div className="lost-filter-group dropdown-group">
-                        <label>Trạng thái</label>
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-red">
+                                <span className="material-symbols-outlined">assignment_late</span>
+                            </div>
+                            <span className="lost-kpi-title">Đang chờ xử lý</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-red">{pendingCount}</div>
+                            <div className="lost-kpi-footer txt-orange">
+                                Chờ tiếp nhận
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-blue">
+                                <span className="material-symbols-outlined">sync</span>
+                            </div>
+                            <span className="lost-kpi-title">Đang xử lý</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-blue">{processingCount}</div>
+                            <div className="lost-kpi-footer txt-blue">
+
+                                Đối chiếu hình ảnh
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="lost-kpi-card">
+                        <div className="lost-kpi-header">
+                            <div className="lost-kpi-icon-box icon-green">
+                                <span className="material-symbols-outlined">check_circle</span>
+                            </div>
+                            <span className="lost-kpi-title">Đã xong</span>
+                        </div>
+                        <div className="lost-kpi-body">
+                            <div className="lost-kpi-value val-green">{resolvedCount}</div>
+                            <div className="lost-kpi-footer txt-green">
+                                Giải quyết xong
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="lost-dist-card">
+                    <div className="lost-dist-title">
+                        <span className="material-symbols-outlined">monitoring</span>
+                        Tỷ lệ phân phối xử lý
+                    </div>
+                    <hr className="lost-dist-divider" />
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Mốc tổng thẻ</span>
+                            <span><span className="lost-dist-val">{totalLost}</span> <span className="lost-dist-pct">(100%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-dark" style={{ width: '100%' }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Chờ xử lý</span>
+                            <span><span className="lost-dist-val">{pendingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((pendingCount / totalLost) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-gray" style={{ width: `${totalLost > 0 ? (pendingCount / totalLost) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Đang xử lý</span>
+                            <span><span className="lost-dist-val">{processingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((processingCount / totalLost) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-blue" style={{ width: `${totalLost > 0 ? (processingCount / totalLost) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Đã xong</span>
+                            <span><span className="lost-dist-val">{resolvedCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((resolvedCount / totalLost) * 100) : 0}%)</span></span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-green" style={{ width: `${totalLost > 0 ? (resolvedCount / totalLost) * 100 : 0}%` }}></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="lost-filter-card">
+                <div className="filter-block">
+                    <label className="filter-label">Tìm kiếm nâng cao</label>
+                    <div className="filter-input-wrapper">
+                        <span className="material-symbols-outlined icon-left">search</span>
+                        <input
+                            type="text"
+                            className="filter-input has-icon-left"
+                            placeholder="Nhập mã báo mất, mã thẻ, biển số, chủ xe..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleFilter()}
+                        />
+                    </div>
+                </div>
+
+                <div className="filter-block">
+                    <label className="filter-label">Trạng thái xử lý</label>
+                    <div className="filter-input-wrapper">
                         <select
-                            className="lost-select"
+                            className="filter-select"
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
-                            <option value="Tất cả">Tất cả (Tổng: {totalLost})</option>
+                            <option value="Tất cả">Tất cả trạng thái</option>
                             <option value="Chờ xử lý">Chờ xử lý</option>
                             <option value="Đang xử lý">Đang xử lý</option>
                             <option value="Đã xong">Đã xong</option>
                         </select>
+                        <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
+                </div>
 
-                    <div className="lost-filter-group date-group">
-                        <label>Khoảng ngày</label>
-                        <div className="date-input-wrapper">
-                            <input type="text" value="01/10/2023 - 31/10/2023" readOnly />
-                            <span className="material-symbols-outlined">calendar_today</span>
+                <div className="filter-block">
+                    <label className="filter-label">Khoảng ngày báo mất</label>
+                    <div className="filter-input-wrapper">
+                        <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
+                            />
+                            <span style={{ color: '#94a3b8', fontSize: '13px' }}>đến</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
+                            />
                         </div>
                     </div>
-
-                    <button type="button" className="lost-filter-button" onClick={handleFilter}>
-                        <span className="material-symbols-outlined">filter_list</span>
-                        Lọc dữ liệu
-                    </button>
                 </div>
-            </section>
+            </div>
 
             {/* Table */}
             <section className="lost-table-card">
@@ -316,7 +431,7 @@ export default function LostCardLogPage() {
                                                 </td>
                                                 <td>{row.handler_name}</td>
                                                 <td>
-                                                    <button type="button" className="lost-action-btn">
+                                                    <button type="button" className="lost-action-btn" onClick={() => setEditingCard(row)}>
                                                         <span className="material-symbols-outlined">edit</span>
                                                     </button>
                                                 </td>
@@ -348,63 +463,139 @@ export default function LostCardLogPage() {
                                 </div>
                                 <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
                                     <span className="material-symbols-outlined">add</span>
-                                    Tạo báo mất mới
+                                    Tạo báo mất
                                 </button>
                             </div>
                         </div>
                     </>
                 )}
             </section>
-            {showCreateModal && (
+
+            {editingCard && (
                 <div className="lost-modal-overlay">
                     <div className="lost-modal">
-
-                        <h2>Tạo báo mất mới</h2>
-
-                        <div className="lost-form-group">
-                            <label>Biển số xe</label>
-                            <input
-                                type="text"
-                                placeholder="Nhập biển số xe..."
-                                value={newLostCard.plate_number}
-                                onChange={(e) =>
-                                    setNewLostCard({
-                                        ...newLostCard,
-                                        plate_number: e.target.value
-                                    })
-                                }
-                            />
+                        <div className="lost-modal-header">
+                            <h2>Chỉnh sửa báo mất</h2>
                         </div>
+                        
+                        <div className="lost-modal-body">
+                            <div className="lost-form-group">
+                                <label>Mã thẻ</label>
+                                <input
+                                    type="text"
+                                    value={editingCard.card_code || editingCard.cardNo || ''}
+                                    onChange={(e) => setEditingCard({ ...editingCard, card_code: e.target.value })}
+                                />
+                            </div>
+                            
+                            <div className="lost-form-group">
+                                <label>Biển số xe</label>
+                                <input
+                                    type="text"
+                                    value={editingCard.plate_number || editingCard.plate || ''}
+                                    onChange={(e) => setEditingCard({ ...editingCard, plate_number: e.target.value })}
+                                />
+                            </div>
+                            
+                            <div className="lost-form-group">
+                                <label>Loại thẻ</label>
+                                <select 
+                                    value={editingCard.card_type || 'Thẻ lượt'}
+                                    onChange={(e) => setEditingCard({ ...editingCard, card_type: e.target.value })}
+                                >
+                                    <option value="Thẻ tháng">Thẻ tháng</option>
+                                    <option value="Thẻ lượt">Thẻ lượt</option>
+                                    <option value="Thẻ vãng lai">Thẻ vãng lai</option>
+                                </select>
+                            </div>
+                            
+                            <div className="lost-form-group">
+                                <label>Trạng thái</label>
+                                <select 
+                                    value={editingCard.status || 'Chờ xử lý'}
+                                    onChange={(e) => setEditingCard({ ...editingCard, status: e.target.value })}
+                                >
+                                    <option value="Chờ xử lý">Chờ xử lý</option>
+                                    <option value="Đang xử lý">Đang xử lý</option>
+                                    <option value="Đã xong">Đã xong</option>
+                                </select>
+                            </div>
 
-                        <div className="lost-form-group">
-                            <label>Lí do</label>
-                            <input
-                                type="text"
-                                placeholder="Nhập lí do báo mất..."
-                                value={newLostCard.description}
-                                onChange={(e) =>
-                                    setNewLostCard({
-                                        ...newLostCard,
-                                        description: e.target.value
-                                    })
-                                }
-                            />
+                            <div className="lost-form-group">
+                                <label>Người xử lý</label>
+                                <input
+                                    type="text"
+                                    value={editingCard.handler_name || ''}
+                                    onChange={(e) => setEditingCard({ ...editingCard, handler_name: e.target.value })}
+                                />
+                            </div>
                         </div>
 
                         <div className="lost-modal-actions">
                             <button
                                 type="button"
-                                onClick={() => setShowCreateModal(false)}
+                                className="btn-cancel"
+                                onClick={() => setEditingCard(null)}
                             >
                                 Hủy
                             </button>
-
                             <button
                                 type="button"
-                                onClick={handleCreateLostCard}
+                                className="btn-save"
+                                onClick={handleUpdateLostCard}
                             >
                                 Lưu
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+    
+            {showCreateModal && (
+                <div className="lost-modal-overlay">
+                    <div className="lost-modal">
+
+                        <div className="lost-modal-header">
+                            <h2>Tạo báo mất mới</h2>
+                        </div>
+                        <div className="lost-modal-body">
+
+                            <div className="lost-form-group">
+                                <label>Biển số xe</label>
+                                <input
+                                    type="text"
+                                    placeholder="Nhập biển số xe..."
+                                    value={newLostCard.plate_number}
+                                    onChange={(e) =>
+                                        setNewLostCard({
+                                            ...newLostCard,
+                                            plate_number: e.target.value
+                                        })
+                                    }
+                                />
+                            </div>
+
+                            <div className="lost-form-group">
+                                <label>Lí do</label>
+                                <input
+                                    type="text"
+                                    placeholder="Nhập lí do báo mất..."
+                                    value={newLostCard.description}
+                                    onChange={(e) =>
+                                        setNewLostCard({
+                                            ...newLostCard,
+                                            description: e.target.value
+                                        })
+                                    }
+                                />
+                            </div>
+
+                        </div>
+                        
+                        <div className="lost-modal-actions">
+                            <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Hủy</button>
+
+                            <button type="button" className="btn-save" onClick={handleCreateLostCard}>Lưu</button>
                         </div>
 
                     </div>

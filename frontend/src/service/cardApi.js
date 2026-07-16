@@ -38,5 +38,31 @@ export const deleteCard = async (cardId) => {
 export const createLostCard = async (payload) => {
     const response = await API.post("/cards/lost-card", payload)
     return response.data.data || response.data
+<<<<<<< HEAD
 >>>>>>> Bao
 }
+=======
+}
+
+export const updateCard = async (id, payload) => {
+    const response = await API.put(
+        `/cards/${id}`,
+        payload
+    );
+
+    return response.data.data || response.data;
+};
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const inviteUser = async (payload) => {
+    // payload: { email, username, full_name, phone, role_id, building_id }
+    const response = await API.post(`/users/invite`, payload, {
+        headers: getAuthHeaders()
+    });
+    return response.data.data || response.data;
+};
+>>>>>>> RegistrationFunction

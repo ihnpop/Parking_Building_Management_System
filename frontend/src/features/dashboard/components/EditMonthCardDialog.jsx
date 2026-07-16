@@ -19,6 +19,17 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
     // Lưu thông báo thành công
     const [successMessage, setSuccessMessage] = useState('');
     // Khi mở modal thì load dữ liệu vào form
+    // Helper: convert UI label -> DB value
+    const uiToDbStatus = (uiStatus) => {
+        switch (uiStatus) {
+            case 'Hoạt động': return 'Hoạt động';
+            case 'Sắp hết hạn': return 'Đang chờ';
+            case 'Hết hạn': return 'Đã khóa';
+            // Nếu đã là DB value thì giữ nguyên
+            default: return uiStatus;
+        }
+    };
+
     useEffect(() => {
         if (isOpen && cardData) {
             setFormData({
@@ -26,7 +37,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                 fullName: cardData.customer !== 'Khách vãng lai' ? cardData.customer || '' : '',
                 phone: cardData.phone || '',
                 email: cardData.email || '',
-                status: cardData.status || 'Hoạt động',
+                status: uiToDbStatus(cardData.status || 'Hoạt động'),
                 checkInTime: cardData.check_in_time
                     ? new Date(cardData.check_in_time).toISOString().slice(0, 16)
                     : '',
@@ -129,7 +140,6 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                                 id="plate"
                                 name="plate"
                                 type="text"
-                                readOnly
                                 className="renew-select"
                                 value={formData.plate}
                                 onChange={handleFormChange}
@@ -148,10 +158,10 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                                 onChange={handleFormChange}
                                 disabled={isSubmitting}
                             >
+                                {/* Options dùng DB values, label hiển thị UI */}
                                 <option value="Hoạt động">Hoạt động</option>
                                 <option value="Đang chờ">Đang chờ</option>
-                                <option value="Đã khóa">Đã khóa</option>
-                                <option value="Hết hạn">Hết hạn</option>
+                                <option value="Đã khóa">Hết hạn (Đã khóa)</option>
                             </select>
                         </div>
                     </div>
@@ -229,7 +239,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                     </div>
 
                     {!hasPlate && (
-                        <p style={{ color: '#f59e0b', fontSize: '13px', margin: '0' }}>
+                        <p style={{ color: '#004BCA', fontSize: '13px', margin: '0' }}>
                             Thẻ chưa có biển số nên không thể cập nhật thời gian vào/ra.
                         </p>
                     )}
@@ -245,8 +255,9 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         </button>
                         <button
                             type="submit"
-                            className="renew-btn primary"
+                            className="cp-btn cp-btn-primary"
                             disabled={isSubmitting}
+
                         >
                             {isSubmitting ? 'Đang lưu...' : 'Xác nhận cập nhật'}
                         </button>
