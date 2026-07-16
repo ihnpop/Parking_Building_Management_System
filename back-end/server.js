@@ -175,5 +175,12 @@ app.listen(
         }, 24 * 60 * 60 * 1000);
       })
       .catch(err => console.error("[ExpiryJob] Không thể import renewalService:", err.message));
+
+    // Kích hoạt Cron job tự động hủy giao dịch thanh toán quá hạn 10 phút
+    import("./src/jobs/paymentExpiry.job.js")
+      .then(({ startPaymentExpiryJob }) => {
+        startPaymentExpiryJob();
+      })
+      .catch(err => console.error("[ExpiryJob] Không thể import paymentExpiry.job.js:", err.message));
   }
 );

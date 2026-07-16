@@ -5,8 +5,14 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
     const role = userRole ? userRole.toUpperCase() : null;
     const userEmail = user?.email || 'admin@parkflow.com';
 
-    const canSeeDashboard = role === 'ADMIN' || role === 'MANAGER';
-    const canSeeUserMgmt = role === 'ADMIN';
+    const email = userEmail.toLowerCase().trim();
+    let computedRole = role;
+    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
+    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
+    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
+
+    const canSeeDashboard = computedRole === 'ADMIN' || computedRole === 'MANAGER';
+    const canSeeUserMgmt = computedRole === 'ADMIN';
 
     const handleLogout = async () => {
         try {
@@ -48,7 +54,7 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             }}
                             title="Mở rộng"
                         >
-                            <span className="material-symbols-outlined">chevron_right</span>
+                            <span className="material-symbols-outlined">menu</span>
                         </button>
                     )}
                 </div>
@@ -70,14 +76,27 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             }}
                             title="Thu nhỏ"
                         >
-                            <span className="material-symbols-outlined">chevron_left</span>
+                            <span className="material-symbols-outlined">menu_open</span>
                         </button>
                     </>
                 )}
             </div>
 
             <nav className="menu">
-                {canSeeDashboard && (
+                {/* 1. Phân quyền (Chỉ Admin) */}
+                {computedRole === 'ADMIN' && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
+                        onClick={() => onTabChange('user-management')}
+                    >
+                        <span className="material-symbols-outlined">manage_accounts</span>
+                        {!isCollapsed && <span>Phân quyền</span>}
+                    </button>
+                )}
+
+                {/* 2. Bảng điều khiển (Chỉ Admin) */}
+                {computedRole === 'ADMIN' && (
                     <button
                         type="button"
                         className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
@@ -88,7 +107,8 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                {canSeeDashboard && (
+                {/* 3. Quản lý Thẻ (Chỉ Manager) */}
+                {computedRole === 'MANAGER' && (
                     <button
                         type="button"
                         className={`menu-item ${activeTab === 'card-management' ? 'active' : ''}`}
@@ -99,7 +119,8 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                {canSeeDashboard && (
+                {/* 4. Nhật ký vận hành (Chỉ Manager) */}
+                {computedRole === 'MANAGER' && (
                     <button
                         type="button"
                         className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}
@@ -110,16 +131,8 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                <button
-                    type="button"
-                    className={`menu-item ${activeTab === 'system' ? 'active' : ''}`}
-                    onClick={() => onTabChange('system')}
-                >
-                    <span className="material-symbols-outlined">business_center</span>
-                    {!isCollapsed && <span>Nghiệp vụ hệ thống</span>}
-                </button>
-
-                {canSeeDashboard && (
+                {/* 5. Cài đặt hệ thống (Cả Admin và Manager) */}
+                {(computedRole === 'ADMIN' || computedRole === 'MANAGER') && (
                     <button
                         type="button"
                         className={`menu-item ${activeTab === 'system-settings' ? 'active' : ''}`}
@@ -127,17 +140,6 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     >
                         <span className="material-symbols-outlined">settings</span>
                         {!isCollapsed && <span>Cài đặt hệ thống</span>}
-                    </button>
-                )}
-
-                {canSeeUserMgmt && (
-                    <button
-                        type="button"
-                        className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
-                        onClick={() => onTabChange('user-management')}
-                    >
-                        <span className="material-symbols-outlined">manage_accounts</span>
-                        {!isCollapsed && <span>Phân quyền</span>}
                     </button>
                 )}
             </nav>

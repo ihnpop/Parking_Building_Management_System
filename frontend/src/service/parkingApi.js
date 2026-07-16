@@ -168,3 +168,15 @@ export const getParkingSessions = async (dateStr = null) => {
   return response.data;
 };
 
+/**
+ * Mở barie trực tiếp/miễn phí khi estimated_fee = 0
+ * @param {object} payload - { sessionId }
+ */
+export const openGateFree = async (payload) => {
+  const response = await API.post("/parking/open-gate-free", payload, {
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+

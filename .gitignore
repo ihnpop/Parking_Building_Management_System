@@ -34,11 +34,5 @@ dist-ssr
 .pnpm-store/
 back-end/.pnpm-store/
 
-# Environment variables
-.env
+# Environment variables - Backend
 
-# Các file env khác
-.env.local
-.env.development
-.env.production
-.env.test

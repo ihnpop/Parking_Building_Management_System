@@ -50,3 +50,28 @@ export const authorize = (...roles) => {
         next();
     };
 };
+
+export const checkActiveStaff = async (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ message: "Yêu cầu đăng nhập." });
+    }
+    try {
+        const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("status")
+            .eq("id", req.user.id)
+            .maybeSingle();
+
+        if (error || !profile) {
+            return res.status(403).json({ message: "Không tìm thấy thông tin nhân viên." });
+        }
+
+        if (profile.status !== "Hoạt động") {
+            return res.status(403).json({ message: "Tài khoản nhân viên đã bị vô hiệu hóa." });
+        }
+
+        next();
+    } catch (err) {
+        return res.status(500).json({ message: "Lỗi kiểm tra trạng thái nhân viên." });
+    }
+};

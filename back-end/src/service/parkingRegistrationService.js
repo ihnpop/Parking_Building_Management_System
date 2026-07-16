@@ -3,6 +3,16 @@ import * as ekycService from './ekycService.js';
 import * as paymentRepository from '../repositories/paymentRepository.js';
 import * as vnpayService from './vnpayService.js';
 
+// Ánh xạ mã nội bộ → nhãn tiếng Việt theo ràng buộc DB (payment_method_check)
+// DB constraint: CHECK (payment_method IN ('Tiền mặt', 'VNPay'))
+function mapPaymentMethod(method) {
+    if (!method) return null;
+    const m = method.toLowerCase();
+    if (m === 'cash') return 'Tiền mặt';
+    if (m === 'vnpay') return 'VNPay';
+    return method;
+}
+
 class ParkingRegistrationService {
     async processFullMonthlyRegistration(payload) {
         const {
@@ -153,7 +163,7 @@ class ParkingRegistrationService {
                         .insert({
                             vehicle_package_id: vehiclePackage.vehicle_package_id,
                             amount: price,
-                            payment_method: 'E-Wallet',
+                            payment_method: 'Tiền mặt', // Đăng ký online (legacy flow) mặc định tiền mặt
                             status: 'Đã thanh toán',
                             payment_time: new Date().toISOString(),
                             payment_type: 'Đăng ký vé tháng'
@@ -320,7 +330,7 @@ class ParkingRegistrationService {
                 amount: packagePrice,
                 order_code: orderCode,
                 status: 'Chờ thanh toán',
-                payment_method: payment_method,
+                payment_method: mapPaymentMethod(payment_method),
                 note: JSON.stringify(savedPayload)
             });
 
@@ -348,7 +358,7 @@ class ParkingRegistrationService {
     async confirmCashPayment(orderCode) {
         const payment = await paymentRepository.findByOrderCode(orderCode);
         if (!payment) throw new Error('Không tìm thấy giao dịch.');
-        if (payment.payment_method !== 'cash') throw new Error('Giao dịch không phải thanh toán tiền mặt.');
+        if (payment.payment_method !== 'Tiền mặt') throw new Error('Giao dịch không phải thanh toán tiền mặt.');
         if (payment.status !== 'Chờ thanh toán') throw new Error('Giao dịch đã được xác nhận hoặc thất bại trước đó.');
 
         const updated = await paymentRepository.updateStatus(orderCode, {

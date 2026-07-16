@@ -5,11 +5,20 @@
 
 import express from "express";
 import * as paymentController from "../controllers/paymentController.js";
-import { verifyToken } from "../middlewares/auth.js";
+import { verifyToken, checkActiveStaff } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// 1. Tạo hóa đơn thanh toán cho vé lượt (Yêu cầu đăng nhập verifyToken)
+// 1. Tạo hóa đơn thanh toán cho vé lượt tiền mặt (Yêu cầu staff hoạt động)
+router.post("/cash", verifyToken, checkActiveStaff, paymentController.payCash);
+
+// 2. Tạo hóa đơn thanh toán VNPay an toàn cho vé lượt (Yêu cầu staff hoạt động)
+router.post("/vnpay/create", verifyToken, checkActiveStaff, paymentController.createVnpayCheckout);
+
+// 3. Trạng thái thanh toán phục vụ polling từ Client
+router.get("/status", paymentController.getPaymentStatus);
+
+// 4. Tạo hóa đơn thanh toán cho vé lượt (Old/Backward compatible) (Yêu cầu đăng nhập verifyToken)
 router.post("/checkout", verifyToken, paymentController.checkout);
 
 // 2. Tạo hóa đơn thanh toán cho vé tháng (Đăng ký mới/Gia hạn) (Yêu cầu đăng nhập verifyToken)

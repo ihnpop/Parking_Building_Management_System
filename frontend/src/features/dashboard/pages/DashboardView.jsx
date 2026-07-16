@@ -157,8 +157,8 @@ export default function DashboardView() {
 
             {/* 1. VIEW QUẢN LÝ THẺ */}
             {currentView === 'card-management' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 24px 24px 24px' }}>
+                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '0' }}>
                         {renderTabButton('Thẻ lượt', activeCardTab === 'Thẻ lượt', () => setActiveCardTab('Thẻ lượt'))}
                         {renderTabButton('Thẻ tháng', activeCardTab === 'Thẻ tháng', () => setActiveCardTab('Thẻ tháng'))}
                     </div>
@@ -170,6 +170,7 @@ export default function DashboardView() {
 
             {/* 2. VIEW NHẬT KÝ VẬN HÀNH */}
             {currentView === 'log-management' && (
+<<<<<<< HEAD
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
 <<<<<<< HEAD
@@ -177,6 +178,11 @@ export default function DashboardView() {
 =======
                         {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Mất thẻ', () => setActiveLogTab('Mất thẻ'))}
 >>>>>>> deploy
+=======
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 24px 24px 24px' }}>
+                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '0' }}>
+                        {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
+>>>>>>> deploy-backup
                         {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
                         {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
                     </div>
@@ -190,28 +196,28 @@ export default function DashboardView() {
 
             {/* 3. VIEW PHÂN QUYỀN NGƯỜI DÙNG */}
             {currentView === 'user-management' && (
-                <div style={{ marginTop: '10px', padding: '24px' }}>
+                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
                     <UserManagementPage />
                 </div>
             )}
 
             {/* 4. VIEW CÀI ĐẶT HỆ THỐNG */}
             {currentView === 'system-settings' && (
-                <div style={{ marginTop: '10px', padding: '24px' }}>
+                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
                     <SystemSettingsPage />
                 </div>
             )}
 
             {/* 5. VIEW CHI TIẾT DOANH THU & LƯU LƯỢNG */}
             {currentView === 'revenue-traffic' && (
-                <div style={{ marginTop: '10px', padding: '24px' }}>
+                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
                     <RevenueTrafficPage />
                 </div>
             )}
 
             {/* VIEW CÀI ĐẶT HỆ THỐNG */}
             {currentView === 'system-settings' && (
-                <div style={{ marginTop: '10px', padding: '24px' }}>
+                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
                     <SystemSettingsPage />
                 </div>
             )}
@@ -303,7 +309,7 @@ export default function DashboardView() {
                             </div>
                         </div>
 
-                        {/* Doanh thu hôm nay – từ payment.status = 'Đã thanh toán' */}
+                        {/* Doanh thu hôm nay – từ payment.status = 'Đã trả' */}
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsTodayModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>DOANH THU HÔM NAY</span>
@@ -319,7 +325,7 @@ export default function DashboardView() {
                             </div>
                         </div>
 
-                        {/* Doanh thu tháng – từ payment.status = 'Đã thanh toán' tháng này */}
+                        {/* Doanh thu tháng – từ payment.status = 'Đã trả' tháng này */}
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsMonthModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>DOANH THU THÁNG</span>

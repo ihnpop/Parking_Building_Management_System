@@ -14,6 +14,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
+<<<<<<< HEAD
+=======
+import ExitPaymentPanel from './ExitPaymentPanel';
+>>>>>>> deploy-backup
 
 const cameraCards = [
     {
@@ -813,10 +817,33 @@ export default function SystemOperations() {
                         </button>
                     </div>
 
-                    <form
-                        className="transaction-highlight"
-                        onSubmit={handleFormSubmit}
-                    >
+                    {mode === 'OUT' && (
+                        <ExitPaymentPanel
+                            staffId={user?.id}
+                            plateNumber={plateNumber}
+                            setPlateNumber={setPlateNumber}
+                            exitVehicleUrl={exitVehicleUrl}
+                            exitPlateUrl={exitPlateUrl}
+                            onPreCheckLoaded={(data) => {
+                                setEntryVehicleImageDisplay(data.session?.entry_vehicle_image || null);
+                                setEntryPlateImageDisplay(data.session?.entry_plate_image || null);
+                            }}
+                            onSessionCompleted={(completedSession) => {
+                                setLastSession(completedSession);
+                                fetchStats();
+                                fetchRecentSessions();
+                            }}
+                            resetForm={resetOutForm}
+                            loading={loading}
+                            setLoading={setLoading}
+                        />
+                    )}
+
+                    {mode === 'IN' && (
+                        <form
+                            className="transaction-highlight"
+                            onSubmit={handleFormSubmit}
+                        >
                         <p className="transaction-label">
                             {mode === 'IN' ? 'Biển số xe vào' : 'Biển số xe ra'}
                         </p>
@@ -984,9 +1011,15 @@ export default function SystemOperations() {
                             </div>
                         </div>
                     </form>
+                    )}
 
                     <div className="transaction-details">
+<<<<<<< HEAD
                         {preCheckResult ? (
+=======
+                        {mode === 'IN' && (
+                            preCheckResult ? (
+>>>>>>> deploy-backup
                             <div className="last-session-card">
                                 <h4 className="last-session-title">
                                     <span className="material-symbols-outlined">badge</span>
@@ -1132,6 +1165,10 @@ export default function SystemOperations() {
                                     </div>
                                 </div>
                             </div>
+<<<<<<< HEAD
+=======
+                        )
+>>>>>>> deploy-backup
                         )}
 
                         {/* Recent Transactions Card */}
@@ -1166,6 +1203,7 @@ export default function SystemOperations() {
                              </div>
                          </div>
 
+<<<<<<< HEAD
                         {/* System Hardware Status */}
                         <div className="system-status-card">
                             <div className="status-title">
@@ -1191,6 +1229,8 @@ export default function SystemOperations() {
                                 </div>
                             </div>
                         </div>
+=======
+>>>>>>> deploy-backup
                     </div>
                 </section>
 

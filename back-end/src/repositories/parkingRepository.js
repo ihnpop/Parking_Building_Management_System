@@ -10,6 +10,7 @@ import crypto from "crypto";
  * @param {string} payload.plate_number
  * @param {string} payload.entry_vehicle_image  - public URL
  * @param {string} payload.entry_plate_image    - public URL
+ * @param {string} [payload.staff_in_id]        - ID nhân viên check-in
  * @returns {Promise<object>}
  */
 export const createParkingSession = async ({
@@ -18,6 +19,7 @@ export const createParkingSession = async ({
   entry_vehicle_image,
   entry_plate_image,
   card_id,
+  staff_in_id,
 }) => {
   const { data, error } = await supabase
     .from("parking_sessions")
@@ -30,6 +32,7 @@ export const createParkingSession = async ({
       entry_time: new Date().toISOString(),
       status: "Đang gửi xe",
       card_id,
+      staff_in_id: staff_in_id || null,
     })
     .select()
     .single();
@@ -48,7 +51,7 @@ export const findActiveSessionByPlate = async (plateNumber) => {
     .from("parking_sessions")
     .select("*")
     .eq("plate_number", plateNumber)
-    .eq("status", "Đang gửi xe")
+    .in("status", ["Đang gửi xe", "Chờ thanh toán"])
     .order("entry_time", { ascending: false })
     .limit(1)
     .maybeSingle();

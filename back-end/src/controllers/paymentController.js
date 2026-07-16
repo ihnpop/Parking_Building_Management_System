@@ -97,3 +97,70 @@ export const vnpayReturn = async (req, res) => {
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=failed`);
     }
 };
+
+/**
+ * Endpoint: Thanh toán tiền mặt tại quầy cho Vé lượt (xe ra)
+ * POST /api/payments/cash
+ * Body: { sessionId }
+ */
+export const payCash = async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        const staffId = req.user?.id; // Lấy từ token sau verifyToken
+
+        if (!sessionId) {
+            return res.status(400).json({ message: "Thiếu sessionId" });
+        }
+
+        const result = await paymentService.cashPayment(sessionId, staffId);
+        return res.json(result);
+    } catch (err) {
+        console.error("[payCash] Lỗi thanh toán tiền mặt:", err);
+        const status = err.statusCode || 400;
+        return res.status(status).json({ message: err.message || "Lỗi xử lý thanh toán tiền mặt" });
+    }
+};
+
+/**
+ * Endpoint: Khởi tạo thanh toán VNPay an toàn cho Vé lượt (xe ra)
+ * POST /api/payments/vnpay/create
+ * Body: { sessionId }
+ */
+export const createVnpayCheckout = async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        const staffId = req.user?.id;
+        const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
+        if (!sessionId) {
+            return res.status(400).json({ message: "Thiếu sessionId" });
+        }
+
+        const result = await paymentService.createVnpayPayment(sessionId, staffId, ipAddr);
+        return res.json({ data: result });
+    } catch (err) {
+        console.error("[createVnpayCheckout] Lỗi tạo giao dịch VNPay:", err);
+        const status = err.statusCode || 400;
+        return res.status(status).json({ message: err.message || "Lỗi tạo giao dịch VNPay" });
+    }
+};
+
+/**
+ * Endpoint: Lấy trạng thái giao dịch (polling từ frontend)
+ * GET /api/payments/status?order_code=xxx
+ */
+export const getPaymentStatus = async (req, res) => {
+    try {
+        const { order_code } = req.query;
+        if (!order_code) {
+            return res.status(400).json({ message: "Thiếu mã order_code" });
+        }
+        const result = await paymentService.getPaymentStatus(order_code);
+        return res.json({ data: result });
+    } catch (err) {
+        console.error("[getPaymentStatus] Lỗi kiểm tra trạng thái:", err);
+        const status = err.statusCode || 400;
+        return res.status(status).json({ message: err.message || "Lỗi truy vấn trạng thái giao dịch" });
+    }
+};
+

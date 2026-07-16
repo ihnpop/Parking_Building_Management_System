@@ -8,7 +8,7 @@ import axios from "axios";
 
 // Khởi tạo instance Axios kết nối với backend port 3636
 const API = axios.create({
-    baseURL: "http://localhost:3636/api",
+    baseURL: import.meta.env.VITE_API_URL,
 });
 
 // Hàm hỗ trợ đính kèm mã định danh JWT Token tự động vào header để xác thực quyền truy cập
@@ -35,3 +35,27 @@ export const createPackagePayment = (vehiclePackageId, amount, isRenewal) =>
  */
 export const getPaymentByOrderCode = (orderCode) =>
     API.get(`/payments/${orderCode}`);
+
+/**
+ * API: Kiểm tra thông tin xe ra và tính phí trước (check-exit)
+ */
+export const checkExitFee = (plateNumber) =>
+    API.get(`/gate/check-exit`, { params: { plate_number: plateNumber } });
+
+/**
+ * API: Thanh toán tiền mặt
+ */
+export const payCash = (sessionId) =>
+    API.post("/payments/cash", { sessionId }, { headers: getAuthHeaders() });
+
+/**
+ * API: Khởi tạo thanh toán VNPay an toàn
+ */
+export const createVnpayCheckout = (sessionId) =>
+    API.post("/payments/vnpay/create", { sessionId }, { headers: getAuthHeaders() });
+
+/**
+ * API: Polling trạng thái thanh toán VNPay theo order_code
+ */
+export const getPaymentStatus = (orderCode) =>
+    API.get("/payments/status", { params: { order_code: orderCode } });

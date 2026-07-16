@@ -125,7 +125,7 @@ export default function UserManagementPage() {
             setIsLoading(true);
             const roleNameUpper = editingUser.role.toUpperCase(); // e.g. "ADMIN", "MANAGER", "STAFF"
             await updateUserRole(editingUser.id, roleNameUpper);
-            
+
             setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
             setIsEditModalOpen(false);
             setEditingUser(null);
@@ -144,10 +144,10 @@ export default function UserManagementPage() {
             setIsLoading(true);
             const response = await inviteUser(inviteData);
             showToast(response.message || "Đã gửi lời mời thành công!", "success");
-            
+
             // Reload user list to show the new user
             fetchUsers();
-            
+
             // Close modal and reset form
             setIsInviteModalOpen(false);
             setInviteData({
@@ -186,19 +186,19 @@ export default function UserManagementPage() {
         <div className="user-management-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px' }}>
 
             {/* Khối Banner thông tin */}
-            <div className="user-mgmt-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
+            <div className="user-mgmt-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #e1e3e4', borderRadius: '8px', background: '#fff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ background: 'var(--primary-light, #eff6ff)', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span className="material-symbols-outlined" style={{ color: 'var(--primary, #2563eb)', fontSize: '28px' }}>manage_accounts</span>
+                    <div style={{ background: '#dbeafe', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '28px' }}>manage_accounts</span>
                     </div>
                     <div>
                         <h2 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', fontWeight: '600' }}>Quản lý Phân quyền</h2>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Xem và thay đổi vai trò của từng người dùng trong hệ thống</p>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Xem và thay đổi vai trò của từng người dùng trong hệ thống</p>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#0f172a', display: 'block', lineHeight: '1' }}>{users.length}</span>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Tổng người dùng</p>
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#333', display: 'block', lineHeight: '1' }}>{users.length}</span>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>Tổng người dùng</p>
                 </div>
             </div>
 
@@ -207,8 +207,8 @@ export default function UserManagementPage() {
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
 
                     {/* Ô Tìm Kiếm */}
-                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 12px', background: '#fff', width: '320px' }}>
-                        <span className="material-symbols-outlined" style={{ color: '#64748b', marginRight: '8px', fontSize: '20px' }}>search</span>
+                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e1e3e4', borderRadius: '6px', padding: '8px 12px', background: '#fff', width: '320px' }}>
+                        <span className="material-symbols-outlined" style={{ color: '#888', marginRight: '8px', fontSize: '20px' }}>search</span>
                         <input
                             type="text"
                             placeholder="Tìm kiếm tên, email, username..."
@@ -226,12 +226,12 @@ export default function UserManagementPage() {
                             onClick={() => setIsFilterExpanded(!isFilterExpanded)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
-                                border: '1px solid #e2e8f0', borderRadius: '6px', background: isFilterExpanded ? 'var(--primary-light, #eff6ff)' : '#fff',
-                                color: isFilterExpanded ? 'var(--primary, #2563eb)' : '#555', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease'
+                                border: '1px solid #e1e3e4', borderRadius: '6px', background: isFilterExpanded ? '#dbeafe' : '#fff',
+                                color: isFilterExpanded ? '#2563eb' : '#555', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease'
                             }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
-                            Lọc vai trò: <span style={{ color: 'var(--primary, #2563eb)', marginLeft: '2px' }}>{roleFilter}</span>
+                            Lọc vai trò: <span style={{ color: '#2563eb', marginLeft: '2px' }}>{roleFilter}</span>
                             <span className="material-symbols-outlined style-arrow-icon" style={{ fontSize: '18px', transition: 'transform 0.2s', transform: isFilterExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>keyboard_arrow_down</span>
                         </button>
 
@@ -262,7 +262,7 @@ export default function UserManagementPage() {
                             onClick={() => setIsInviteModalOpen(true)}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
-                                border: 'none', borderRadius: '6px', background: 'linear-gradient(135deg, var(--primary, #2563eb), var(--primary-hover, #1d4ed8))',
+                                border: 'none', borderRadius: '6px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
                                 color: '#fff', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease',
                                 boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
                             }}

@@ -1,6 +1,7 @@
 import * as gateService from "../service/gateService.js";
 import * as ocrService from "../service/ocr.service.js";
 import supabase from "../config/supabaseClient.js";
+import { calculateExitFee } from "../service/feeCalculation.service.js";
 
 const BUCKET = "parking-images";
 
@@ -206,6 +207,26 @@ export const getSessions = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: err.message || "Lỗi lấy danh sách phiên gửi xe."
+    });
+  }
+};
+
+/**
+ * GET /api/gate/check-exit?plate_number=xxx
+ * Kiểm tra xe ra và tính phí, KHÔNG tạo payment ở bước này.
+ * Trả về đầy đủ thông tin để frontend hiển thị và quyết định phương thức thanh toán.
+ */
+export const checkExit = async (req, res) => {
+  try {
+    const { plate_number } = req.query;
+    const result = await calculateExitFee({ plate_number });
+    return res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    console.error("gateController.checkExit error:", err);
+    const status = err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message || "Lỗi kiểm tra thông tin xe ra."
     });
   }
 };

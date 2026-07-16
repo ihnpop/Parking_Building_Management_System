@@ -1,30 +1,21 @@
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- ==========================================
--- ROLE
--- ==========================================
-
-CREATE TABLE role (
-    role_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT
+CREATE TABLE public.role (
+  role_name character varying NOT NULL UNIQUE,
+  description text,
+  role_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  CONSTRAINT role_pkey PRIMARY KEY (role_id)
 );
-
--- ==========================================
--- CUSTOMER
--- ==========================================
-
-CREATE TABLE customer (
-    customer_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    full_name VARCHAR(255),
-
-    phone VARCHAR(50),
-
-    email VARCHAR(255),
-
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+CREATE TABLE public.customer (
+  full_name character varying,
+  phone character varying,
+  email character varying,
+  customer_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT customer_pkey PRIMARY KEY (customer_id)
 );
+<<<<<<< HEAD
 
 -- ==========================================
 -- VEHICLE TYPE
@@ -38,27 +29,27 @@ CREATE TABLE vehicle_type (
     description TEXT,
 
     status VARCHAR(50) DEFAULT 'ACTIVE'
+=======
+CREATE TABLE public.vehicle_type (
+  name character varying NOT NULL,
+  vehicle_type_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT vehicle_type_pkey PRIMARY KEY (vehicle_type_id)
+>>>>>>> deploy-backup
 );
-
--- ==========================================
--- VEHICLE
--- ==========================================
-
-CREATE TABLE vehicle (
-    vehicle_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    customer_id UUID REFERENCES customer(customer_id),
-
-    vehicle_type_id UUID NOT NULL REFERENCES vehicle_type(vehicle_type_id),
-
-    plate_number VARCHAR(50) UNIQUE NOT NULL,
-
-    brand VARCHAR(100),
-
-    color VARCHAR(50),
-
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+CREATE TABLE public.vehicle (
+  customer_id uuid,
+  vehicle_type_id uuid NOT NULL,
+  plate_number character varying NOT NULL UNIQUE,
+  brand character varying,
+  color character varying,
+  vehicle_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT vehicle_pkey PRIMARY KEY (vehicle_id),
+  CONSTRAINT vehicle_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customer(customer_id),
+  CONSTRAINT vehicle_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
 );
+<<<<<<< HEAD
 
 -- ==========================================
 -- BUILDING
@@ -72,91 +63,62 @@ CREATE TABLE building (
     address TEXT,
 
     status VARCHAR(50) DEFAULT 'ACTIVE'
+=======
+CREATE TABLE public.building (
+  name character varying NOT NULL,
+  address text,
+  building_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT building_pkey PRIMARY KEY (building_id)
+>>>>>>> deploy-backup
 );
-
-
--- ==========================================
--- PROFILES (Supabase Auth)
--- ==========================================
-
-CREATE TABLE profiles (
-    id UUID PRIMARY KEY
-        REFERENCES auth.users(id) ON DELETE CASCADE,
-
-    role_id UUID
-        REFERENCES role(role_id),
-
-    username VARCHAR(100) UNIQUE NOT NULL,
-
-    full_name VARCHAR(255) NOT NULL,
-
-    email VARCHAR(255) UNIQUE,
-
-    phone VARCHAR(50),
-
-    status VARCHAR(50) NOT NULL DEFAULT 'Hoạt động',
-
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    building_id UUID
-        REFERENCES building(building_id)
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  role_id uuid,
+  username character varying NOT NULL UNIQUE,
+  full_name character varying NOT NULL,
+  email character varying UNIQUE,
+  phone character varying,
+  building_id uuid,
+  status character varying NOT NULL DEFAULT 'Hoạt động'::character varying,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
+  CONSTRAINT profiles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.role(role_id),
+  CONSTRAINT profiles_building_id_fkey FOREIGN KEY (building_id) REFERENCES public.building(building_id)
 );
-
--- ==========================================
--- PARKING
--- ==========================================
-
-CREATE TABLE parking (
-    parking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    building_id UUID NOT NULL REFERENCES building(building_id),
-
-    name VARCHAR(255) NOT NULL,
-
-    total_capacity INT DEFAULT 0,
-
-    open_time TIME,
-
-    close_time TIME,
-
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+CREATE TABLE public.parking (
+  building_id uuid NOT NULL,
+  name character varying NOT NULL,
+  open_time time without time zone,
+  close_time time without time zone,
+  parking_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  total_capacity integer DEFAULT 0,
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT parking_pkey PRIMARY KEY (parking_id),
+  CONSTRAINT parking_building_id_fkey FOREIGN KEY (building_id) REFERENCES public.building(building_id)
 );
-
--- ==========================================
--- FLOOR
--- ==========================================
-
-CREATE TABLE floor (
-    floor_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    parking_id UUID NOT NULL REFERENCES parking(parking_id),
-
-    floor_number INT NOT NULL,
-
-    name VARCHAR(255),
-
-    status VARCHAR(50) DEFAULT 'Hoạt động',
-
-    UNIQUE(parking_id, floor_number)
+CREATE TABLE public.floor (
+  parking_id uuid NOT NULL,
+  floor_number integer NOT NULL,
+  name character varying,
+  floor_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT floor_pkey PRIMARY KEY (floor_id),
+  CONSTRAINT floor_parking_id_fkey FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id)
 );
-
--- ==========================================
--- AREA
--- ==========================================
-
-CREATE TABLE area (
-    area_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    floor_id UUID NOT NULL REFERENCES floor(floor_id),
-
-    vehicle_type_id UUID NOT NULL REFERENCES vehicle_type(vehicle_type_id),
-
-    name VARCHAR(255) NOT NULL,
-
-    capacity INT DEFAULT 0,
-
-    status VARCHAR(50) DEFAULT 'Hoạt động'
+CREATE TABLE public.area (
+  floor_id uuid NOT NULL,
+  vehicle_type_id uuid NOT NULL,
+  name character varying NOT NULL,
+  area_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  capacity integer DEFAULT 0,
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT area_pkey PRIMARY KEY (area_id),
+  CONSTRAINT area_floor_id_fkey FOREIGN KEY (floor_id) REFERENCES public.floor(floor_id),
+  CONSTRAINT area_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
 );
+<<<<<<< HEAD
 
 -- ==========================================
 -- SLOT
@@ -251,39 +213,72 @@ CREATE TABLE price_table (
     description TEXT,
 
     status VARCHAR(50) DEFAULT 'ACTIVE'
+=======
+CREATE TABLE public.slot (
+  area_id uuid NOT NULL,
+  slot_code character varying NOT NULL,
+  distance_to_gate integer,
+  slot_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Sẵn sàng'::character varying,
+  priority_score numeric DEFAULT 0,
+  CONSTRAINT slot_pkey PRIMARY KEY (slot_id),
+  CONSTRAINT slot_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.area(area_id)
 );
-
-create table public.card_lost_log (
-  lost_report_id uuid not null default gen_random_uuid (),
-  card_id uuid not null,
-  vehicle_id uuid null,
-  reported_at timestamp without time zone null default now(),
-  status character varying null default 'Chờ xử lý'::character varying,
-  handled_by uuid null,
-  description text null,
-  constraint card_lost_log_pkey primary key (lost_report_id),
-  constraint card_lost_log_card_id_fkey foreign KEY (card_id) references card (card_id) on delete CASCADE,
-  constraint card_lost_log_handled_by_fkey foreign KEY (handled_by) references profiles (id) on delete set null,
-  constraint card_lost_log_vehicle_id_fkey foreign KEY (vehicle_id) references vehicle (vehicle_id) on delete set null
-) TABLESPACE pg_default;
-
--- ==========================================
--- PRICE ITEM
--- ==========================================
-
-CREATE TABLE price_item (
-    price_item_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    price_table_id UUID NOT NULL REFERENCES price_table(price_table_id),
-
-    vehicle_type_id UUID NOT NULL REFERENCES vehicle_type(vehicle_type_id),
-
-    min_hour INT NOT NULL,
-
-    max_hour INT,
-
-    price NUMERIC(18,2) NOT NULL
+CREATE TABLE public.gate (
+  parking_id uuid NOT NULL,
+  name character varying NOT NULL,
+  gate_type character varying NOT NULL,
+  gate_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT gate_pkey PRIMARY KEY (gate_id),
+  CONSTRAINT gate_parking_id_fkey FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id)
 );
+CREATE TABLE public.price_table (
+  parking_id uuid NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  price_table_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT price_table_pkey PRIMARY KEY (price_table_id),
+  CONSTRAINT price_table_parking_id_fkey FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id)
+);
+CREATE TABLE public.price_item (
+  price_table_id uuid NOT NULL,
+  vehicle_type_id uuid NOT NULL,
+  min_hour integer NOT NULL,
+  max_hour integer,
+  price numeric NOT NULL,
+  price_item_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  CONSTRAINT price_item_pkey PRIMARY KEY (price_item_id),
+  CONSTRAINT price_item_price_table_id_fkey FOREIGN KEY (price_table_id) REFERENCES public.price_table(price_table_id),
+  CONSTRAINT price_item_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
+);
+CREATE TABLE public.package (
+  vehicle_type_id uuid NOT NULL,
+  name character varying NOT NULL,
+  duration_month integer NOT NULL,
+  price numeric NOT NULL,
+  package_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT package_pkey PRIMARY KEY (package_id),
+  CONSTRAINT package_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
+>>>>>>> deploy-backup
+);
+CREATE TABLE public.vehicle_package (
+  previous_vehicle_package_id uuid,
+  renewal_type character varying NOT NULL DEFAULT 'Đăng ký mới'::character varying CHECK (renewal_type::text = ANY (ARRAY['Đăng ký mới'::character varying, 'Gia hạn nối tiếp'::character varying]::text[])),
+  vehicle_id uuid NOT NULL,
+  package_id uuid NOT NULL,
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  vehicle_package_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT vehicle_package_pkey PRIMARY KEY (vehicle_package_id),
+  CONSTRAINT vehicle_package_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES public.vehicle(vehicle_id),
+  CONSTRAINT vehicle_package_package_id_fkey FOREIGN KEY (package_id) REFERENCES public.package(package_id),
+  CONSTRAINT vehicle_package_previous_vehicle_package_id_fkey FOREIGN KEY (previous_vehicle_package_id) REFERENCES public.vehicle_package(vehicle_package_id)
+);
+<<<<<<< HEAD
 
 -- ==========================================
 -- PACKAGE
@@ -400,27 +395,100 @@ CREATE TABLE parking_sessions (
 
     -- created_at TIMESTAMPTZ DEFAULT NOW(),
     -- updated_at TIMESTAMPTZ DEFAULT NOW()
+=======
+CREATE TABLE public.parking_sessions (
+  slot_id uuid,
+  staff_in_id uuid,
+  staff_out_id uuid,
+  estimated_fee numeric DEFAULT 0,
+  final_fee numeric DEFAULT 0,
+  card_id uuid,
+  vehicle_id uuid NOT NULL,
+  plate_number character varying NOT NULL,
+  exit_time timestamp with time zone,
+  entry_vehicle_image text,
+  entry_plate_image text,
+  exit_vehicle_image text,
+  exit_plate_image text,
+  entry_gate_id uuid,
+  exit_gate_id uuid,
+  session_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entry_time timestamp with time zone NOT NULL DEFAULT now(),
+  status character varying DEFAULT 'Đang gửi xe'::character varying CHECK (status::text = ANY (ARRAY['Đang gửi xe'::text, 'Chờ thanh toán'::text, 'Hoàn thành'::text, 'Mất thẻ'::text, 'Đã hủy'::text])),
+  CONSTRAINT parking_sessions_pkey PRIMARY KEY (session_id),
+  CONSTRAINT parking_sessions_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES public.vehicle(vehicle_id),
+  CONSTRAINT parking_sessions_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES public.slot(slot_id),
+  CONSTRAINT parking_sessions_staff_in_id_fkey FOREIGN KEY (staff_in_id) REFERENCES public.profiles(id),
+  CONSTRAINT parking_sessions_staff_out_id_fkey FOREIGN KEY (staff_out_id) REFERENCES public.profiles(id)
 );
-
-CREATE TABLE payment (
-    payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    vehicle_package_id UUID REFERENCES vehicle_package(vehicle_package_id),
-    session_id UUID REFERENCES parking_sessions(session_id),
-    parking_order_id UUID, -- Giữ lại nếu cần liên kết cũ hoặc để null
-    payment_type VARCHAR(100) NOT NULL CHECK (payment_type IN ('Vé lượt', 'Đăng ký vé tháng', 'Gia hạn vé tháng')),
-    amount NUMERIC(18,2) NOT NULL,
-    payment_method VARCHAR(50),
-    provider VARCHAR(50) DEFAULT 'VNPay',
-    order_code VARCHAR(100) UNIQUE,
-    transaction_no VARCHAR(100),
-    bank_code VARCHAR(50),
-    paid_at TIMESTAMPTZ,
-    payment_time TIMESTAMPTZ DEFAULT NOW(),
-    status VARCHAR(50) DEFAULT 'Chờ thanh toán',
-    note TEXT,
-    created_by UUID REFERENCES profiles(id),
-    raw_response JSONB
+CREATE TABLE public.payment (
+  vehicle_package_id uuid,
+  session_id uuid,
+  payment_type character varying NOT NULL CHECK (payment_type::text = ANY (ARRAY['Vé lượt'::character varying, 'Đăng ký vé tháng'::character varying, 'Gia hạn vé tháng'::character varying, 'Phí cấp lại thẻ'::character varying]::text[])),
+  note text,
+  created_by uuid,
+  provider character varying DEFAULT 'VNPay'::character varying,
+  order_code character varying UNIQUE,
+  transaction_no character varying,
+  bank_code character varying,
+  paid_at timestamp with time zone,
+  raw_response jsonb,
+  amount numeric NOT NULL,
+  payment_method character varying CHECK (payment_method::text = ANY (ARRAY['Tiền mặt'::text, 'VNPay'::text])),
+  payment_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  payment_time timestamp with time zone DEFAULT now(),
+  status character varying DEFAULT 'Đã thanh toán'::character varying CHECK (status::text = ANY (ARRAY['Chờ thanh toán'::character varying, 'Đã thanh toán'::character varying, 'Thất bại'::character varying, 'Hết hạn'::character varying]::text[])),
+  CONSTRAINT payment_pkey PRIMARY KEY (payment_id),
+  CONSTRAINT payment_vehicle_package_id_fkey FOREIGN KEY (vehicle_package_id) REFERENCES public.vehicle_package(vehicle_package_id),
+  CONSTRAINT payment_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id),
+  CONSTRAINT payment_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.incident_report (
+  session_id uuid NOT NULL,
+  incident_type character varying NOT NULL,
+  description text,
+  handled_by uuid,
+  resolved_at timestamp with time zone,
+  incident_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  penalty_fee numeric DEFAULT 0,
+  status character varying DEFAULT 'Đang xử lý'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT incident_report_pkey PRIMARY KEY (incident_id),
+  CONSTRAINT incident_report_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(id),
+  CONSTRAINT incident_report_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id)
+);
+CREATE TABLE public.slot_allocation_log (
+  session_id uuid NOT NULL,
+  suggested_slot_id uuid NOT NULL,
+  actual_slot_id uuid,
+  vehicle_type_id uuid NOT NULL,
+  algorithm_name character varying,
+  reason text,
+  allocation_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  distance_score numeric DEFAULT 0,
+  occupancy_score numeric DEFAULT 0,
+  priority_score numeric DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT slot_allocation_log_pkey PRIMARY KEY (allocation_id),
+  CONSTRAINT slot_allocation_log_suggested_slot_id_fkey FOREIGN KEY (suggested_slot_id) REFERENCES public.slot(slot_id),
+  CONSTRAINT slot_allocation_log_actual_slot_id_fkey FOREIGN KEY (actual_slot_id) REFERENCES public.slot(slot_id),
+  CONSTRAINT slot_allocation_log_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id),
+  CONSTRAINT slot_allocation_log_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id)
+>>>>>>> deploy-backup
+);
+CREATE TABLE public.feedback (
+  session_id uuid,
+  customer_id uuid,
+  content text,
+  rating integer,
+  feedback_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Mới'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT feedback_pkey PRIMARY KEY (feedback_id),
+  CONSTRAINT feedback_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customer(customer_id),
+  CONSTRAINT feedback_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id)
+);
+<<<<<<< HEAD
 
 -- ==========================================
 -- RESERVATION
@@ -464,205 +532,119 @@ CREATE TABLE incident_report (
     created_at TIMESTAMP DEFAULT NOW(),
 
     resolved_at TIMESTAMP
+=======
+CREATE TABLE public.customer_kyc (
+  customer_id uuid NOT NULL UNIQUE,
+  cccd_number character varying UNIQUE,
+  face_match_score numeric,
+  front_cccd_url text,
+  back_cccd_url text,
+  selfie_url text,
+  verified_at timestamp with time zone,
+  kyc_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  ekyc_status character varying NOT NULL DEFAULT 'Chờ xử lý'::character varying CHECK (ekyc_status::text = ANY (ARRAY['Chờ xử lý'::character varying, 'Đã xác thực'::character varying, 'Từ chối'::character varying]::text[])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT customer_kyc_pkey PRIMARY KEY (kyc_id),
+  CONSTRAINT customer_kyc_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customer(customer_id)
+>>>>>>> deploy-backup
 );
-
--- ==========================================
--- SLOT ALLOCATION LOG
--- ==========================================
-
-CREATE TABLE slot_allocation_log (
-    allocation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    parking_order_id UUID NOT NULL REFERENCES parking_order(parking_order_id),
-
-    suggested_slot_id UUID NOT NULL REFERENCES slot(slot_id),
-
-    actual_slot_id UUID REFERENCES slot(slot_id),
-
-    vehicle_type_id UUID NOT NULL REFERENCES vehicle_type(vehicle_type_id),
-
-    algorithm_name VARCHAR(255),
-
-    reason TEXT,
-
-    distance_score NUMERIC(10,2) DEFAULT 0,
-
-    occupancy_score NUMERIC(10,2) DEFAULT 0,
-
-    priority_score NUMERIC(10,2) DEFAULT 0,
-
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.card (
+  active_vehicle_package_id uuid,
+  code character varying NOT NULL UNIQUE,
+  type character varying NOT NULL,
+  expired_date date,
+  deleted_at timestamp with time zone,
+  deleted_by uuid,
+  card_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status character varying DEFAULT 'Đang chờ'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT card_pkey PRIMARY KEY (card_id),
+  CONSTRAINT card_active_vehicle_package_id_fkey FOREIGN KEY (active_vehicle_package_id) REFERENCES public.vehicle_package(vehicle_package_id)
 );
-
--- ==========================================
--- FEEDBACK
--- ==========================================
-
-CREATE TABLE feedback (
-    feedback_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    customer_id UUID REFERENCES customer(customer_id),
-
-    parking_order_id UUID REFERENCES parking_order(parking_order_id),
-
-    content TEXT,
-
-    rating INT,
-
-    status VARCHAR(50) DEFAULT 'Mới',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.card_lost_log (
+  card_id uuid NOT NULL,
+  vehicle_id uuid,
+  handled_by uuid,
+  description text,
+  lost_report_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  reported_at timestamp without time zone DEFAULT now(),
+  status character varying DEFAULT 'Đang chờ'::character varying,
+  CONSTRAINT card_lost_log_pkey PRIMARY KEY (lost_report_id),
+  CONSTRAINT card_lost_log_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.card(card_id),
+  CONSTRAINT card_lost_log_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(id),
+  CONSTRAINT card_lost_log_vehicle_id_fkey FOREIGN KEY (vehicle_id) REFERENCES public.vehicle(vehicle_id)
 );
-
-CREATE TABLE customer_kyc (
-    kyc_id UUID PRIMARY KEY
-        DEFAULT gen_random_uuid(),
-
-    customer_id UUID NOT NULL UNIQUE
-        REFERENCES customer(customer_id) ON DELETE CASCADE,
-
-    cccd_number VARCHAR(20) UNIQUE,
-
-    face_match_score NUMERIC(5,2),
-
-    ekyc_status VARCHAR(20) NOT NULL
-        DEFAULT 'Chờ xử lý'
-        CHECK (ekyc_status IN ('Chờ xử lý', 'Đã xác thực', 'Từ chối')),
-
-    front_cccd_url TEXT,
-
-    back_cccd_url TEXT,
-
-    selfie_url TEXT,
-
-    verified_at TIMESTAMPTZ,
-
-    created_at TIMESTAMPTZ NOT NULL
-        DEFAULT NOW()
+CREATE TABLE public.card_registrations (
+  registration_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  card_id uuid NOT NULL,
+  vehicle_id uuid NOT NULL,
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT card_registrations_pkey PRIMARY KEY (registration_id),
+  CONSTRAINT fk_card_registrations_vehicle FOREIGN KEY (vehicle_id) REFERENCES public.vehicle(vehicle_id),
+  CONSTRAINT fk_card_registrations_card FOREIGN KEY (card_id) REFERENCES public.card(card_id)
 );
-
 CREATE TABLE public.entry_exit_log (
-    log_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    session_id uuid NOT NULL,
-
-    vehicle_id uuid NOT NULL,
-
-    card_id uuid,
-
-    building_id uuid NOT NULL,
-
-    parking_id uuid NOT NULL,
-
-    gate_id uuid NOT NULL,
-
-    staff_id uuid,
-
-    direction varchar(10) NOT NULL
-        CHECK (direction IN ('Xe vào','Xe ra')),
-
-    event_time timestamp NOT NULL DEFAULT now(),
-
-    vehicle_type_id uuid,
-
-    plate_number varchar NOT NULL,
-
-    ticket_type varchar(20) NOT NULL
-        CHECK (ticket_type IN ('Thẻ lượt','Thẻ tháng','Mất thẻ')),
-
-    applied_price numeric(12,2),
-
-    note text,
-
-    created_at timestamp DEFAULT now(),
-
-    CONSTRAINT fk_log_session
-        FOREIGN KEY(session_id)
-        REFERENCES parking_sessions(session_id),
-
-    CONSTRAINT fk_log_vehicle
-        FOREIGN KEY(vehicle_id)
-        REFERENCES vehicle(vehicle_id),
-
-    CONSTRAINT fk_log_card
-        FOREIGN KEY(card_id)
-        REFERENCES card(card_id),
-
-    CONSTRAINT fk_log_building
-        FOREIGN KEY(building_id)
-        REFERENCES building(building_id),
-
-    CONSTRAINT fk_log_parking
-        FOREIGN KEY(parking_id)
-        REFERENCES parking(parking_id),
-
-    CONSTRAINT fk_log_gate
-        FOREIGN KEY(gate_id)
-        REFERENCES gate(gate_id),
-
-    CONSTRAINT fk_log_staff
-        FOREIGN KEY(staff_id)
-        REFERENCES profiles(id),
-
-    CONSTRAINT fk_log_vehicle_type
-        FOREIGN KEY(vehicle_type_id)
-        REFERENCES vehicle_type(vehicle_type_id)
+  session_id uuid NOT NULL,
+  vehicle_id uuid NOT NULL,
+  card_id uuid,
+  building_id uuid NOT NULL,
+  parking_id uuid NOT NULL,
+  gate_id uuid NOT NULL,
+  staff_id uuid,
+  direction character varying NOT NULL CHECK (direction::text = ANY (ARRAY['Xe vào'::character varying, 'Xe ra'::character varying]::text[])),
+  vehicle_type_id uuid,
+  plate_number character varying NOT NULL,
+  ticket_type character varying NOT NULL CHECK (ticket_type::text = ANY (ARRAY['Thẻ lượt'::character varying, 'Thẻ tháng'::character varying, 'Mất thẻ'::character varying]::text[])),
+  applied_price numeric,
+  note text,
+  log_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  event_time timestamp without time zone NOT NULL DEFAULT now(),
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT entry_exit_log_pkey PRIMARY KEY (log_id),
+  CONSTRAINT fk_log_session FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id),
+  CONSTRAINT fk_log_vehicle FOREIGN KEY (vehicle_id) REFERENCES public.vehicle(vehicle_id),
+  CONSTRAINT fk_log_card FOREIGN KEY (card_id) REFERENCES public.card(card_id),
+  CONSTRAINT fk_log_building FOREIGN KEY (building_id) REFERENCES public.building(building_id),
+  CONSTRAINT fk_log_parking FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id),
+  CONSTRAINT fk_log_gate FOREIGN KEY (gate_id) REFERENCES public.gate(gate_id),
+  CONSTRAINT fk_log_staff FOREIGN KEY (staff_id) REFERENCES public.profiles(id),
+  CONSTRAINT fk_log_vehicle_type FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
 );
-
 CREATE TABLE public.card_activity_logs (
-    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-    -- Liên kết đối tượng liên quan
-    card_id UUID NOT NULL REFERENCES public.card(card_id) ON DELETE CASCADE,
-    registration_id UUID REFERENCES public.card_registrations(registration_id) ON DELETE SET NULL,
-    
-    -- Phân loại hành động
-    action VARCHAR(50) NOT NULL, -- Ví dụ: 'Cấp mới', 'Gia hạn', 'Khóa thẻ', 'Mở khóa', 'Thay đổi thông tin'
-    
-    -- Chụp lại thông tin lúc thực hiện (Snapshot để tránh lịch sử bị thay đổi khi chủ xe đổi tên/biển số)
-    plate_number VARCHAR(20),
-    customer_name VARCHAR(255),
-    
-    -- Dữ liệu tài chính & hạn dùng (Phục vụ trực tiếp cho tính năng Gia hạn/Cấp mới)
-    duration_months INT,          -- Số tháng đăng ký/gia hạn (nếu có)
-    amount NUMERIC(12, 2),        -- Số tiền đóng (nếu có)
-    expired_date_before DATE,     -- Hạn dùng trước khi thao tác
-    expired_date_after DATE,      -- Hạn dùng sau khi thao tác
-    
-    -- Chi tiết thay đổi dạng JSONB (Lưu vết thuộc tính chi tiết)
-    old_data JSONB,               -- Trạng thái dữ liệu cũ (ví dụ: { phone: "090..." })
-    new_data JSONB,               -- Trạng thái dữ liệu mới (ví dụ: { phone: "091..." })
-    
-    -- Thông tin vận hành
-    performed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL, -- Staff thực hiện
-    performed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),                     -- Thời gian thực hiện
-    note TEXT                                                            -- Ghi chú/Lý do
+  card_id uuid NOT NULL,
+  registration_id uuid,
+  action character varying NOT NULL,
+  plate_number character varying,
+  customer_name character varying,
+  duration_months integer,
+  amount numeric,
+  expired_date_before date,
+  expired_date_after date,
+  old_data jsonb,
+  new_data jsonb,
+  performed_by uuid,
+  note text,
+  log_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  performed_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT card_activity_logs_pkey PRIMARY KEY (log_id),
+  CONSTRAINT card_activity_logs_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.card(card_id),
+  CONSTRAINT card_activity_logs_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.card_registrations(registration_id),
+  CONSTRAINT card_activity_logs_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES public.profiles(id)
 );
-
 CREATE TABLE public.login_logs (
-
-    log_id UUID PRIMARY KEY
-        DEFAULT gen_random_uuid(),
-
-    profiles_id UUID,
-
-    username VARCHAR(255) NOT NULL,
-
-    ip_address VARCHAR(50),
-
-    device_browser TEXT,
-
-    location VARCHAR(255),
-
-    status VARCHAR(50) NOT NULL,
-
-    login_time TIMESTAMPTZ NOT NULL
-        DEFAULT NOW(),
-
-    CONSTRAINT fk_login_logs_profiles
-        FOREIGN KEY (profiles_id)
-        REFERENCES profiles(id)
-        ON DELETE CASCADE
+  profiles_id uuid,
+  username character varying NOT NULL,
+  ip_address character varying,
+  device_browser text,
+  location character varying,
+  status character varying NOT NULL,
+  log_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  login_time timestamp with time zone DEFAULT now(),
+  CONSTRAINT login_logs_pkey PRIMARY KEY (log_id),
+  CONSTRAINT login_logs_profiles_id_fkey FOREIGN KEY (profiles_id) REFERENCES public.profiles(id)
 );
+<<<<<<< HEAD
 
 -- ==========================================
 -- INDEXES
@@ -702,3 +684,19 @@ VALUES
 ('ADMIN', 'Administrator'),
 ('MANAGER', 'Parking Manager'),
 ('STAFF', 'Parking Staff');
+=======
+CREATE TABLE public.contract (
+  registration_id uuid NOT NULL,
+  contract_no text NOT NULL UNIQUE,
+  sign_token text NOT NULL UNIQUE,
+  token_expires_at timestamp with time zone NOT NULL,
+  sent_at timestamp with time zone,
+  signed_at timestamp with time zone,
+  signed_ip text,
+  contract_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  status text NOT NULL DEFAULT 'Chờ ký'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contract_pkey PRIMARY KEY (contract_id),
+  CONSTRAINT contract_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.card_registrations(registration_id)
+);
+>>>>>>> deploy-backup

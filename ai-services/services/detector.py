@@ -7,17 +7,12 @@ import numpy as np
 # =====================================================
 import os
 
-# Resolve absolute path to weight file relative to repository root
-# repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-# weight_path = os.path.join(repo_root, "weights", "license_plate_detector.pt")
-
-# Fallback for Docker container where /app/weights exists
-if not os.path.exists(weight_path):
-    weight_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__), "..", "weights", "license_plate_detector.pt"
-        )
+# Resolve absolute path to weight file relative to this script
+weight_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), "..", "weights", "license_plate_detector.pt"
     )
+)
 
 plate_detector = YOLO(weight_path)
 
@@ -71,7 +66,12 @@ def detect_plate(image: np.ndarray):
 
     # thử imgsz sang 512 xem thay đổi như thế nào
     results = plate_detector.predict(
-        source=image, classes=[0], max_det=1, imgsz=512, conf=0.35, verbose=False
+        source=resized_image,
+        classes=[0],
+        max_det=1,
+        imgsz=512,
+        conf=0.35,
+        verbose=False,
     )
 
     if not results:

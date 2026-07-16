@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createLostCard } from "../../../service/cardApi";
@@ -7,17 +7,60 @@ import { useAuth } from '../../../context/AuthContext';
 export default function LostCardLogPage({ showBackButton = false }) {
     const { showToast } = useNotification();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, userRole, logout } = useAuth();
+
+    // Dropdown state for profile
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+
     // Lấy tên hiển thị: ưu tiên full_name → name → email
     const currentUserName = user?.user_metadata?.full_name
         || user?.user_metadata?.name
         || user?.email
         || '---';
+
+    const userEmail = user?.email || 'admin@parkflow.com';
+    const userInitials = user?.user_metadata?.full_name
+        ? user.user_metadata.full_name.substring(0, 2).toUpperCase()
+        : userEmail.substring(0, 2).toUpperCase();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (err) {
+            console.error('Logout error:', err);
+        }
+    };
+
+    const getRoleLabel = (r) => {
+        if (!r) return 'Nhân viên';
+        switch (r.toUpperCase()) {
+            case 'ADMIN': return 'Quản trị viên';
+            case 'MANAGER': return 'Quản lý';
+            case 'STAFF': return 'Nhân viên';
+            default: return r;
+        }
+    };
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
     const [lostCards, setLostCards] = useState([]);
     const [filteredCards, setFilteredCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -26,6 +69,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
 
 =======
 >>>>>>> deploy
+=======
+>>>>>>> deploy-backup
     // States dùng cho bộ lọc
 >>>>>>> origin/OperationLog_UXUI
     const [search, setSearch] = useState('');
@@ -397,6 +442,7 @@ return 'status-pending';
 =======
     const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'Đã tìm lại' || c.status === 'Đã xử lý').length;
 <<<<<<< HEAD
+<<<<<<< HEAD
     const cancelledCount = lostCards.filter(c => c.status === 'Đã hủy thẻ').length;
     const cancelledMistakeCount = lostCards.filter(c => c.status === 'Đã hủy (tạo nhầm)').length;
 
@@ -499,6 +545,64 @@ return 'status-pending';
 >>>>>>> deploy
                             </div>
                         </div>
+=======
+
+    return (
+        <section className={showBackButton ? "stats-dashboard-page" : ""}>
+            {showBackButton && (
+                <header className="stats-top-bar">
+                    <button className="stats-back-btn" onClick={() => navigate('/login/dashboard')}>
+                        <span className="material-symbols-outlined">arrow_back</span>
+                        Quay lại
+                    </button>
+                    <h1 className="stats-page-title">Nhật ký báo mất thẻ</h1>
+
+                    <div className="stats-header-right">
+                        <div className="avatar-wrapper" ref={dropdownRef}>
+                            <div className="stats-profile" onClick={() => setShowDropdown(!showDropdown)} style={{ cursor: 'pointer' }}>
+                                <div className="profile-text">
+                                    <span className="profile-name">{userEmail}</span>
+                                </div>
+                                <div className="profile-avatar">{userInitials[0]}</div>
+                            </div>
+
+                            {showDropdown && (
+                                <div className="user-dropdown" style={{ top: '50px' }}>
+                                    <div className="user-dropdown-info">
+                                        <div className="user-dropdown-email">{userEmail}</div>
+                                        <div className="user-dropdown-role">{getRoleLabel(userRole)}</div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="user-dropdown-item"
+                                        onClick={handleLogout}
+                                    >
+                                        <span className="material-symbols-outlined">logout</span>
+                                        Đăng xuất
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+            )}
+            <div className={showBackButton ? "stats-container" : "lost-card-log-wrapper"} style={showBackButton ? { display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' } : {}}>
+                {/* Stats Cards */}
+                <div className="lost-kpi-container">
+                    <div className="lost-kpi-grid">
+                        <div className="lost-kpi-card">
+                            <div className="lost-kpi-header">
+                                <div className="lost-kpi-icon-box icon-gray">
+                                    <span className="material-symbols-outlined">badge</span>
+                                </div>
+                                <span className="lost-kpi-title">Tổng thẻ báo mất</span>
+                            </div>
+                            <div className="lost-kpi-body">
+                                <div className="lost-kpi-value">{totalLost}</div>
+                                <div className="lost-kpi-footer txt-gray">Hệ thống tổng hợp</div>
+                            </div>
+                        </div>
+>>>>>>> deploy-backup
 
                         <div className="lost-kpi-card">
                             <div className="lost-kpi-header">
@@ -590,12 +694,16 @@ return 'status-pending';
                 </div>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> deploy-backup
                 {/* Filters Toolbar */}
                 <div className="lost-filter-card">
                     <div className="filter-block">
                         <label className="filter-label">Tìm kiếm nâng cao</label>
                         <div className="filter-input-wrapper">
                             <span className="material-symbols-outlined icon-left">search</span>
+<<<<<<< HEAD
 =======
                 <div className="lost-dist-card">
                     <div className="lost-dist-title">
@@ -684,6 +792,8 @@ return 'status-pending';
                     <div className="filter-input-wrapper">
                         <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
 >>>>>>> origin/OperationLog_UXUI
+=======
+>>>>>>> deploy-backup
                             <input
                                 type="text"
                                 className="filter-input has-icon-left"
@@ -763,6 +873,7 @@ return 'status-pending';
                                         <th>THAO TÁC</th>
 =======
 
+<<<<<<< HEAD
                 <div style={{ display: 'flex', gap: '8px', flex: '0 0 auto', marginLeft: 'auto' }}>
                     <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory} style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', background: 'white', cursor: 'pointer', color: '#334155', flexShrink: 0 }}>
                         <span className="material-symbols-outlined">history</span>
@@ -853,6 +964,34 @@ return 'status-pending';
                                             Không tìm thấy dữ liệu phù hợp
                                         </td>
 >>>>>>> origin/OperationLog_UXUI
+=======
+                {/* Table */}
+                <section className="lost-table-card">
+                    {error && (
+                        <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>
+                            {error}
+                        </div>
+                    )}
+
+                    {loading ? (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                            Đang tải nhật ký mất thẻ...
+                        </div>
+                    ) : (
+                        <>
+                            <table className="lost-table">
+                                <thead>
+                                    <tr>
+                                        <th>MÃ BÁO MẤT</th>
+                                        <th>MÃ THẺ</th>
+                                        <th>BIỂN SỐ XE</th>
+                                        <th>LOẠI THẺ</th>
+                                        <th>NGÀY BÁO MẤT</th>
+                                        <th>NỘI DUNG</th>
+                                        <th>TRẠNG THÁI</th>
+                                        <th>NGƯỜI XỬ LÝ</th>
+                                        <th>THAO TÁC</th>
+>>>>>>> deploy-backup
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -866,6 +1005,9 @@ return 'status-pending';
                                             const content = row.description || row.reason || '---';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> deploy-backup
                                             return (
                                                 <tr key={reportId}>
                                                     <td className="lost-id-cell">{reportId}</td>
@@ -894,6 +1036,7 @@ return 'status-pending';
                                                     <td>
                                                         <button type="button" className="lost-action-btn" onClick={() => { setEditingCard(row); setResolveNote(''); }}>
                                                             <span className="material-symbols-outlined">edit</span>
+<<<<<<< HEAD
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1149,38 +1292,201 @@ return 'status-pending';
                                                         >
                                                             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shuffle</span>
                                                             Tự động sinh
+=======
+>>>>>>> deploy-backup
                                                         </button>
-                                                    </div>
-                                                </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>
+                                                Không tìm thấy dữ liệu phù hợp
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
 
-                                                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                            {/* Footer */}
+                            <div className="lost-table-footer">
+                                <span className="footer-info">Hiển thị {filteredCards.length} của {totalLost} báo cáo</span>
+                                <div className="footer-right-actions">
+                                    <div className="lost-pagination">
+                                        <button type="button" className="page-btn" disabled>
+                                            <span className="material-symbols-outlined">chevron_left</span>
+                                        </button>
+                                        <button type="button" className="page-btn active">1</button>
+                                        <button type="button" className="page-btn" disabled>
+                                            <span className="material-symbols-outlined">chevron_right</span>
+                                        </button>
+                                    </div>
+                                    <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory}>
+                                        <span className="material-symbols-outlined">history</span>
+                                    </button>
+                                    <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
+                                        <span className="material-symbols-outlined">add</span>
+                                        Tạo báo mất
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </section>
+
+                {editingCard && (
+                    <div className="lost-modal-overlay">
+                        <div className="lost-modal">
+                            <div className="lost-modal-header">
+                                <h2>Xử lý báo cáo mất thẻ</h2>
+                            </div>
+
+                            <div className="lost-modal-body">
+                                {/* Thông tin chỉ đọc - không cho sửa tay để tránh phá vỡ state machine */}
+                                <div className="lost-form-group">
+                                    <label>Mã báo mất</label>
+                                    <input type="text" value={editingCard.lost_report_id || editingCard.id || ''} disabled />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Mã thẻ</label>
+                                    <input type="text" value={editingCard.card_code || editingCard.cardNo || ''} disabled />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Biển số xe</label>
+                                    <input type="text" value={editingCard.plate_number || editingCard.plate || ''} disabled />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Loại thẻ</label>
+                                    <input type="text" value={editingCard.card_type || 'Thẻ lượt'} disabled />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Nội dung</label>
+                                    <input type="text" value={editingCard.description || editingCard.reason || ''} disabled />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Người xử lý</label>
+                                    <input type="text" value={editingCard.handler_name || '---'} disabled />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Trạng thái hiện tại</label>
+                                    <div>
+                                        <span className={`status-badge-lost ${getStatusClass(editingCard.status)}`}>
+                                            <span className="dot"></span>
+                                            {editingCard.status}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Khu vực hành động - tùy theo trạng thái hiện tại, chỉ hiện đúng bước tiếp theo hợp lệ */}
+                                {editingCard.status === 'Đang chờ' && (
+                                    <div className="lost-form-group">
+                                        <label>Hành động</label>
+                                        <p className="lost-action-hint">
+                                            Report đang chờ - bấm "Tiếp nhận xử lý" để bắt đầu xác minh, hoặc "Hủy report" nếu tạo nhầm.
+                                        </p>
+                                        <input
+                                            type="text"
+                                            className="lost-action-note-input"
+                                            placeholder="Ghi chú (tùy chọn, dùng khi hủy report)..."
+                                            value={resolveNote}
+                                            onChange={(e) => setResolveNote(e.target.value)}
+                                        />
+                                        <div className="lost-action-btn-row">
+                                            <button
+                                                type="button"
+                                                className="btn-save"
+                                                disabled={actionLoading}
+                                                onClick={handleAcceptReport}
+                                            >
+                                                {actionLoading ? 'Đang xử lý...' : 'Tiếp nhận xử lý'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn-cancel btn-cancel-mistake"
+                                                disabled={actionLoading}
+                                                onClick={handleCancelReport}
+                                            >
+                                                {actionLoading ? 'Đang xử lý...' : 'Hủy report (tạo nhầm)'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {editingCard.status === 'Đang xử lý' && (
+                                    <div className="lost-form-group">
+                                        <label>Ghi chú xử lý (tùy chọn)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nhập ghi chú khi đóng report..."
+                                            value={resolveNote}
+                                            onChange={(e) => setResolveNote(e.target.value)}
+                                        />
+                                        <p style={{ fontSize: '13px', color: '#94a3b8', margin: '8px 0' }}>
+                                            Chọn kết quả xử lý để đóng report:
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button
+                                                type="button"
+                                                className="btn-save"
+                                                disabled={actionLoading}
+                                                onClick={() => handleResolveReport('Tìm lại thẻ')}
+                                            >
+                                                {actionLoading ? 'Đang xử lý...' : 'Đã tìm lại thẻ'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn-cancel btn-cancel-danger"
+                                                disabled={actionLoading}
+                                                onClick={() => handleResolveReport('Hủy thẻ')}
+                                            >
+                                                {actionLoading ? 'Đang xử lý...' : 'Hủy thẻ vĩnh viễn'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {editingCard.status === 'Đã xong' && (
+                                    <div className="lost-form-group">
+                                        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                                            Report này đã được đóng, không thể thao tác thêm.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {editingCard.status === 'Đã hủy thẻ' && (
+                                    <div className="lost-form-group" style={{ borderTop: '1px solid #e1e1ee', paddingTop: '16px', marginTop: '16px' }}>
+                                        {editingCard.card_type === 'Thẻ tháng' ? (
+                                            !showReissueForm ? (
+                                                <div>
+                                                    <p style={{ fontSize: '13px', color: '#334155', marginBottom: '10px' }}>
+                                                        Thẻ tháng này đã bị hủy vĩnh viễn. Bạn có muốn tiến hành cấp lại thẻ mới không?
+                                                    </p>
                                                     <button
                                                         type="button"
                                                         className="btn-save"
-                                                        onClick={handleReissueCard}
-                                                        disabled={actionLoading}
+                                                        style={{ background: '#0284c7', borderColor: '#0284c7' }}
+                                                        onClick={() => setShowReissueForm(true)}
                                                     >
-                                                        {actionLoading ? 'Đang xử lý...' : 'Xác nhận cấp lại & Thanh toán'}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="btn-cancel"
-                                                        onClick={() => setShowReissueForm(false)}
-                                                        disabled={actionLoading}
-                                                    >
-                                                        Hủy
+                                                        Cấp lại thẻ mới (Phí 50.000đ)
                                                     </button>
                                                 </div>
-                                            </div>
-                                        )
-                                    ) : (
-                                        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
-                                            Thẻ bị hủy là thẻ lượt, không áp dụng quy trình cấp lại thẻ tháng.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
+                                            ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                                                        Cấp lại RFID cho thẻ tháng
+                                                    </h3>
+                                                    <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                                                        Mã RFID mới sẽ được ghi đè trực tiếp lên thẻ cũ. Hợp đồng và đăng ký xe giữ nguyên.
+                                                    </p>
 
+<<<<<<< HEAD
                         </div>
 
                         <div className="lost-modal-actions">
@@ -1275,11 +1581,177 @@ return 'status-pending';
 
                         <div className="lost-modal-actions">
                             <button type="button" className="btn-cancel" onClick={() => setShowHistoryModal(false)}>Đóng</button>
+=======
+                                                    <div className="lost-form-group">
+                                                        <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Nhập hoặc quét mã thẻ RFID mới..."
+                                                                value={newRfidCode}
+                                                                onChange={(e) => setNewRfidCode(e.target.value)}
+                                                                style={{ flex: 1 }}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                title="Tự động sinh mã RFID ngẫu nhiên"
+                                                                onClick={() => {
+                                                                    const rand = `MONTH${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0')}`;
+                                                                    setNewRfidCode(rand);
+                                                                }}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px',
+                                                                    padding: '8px 12px',
+                                                                    background: '#f1f5f9',
+                                                                    border: '1px solid #cbd5e1',
+                                                                    borderRadius: '8px',
+                                                                    cursor: 'pointer',
+                                                                    fontSize: '13px',
+                                                                    color: '#475569',
+                                                                    whiteSpace: 'nowrap',
+                                                                    fontWeight: '500',
+                                                                    transition: 'all 0.15s'
+                                                                }}
+                                                                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shuffle</span>
+                                                                Tự động sinh
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-save"
+                                                            onClick={handleReissueCard}
+                                                            disabled={actionLoading}
+                                                        >
+                                                            {actionLoading ? 'Đang xử lý...' : 'Xác nhận cấp lại & Thanh toán'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-cancel"
+                                                            onClick={() => setShowReissueForm(false)}
+                                                            disabled={actionLoading}
+                                                        >
+                                                            Hủy
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        ) : (
+                                            <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                                                Thẻ bị hủy là thẻ lượt, không áp dụng quy trình cấp lại thẻ tháng.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                            </div>
+
+                            <div className="lost-modal-actions">
+                                <button
+                                    type="button"
+                                    className="btn-cancel"
+                                    onClick={() => setEditingCard(null)}
+                                    disabled={actionLoading}
+                                >
+                                    Đóng
+                                </button>
+                            </div>
+>>>>>>> deploy-backup
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+
+                {showCreateModal && (
+                    <div className="lost-modal-overlay">
+                        <div className="lost-modal">
+                            <div className="lost-modal-header">
+                                <h2>Tạo báo mất mới</h2>
+                            </div>
+                            <div className="lost-modal-body">
+                                <div className="lost-form-group">
+                                    <label>Biển số xe <span style={{ color: '#ef4444' }}>*</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nhập biển số xe..."
+                                        value={newLostCard.plate_number}
+                                        onChange={(e) =>
+                                            setNewLostCard({
+                                                ...newLostCard,
+                                                plate_number: e.target.value
+                                            })
+                                        }
+                                    />
+                                </div>
+
+                                <div className="lost-form-group">
+                                    <label>Lí do <span style={{ color: '#ef4444' }}>*</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nhập lí do báo mất..."
+                                        value={newLostCard.description}
+                                        onChange={(e) =>
+                                            setNewLostCard({
+                                                ...newLostCard,
+                                                description: e.target.value
+                                            })
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="lost-modal-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Hủy</button>
+                                <button type="button" className="btn-save" onClick={handleCreateLostCard}>Lưu</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {showHistoryModal && (
+                    <div className="lost-modal-overlay">
+                        <div className="lost-modal">
+                            <div className="lost-modal-header">
+                                <h2>Lịch sử xử lý</h2>
+                            </div>
+
+                            <div className="lost-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                                {historyLoading ? (
+                                    <p className="history-empty">Đang tải...</p>
+                                ) : historyData.length === 0 ? (
+                                    <p className="history-empty">Chưa có lịch sử hoạt động nào.</p>
+                                ) : (
+                                    <div className="history-list">
+                                        {historyData.map((item) => (
+                                            <div key={item.log_id} className="history-item">
+                                                <div className="history-action">
+                                                    {item.action} — <span className="history-target">Thẻ {item.card_code} ({item.plate_number || '---'})</span>
+                                                </div>
+                                                <div className="history-meta">
+                                                    {new Date(item.performed_at).toLocaleString('vi-VN')} — bởi {item.performed_by_name}
+                                                </div>
+                                                {item.note && (
+                                                    <div className="history-note">Ghi chú: {item.note}</div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="lost-modal-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setShowHistoryModal(false)}>Đóng</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </section>
     );
 
 }
