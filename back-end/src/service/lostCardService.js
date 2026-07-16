@@ -127,7 +127,7 @@ export const createLostCard = async ({
     }
   }
 
-  // 2c. Nếu vẫn không tìm thấy thẻ -> tìm qua bảng parking_order
+  // 2c. Nếu vẫn không tìm thấy thẻ -> tìm qua bảng parking_sessions
   if (!finalCardId) {
     const order = await lostCardRepository.findCardByParkingOrder(vehicle.vehicle_id);
     if (order) {

@@ -85,17 +85,17 @@ export const findActiveCardByVehicle = async (vehicleId) => {
 };
 
 /**
- * Tìm thẻ đã đăng ký qua bảng parking_order (fallback khi không có registration)
+ * Tìm thẻ đã đăng ký qua bảng parking_sessions (fallback khi không có registration)
  * @param {string} vehicleId
  * @returns {Promise<object|null>}
  */
 export const findCardByParkingOrder = async (vehicleId) => {
   const { data, error } = await supabase
-    .from('parking_order')
+    .from('parking_sessions')
     .select('card_id')
     .eq('vehicle_id', vehicleId)
     .not('card_id', 'is', null)
-    .order('time_in', { ascending: false })
+    .order('entry_time', { ascending: false })
     .limit(1)
     .maybeSingle();
 
