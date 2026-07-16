@@ -4,110 +4,10 @@ import { getCards, createCard, deleteCard, updateCard } from '../../../service/c
 import { useAuth } from '../../../context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
 import CreateCardPageDialog from '../components/CreateCardPageDialog';
+import EditCardPageDialog from '../components/EditCardPageDialog';
 
 
 const ITEMS_PER_PAGE = 10;
-
-// ─────────────────────────────────────────────
-// Modal 2: Cập nhật thẻ (Inline)
-// ─────────────────────────────────────────────
-function EditCardModal({ formData, formError, submitting, onChange, onSubmit, onClose }) {
-    const hasPlate = formData.plate && formData.plate.trim() !== '';
-
-    return (
-        <div className="cp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-            <div className="cp-modal">
-                <div className="cp-modal-header">
-                    <h2>Cập nhật thẻ</h2>
-                    <button type="button" className="cp-modal-close" onClick={onClose}>
-                        <span className="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-
-                <form className="cp-modal-form" onSubmit={onSubmit}>
-                    <div className="cp-form-group">
-                        <label htmlFor="plate">Biển số xe</label>
-                        <input
-                            id="plate"
-                            name="plate"
-                            type="text"
-                            placeholder="Ví dụ: 59G112345 (Nếu có)"
-                            className="cp-input"
-                            value={formData.plate}
-                            onChange={onChange}
-                        />
-                    </div>
-
-                    <div className="cp-form-group">
-                        <label>Thời gian vào</label>
-                        <input
-                            type="datetime-local"
-                            name="checkInTime"
-                            value={formData.checkInTime}
-                            onChange={onChange}
-                            className="cp-input"
-                            disabled={!hasPlate}
-                        />
-                    </div>
-
-                    <div className="cp-form-group">
-                        <label>Thời gian ra</label>
-                        <input
-                            type="datetime-local"
-                            name="checkOutTime"
-                            value={formData.checkOutTime}
-                            onChange={onChange}
-                            className="cp-input"
-                            disabled={!hasPlate}
-                        />
-                    </div>
-
-                    <div className="cp-form-group">
-                        <label>Trạng thái</label>
-                        <select
-                            name="status"
-                            value={formData.status}
-                            onChange={onChange}
-                            className="cp-select"
-                            disabled={!hasPlate}
-                        >
-                            <option value="Hoạt động">Hoạt động</option>
-                            <option value="Đang chờ">Đang chờ</option>
-                            <option value="Đã khóa">Đã khóa</option>
-                            <option value="Hết hạn">Hết hạn</option>
-                        </select>
-                    </div>
-
-                    {formError && <p className="cp-form-error">{formError}</p>}
-
-                    {!hasPlate && (
-                        <p style={{ color: '#f59e0b', fontSize: '14px', marginTop: '8px' }}>
-                            Thẻ chưa có biển số nên không thể chỉnh sửa thời gian vào, thời gian ra và trạng thái.
-                        </p>
-                    )}
-
-                    <div className="cp-modal-actions">
-                        <button
-                            type="button"
-                            className="cp-btn cp-btn-outline"
-                            onClick={onClose}
-                            disabled={submitting}
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            type="submit"
-                            className="cp-btn cp-btn-primary"
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Đang lưu...' : 'Cập nhật'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-}
 
 // ─────────────────────────────────────────────
 // Main Page
@@ -124,16 +24,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
-
-    const [editFormData, setEditFormData] = useState({
-        type: 'Thẻ lượt',
-        plate: '',
-        checkInTime: '',
-        checkOutTime: '',
-        status: 'Hoạt động'
-    });
-    const [editSubmitting, setEditSubmitting] = useState(false);
-    const [editFormError, setEditFormError] = useState(null);
 
     // Filters
     const [search, setSearch] = useState('');
@@ -178,53 +68,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     const handleEdit = (card) => {
         setEditingCard(card);
-        setEditFormData({
-            type: 'Thẻ lượt',
-            plate: card.plate || '',
-            checkInTime: card.check_in_time
-                ? new Date(card.check_in_time).toISOString().slice(0, 16)
-                : '',
-            checkOutTime: card.check_out_time
-                ? new Date(card.check_out_time).toISOString().slice(0, 16)
-                : '',
-            status: card.status || 'Hoạt động'
-        });
-        setEditFormError(null);
         setIsEditOpen(true);
-    };
-
-    const handleUpdate = async (e) => {
-        e.preventDefault();
-        setEditFormError(null);
-        const hasPlate = editFormData.plate && editFormData.plate.trim() !== '';
-        try {
-            setEditSubmitting(true);
-            await updateCard(editingCard.card_id, {
-                type: 'Thẻ lượt',
-                plate: editFormData.plate,
-                checkInTime: hasPlate ? editFormData.checkInTime : null,
-                checkOutTime: hasPlate ? editFormData.checkOutTime : null,
-                status: hasPlate ? editFormData.status : editingCard.status
-            });
-            showToast("Cập nhật thẻ thành công", "success");
-            setIsEditOpen(false);
-            setEditingCard(null);
-            await fetchCards();
-        } catch (err) {
-            setEditFormError(err?.response?.data?.message || err?.response?.data?.error || err.message || 'Lỗi khi cập nhật thẻ.');
-        } finally {
-            setEditSubmitting(false);
-        }
-    };
-
-    const handleCloseEdit = () => {
-        setIsEditOpen(false);
-        setEditFormError(null);
-        setEditingCard(null);
-    };
-
-    const handleEditFormChange = (e) => {
-        setEditFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
     const handleDelete = async (row) => {
@@ -556,16 +400,19 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 }}
             />
 
-            {isEditOpen && (
-                <EditCardModal
-                    formData={editFormData}
-                    formError={editFormError}
-                    submitting={editSubmitting}
-                    onChange={handleEditFormChange}
-                    onSubmit={handleUpdate}
-                    onClose={handleCloseEdit}
-                />
-            )}
+            <EditCardPageDialog
+                isOpen={isEditOpen}
+                onClose={() => {
+                    setIsEditOpen(false);
+                    setEditingCard(null);
+                }}
+                card={editingCard}
+                onSuccess={async () => {
+                    setIsEditOpen(false);
+                    setEditingCard(null);
+                    await fetchCards();
+                }}
+            />
 
         </div>
     );
