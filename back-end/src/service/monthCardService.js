@@ -10,6 +10,17 @@ export const RENEW_PACKAGES = [
 ];
 
 /**
+ * Kiểm tra định dạng số điện thoại Việt Nam
+ * Quy tắc: bắt đầu bằng 0, đủ 10 số, đầu số hợp lệ (03/05/07/08/09)
+ * @param {string} phone
+ * @returns {boolean}
+ */
+const isValidVietnamesePhoneNumber = (phone) => {
+  const regex = /^0(3[2-9]|5[25689]|7[06-9]|8[1-9]|9[0-9])[0-9]{7}$/;
+  return regex.test(phone);
+};
+
+/**
  * Cộng thêm tháng vào ngày cụ thể một cách an toàn (tránh tràn ngày)
  * @param {Date} date 
  * @param {number} months 
@@ -444,6 +455,14 @@ export const updateMonthCard = async (cardId, payload) => {
     }
   }
 
+  // 0. Validate số điện thoại (nếu có nhập)
+  let cleanPhone = phone ? phone.trim() : undefined;
+  if (cleanPhone) {
+    if (!isValidVietnamesePhoneNumber(cleanPhone)) {
+      throw new Error("Số điện thoại không hợp lệ. Số điện thoại phải bắt đầu bằng 0, đủ 10 số và đúng đầu số nhà mạng (03/05/07/08/09).");
+    }
+  }
+
   // 1. Kiểm tra biển số duy nhất của các thẻ đang hoạt động (ngoại trừ thẻ hiện tại)
   let existingVehicle = null;
   if (cleanPlate) {
@@ -490,7 +509,7 @@ export const updateMonthCard = async (cardId, payload) => {
     if (customerId) {
       await monthCardRepository.updateCustomer(customerId, {
         full_name: fullName,
-        phone: phone || null,
+        phone: cleanPhone || null,
         email: email || null
       });
     }
@@ -867,6 +886,3 @@ export const getCardDetailsForContract = async (cardId) => {
     } : null
   };
 };
-
-
-
