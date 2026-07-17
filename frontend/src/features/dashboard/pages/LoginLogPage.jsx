@@ -328,22 +328,18 @@ export default function LoginLogPage() {
                         <div style={{ width: '100%', overflow: 'hidden' }}>
                             <table className="log-table" style={{ tableLayout: 'fixed', width: '100%' }}>
                                 <colgroup>
-                                    <col style={{ width: '9%' }} />  {/* THỜI GIAN */}
-                                    <col style={{ width: '19%' }} /> {/* HỌ TÊN */}
-                                    <col style={{ width: '12%' }} /> {/* VAI TRÒ */}
-                                    <col style={{ width: '10%' }} /> {/* ĐỊA CHỈ IP */}
-                                    <col style={{ width: '22%' }} /> {/* THIẾT BỊ/TRÌNH DUYỆT */}
-                                    <col style={{ width: '17%' }} /> {/* VỊ TRÍ */}
-                                    <col style={{ width: '11%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '15%' }} /> {/* THỜI GIAN */}
+                                    <col style={{ width: '25%' }} /> {/* HỌ TÊN */}
+                                    <col style={{ width: '15%' }} /> {/* VAI TRÒ */}
+                                    <col style={{ width: '30%' }} /> {/* THIẾT BỊ/TRÌNH DUYỆT */}
+                                    <col style={{ width: '15%' }} /> {/* TRẠNG THÁI */}
                                 </colgroup>
                                 <thead>
                                     <tr>
                                         <th style={{ whiteSpace: 'nowrap' }}>THỜI GIAN</th>
                                         <th style={{ whiteSpace: 'nowrap' }}>HỌ TÊN</th>
                                         <th style={{ whiteSpace: 'nowrap' }}>VAI TRÒ</th>
-                                        <th style={{ whiteSpace: 'nowrap' }}>ĐỊA CHỈ IP</th>
                                         <th style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>THIẾT BỊ/TRÌNH DUYỆT</th>
-                                        <th style={{ whiteSpace: 'nowrap' }}>VỊ TRÍ</th>
                                         <th style={{ whiteSpace: 'nowrap' }}>TRẠNG THÁI</th>
                                     </tr>
                                 </thead>
@@ -372,9 +368,6 @@ export default function LoginLogPage() {
                                                     </span>
                                                 </td>
                                                 <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
-                                                </td>
-                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     <div className="log-device-cell" style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
                                                         <span className={`material-symbols-outlined device-icon ${log.status !== 'Thành công' ? 'text-red' : ''}`} style={{ flexShrink: 0 }}>
                                                             {log.deviceIcon || 'public'}
@@ -382,7 +375,6 @@ export default function LoginLogPage() {
                                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.device}</span>
                                                     </div>
                                                 </td>
-                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.location}</td>
                                                 <td style={{ whiteSpace: 'nowrap' }}>
                                                     <span className={`status-badge-log ${getStatusClass(log.status)}`} style={{ minWidth: '90px', display: 'inline-block', textAlign: 'center' }}>
                                                         {log.status === 'Tài khoản bị khóa' ? 'Bị khóa' : log.status}
@@ -392,7 +384,7 @@ export default function LoginLogPage() {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="7" className="table-status-empty">
+                                            <td colSpan="5" className="table-status-empty">
                                                 Không có dữ liệu nhật ký phù hợp
                                             </td>
                                         </tr>
