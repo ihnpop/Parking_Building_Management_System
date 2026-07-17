@@ -7,6 +7,7 @@ import CardPage from './CardPage';
 import MonthCardPage from './MonthCardPage';
 import LostCardLogPage from './LostCardLogPage';
 import MonthCardLogPage from './MonthCardLogPage';
+import CasualCardLogPage from './CasualCardLogPage';
 import LoginLogPage from './LoginLogPage';
 import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
@@ -59,7 +60,7 @@ export default function DashboardView() {
     }, [userRole, currentView]);
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
-    const [activeLogTab, setActiveLogTab] = useState('Mất thẻ');
+    const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
     const [selectedPeriod, setSelectedPeriod] = useState('30 ngày qua');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -170,24 +171,16 @@ export default function DashboardView() {
 
             {/* 2. VIEW NHẬT KÝ VẬN HÀNH */}
             {currentView === 'log-management' && (
-<<<<<<< HEAD
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '10px' }}>
-<<<<<<< HEAD
-                        {renderTabButton('Nhật ký quẹt thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
-=======
-                        {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Mất thẻ', () => setActiveLogTab('Mất thẻ'))}
->>>>>>> deploy
-=======
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 24px 24px 24px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '0' }}>
                         {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
->>>>>>> deploy-backup
+                        {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => setActiveLogTab('Thẻ lượt'))}
                         {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
                         {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
                     </div>
                     <div style={{ marginTop: '5px' }}>
-                        {activeLogTab === 'Mất thẻ' && <LostCardLogPage />}
+                        {activeLogTab === 'Quẹt thẻ' && <LostCardLogPage />}
+                        {activeLogTab === 'Thẻ lượt' && <CasualCardLogPage />}
                         {activeLogTab === 'Vé tháng' && <MonthCardLogPage />}
                         {activeLogTab === 'Đăng nhập' && <LoginLogPage />}
                     </div>

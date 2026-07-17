@@ -107,7 +107,7 @@ export const getPaymentLogs = async () => {
       payment_time,
       amount,
       status,
-      parking_order (
+      parking_sessions (
         vehicle (
           plate_number,
           customer (

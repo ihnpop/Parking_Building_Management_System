@@ -9,13 +9,6 @@ import './styles/index.css';
 import './styles/App.css';
 import App from './App.jsx'
 
-<<<<<<< HEAD
-if (window.location.hash && window.location.hash.includes("access_token=")) {
-  setTimeout(() => {
-    window.location.hash = "#/login/dashboard";
-  }, 100);
-}
-=======
 function MainApp() {
   const [isProcessingAuth, setIsProcessingAuth] = useState(() => {
     const hash = window.location.hash || "";
@@ -24,7 +17,6 @@ function MainApp() {
            !hash.includes("set-password") && 
            !hash.includes("reset-password");
   });
->>>>>>> deploy-backup
 
   useEffect(() => {
     if (!isProcessingAuth) return;

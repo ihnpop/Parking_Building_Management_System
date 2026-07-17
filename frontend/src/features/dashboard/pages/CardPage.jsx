@@ -706,7 +706,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                             {page}
                                         </button>
                                     )
-                                )}
+                                ))}
                                 <button className="mc-page-nav" disabled={currentPage === totalPages || totalPages === 0}
                                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>
                                     <span className="material-symbols-outlined">chevron_right</span>

@@ -289,7 +289,15 @@ export async function processRenewalSuccess(orderCode) {
         cardCode,
     } = payload;
 
-    // 1. INSERT vehicle_package mới (kỳ gia hạn)
+    // 1. UPDATE vehicle_package cũ → 'Hết hạn' TRƯỚC (tránh vi phạm unique constraint uq_vehicle_active_package)
+    const { error: vpExpireErr } = await supabase
+        .from('vehicle_package')
+        .update({ status: 'Hết hạn' })
+        .eq('vehicle_package_id', vehiclePackageId);
+
+    if (vpExpireErr) throw new Error('Lỗi cập nhật kỳ cũ: ' + vpExpireErr.message);
+
+    // 2. INSERT vehicle_package mới (kỳ gia hạn)
     const { data: newVp, error: vpInsertErr } = await supabase
         .from('vehicle_package')
         .insert({
@@ -305,12 +313,6 @@ export async function processRenewalSuccess(orderCode) {
         .single();
 
     if (vpInsertErr) throw new Error('Lỗi tạo kỳ gia hạn: ' + vpInsertErr.message);
-
-    // 2. UPDATE vehicle_package cũ → 'Hết hạn'
-    await supabase
-        .from('vehicle_package')
-        .update({ status: 'Hết hạn' })
-        .eq('vehicle_package_id', vehiclePackageId);
 
     // 3. UPDATE card: expired_date + active_vehicle_package_id
     const { error: cardUpdateErr } = await supabase
@@ -438,10 +440,28 @@ export async function getRenewalInfo(cardId) {
             .gte('payment_time', timeoutThreshold)
             .maybeSingle();
         if (pm) {
+            let payUrl = null;
+            if (pm.payment_method === 'VNPay') {
+                let noteObj = {};
+                try {
+                    noteObj = JSON.parse(pm.note) || {};
+                } catch (e) {
+                    console.error("Lỗi parse note:", e);
+                }
+                const cCode = noteObj.cardCode || card.code;
+                payUrl = vnpayService.createPaymentUrl({
+                    orderCode: pm.order_code,
+                    amount: pm.amount,
+                    orderInfo: `Gia han ve thang ${cCode}`,
+                    ipAddr: '127.0.0.1',
+                });
+            }
+
             pendingPayment = {
                 orderCode: pm.order_code,
                 amount: pm.amount,
-                paymentMethod: pm.payment_method,
+                paymentMethod: pm.payment_method === 'Tiền mặt' ? 'cash' : 'vnpay',
+                payUrl,
                 note: pm.note,
                 paymentTime: pm.payment_time
             };
