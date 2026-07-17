@@ -36,23 +36,18 @@ jobs:
 
       - name: Deploy
         uses: appleboy/ssh-action@v1.2.0
-
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
           PORT: ${{ secrets.PORT }}
-
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           OCR_SERVICE_URL: ${{ secrets.OCR_SERVICE_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-
           VNPT_ACCESS_TOKEN: ${{ secrets.VNPT_ACCESS_TOKEN }}
           VNPT_EKYC_URL: ${{ secrets.VNPT_EKYC_URL }}
           VNPT_TOKEN_ID: ${{ secrets.VNPT_TOKEN_ID }}
           VNPT_TOKEN_KEY: ${{ secrets.VNPT_TOKEN_KEY }}
-
           VNP_HASH_SECRET: ${{ secrets.VNP_HASH_SECRET }}
           VNP_IPN_URL: ${{ secrets.VNP_IPN_URL }}
           VNP_RETURN_URL: ${{ secrets.VNP_RETURN_URL }}
@@ -63,7 +58,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-        envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,PORT,MAIL_FROM,OCR_SERVICE_URL,RESEND_API_KEY,VNPT_ACCESS_TOKEN,VNPT_EKYC_URL,VNPT_TOKEN_ID,VNPT_TOKEN_KEY,VNP_HASH_SECRET,VNP_IPN_URL,VNP_RETURN_URL,VNP_TMN_CODE,VNP_URL
-        script: |
-         ~/deploy.sh
 
+          envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,PORT,MAIL_FROM,OCR_SERVICE_URL,RESEND_API_KEY,VNPT_ACCESS_TOKEN,VNPT_EKYC_URL,VNPT_TOKEN_ID,VNPT_TOKEN_KEY,VNP_HASH_SECRET,VNP_IPN_URL,VNP_RETURN_URL,VNP_TMN_CODE,VNP_URL
+
+        script: |
+          ~/deploy.sh
