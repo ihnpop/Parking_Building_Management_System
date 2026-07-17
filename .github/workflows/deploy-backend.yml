@@ -1,4 +1,4 @@
-# back-end add .env to EC2
+# back-end a
 name: Deploy PBMS to AWS EC2
 
 on:
@@ -61,5 +61,5 @@ jobs:
 
           envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,PORT,MAIL_FROM,OCR_SERVICE_URL,RESEND_API_KEY,VNPT_ACCESS_TOKEN,VNPT_EKYC_URL,VNPT_TOKEN_ID,VNPT_TOKEN_KEY,VNP_HASH_SECRET,VNP_IPN_URL,VNP_RETURN_URL,VNP_TMN_CODE,VNP_URL
 
-        script: |
-          ~/deploy.sh
+          script: |
+            ~/deploy.sh
