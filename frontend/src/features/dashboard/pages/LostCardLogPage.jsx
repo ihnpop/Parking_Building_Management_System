@@ -81,6 +81,9 @@ export default function LostCardLogPage({ showBackButton = false }) {
     const [historyData, setHistoryData] = useState([]);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyPage, setHistoryPage] = useState(1);
+    const historyItemsPerPage = 5;
 
     // States và Effect cho chức năng Cấp lại thẻ tháng bị mất
     const [showReissueForm, setShowReissueForm] = useState(false);
@@ -145,6 +148,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
 
     const handleViewHistory = async () => {
         try {
+            setHistorySearch('');
+            setHistoryPage(1);
             setHistoryLoading(true);
             setShowHistoryModal(true);
             const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
@@ -417,6 +422,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
     const pendingCount = lostCards.filter(c => c.status === 'Đang chờ').length;
     const processingCount = lostCards.filter(c => c.status === 'Đang xử lý').length;
     const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'Đã tìm lại' || c.status === 'Đã xử lý').length;
+    const cancelledCount = lostCards.filter(c => c.status === 'Đã hủy thẻ').length;
+    const mistakeCount = lostCards.filter(c => c.status === 'Đã hủy (tạo nhầm)').length;
 
     return (
         <section className={showBackButton ? "stats-dashboard-page" : ""}>
@@ -512,6 +519,32 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                 <div className="lost-kpi-footer txt-green">Giải quyết xong</div>
                             </div>
                         </div>
+
+                        <div className="lost-kpi-card">
+                            <div className="lost-kpi-header">
+                                <div className="lost-kpi-icon-box icon-red">
+                                    <span className="material-symbols-outlined">credit_card_off</span>
+                                </div>
+                                <span className="lost-kpi-title">Đã hủy thẻ</span>
+                            </div>
+                            <div className="lost-kpi-body">
+                                <div className="lost-kpi-value val-red">{cancelledCount}</div>
+                                <div className="lost-kpi-footer txt-red">Vô hiệu hóa thẻ</div>
+                            </div>
+                        </div>
+
+                        <div className="lost-kpi-card">
+                            <div className="lost-kpi-header">
+                                <div className="lost-kpi-icon-box icon-gray">
+                                    <span className="material-symbols-outlined">undo</span>
+                                </div>
+                                <span className="lost-kpi-title">Đã hủy (tạo nhầm)</span>
+                            </div>
+                            <div className="lost-kpi-body">
+                                <div className="lost-kpi-value">{mistakeCount}</div>
+                                <div className="lost-kpi-footer txt-gray">Đã hủy báo cáo</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="lost-dist-card">
@@ -560,6 +593,26 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                 <div className="lost-dist-fill bg-green" style={{ width: `${totalLost > 0 ? (resolvedCount / totalLost) * 100 : 0}%` }}></div>
                             </div>
                         </div>
+
+                        <div className="lost-dist-item">
+                            <div className="lost-dist-label-row">
+                                <span>Đã hủy thẻ</span>
+                                <span><span className="lost-dist-val">{cancelledCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((cancelledCount / totalLost) * 100) : 0}%)</span></span>
+                            </div>
+                            <div className="lost-dist-track">
+                                <div className="lost-dist-fill bg-red" style={{ width: `${totalLost > 0 ? (cancelledCount / totalLost) * 100 : 0}%` }}></div>
+                            </div>
+                        </div>
+
+                        <div className="lost-dist-item">
+                            <div className="lost-dist-label-row">
+                                <span>Đã hủy (tạo nhầm)</span>
+                                <span><span className="lost-dist-val">{mistakeCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((mistakeCount / totalLost) * 100) : 0}%)</span></span>
+                            </div>
+                            <div className="lost-dist-track">
+                                <div className="lost-dist-fill bg-gray" style={{ width: `${totalLost > 0 ? (mistakeCount / totalLost) * 100 : 0}%` }}></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -599,22 +652,50 @@ export default function LostCardLogPage({ showBackButton = false }) {
                     <div className="filter-block">
                         <label className="filter-label">Khoảng ngày báo mất</label>
                         <div className="filter-input-wrapper">
-                            <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+                            <div className="filter-input date-range-wrapper">
                                 <input
                                     type="date"
+                                    className="date-range-input"
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
                                 />
-                                <span style={{ color: '#94a3b8', fontSize: '13px' }}>đến</span>
+                                <span className="date-range-sep">đến</span>
                                 <input
                                     type="date"
+                                    className="date-range-input"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
                                 />
                             </div>
                         </div>
+                    </div>
+                    {/* Nút reset filter */}
+                    {(search || statusFilter !== 'Tất cả' || startDate || endDate) && (
+                        <div className="filter-block reset-filter-btn-container" style={{ alignSelf: 'flex-end', paddingBottom: '2px' }}>
+                            <button
+                                type="button"
+                                className="icon-reset-btn"
+                                title="Xóa lọc"
+                                onClick={() => {
+                                    setSearch('');
+                                    setStatusFilter('Tất cả');
+                                    setStartDate('');
+                                    setEndDate('');
+                                }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>filter_alt_off</span>
+                            </button>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '10px', alignSelf: 'flex-end', paddingBottom: '2px', marginLeft: 'auto' }}>
+                        <button type="button" className="icon-reset-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
+                        </button>
+                        <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
+                            <span className="material-symbols-outlined">add</span>
+                            Tạo báo mất
+                        </button>
                     </div>
                 </div>
 
@@ -712,13 +793,6 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                             <span className="material-symbols-outlined">chevron_right</span>
                                         </button>
                                     </div>
-                                    <button type="button" className="page-btn" title="Xem lịch sử xử lý" onClick={handleViewHistory}>
-                                        <span className="material-symbols-outlined">history</span>
-                                    </button>
-                                    <button type="button" className="lost-create-button" onClick={() => setShowCreateModal(true)}>
-                                        <span className="material-symbols-outlined">add</span>
-                                        Tạo báo mất
-                                    </button>
                                 </div>
                             </div>
                         </>
@@ -1008,37 +1082,117 @@ export default function LostCardLogPage({ showBackButton = false }) {
                 )}
                 {showHistoryModal && (
                     <div className="lost-modal-overlay">
-                        <div className="lost-modal">
-                            <div className="lost-modal-header">
-                                <h2>Lịch sử xử lý</h2>
+                        <div className="lost-modal history-modal-wide">
+                            <div className="lost-modal-header history-modal-header" style={{ padding: '12px 20px' }}>
+                                <h2 style={{ fontSize: '16px', margin: 0, fontWeight: '600', color: '#1e293b' }}>Lịch sử xử lý</h2>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        className="history-search-input"
+                                        style={{ padding: '6px 12px', height: '32px', fontSize: '13px', width: '250px' }}
+                                        placeholder="Tìm kiếm thẻ hoặc biển số..."
+                                        value={historySearch}
+                                        onChange={e => { setHistorySearch(e.target.value); setHistoryPage(1); }}
+                                    />
+                                    <button className="history-close-btn" style={{ padding: '2px', display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }} onClick={() => setShowHistoryModal(false)}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="lost-modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                            <div className="lost-modal-body" style={{ maxHeight: '75vh', minHeight: '55vh', display: 'flex', flexDirection: 'column', padding: 0, backgroundColor: '#f8fafc' }}>
                                 {historyLoading ? (
-                                    <p className="history-empty">Đang tải...</p>
-                                ) : historyData.length === 0 ? (
-                                    <p className="history-empty">Chưa có lịch sử hoạt động nào.</p>
-                                ) : (
-                                    <div className="history-list">
-                                        {historyData.map((item) => (
-                                            <div key={item.log_id} className="history-item">
-                                                <div className="history-action">
-                                                    {item.action} — <span className="history-target">Thẻ {item.card_code} ({item.plate_number || '---'})</span>
-                                                </div>
-                                                <div className="history-meta">
-                                                    {new Date(item.performed_at).toLocaleString('vi-VN')} — bởi {item.performed_by_name}
-                                                </div>
-                                                {item.note && (
-                                                    <div className="history-note">Ghi chú: {item.note}</div>
+                                    <div style={{ flex: 1, padding: '24px' }}>
+                                        <p className="history-empty" style={{ textAlign: 'center', padding: '20px' }}>Đang tải...</p>
+                                    </div>
+                                ) : (() => {
+                                    const filtered = historyData.filter(item => {
+                                        const s = historySearch.toLowerCase();
+                                        return (item.card_code || '').toLowerCase().includes(s) ||
+                                            (item.plate_number || '').toLowerCase().includes(s) ||
+                                            (item.note || '').toLowerCase().includes(s);
+                                    });
+                                    const totalPages = Math.ceil(filtered.length / historyItemsPerPage) || 1;
+                                    const paginated = filtered.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
+
+                                    // Pagination window logic (show 3 pages max)
+                                    let startPage = Math.max(1, historyPage - 1);
+                                    let endPage = Math.min(totalPages, historyPage + 1);
+                                    if (totalPages > 3) {
+                                        if (historyPage === 1) {
+                                            endPage = 3;
+                                        } else if (historyPage === totalPages) {
+                                            startPage = totalPages - 2;
+                                        }
+                                    } else {
+                                        startPage = 1;
+                                        endPage = totalPages;
+                                    }
+                                    const pageNumbers = [];
+                                    for (let i = startPage; i <= endPage; i++) pageNumbers.push(i);
+
+                                    return (
+                                        <>
+                                            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+                                                {paginated.length === 0 ? (
+                                                    <p className="history-empty" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Không tìm thấy dữ liệu.</p>
+                                                ) : (
+                                                    paginated.map((item) => {
+                                                        let colorClass = '#94a3b8';
+                                                        const actionLower = (item.action || '').toLowerCase();
+                                                        if (actionLower.includes('mở khóa') || actionLower.includes('tìm lại')) {
+                                                            colorClass = '#10b981'; // green
+                                                        } else if (actionLower.includes('khóa') || actionLower.includes('vô hiệu')) {
+                                                            colorClass = '#f59e0b'; // orange
+                                                        } else if (actionLower.includes('xóa') || actionLower.includes('hủy')) {
+                                                            colorClass = '#ef4444'; // red
+                                                        } else if (actionLower.includes('cấp lại') || actionLower.includes('hoàn thành')) {
+                                                            colorClass = '#3b82f6'; // blue
+                                                        }
+
+                                                        let noteText = item.note || 'Không có ghi chú';
+                                                        noteText = noteText.replace(/ - /g, '\n• ');
+
+                                                        return (
+                                                            <div key={item.log_id} className="history-card" style={{ borderLeftColor: colorClass }}>
+                                                                <div className="history-col-1">
+                                                                    <span className="history-action-text" style={{ color: colorClass }}>{item.action} —</span>
+                                                                    <span style={{ color: '#475569' }}>Thẻ {item.card_code} ({item.plate_number || '---'})</span>
+                                                                </div>
+                                                                <div className="history-col-2">
+                                                                    <span style={{ fontWeight: '500', color: '#1e293b' }}>{new Date(item.performed_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' })}</span>
+                                                                    <span className="history-sub-text">
+                                                                        <i style={{ color: '#94a3b8' }}>bởi {item.performed_by_name}</i>
+                                                                    </span>
+                                                                </div>
+                                                                <div className="history-col-3">
+                                                                    <div style={{ fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ghi chú:</div>
+                                                                    <div style={{ color: '#334155', lineHeight: '1.5', fontSize: '14px', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
+                                                                        {noteText}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
                                                 )}
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
 
-                            <div className="lost-modal-actions">
-                                <button type="button" className="btn-cancel" onClick={() => setShowHistoryModal(false)}>Đóng</button>
+                                            <div style={{ padding: '12px 24px', backgroundColor: '#fff', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                                                <div className="history-pagination" style={{ margin: 0, display: 'flex', gap: '6px' }}>
+                                                    <button className="history-page-btn" style={{ height: '28px', minWidth: '28px', padding: '0 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span>
+                                                    </button>
+                                                    {pageNumbers.map(p => (
+                                                        <button key={p} className={`history-page-btn ${historyPage === p ? 'active' : ''}`} style={{ height: '28px', minWidth: '28px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={() => setHistoryPage(p)}>{p}</button>
+                                                    ))}
+                                                    <button className="history-page-btn" style={{ height: '28px', minWidth: '28px', padding: '0 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} disabled={historyPage === totalPages} onClick={() => setHistoryPage(p => p + 1)}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_right</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>

@@ -260,27 +260,6 @@ export default function LoginLogPage() {
                 </div>
 
                 <div className="filter-block">
-                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
-                    <div className="filter-input-wrapper">
-                        <div className="filter-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
-                            />
-                            <span style={{ color: '#94a3b8', fontSize: '13px' }}>đến</span>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                style={{ border: 'none', outline: 'none', background: 'transparent', color: '#334155', fontFamily: 'inherit', fontSize: '13px', width: '45%' }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="filter-block">
                     <label className="filter-label">VAI TRÒ (ROLE)</label>
                     <div className="filter-input-wrapper">
                         <select
@@ -296,6 +275,46 @@ export default function LoginLogPage() {
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
                 </div>
+
+                <div className="filter-block">
+                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
+                    <div className="filter-input-wrapper">
+                        <div className="filter-input date-range-wrapper">
+                            <input
+                                type="date"
+                                className="date-range-input"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                            <span className="date-range-sep">đến</span>
+                            <input
+                                type="date"
+                                className="date-range-input"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Nút reset filter */}
+                {(search || startDate || endDate || roleFilter !== 'Tất cả vai trò') && (
+                    <div className="filter-block reset-filter-btn-container" style={{ alignSelf: 'flex-end', paddingBottom: '2px' }}>
+                        <button
+                            type="button"
+                            className="icon-reset-btn"
+                            title="Xóa lọc"
+                            onClick={() => {
+                                setSearch('');
+                                setStartDate('');
+                                setEndDate('');
+                                setRoleFilter('Tất cả vai trò');
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>filter_alt_off</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Table */}
@@ -306,61 +325,81 @@ export default function LoginLogPage() {
                     </div>
                 ) : (
                     <>
-                        <table className="log-table">
-                            <thead>
-                                <tr>
-                                    <th>THỜI GIAN</th>
-                                    <th>HỌ TÊN</th>
-                                    <th>VAI TRÒ</th>
-                                    <th>ĐỊA CHỈ IP</th>
-                                    <th>THIẾT BỊ/TRÌNH DUYỆT</th>
-                                    <th>VỊ TRÍ</th>
-                                    <th>TRẠNG THÁI</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {currentData.length > 0 ? (
-                                    currentData.map((log, index) => (
-                                        <tr key={index}>
-                                            <td className="log-timestamp">{log.timestamp}</td>
-                                            <td>
-                                                <div className="log-user-cell">
-                                                    <span className="username-text">{log.username}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`role-badge ${log.role === 'Admin' ? 'admin' : log.role === 'Quản lý' ? 'manager' : 'staff'}`}>
-                                                    {log.role}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
-                                            </td>
-                                            <td>
-                                                <div className="log-device-cell">
-                                                    <span className={`material-symbols-outlined device-icon ${log.status !== 'Thành công' ? 'text-red' : ''}`}>
-                                                        {log.deviceIcon || 'public'}
+                        <div style={{ width: '100%', overflow: 'hidden' }}>
+                            <table className="log-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                                <colgroup>
+                                    <col style={{ width: '9%' }} />  {/* THỜI GIAN */}
+                                    <col style={{ width: '19%' }} /> {/* HỌ TÊN */}
+                                    <col style={{ width: '12%' }} /> {/* VAI TRÒ */}
+                                    <col style={{ width: '10%' }} /> {/* ĐỊA CHỈ IP */}
+                                    <col style={{ width: '22%' }} /> {/* THIẾT BỊ/TRÌNH DUYỆT */}
+                                    <col style={{ width: '17%' }} /> {/* VỊ TRÍ */}
+                                    <col style={{ width: '11%' }} /> {/* TRẠNG THÁI */}
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th style={{ whiteSpace: 'nowrap' }}>THỜI GIAN</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>HỌ TÊN</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>VAI TRÒ</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>ĐỊA CHỈ IP</th>
+                                        <th style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>THIẾT BỊ/TRÌNH DUYỆT</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>VỊ TRÍ</th>
+                                        <th style={{ whiteSpace: 'nowrap' }}>TRẠNG THÁI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {currentData.length > 0 ? (
+                                        currentData.map((log, index) => (
+                                            <tr key={index}>
+                                                <td className="log-timestamp" style={{ whiteSpace: 'nowrap' }}>
+                                                    {log.timestamp ? (
+                                                        log.timestamp.includes(' ') ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontWeight: '500' }}>{log.timestamp.split(' ')[1]}</span>
+                                                                <span style={{ fontSize: '0.9em', color: '#666' }}>{log.timestamp.split(' ')[0]}</span>
+                                                            </div>
+                                                        ) : log.timestamp
+                                                    ) : ''}
+                                                </td>
+                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    <div className="log-user-cell" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                        <span className="username-text">{log.username}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ whiteSpace: 'nowrap' }}>
+                                                    <span className={`role-badge ${log.role === 'Admin' ? 'admin' : log.role === 'Quản lý' ? 'manager' : 'staff'}`} style={{ minWidth: '80px', display: 'inline-block', textAlign: 'center' }}>
+                                                        {log.role}
                                                     </span>
-                                                    <span>{log.device}</span>
-                                                </div>
-                                            </td>
-                                            <td>{log.location}</td>
-                                            <td>
-                                                <span className={`status-badge-log ${getStatusClass(log.status)}`}>
-                                                    {log.status === 'Tài khoản bị khóa' ? 'Bị khóa' : log.status}
-                                                </span>
+                                                </td>
+                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    <a href={`#${log.ip}`} className="log-ip-link">{log.ip}</a>
+                                                </td>
+                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    <div className="log-device-cell" style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                                                        <span className={`material-symbols-outlined device-icon ${log.status !== 'Thành công' ? 'text-red' : ''}`} style={{ flexShrink: 0 }}>
+                                                            {log.deviceIcon || 'public'}
+                                                        </span>
+                                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.device}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.location}</td>
+                                                <td style={{ whiteSpace: 'nowrap' }}>
+                                                    <span className={`status-badge-log ${getStatusClass(log.status)}`} style={{ minWidth: '90px', display: 'inline-block', textAlign: 'center' }}>
+                                                        {log.status === 'Tài khoản bị khóa' ? 'Bị khóa' : log.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="7" className="table-status-empty">
+                                                Không có dữ liệu nhật ký phù hợp
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="7" className="table-status-empty">
-                                            Không có dữ liệu nhật ký phù hợp
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
                         {/* Footer */}
                         <div className="log-table-footer">

@@ -43,6 +43,36 @@ export function formatDateTimeVN(dateValue) {
     }
 }
 
+export function formatDateTimeVNSplit(dateValue) {
+    if (!dateValue) return null;
+    try {
+        let val = dateValue;
+        if (typeof val === 'string') {
+            val = val.trim().replace(' ', 'T');
+            const hasTimezone = val.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(val);
+            if (!hasTimezone && val.includes('T')) val = val + 'Z';
+        }
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        
+        const time = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const date = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return { time, date };
+    } catch {
+        return null;
+    }
+}
+
 /** Tính thời gian gửi xe (entry → exit) */
 export function computeDuration(entryTime, exitTime) {
     if (!entryTime || !exitTime) return '---';
@@ -93,7 +123,7 @@ export async function getCasualCardSessions() {
         const staffIds = [...new Set(sessions.map(s => s.staff_in_id).filter(Boolean))];
         const gateIds = [...new Set([...sessions.map(s => s.entry_gate_id), ...sessions.map(s => s.exit_gate_id)].filter(Boolean))];
 
-        const [cardsRes, vehiclesRes, staffRes, gatesRes] = await Promise.all([
+        const [cardsRes, vehiclesRes, staffRes, gatesRes, paymentsRes] = await Promise.all([
             cardIds.length > 0
                 ? supabase.from('card').select('card_id, code, type').in('card_id', cardIds)
                 : { data: [] },
@@ -105,6 +135,9 @@ export async function getCasualCardSessions() {
                 : { data: [] },
             gateIds.length > 0
                 ? supabase.from('gate').select('gate_id, name').in('gate_id', gateIds)
+                : { data: [] },
+            sessions.length > 0
+                ? supabase.from('payment').select('*').in('session_id', sessions.map(s => s.session_id))
                 : { data: [] }
         ]);
 
@@ -128,6 +161,11 @@ export async function getCasualCardSessions() {
             gatesMap[g.gate_id] = g;
         });
 
+        const paymentsMap = {};
+        (paymentsRes.data || []).forEach(p => {
+            paymentsMap[p.session_id] = p;
+        });
+
         const mappedSessions = sessions
             .map(s => {
                 const card = s.card_id ? cardsMap[s.card_id] : null;
@@ -135,6 +173,7 @@ export async function getCasualCardSessions() {
                 const staff_in = s.staff_in_id ? staffMap[s.staff_in_id] : null;
                 const entry_gate = s.entry_gate_id ? gatesMap[s.entry_gate_id] : null;
                 const exit_gate = s.exit_gate_id ? gatesMap[s.exit_gate_id] : null;
+                const payment = paymentsMap[s.session_id] || null;
 
                 return {
                     ...s,
@@ -142,7 +181,8 @@ export async function getCasualCardSessions() {
                     vehicle,
                     staff_in,
                     entry_gate,
-                    exit_gate
+                    exit_gate,
+                    payment
                 };
             })
             // Lọc client-side: chỉ lấy phiên có thẻ lượt
@@ -184,11 +224,15 @@ export function mapSessionToRow(session) {
         exitTime: session.exit_time || null,
         entryTimeDisplay: formatDateTimeVN(session.entry_time),
         exitTimeDisplay: formatDateTimeVN(session.exit_time),
+        entryTimeSplit: formatDateTimeVNSplit(session.entry_time),
+        exitTimeSplit: formatDateTimeVNSplit(session.exit_time),
         duration: computeDuration(session.entry_time, session.exit_time),
         fee: session.final_fee ?? session.estimated_fee ?? null,
         feeDisplay: session.exit_time
             ? formatCasualVND(session.final_fee ?? session.estimated_fee)
             : (session.estimated_fee ? formatCasualVND(session.estimated_fee) + ' (ước tính)' : '---'),
+        paymentMethod: session.payment?.payment_method || '---',
+        paymentInfo: session.payment || null,
         status: session.status || '---',
         entryGate: session.entry_gate?.name || '---',
         exitGate: session.exit_gate?.name || '---',

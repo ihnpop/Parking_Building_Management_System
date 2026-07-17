@@ -698,6 +698,8 @@ export const getMonthCardLogs = async () => {
 
   let cardMap = {};
   let ownerMap = {};
+  let plateMap = {};
+
 
   if (cardIds.length > 0) {
     const cards = await monthCardRepository.getCardsByIds(cardIds);
@@ -714,6 +716,10 @@ export const getMonthCardLogs = async () => {
         const name = r.vehicle?.customer?.full_name;
         if (name) {
           ownerMap[r.card_id] = name;
+        }
+        const p = r.vehicle?.plate_number;
+        if (p) {
+          plateMap[r.card_id] = p;
         }
       });
     }
@@ -733,7 +739,7 @@ export const getMonthCardLogs = async () => {
 
   return data.map((item, idx) => {
     const cardCode = cardMap[item.card_id] || `CARD${1000 + idx}`;
-    const plate = item.plate_number || "Chưa có";
+    const plate = item.plate_number || plateMap[item.card_id] || "Chưa có";
     const owner = item.customer_name || ownerMap[item.card_id] || ownerMap[item.plate_number] || "Khách vãng lai";
     const time = new Date(item.performed_at).toLocaleString('vi-VN');
 

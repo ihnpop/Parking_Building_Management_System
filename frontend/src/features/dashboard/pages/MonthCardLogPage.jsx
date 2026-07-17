@@ -13,6 +13,11 @@ export default function MonthCardLogPage() {
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('Tất cả');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
+    const [showBillModal, setShowBillModal] = useState(false);
+    const [selectedBill, setSelectedBill] = useState(null);
 
     const fetchLogs = async () => {
         try {
@@ -42,7 +47,21 @@ export default function MonthCardLogPage() {
             const matchesType = typeFilter === 'Tất cả' || log.type === typeFilter;
             const matchesStatus = statusFilter === 'Tất cả' || log.status === statusFilter;
 
-            return matchesSearch && matchesType && matchesStatus;
+            let matchesDate = true;
+            if (dateFrom) {
+                const from = new Date(dateFrom);
+                from.setHours(0, 0, 0, 0);
+                const logDate = new Date(log.timestamp || log.created_at);
+                if (logDate < from) matchesDate = false;
+            }
+            if (dateTo) {
+                const to = new Date(dateTo);
+                to.setHours(23, 59, 59, 999);
+                const logDate = new Date(log.timestamp || log.created_at);
+                if (logDate > to) matchesDate = false;
+            }
+
+            return matchesSearch && matchesType && matchesStatus && matchesDate;
         });
         setLogs(filtered);
         setCurrentPage(1);
@@ -50,12 +69,12 @@ export default function MonthCardLogPage() {
 
     useEffect(() => {
         handleFilter();
-    }, [search, typeFilter, statusFilter, allLogs]);
+    }, [search, typeFilter, statusFilter, dateFrom, dateTo, allLogs]);
 
     const getStatusClass = (status) => {
         switch (status) {
-            case 'Thành công': return 'success';
-            case 'Đang xử lý': return 'pending';
+            case 'Hoàn thành': return 'success';
+            case 'Chờ thanh toán': return 'pending';
             case 'Thất bại': return 'failed';
             default: return '';
         }
@@ -263,13 +282,54 @@ export default function MonthCardLogPage() {
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
                             <option value="Tất cả">Tất cả</option>
-                            <option value="Thành công">Thành công</option>
-                            <option value="Đang xử lý">Đang xử lý</option>
+                            <option value="Hoàn thành">Hoàn thành</option>
+                            <option value="Chờ thanh toán">Chờ thanh toán</option>
                             <option value="Thất bại">Thất bại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
                 </div>
+
+                <div className="filter-block">
+                    <label className="filter-label">KHOẢNG NGÀY</label>
+                    <div className="filter-input-wrapper">
+                        <div className="filter-input date-range-wrapper">
+                            <input
+                                type="date"
+                                className="date-range-input"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                            />
+                            <span className="date-range-sep">đến</span>
+                            <input
+                                type="date"
+                                className="date-range-input"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Nút reset filter */}
+                {(search || typeFilter !== 'Tất cả' || statusFilter !== 'Tất cả' || dateFrom || dateTo) && (
+                    <div className="filter-block reset-filter-btn-container" style={{ alignSelf: 'flex-end', paddingBottom: '2px' }}>
+                        <button
+                            type="button"
+                            className="icon-reset-btn"
+                            title="Xóa lọc"
+                            onClick={() => {
+                                setSearch('');
+                                setTypeFilter('Tất cả');
+                                setStatusFilter('Tất cả');
+                                setDateFrom('');
+                                setDateTo('');
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>filter_alt_off</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Table */}
@@ -280,16 +340,30 @@ export default function MonthCardLogPage() {
                     <div className="table-status-loading">Đang tải nhật ký vé tháng...</div>
                 ) : (
                     <>
-                        <div className="mc-table-scroll">
-                            <table className="mc-table">
+                        <div style={{ width: '100%', overflow: 'hidden' }}>
+                            <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                                <colgroup>
+                                    <col style={{ width: '17%' }} /> {/* THỜI GIAN GIAO DỊCH */}
+                                    <col style={{ width: '12%' }} /> {/* BIỂN SỐ */}
+                                    <col style={{ width: '18%' }} /> {/* CHỦ XE */}
+                                    <col style={{ width: '13%' }} /> {/* LOẠI GIAO DỊCH */}
+                                    <col style={{ width: '9%' }} />  {/* PHÍ */}
+                                    <col style={{ width: '12%' }} /> {/* THANH TOÁN */}
+                                    <col style={{ width: '13%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '6%' }} />  {/* BILL */}
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th>THỜI GIAN GIAO DỊCH</th>
                                         <th>BIỂN SỐ</th>
                                         <th>CHỦ XE</th>
-                                        <th>LOẠI GD</th>
-                                        <th>SỐ TIỀN THANH TOÁN</th>
+                                        <th>LOẠI GIAO DỊCH</th>
+                                        <th style={{ textAlign: 'right' }}>PHÍ</th>
+                                        <th>THANH TOÁN</th>
                                         <th>TRẠNG THÁI</th>
+                                        <th style={{ textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>BILL</div>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -300,17 +374,38 @@ export default function MonthCardLogPage() {
                                                 <td className="mc-td-bold">{log.plate}</td>
                                                 <td>{log.owner}</td>
                                                 <td>{log.type}</td>
-                                                <td className="log-amount log-amount-cell">{log.amount}</td>
+                                                <td className="log-amount log-amount-cell" style={{ textAlign: 'right' }}>{log.amount}</td>
+                                                <td>
+                                                    <span className={`method-badge ${log.paymentMethod?.toLowerCase() === 'vnpay' ? 'method-vnpay' : 'method-cash'}`}>
+                                                        {log.paymentMethod || 'Tiền mặt'}
+                                                    </span>
+                                                </td>
                                                 <td>
                                                     <span className={`status-badge-log ${getStatusClass(log.status)}`}>
                                                         {log.status}
                                                     </span>
                                                 </td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                                                        {log.paymentMethod?.toLowerCase() === 'vnpay' && (
+                                                            <button
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
+                                                                title="Xem bill VNPay"
+                                                                onClick={() => {
+                                                                    setSelectedBill(log);
+                                                                    setShowBillModal(true);
+                                                                }}
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>visibility</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="6" className="table-status-empty">
+                                            <td colSpan="8" className="table-status-empty">
                                                 Không tìm thấy nhật ký giao dịch phù hợp
                                             </td>
                                         </tr>
@@ -357,6 +452,46 @@ export default function MonthCardLogPage() {
                     </>
                 )}
             </section>
+
+            {/* VNPay Bill Modal */}
+            {showBillModal && selectedBill && (
+                <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '400px', maxWidth: '90%', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>Hóa đơn VNPay</h3>
+                            <button onClick={() => setShowBillModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', color: '#334155' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: '600', color: '#475569' }}>Mã giao dịch:</span>
+                                <span>{selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || '---'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: '600', color: '#475569' }}>Số tiền:</span>
+                                <span style={{ color: '#ef4444', fontWeight: '600' }}>{selectedBill.amount || '0 đ'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: '600', color: '#475569' }}>Thời gian thanh toán:</span>
+                                <span>{selectedBill.paymentInfo?.paid_at ? new Date(selectedBill.paymentInfo.paid_at).toLocaleString('vi-VN') : '---'}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ fontWeight: '600', color: '#475569' }}>Trạng thái:</span>
+                                <span style={{ color: selectedBill.status === 'Hoàn thành' ? '#10b981' : '#f59e0b', fontWeight: '600' }}>{selectedBill.status || '---'}</span>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                            <button
+                                onClick={() => setShowBillModal(false)}
+                                style={{ backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 24px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

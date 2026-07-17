@@ -90,9 +90,9 @@ export const softDelete = async (cardId, performedBy) => {
   const { data, error } = await supabase
     .from('card')
     .update({
+      status: 'Đã khóa',
       deleted_at: new Date().toISOString(),
       deleted_by: performedBy,
-      status: 'Đã khóa',
     })
     .eq('card_id', cardId)
     .select()
@@ -100,6 +100,22 @@ export const softDelete = async (cardId, performedBy) => {
 
   if (error) throw new Error(error.message);
   return data;
+};
+
+/**
+ * Lấy danh sách payment theo order_codes
+ * @param {string[]} orderCodes
+ * @returns {Promise<object[]>}
+ */
+export const getPaymentsByOrderCodes = async (orderCodes) => {
+  if (!orderCodes || orderCodes.length === 0) return [];
+  const { data, error } = await supabase
+    .from('payment')
+    .select('order_code, payment_method, status, amount, transaction_no, paid_at')
+    .in('order_code', orderCodes);
+
+  if (error) throw new Error(error.message);
+  return data || [];
 };
 
 /**
@@ -744,9 +760,11 @@ export const getMonthCardLogs = async () => {
       customer_name,
       amount,
       duration_months,
-      performed_at
+      performed_at,
+      note,
+      new_data
     `)
-    .in('action', ['Cấp mới', 'Gia hạn', 'Tạo thẻ tháng mới', 'Đã gia hạn', 'Thẻ đã cấp lại'])
+    .in('action', ['Cấp mới', 'Gia hạn', 'Gia hạn nối tiếp', 'Tạo thẻ tháng mới', 'Đã gia hạn', 'Thẻ đã cấp lại'])
     .order('performed_at', { ascending: false })
     .limit(100);
 
