@@ -345,9 +345,9 @@ export default function MonthCardLogPage() {
                                 <colgroup>
                                     <col style={{ width: '17%' }} /> {/* THỜI GIAN GIAO DỊCH */}
                                     <col style={{ width: '12%' }} /> {/* BIỂN SỐ */}
-                                    <col style={{ width: '18%' }} /> {/* CHỦ XE */}
+                                    <col style={{ width: '15%' }} /> {/* CHỦ XE */}
                                     <col style={{ width: '13%' }} /> {/* LOẠI GIAO DỊCH */}
-                                    <col style={{ width: '9%' }} />  {/* PHÍ */}
+                                    <col style={{ width: '12%' }} /> {/* PHÍ */}
                                     <col style={{ width: '12%' }} /> {/* THANH TOÁN */}
                                     <col style={{ width: '13%' }} /> {/* TRẠNG THÁI */}
                                     <col style={{ width: '6%' }} />  {/* BILL */}
@@ -386,10 +386,10 @@ export default function MonthCardLogPage() {
                                                     </span>
                                                 </td>
                                                 <td style={{ textAlign: 'center' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                                                        {log.paymentMethod?.toLowerCase() === 'vnpay' && (
+                                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '20px' }}>
+                                                        {log.paymentMethod?.toLowerCase() === 'vnpay' ? (
                                                             <button
-                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6' }}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                                 title="Xem bill VNPay"
                                                                 onClick={() => {
                                                                     setSelectedBill(log);
@@ -398,6 +398,8 @@ export default function MonthCardLogPage() {
                                                             >
                                                                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>visibility</span>
                                                             </button>
+                                                        ) : (
+                                                            <span style={{ display: 'inline-block', width: '20px', height: '20px' }}></span>
                                                         )}
                                                     </div>
                                                 </td>

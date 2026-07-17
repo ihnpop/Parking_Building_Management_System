@@ -737,6 +737,38 @@ export const getMonthCardLogs = async () => {
     }
   }
 
+  // Thu thập order_code từ new_data và note để tra bảng payment lấy payment_method
+  let paymentMethodMap = {}; // order_code -> payment_method
+  const orderCodes = [];
+  const logOrderCodeMap = {}; // log_id -> order_code
+
+  data.forEach(item => {
+    let orderCode = null;
+    // Ưu tiên lấy từ new_data (gia hạn luôn có)
+    if (item.new_data && item.new_data.order_code) {
+      orderCode = item.new_data.order_code;
+    }
+    // Fallback: parse từ note (cấp mới ghi "Đơn: PK...")
+    if (!orderCode && item.note) {
+      const match = item.note.match(/Đơn:\s*(\S+)/);
+      if (match) orderCode = match[1];
+    }
+    if (orderCode) {
+      orderCodes.push(orderCode);
+      logOrderCodeMap[item.log_id] = orderCode;
+    }
+  });
+
+  if (orderCodes.length > 0) {
+    const uniqueOrderCodes = [...new Set(orderCodes)];
+    const payments = await monthCardRepository.getPaymentsByOrderCodes(uniqueOrderCodes);
+    if (payments) {
+      payments.forEach(p => {
+        paymentMethodMap[p.order_code] = p.payment_method; // 'Tiền mặt' | 'VNPay'
+      });
+    }
+  }
+
   return data.map((item, idx) => {
     const cardCode = cardMap[item.card_id] || `CARD${1000 + idx}`;
     const plate = item.plate_number || plateMap[item.card_id] || "Chưa có";
@@ -756,6 +788,13 @@ export const getMonthCardLogs = async () => {
     } else if (item.action === 'Tạo thẻ tháng mới' || item.action === 'Cấp mới') {
       type = 'Cấp mới';
     }
+
+    // Xác định phương thức thanh toán từ bảng payment
+    const oc = logOrderCodeMap[item.log_id];
+    const dbPaymentMethod = oc ? paymentMethodMap[oc] : null;
+    // DB lưu 'VNPay' hoặc 'Tiền mặt', frontend cần đúng giá trị này
+    const paymentMethod = dbPaymentMethod || 'Tiền mặt';
+
     return {
       time,
       cardNo: cardCode,
@@ -763,7 +802,9 @@ export const getMonthCardLogs = async () => {
       owner,
       type,
       amount,
-      status
+      status,
+      paymentMethod,
+      paymentInfo: dbPaymentMethod === 'VNPay' && oc ? { order_code: oc } : null
     };
   });
 };
