@@ -95,16 +95,16 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         setContractAccepted(false); setPaymentMethod('vnpay');
         setPaymentStatus(null); setPaymentOrderCode(null); setVehiclePackageId(null);
         setInitiating(false); setChecking(false);
-        setFormData({ 
-            full_name: '', 
-            phone: '', 
-            email: '', 
-            vehicle_type_id: '', 
-            plate_number: '', 
-            brand: '', 
-            color: '', 
-            package_id: '', 
-            card_code: '', 
+        setFormData({
+            full_name: '',
+            phone: '',
+            email: '',
+            vehicle_type_id: '',
+            plate_number: '',
+            brand: '',
+            color: '',
+            package_id: '',
+            card_code: '',
             cccd_number: '' // Reset thông tin CCCD
         });
     };
@@ -302,6 +302,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 package_id: formData.package_id
             }, { headers: authHeaders() });
 
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('monthCardLogsUpdated'));
+            }
             setSuccessMessage('Đăng ký vé tháng thành công!');
             setTimeout(() => { onSuccess?.(); onClose(); }, 1500);
         } catch (err) {
@@ -574,7 +577,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     <p style={{ fontWeight: 600, fontSize: 15, marginBottom: 10 }}>💳 Phương thức thanh toán</p>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                         <div className={`pay-method-card ${paymentMethod === 'vnpay' ? 'selected' : ''}`} onClick={() => { setPaymentMethod('vnpay'); setPaymentStatus(null); }}>
-                                            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/image002-20230907165956795.jpg" alt="VNPay" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6 }} onError={e => e.target.style.display='none'} />
+                                            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/image002-20230907165956795.jpg" alt="VNPay" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6 }} onError={e => e.target.style.display = 'none'} />
                                             <div>
                                                 <div style={{ fontWeight: 700, fontSize: 14 }}>VNPay</div>
                                                 <div style={{ fontSize: 12, color: '#666' }}>Thanh toán qua cổng VNPay</div>
@@ -624,7 +627,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                 )}
                                 {paymentStatus === 'paid' && (
                                     <div style={{ background: '#ecfdf5', border: '1px solid #34d399', borderRadius: 8, padding: 14, fontWeight: 700, color: '#065f46' }}>
-                                        {paymentMethod === 'vnpay' 
+                                        {paymentMethod === 'vnpay'
                                             ? '✅ Thanh toán VNPay xác nhận thành công! Vui lòng bấm Tiếp theo để qua Bước 5.'
                                             : '✅ Đã xác nhận thu tiền mặt thành công! Vui lòng bấm Tiếp theo để qua Bước 5.'}
                                     </div>
