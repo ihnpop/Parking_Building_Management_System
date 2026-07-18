@@ -1,7 +1,7 @@
 /**
  * dashboardRepository.js
  * Lớp truy xuất cơ sở dữ liệu (Repository) cho Dashboard.
- * Làm việc trực tiếp với Supabase Client để truy vấn dữ liệu từ các bảng khác nhau.
+ * Làm việc trực tiếp với Supabase Client để truy vấn dữ liệu từ các bảng thực tế.
  */
 
 import supabase from "../config/supabaseClient.js";
@@ -13,15 +13,7 @@ export async function getActiveSessionsCount() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'Đang gửi xe');
     if (error) throw error;
-    if ((count ?? 0) > 0) return count;
-
-    // Fallback
-    const { count: count2, error: err2 } = await supabase
-        .from('parking_order')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Đang gửi xe');
-    if (err2) throw err2;
-    return count2 ?? 0;
+    return count ?? 0;
 }
 
 /** Đếm số chỗ trống khả dụng */
@@ -44,10 +36,10 @@ export async function getOccupiedSlotsCountRaw() {
     return count ?? 0;
 }
 
-/** Lấy danh sách slot_id từ parking_order có status 'Đang gửi xe' */
-export async function getActiveOrderSlots() {
+/** Lấy danh sách slot_id từ parking_sessions đang hoạt động */
+export async function getActiveSessionSlots() {
     const { data, error } = await supabase
-        .from('parking_order')
+        .from('parking_sessions')
         .select('slot_id')
         .eq('status', 'Đang gửi xe')
         .not('slot_id', 'is', null);
@@ -91,7 +83,7 @@ export async function getTodayIncidentsCounts(start, end) {
 export async function getPaymentsInPeriod(start, end) {
     const { data, error } = await supabase
         .from('payment')
-        .select('payment_id, amount, payment_type, payment_time, session_id, parking_order_id, vehicle_package_id, status')
+        .select('payment_id, amount, payment_type, payment_time, session_id, vehicle_package_id, status')
         .eq('status', 'Đã thanh toán')
         .gte('payment_time', start)
         .lte('payment_time', end);
@@ -105,16 +97,6 @@ export async function getSessionsVehicleTypes(sessionIds) {
         .from('parking_sessions')
         .select('session_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))')
         .in('session_id', sessionIds);
-    if (error) throw error;
-    return data;
-}
-
-/** Lấy tên loại xe dựa trên orderIds */
-export async function getOrdersVehicleTypes(orderIds) {
-    const { data, error } = await supabase
-        .from('parking_order')
-        .select('parking_order_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(type_name))')
-        .in('parking_order_id', orderIds);
     if (error) throw error;
     return data;
 }
@@ -171,22 +153,6 @@ export async function getSlotsWithFloors() {
                 )
             )
         `);
-    if (error) throw error;
-    return data;
-}
-
-/** Lấy thông tin loại xe đang gửi trong bãi qua parking_order */
-export async function getActiveOrdersVehicles() {
-    const { data, error } = await supabase
-        .from('parking_order')
-        .select(`
-            vehicle:vehicle_id (
-                vehicle_type:vehicle_type_id (
-                    name
-                )
-            )
-        `)
-        .eq('status', 'Đang gửi xe');
     if (error) throw error;
     return data;
 }
@@ -281,17 +247,36 @@ export async function getRecentIncidentReports(limit = 5) {
             incident_type,
             status,
             created_at,
-            parking_order:parking_order_id (
-                vehicle:vehicle_id (
-                    plate_number
-                ),
-                card:card_id (
-                    code
-                )
+            session:session_id (
+                plate_number,
+                card_id
             )
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
     if (error) throw error;
+
+    if (data && data.length > 0) {
+        const cardIds = [...new Set(data.map(r => r.session?.card_id).filter(Boolean))];
+        if (cardIds.length > 0) {
+            try {
+                const { data: cards } = await supabase
+                    .from('card')
+                    .select('card_id, code')
+                    .in('card_id', cardIds);
+                if (cards) {
+                    const cardMap = {};
+                    cards.forEach(c => { cardMap[c.card_id] = c.code; });
+                    data.forEach(r => {
+                        if (r.session) {
+                            r.session.card_code = cardMap[r.session.card_id] || null;
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('[dashboardRepository] Failed to resolve incident cards:', e.message);
+            }
+        }
+    }
     return data;
 }

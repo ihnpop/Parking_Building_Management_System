@@ -95,21 +95,20 @@ const VEHICLE_TYPE_COLOR_DEFAULT = '#FBBF24';
 
 /** 1. Tổng hợp dữ liệu KPI chính và biểu đồ hiển thị ở Dashboard chính */
 export async function getSummaryData() {
-    // Gọi tuần tự hoặc song song các chỉ số
     const activeSessions = await dashboardRepository.getActiveSessionsCount();
     const availableSlots = await dashboardRepository.getAvailableSlotsCount();
 
     // 2. Chỗ đã sử dụng
     let occupiedSlots = await dashboardRepository.getOccupiedSlotsCountRaw();
     if (occupiedSlots === 0) {
-        const orderSlots = await dashboardRepository.getActiveOrderSlots();
-        const unique = new Set((orderSlots ?? []).map((r) => r.slot_id));
+        const sessData = await dashboardRepository.getActiveSessionSlots();
+        const unique = new Set((sessData ?? []).map((r) => r.slot_id));
         if (unique.size > 0) {
             occupiedSlots = unique.size;
         } else {
-            const sessData = await dashboardRepository.getActiveSessionsCountRaw();
-            if ((sessData ?? []).length > 0) {
-                occupiedSlots = sessData.length;
+            const countRaw = await dashboardRepository.getActiveSessionsCountRaw();
+            if ((countRaw ?? []).length > 0) {
+                occupiedSlots = countRaw.length;
             } else {
                 occupiedSlots = activeSessions;
             }
@@ -121,7 +120,6 @@ export async function getSummaryData() {
     const startMonth = startOfCurrentMonth();
     const endMonth = endOfCurrentMonth();
 
-    // Các tác vụ song song khác
     const [
         todayIncidentsObj,
         todayPayments,
@@ -243,9 +241,9 @@ async function fetchFloorOccupancy() {
 
         const hasOccupied = [...floorMap.values()].some((f) => f.occupiedSlots > 0);
         if (!hasOccupied) {
-            const orderData = await dashboardRepository.getActiveOrderSlots();
-            if ((orderData ?? []).length > 0) {
-                const activeSlotIds = new Set(orderData.map((r) => r.slot_id));
+            const sessData = await dashboardRepository.getActiveSessionSlots();
+            if ((sessData ?? []).length > 0) {
+                const activeSlotIds = new Set(sessData.map((r) => r.slot_id));
                 (data ?? []).forEach((slot) => {
                     const floor = slot.area?.floor;
                     if (!floor?.floor_id) return;
@@ -272,11 +270,7 @@ async function fetchFloorOccupancy() {
 /** 4. Phân phối loại phương tiện */
 async function fetchVehicleTypeDistribution() {
     try {
-        let sourceData = await dashboardRepository.getActiveOrdersVehicles();
-        if (!sourceData || sourceData.length === 0) {
-            sourceData = await dashboardRepository.getActiveSessionsVehicles();
-        }
-
+        const sourceData = await dashboardRepository.getActiveSessionsVehicles();
         const typeCount = {};
         (sourceData ?? []).forEach((row) => {
             const name = row.vehicle?.vehicle_type?.name;
@@ -395,8 +389,8 @@ async function fetchRecentIncidents() {
         try {
             const incData = await dashboardRepository.getRecentIncidentReports();
             (incData ?? []).forEach((row) => {
-                const plate = row.parking_order?.vehicle?.plate_number;
-                const cardCode = row.parking_order?.card?.code;
+                const plate = row.session?.plate_number;
+                const cardCode = row.session?.card_code;
                 results.push({
                     id: row.incident_id,
                     identifier: plate || cardCode || `INC-${row.incident_id.slice(0, 8)}`,
@@ -441,11 +435,9 @@ export async function getTodayRevenueBreakdown() {
         };
 
         const sessionIds = [...new Set((payments || []).map(p => p.session_id).filter(Boolean))];
-        const orderIds = [...new Set((payments || []).map(p => p.parking_order_id).filter(Boolean))];
         const vpIds = [...new Set((payments || []).map(p => p.vehicle_package_id).filter(Boolean))];
 
         const sessionMap = {};
-        const orderMap = {};
         const vpMap = {};
 
         if (sessionIds.length > 0) {
@@ -453,12 +445,6 @@ export async function getTodayRevenueBreakdown() {
                 const sData = await dashboardRepository.getSessionsVehicleTypes(sessionIds);
                 (sData || []).forEach(s => { sessionMap[s.session_id] = s.vehicle?.vehicle_type?.type_name || null; });
             } catch (e) { console.warn('[DashboardService] session enrich err:', e.message); }
-        }
-        if (orderIds.length > 0) {
-            try {
-                const oData = await dashboardRepository.getOrdersVehicleTypes(orderIds);
-                (oData || []).forEach(o => { orderMap[o.parking_order_id] = o.vehicle?.vehicle_type?.type_name || null; });
-            } catch (e) { console.warn('[DashboardService] order enrich err:', e.message); }
         }
         if (vpIds.length > 0) {
             try {
@@ -477,7 +463,7 @@ export async function getTodayRevenueBreakdown() {
 
             if (pType === 'CASUAL' || pType === 'Vé lượt') {
                 result.casual.total += amt;
-                let rawType = sessionMap[p.session_id] || orderMap[p.parking_order_id] || '';
+                let rawType = sessionMap[p.session_id] || '';
                 let vTypeLabel = 'Chưa phân loại';
                 if (isCar(rawType)) vTypeLabel = 'Ô tô';
                 else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
@@ -582,23 +568,15 @@ export async function getMonthlyRevenueBreakdown() {
         const monthTotal = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
         const sessionIds = [...new Set((payments || []).map(p => p.session_id).filter(Boolean))];
-        const orderIds = [...new Set((payments || []).map(p => p.parking_order_id).filter(Boolean))];
         const vpIds = [...new Set((payments || []).map(p => p.vehicle_package_id).filter(Boolean))];
 
         const sessionMap = {};
-        const orderMap = {};
         const vpMap = {};
 
         if (sessionIds.length > 0) {
             try {
                 const sData = await dashboardRepository.getSessionsVehicleTypes(sessionIds);
                 (sData || []).forEach(s => { sessionMap[s.session_id] = s.vehicle?.vehicle_type?.type_name || null; });
-            } catch (e) { console.warn(e.message); }
-        }
-        if (orderIds.length > 0) {
-            try {
-                const oData = await dashboardRepository.getOrdersVehicleTypes(orderIds);
-                (oData || []).forEach(o => { orderMap[o.parking_order_id] = o.vehicle?.vehicle_type?.type_name || null; });
             } catch (e) { console.warn(e.message); }
         }
         if (vpIds.length > 0) {
@@ -638,7 +616,7 @@ export async function getMonthlyRevenueBreakdown() {
             const pType = p.payment_type || 'CASUAL';
 
             if (pType === 'CASUAL' || pType === 'Vé lượt') {
-                let rawType = sessionMap[p.session_id] || orderMap[p.parking_order_id] || '';
+                let rawType = sessionMap[p.session_id] || '';
                 let vTypeLabel = 'Chưa phân loại';
                 if (isCar(rawType)) vTypeLabel = 'Ô tô';
                 else if (isMotorbike(rawType)) vTypeLabel = 'Xe máy';
