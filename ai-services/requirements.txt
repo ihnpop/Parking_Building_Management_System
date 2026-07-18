@@ -1,4 +1,4 @@
-ultralytics==8.2.5
+﻿ultralytics==8.2.5
 torch==2.4.0
 easyocr==1.7.1
 opencv-python==4.10.0.84

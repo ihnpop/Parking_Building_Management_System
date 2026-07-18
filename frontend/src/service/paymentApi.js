@@ -58,4 +58,4 @@ export const createVnpayCheckout = (sessionId) =>
  * API: Polling trạng thái thanh toán VNPay theo order_code
  */
 export const getPaymentStatus = (orderCode) =>
-    API.get("/payments/status", { params: { order_code: orderCode } });
+    API.get("/payments/status", { params: { order_code: orderCode } });

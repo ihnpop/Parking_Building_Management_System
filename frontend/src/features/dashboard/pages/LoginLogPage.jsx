@@ -45,9 +45,6 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
-
     const loadLogs = async () => {
         setLoading(true);
         try {
@@ -97,7 +94,6 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
             return matchesSearch && matchesRole && matchesDate;
         });
         setLogs(filtered);
-        setCurrentPage(1);
     };
 
     useEffect(() => {
@@ -155,7 +151,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
     return (
         <div className="lost-card-log-wrapper">
             {/* Stats Cards */}
-            <div className="lost-kpi-container">
+            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
                 <div className="lost-kpi-grid">
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
@@ -248,7 +244,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
 
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Thất bại/Bị khóa</span>
+                            <span>Thất bại</span>
                             <span><span className="lost-dist-val">{failedLogins}</span> <span className="lost-dist-pct">({totalLogins > 0 ? Math.round((failedLogins / totalLogins) * 100) : 0}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
@@ -335,7 +331,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
             {/* Table */}
             <section className="log-table-card">
                 {loading ? (
-                    <div className="table-status-loading">
+                    <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
                         Đang tải dữ liệu nhật ký đăng nhập...
                     </div>
                 ) : (
@@ -402,6 +398,11 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                                             <td colSpan="5" className="table-status-empty">
                                                 Không có dữ liệu nhật ký phù hợp
                                             </td>
+                                            <td>
+                                                <button type="button" className="log-action-btn">
+                                                    <span className="material-symbols-outlined">visibility</span>
+                                                </button>
+                                            </td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -412,12 +413,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                         <div className="log-table-footer">
                             <span className="footer-info">Đang hiển thị {logs.length > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + itemsPerPage, logs.length)} của {logs.length} bản ghi</span>
                             <div className="log-pagination">
-                                <button
-                                    type="button"
-                                    className="page-btn"
-                                    disabled={currentPage === 1}
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                >
+                                <button type="button" className="page-btn" disabled>
                                     <span className="material-symbols-outlined">chevron_left</span>
                                 </button>
 

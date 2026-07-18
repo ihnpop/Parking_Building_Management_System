@@ -51,7 +51,7 @@ export default function ContractSignPage() {
   if (loading) {
     return (
       <div className="sign-page-loading">
-        <Loader2 className="animate-spin text-orange-600" size={48} style={{ color: '#ff8c00' }} />
+        <Loader2 className="animate-spin text-blue-600" size={48} style={{ color: 'var(--primary, #2563eb)' }} />
         <p style={{ marginTop: '16px', fontSize: '18px', fontWeight: 600, color: '#4a5568' }}>Đang tải hợp đồng...</p>
       </div>
     );
@@ -83,7 +83,7 @@ export default function ContractSignPage() {
       <div className="sign-page-header">
         <div className="sign-header-content">
           <div className="sign-brand-title">
-            <span style={{ color: '#ff8c00', fontWeight: 'bold' }}>PBMS</span> CONTRACT PORTAL
+            <span style={{ color: 'var(--primary, #2563eb)', fontWeight: 'bold' }}>PBMS</span> CONTRACT PORTAL
           </div>
           <div className="sign-security-badge">
             <ShieldCheck size={16} />

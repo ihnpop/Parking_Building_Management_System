@@ -10,8 +10,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-        // Tắt tính năng tự động detect session từ URL fragment (#)
-        // để Supabase không nhầm lẫn HashRouter path (#/sign-contract/...) với auth callback
+        // Bật tính năng tự động detect session từ URL fragment (#) để Supabase lấy token khi Google Redirect về
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
