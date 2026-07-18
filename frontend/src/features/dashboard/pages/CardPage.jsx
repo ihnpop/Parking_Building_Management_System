@@ -6,6 +6,7 @@ import { useNotification } from '../../../context/NotificationContext';
 import CreateCardPageDialog from '../components/CreateCardPageDialog';
 import EditCardPageDialog from '../components/EditCardPageDialog';
 
+
 const ITEMS_PER_PAGE = 10;
 
 // ─────────────────────────────────────────────
@@ -14,6 +15,7 @@ const ITEMS_PER_PAGE = 10;
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const navigate = useNavigate();
     const { userRole, user } = useAuth();
+    const { showToast, showConfirm } = useNotification();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -22,17 +24,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
-    const { showToast, showConfirm } = useNotification();
 
     // Filters
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
     const [currentPage, setCurrentPage] = useState(1);
 
-    const fetchCards = async () => {
+    const fetchCards = async (pageOverride) => {
         try {
             setLoading(true);
             const data = await getCards();
+
             // Sort data newest first
             const sortedData = [...data].sort((a, b) => {
                 const dateA = a.created_at ? new Date(a.created_at) : 0;
@@ -45,6 +47,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
             setCards(sortedData);
             setError(null);
+            if (pageOverride !== undefined) {
+                setCurrentPage(pageOverride);
+            }
         } catch (err) {
             console.error("Error loading cards:", err);
             setError("Không thể tải danh sách thẻ. Vui lòng thử lại sau!");
@@ -53,14 +58,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }
     };
 
-    useEffect(() => {
-        fetchCards();
-    }, []);
+    useEffect(() => { fetchCards(); }, []);
 
-    const handleResetFilters = () => {
-        setSearch('');
-        setStatusFilter('Tất cả trạng thái');
-    };
+    // ── Handlers ──────────────────────────────
 
     const handleCreateCard = () => {
         setIsCreateOpen(true);
@@ -98,6 +98,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     // ── Filters & pagination (giữ nguyên) ────
 
+    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
+
     const filteredCards = useMemo(() => cards.filter(card => {
         const matchesSearch = search === '' ||
             (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -108,7 +110,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
 
-    // Pagination calculations
     const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
     const paginatedCards = filteredCards.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
@@ -131,7 +132,8 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         return pages;
     };
 
-    // Stats
+    // ── Stats & donut (giữ nguyên) ────────────
+
     const total = cards.length;
     const active = cards.filter(c => c.status === 'Hoạt động').length;
     const locked = cards.filter(c => c.status === 'Đã khóa').length;
@@ -141,19 +143,18 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const lockedPercent = total > 0 ? Math.round((locked / total) * 100) : 0;
     const inactivePercent = total > 0 ? Math.round((inactiveCount / total) * 100) : 0;
 
-    // SVG donut calculations
     const circumference = 2 * Math.PI * 15.915;
     const activeStroke = (activePercent / 100) * circumference;
     const lockedStroke = (lockedPercent / 100) * circumference;
     const inactiveStroke = (inactivePercent / 100) * circumference;
-
-
 
     const getStatusBadgeClass = (status) => {
         if (status === 'Hoạt động') return 'mc-status-badge mc-status-active';
         if (status === 'Đã khóa') return 'mc-status-badge mc-status-expired';
         return 'mc-status-badge mc-status-expiring';
     };
+
+    // ── Render ────────────────────────────────
 
     return (
         <div className="mc-page">
@@ -221,21 +222,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                         <svg className="mc-donut-svg" viewBox="0 0 36 36">
                             <circle cx="18" cy="18" r="15.915" fill="transparent" stroke="#e1e1ee" strokeWidth="3" />
                             <circle cx="18" cy="18" r="15.915" fill="transparent"
-                                stroke="#006d38"
-                                strokeWidth="3"
+                                stroke="#006d38" strokeWidth="3"
                                 strokeDasharray={`${activeStroke} ${circumference - activeStroke}`}
                                 strokeDashoffset="25"
                             />
-                            {/* Locked */}
                             {lockedPercent > 0 && (
                                 <circle cx="18" cy="18" r="15.915" fill="transparent"
-                                    stroke="#ba1a1a"
-                                    strokeWidth="3"
+                                    stroke="#ba1a1a" strokeWidth="3"
                                     strokeDasharray={`${lockedStroke} ${circumference - lockedStroke}`}
                                     strokeDashoffset={25 - activeStroke}
                                 />
                             )}
-                            {/* Inactive */}
                             {inactivePercent > 0 && (
                                 <circle cx="18" cy="18" r="15.915" fill="transparent"
                                     stroke="#d0c715ff" strokeWidth="3"
@@ -320,15 +317,12 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                 <td className="mc-td-bold">{row.code}</td>
                                                 <td>{row.plate || '---'}</td>
                                                 <td>
-                                                    <span className={getStatusBadgeClass(row.status)}>
-                                                        {row.status}
-                                                    </span>
+                                                    <span className={getStatusBadgeClass(row.status)}>{row.status}</span>
                                                 </td>
                                                 <td className="mc-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                                     <button type="button" className="mc-edit-btn"
                                                         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                                                        onClick={() => handleEdit(row)}
-                                                        title="Chỉnh sửa"
+                                                        onClick={() => handleEdit(row)} title="Chỉnh sửa"
                                                     >
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
@@ -372,7 +366,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>
                                     <span className="material-symbols-outlined">chevron_left</span>
                                 </button>
-                                {getPageNumbers().map((page, i) => (
+                                {getPageNumbers().map((page, i) =>
                                     page === '...' ? (
                                         <span key={`dots-${i}`} className="mc-page-dots">...</span>
                                     ) : (
@@ -383,7 +377,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                             {page}
                                         </button>
                                     )
-                                ))}
+                                )}
                                 <button className="mc-page-nav" disabled={currentPage === totalPages || totalPages === 0}
                                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>
                                     <span className="material-symbols-outlined">chevron_right</span>
@@ -418,7 +412,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     await fetchCards();
                 }}
             />
-
 
         </div>
     );
