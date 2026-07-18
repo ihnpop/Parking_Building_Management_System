@@ -98,8 +98,6 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     // ── Filters & pagination (giữ nguyên) ────
 
-    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
-
     const filteredCards = useMemo(() => cards.filter(card => {
         const matchesSearch = search === '' ||
             (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -149,61 +147,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
     const lockedStroke = (lockedPercent / 100) * circumference;
     const inactiveStroke = (inactivePercent / 100) * circumference;
 
-    // Open modal
-    const handleCreateCard = () => {
-        setEditingCard(null);
-        setFormData(INITIAL_FORM);
-        setFormError(null);
-        setShowModal(true);
-    };
 
-    // Close modal
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setFormError(null);
-        setEditingCard(null);
-    };
-
-
-    const hasPlate = formData.plate && formData.plate.trim() !== '';
-
-    // Submit form
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setFormError(null);
-
-        try {
-            setSubmitting(true);
-            if (editingCard) {
-                await updateCard(
-                    editingCard.card_id,
-                    {
-                        type: 'Thẻ lượt',
-                        plate: formData.plate,
-                        checkInTime: hasPlate ? formData.checkInTime : null,
-                        checkOutTime: hasPlate ? formData.checkOutTime : null,
-                        status: hasPlate ? formData.status : editingCard.status
-                    }
-                );
-                showToast("Cập nhật thẻ thành công", "success");
-            } else {
-                await createCard({
-                    type: 'Thẻ lượt',
-                    startDate: formData.startDate,
-                    plate: formData.plate.trim() || undefined
-                });
-                showToast("Đăng ký thẻ mới thành công", "success");
-            }
-            setShowModal(false);
-            setEditingCard(null);
-            await fetchCards();
-        } catch (err) {
-            console.error('Error creating card:', err);
-            setFormError(err?.response?.data?.error || err.message || 'Lỗi khi lưu thẻ.');
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const getStatusBadgeClass = (status) => {
         if (status === 'Hoạt động') return 'mc-status-badge mc-status-active';
@@ -475,39 +419,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 }}
             />
 
-            {deletingCard && (
-                <div className="mc-confirm-overlay">
-                    <div className="mc-confirm-box">
-                        <p>Bạn chắc chắn muốn xóa thẻ <b>{deletingCard.cardNo || deletingCard.code}</b>?</p>
-                        <p style={{ fontSize: '13px', color: '#999' }}>
-                            Thẻ sẽ chuyển sang trạng thái "Đã khóa" và ẩn khỏi danh sách.
-                        </p>
 
-                        {deleteError && (
-                            <p style={{ color: '#ff6b6b', fontSize: '13px', marginTop: '8px' }}>
-                                {deleteError}
-                            </p>
-                        )}
-
-                        <div className="mc-confirm-actions">
-                            <button onClick={closeDeleteModal} disabled={isDeleting}>Hủy</button>
-                            <button onClick={confirmDelete} disabled={isDeleting} className="mc-btn-danger">
-                                {isDeleting ? 'Đang xóa...' : 'Xóa'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Toast */}
-            {toast.show && (
-                <div className={`custom-toast ${toast.type}`}>
-                    <span className="material-symbols-outlined">
-                        {toast.type === 'success' ? 'check_circle' : 'error'}
-                    </span>
-                    <span className="toast-text">{toast.message}</span>
-                </div>
-            )}
         </div>
     );
 }
