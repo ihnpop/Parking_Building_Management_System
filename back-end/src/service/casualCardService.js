@@ -33,6 +33,36 @@ function formatDateTimeVN(dateValue) {
     }
 }
 
+function formatDateTimeVNSplit(dateValue) {
+    if (!dateValue) return null;
+    try {
+        let val = dateValue;
+        if (typeof val === 'string') {
+            val = val.trim().replace(' ', 'T');
+            const hasTimezone = val.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(val);
+            if (!hasTimezone && val.includes('T')) val = val + 'Z';
+        }
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        
+        const time = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const date = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return { time, date };
+    } catch {
+        return null;
+    }
+}
+
 /** Tính thời gian gửi xe (entry → exit) */
 function computeDuration(entryTime, exitTime) {
     if (!entryTime || !exitTime) return '---';
@@ -74,11 +104,15 @@ function mapSessionToRow(session) {
         exitTime:         session.exit_time  || null,
         entryTimeDisplay: formatDateTimeVN(session.entry_time),
         exitTimeDisplay:  formatDateTimeVN(session.exit_time),
+        entryTimeSplit:   formatDateTimeVNSplit(session.entry_time),
+        exitTimeSplit:    formatDateTimeVNSplit(session.exit_time),
         duration:         computeDuration(session.entry_time, session.exit_time),
         fee:              session.final_fee ?? session.estimated_fee ?? null,
         feeDisplay:       session.exit_time
             ? formatCasualVND(session.final_fee ?? session.estimated_fee)
             : (session.estimated_fee ? formatCasualVND(session.estimated_fee) + ' (ước tính)' : '---'),
+        paymentMethod:    (Array.isArray(session.payment) ? session.payment[0]?.payment_method : session.payment?.payment_method) || '---',
+        paymentInfo:      (Array.isArray(session.payment) ? session.payment[0] : session.payment) || null,
         status:     session.status || '---',
         entryGate:  session.entry_gate?.name || '---',
         exitGate:   session.exit_gate?.name  || '---',
