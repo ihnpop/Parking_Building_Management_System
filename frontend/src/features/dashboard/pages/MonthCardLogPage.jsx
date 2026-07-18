@@ -67,6 +67,9 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
     const [showBillModal, setShowBillModal] = useState(false);
     const [selectedBill, setSelectedBill] = useState(null);
 
@@ -75,11 +78,15 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
             setLoading(true);
             let data = await getMonthCardLogs();
             if (data) {
-                data = data.map(log => ({
-                    ...log,
-                    status: log.status === 'Thành công' ? 'Hoàn thành' : log.status,
-                    type: log.type === 'Gia hạn nối tiếp' ? 'Gia hạn' : log.type
-                }));
+                data = data.map(log => {
+                    let mappedType = log.type;
+                    if (mappedType === 'Gia hạn nối tiếp') mappedType = 'Gia hạn';
+                    return {
+                        ...log,
+                        status: log.status === 'Thành công' ? 'Hoàn thành' : log.status,
+                        type: mappedType
+                    };
+                });
             }
             setAllLogs(data || []);
             setLogs(data || []);
@@ -341,6 +348,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             <option value="Tất cả">Tất cả</option>
                             <option value="Gia hạn">Gia hạn</option>
                             <option value="Cấp mới">Cấp mới</option>
+                            <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
@@ -364,7 +372,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 </div>
 
                 <div className="filter-block">
-                    <label className="filter-label">KHOẢNG NGÀY</label>
+                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
                     <div className="filter-input-wrapper">
                         <div className="filter-input date-range-wrapper">
                             <input
@@ -416,14 +424,14 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         <div style={{ width: '100%', overflow: 'hidden' }}>
                             <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
                                 <colgroup>
-                                    <col style={{ width: '17%' }} /> {/* THỜI GIAN GIAO DỊCH */}
+                                    <col style={{ width: '16%' }} /> {/* THỜI GIAN GIAO DỊCH */}
                                     <col style={{ width: '12%' }} /> {/* BIỂN SỐ */}
-                                    <col style={{ width: '15%' }} /> {/* CHỦ XE */}
+                                    <col style={{ width: '14%' }} /> {/* CHỦ XE */}
                                     <col style={{ width: '13%' }} /> {/* LOẠI GIAO DỊCH */}
                                     <col style={{ width: '12%' }} /> {/* PHÍ */}
                                     <col style={{ width: '12%' }} /> {/* THANH TOÁN */}
-                                    <col style={{ width: '13%' }} /> {/* TRẠNG THÁI */}
-                                    <col style={{ width: '6%' }} />  {/* BILL */}
+                                    <col style={{ width: '12%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '9%' }} />  {/* HÓA ĐƠN */}
                                 </colgroup>
                                 <thead>
                                     <tr>
@@ -435,13 +443,13 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                         <th>THANH TOÁN</th>
                                         <th>TRẠNG THÁI</th>
                                         <th style={{ textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>BILL</div>
+                                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>HÓA ĐƠN</div>
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {logs.length > 0 ? (
-                                        logs.map((log, index) => (
+                                    {currentData.length > 0 ? (
+                                        currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
                                                 <td className="log-time" style={{ fontFamily: 'monospace' }}>{log.time}</td>
                                                 <td className="mc-td-bold">{log.plate}</td>
