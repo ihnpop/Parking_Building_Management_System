@@ -8,6 +8,7 @@ import LoginLogPage from './features/dashboard/pages/LoginLogPage';
 import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
 import SystemSettingsPage from './features/dashboard/pages/SystemSettingsPage';
 import UserManagementPage from './features/dashboard/pages/UserManagementPage';
+import AdjustPricesPage from './features/dashboard/pages/AdjustPricesPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RoleProtectedRoute from './components/auth/RoleProtectedRoute';
 import OccupancyChart from './features/dashboard/pages/OccupancyChart';
@@ -96,6 +97,14 @@ export default function App() {
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN']}>
             <UserManagementPage />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/login/dashboard/adjust-prices" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['MANAGER']}>
+            <AdjustPricesPage />
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
