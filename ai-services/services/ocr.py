@@ -5,7 +5,7 @@ from easyocr import Reader
 # Load EasyOCR once when service starts
 # =====================================================
 
-easy_reader = Reader(['en'], gpu=True)
+easy_reader = Reader(["en"], gpu=True)
 
 
 def read_plate(plate_image: np.ndarray) -> str:

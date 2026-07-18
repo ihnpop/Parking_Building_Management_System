@@ -65,32 +65,98 @@ VALID_SERIES = set("ABCDEFGHKLMNPSTUVXYZ")
 # Danh sach se-ri 2 chu hop le tren bien xe may / o to moi
 # Day du theo Thong tu 79/2024/TT-BCA
 VALID_DOUBLE_SERIES = {
-    "AA", "AB", "AC", "AD", "AE", "AF",
-    "BA", "BB", "BC", "BD", "BE", "BF",
-    "CA", "CB", "CC", "CD", "CE", "CF",
-    "DA", "DB", "DC", "DD", "DE", "DF",
-    "EA", "EB", "EC", "ED",
-    "FA", "FB", "FC", "FD",
-    "GA", "GB", "GC", "GD",
-    "HA", "HB", "HC", "HD",
-    "KA", "KB", "KC", "KD",
-    "LA", "LB", "LC", "LD",
-    "MA", "MB", "MC", "MD",
-    "NA", "NB", "NC", "ND",
-    "PA", "PB", "PC", "PD",
-    "SA", "SB", "SC", "SD",
-    "TA", "TB", "TC", "TD",
-    "UA", "UB", "UC", "UD",
-    "VA", "VB", "VC", "VD",
-    "XA", "XB", "XC", "XD",
-    "YA", "YB", "YC", "YD",
-    "ZA", "ZB", "ZC", "ZD",
+    "AA",
+    "AB",
+    "AC",
+    "AD",
+    "AE",
+    "AF",
+    "BA",
+    "BB",
+    "BC",
+    "BD",
+    "BE",
+    "BF",
+    "CA",
+    "CB",
+    "CC",
+    "CD",
+    "CE",
+    "CF",
+    "DA",
+    "DB",
+    "DC",
+    "DD",
+    "DE",
+    "DF",
+    "EA",
+    "EB",
+    "EC",
+    "ED",
+    "FA",
+    "FB",
+    "FC",
+    "FD",
+    "GA",
+    "GB",
+    "GC",
+    "GD",
+    "HA",
+    "HB",
+    "HC",
+    "HD",
+    "KA",
+    "KB",
+    "KC",
+    "KD",
+    "LA",
+    "LB",
+    "LC",
+    "LD",
+    "MA",
+    "MB",
+    "MC",
+    "MD",
+    "NA",
+    "NB",
+    "NC",
+    "ND",
+    "PA",
+    "PB",
+    "PC",
+    "PD",
+    "SA",
+    "SB",
+    "SC",
+    "SD",
+    "TA",
+    "TB",
+    "TC",
+    "TD",
+    "UA",
+    "UB",
+    "UC",
+    "UD",
+    "VA",
+    "VB",
+    "VC",
+    "VD",
+    "XA",
+    "XB",
+    "XC",
+    "XD",
+    "YA",
+    "YB",
+    "YC",
+    "YD",
+    "ZA",
+    "ZB",
+    "ZC",
+    "ZD",
 }
 
 # Regex: bien so Viet Nam hop le
-PLATE_PATTERN = re.compile(
-    r"^\d{2}[A-Z]{1,2}\d{4,6}$"
-)
+PLATE_PATTERN = re.compile(r"^\d{2}[A-Z]{1,2}\d{4,6}$")
 
 
 def clean_text(text: str) -> str:
@@ -110,8 +176,18 @@ def clean_text(text: str) -> str:
 
     # Loai bo ten thuong hieu va tu khoa rac xuat hien gan bien so
     brands = [
-        "HONDA", "H0NDA", "YAMAHA", "SUZUKI", "SYM", "VESPA", "PIAGGIO",
-        "VIETNAM", "VIET NAM", "VN", "BIENSO", "BIEN SO"
+        "HONDA",
+        "H0NDA",
+        "YAMAHA",
+        "SUZUKI",
+        "SYM",
+        "VESPA",
+        "PIAGGIO",
+        "VIETNAM",
+        "VIET NAM",
+        "VN",
+        "BIENSO",
+        "BIEN SO",
     ]
     for brand in brands:
         text = text.replace(brand, "")
@@ -156,13 +232,13 @@ def _normalize_to_target_length(plate: str) -> str:
         # Tim vi tri bat dau: 2 so + 1 chu
         plate_start = -1
         for i in range(len(plate) - 6):
-            if plate[i].isdigit() and plate[i+1].isdigit() and plate[i+2].isalpha():
+            if plate[i].isdigit() and plate[i + 1].isdigit() and plate[i + 2].isalpha():
                 plate_start = i
                 break
 
         if plate_start >= 0:
-            header = plate[plate_start:plate_start + 2]  # 2 so ma tinh
-            rest = plate[plate_start + 2:]
+            header = plate[plate_start : plate_start + 2]  # 2 so ma tinh
+            rest = plate[plate_start + 2 :]
 
             # Tach chu se-ri ra khoi phan so
             letter_count = 0

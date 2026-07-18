@@ -61,9 +61,6 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
-
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('Tất cả');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
@@ -201,9 +198,10 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     };
 
     return (
-        <div className="lost-card-log-wrapper">
+        <div className="lost-card-log-wrapper">           {/* ĐÃ XÓA KHỐI HEADER VÀ PROFILE LẶP LẠI TẠI ĐÂY */}
+
             {/* Stats Grid */}
-            <div className="lost-kpi-container">
+            <div className="lost-kpi-container" style={{ marginBottom: "24px" }}>
                 <div className="lost-kpi-grid">
                     {/* Ô 1: Tổng giao dịch */}
                     <div className="lost-kpi-card">
@@ -343,7 +341,6 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             <option value="Tất cả">Tất cả</option>
                             <option value="Gia hạn">Gia hạn</option>
                             <option value="Cấp mới">Cấp mới</option>
-                            <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
@@ -410,10 +407,10 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
 
             {/* Table */}
             <section className="lost-table-card">
-                {error && <div className="table-status-error">{error}</div>}
+                {error && <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
                 {loading ? (
-                    <div className="table-status-loading">Đang tải nhật ký vé tháng...</div>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký vé tháng...</div>
                 ) : (
                     <>
                         <div style={{ width: '100%', overflow: 'hidden' }}>
@@ -443,10 +440,10 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {currentData.length > 0 ? (
-                                        currentData.map((log, index) => (
+                                    {logs.length > 0 ? (
+                                        logs.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
-                                                <td className="log-time log-time-cell">{log.time}</td>
+                                                <td className="log-time" style={{ fontFamily: 'monospace' }}>{log.time}</td>
                                                 <td className="mc-td-bold">{log.plate}</td>
                                                 <td>{log.owner}</td>
                                                 <td>{log.type}</td>
@@ -496,12 +493,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         <div className="lost-table-footer">
                             <span className="footer-info">Hiển thị {logs.length > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + itemsPerPage, logs.length)} trong số {logs.length} giao dịch</span>
                             <div className="lost-pagination">
-                                <button
-                                    type="button"
-                                    className="page-btn"
-                                    disabled={currentPage === 1}
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                >
+                                <button type="button" className="page-btn" disabled>
                                     <span className="material-symbols-outlined">chevron_left</span>
                                 </button>
 

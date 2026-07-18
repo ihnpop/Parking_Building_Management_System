@@ -70,10 +70,10 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   }
 
   // 3. Kiểm tra tính hợp lệ của Thẻ (Card)
-  if (card.status === 'Đã xóa') {
+  if (card.status === 'Đã xóa' || card.status === 'DELETED') {
     throw new Error("Không thể gia hạn thẻ đã bị xóa.");
   }
-  if (card.status === 'Đã khóa') {
+  if (card.status === 'Đã khóa' || card.status === 'LOCKED') {
     throw new Error("Không thể gia hạn thẻ đã bị khóa.");
   }
   if (card.type !== 'Thẻ tháng') {
@@ -81,7 +81,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
   }
 
   // 4. Kiểm tra tính hợp lệ của Đăng ký (Registration)
-  const isRegActive = registration.status === 'Hoạt động';
+  const isRegActive = registration.status === 'Hoạt động' || registration.status === 'ACTIVE';
   if (!isRegActive) {
     throw new Error("Liên kết đăng ký thẻ hiện không hoạt động.");
   }
@@ -196,6 +196,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
     price: pkg.price
   };
 };
+
 
 
 /**
@@ -548,7 +549,6 @@ export const updateMonthCard = async (cardId, payload) => {
 
   return { success: true };
 };
-
 /**
  * Xóa mềm một thẻ tháng:
  * - Kiểm tra thẻ tồn tại và chưa bị xóa
@@ -874,7 +874,6 @@ export const getNextMonthCode = async () => {
   const nextCode = await monthCardRepository.generateNextMonthCode();
   return { code: nextCode };
 };
-
 /**
  * Lấy chi tiết thông tin thẻ tháng để tạo hợp đồng
  * @param {string} cardId 

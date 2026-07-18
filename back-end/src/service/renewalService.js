@@ -424,8 +424,8 @@ export async function getRenewalInfo(cardId) {
                 packageId: activeVp.package_id,
             }
             : null,
-        availablePackages,
         pendingPayment,
+        availablePackages,
     };
 }
 
