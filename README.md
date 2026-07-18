@@ -1,6 +1,6 @@
 # 🚗 Parking Building Management System (PBMS)
 
-A smart parking management system for multi-story buildings using **React, Node.js, Supabase, FastAPI, PaddleOCR, YOLO, Docker and AWS**.
+A smart parking management system for multi-story buildings using **React, Node.js, Supabase, FastAPI, EasyOCR, YOLO, Docker and AWS**.
 
 ---
 
