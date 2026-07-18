@@ -23038,6 +23038,119 @@ td {
   background: #dc2626;
 }
 
+.bg-yellow {
+  background: #f59e0b;
+}
+
+.bg-purple {
+  background: #8b5cf6;
+}
+
+.icon-red-soft {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.lost-kpi-value.val-orange {
+  color: #f59e0b;
+}
+
+.lost-kpi-value.val-red {
+  color: #ef4444;
+}
+
+.lost-kpi-footer.txt-red {
+  color: #ef4444;
+}
+
+/* ── KPI Time Filter Bar ────────────────────────────────────────────────────── */
+.kpi-time-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kpi-seg-group {
+  display: inline-flex;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.kpi-seg-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.kpi-seg-btn:hover {
+  color: #334155;
+  background: rgba(255,255,255,0.5);
+}
+
+.kpi-seg-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.kpi-date-picker {
+  padding: 5px 10px;
+  font-size: 12.5px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  background: #fff;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.kpi-date-picker:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.12);
+}
+
+.kpi-realtime-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  line-height: 1.4;
+}
+
+.kpi-realtime-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: kpi-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes kpi-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
 
 /* Filter Section */
 .lost-filter-card {
