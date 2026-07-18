@@ -23,7 +23,7 @@ import {
     fetchAllDashboardData,
     formatVND,
     dashboardFallbackData,
-} from '../../../service/dashboardService';
+} from '../../../service/dashboardApi';
 
 // ─── Fallback mock – chỉ dùng cho chart "Xu hướng doanh thu" khi payment chưa có seed ──
 // TODO: replace with real database field when available (payment chưa có dữ liệu seed)
