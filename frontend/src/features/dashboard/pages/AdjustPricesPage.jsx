@@ -60,10 +60,6 @@ export default function AdjustPricesPage() {
                         <p className="ap-page-subtitle">Quản lý biểu giá lượt và giá tháng cho từng loại xe</p>
                     </div>
                 </div>
-                <div className="ap-header-badge">
-                    <span className="material-symbols-outlined">shield_person</span>
-                    <span>Chỉ dành cho Quản lý</span>
-                </div>
             </div>
 
             {/* ── Tab switcher ── */}
@@ -122,7 +118,7 @@ export default function AdjustPricesPage() {
                                         </div>
                                         <div className="ap-price-divider" />
                                         <div className="ap-price-item">
-                                            <span className="ap-price-label">Giờ tiếp theo</span>
+                                            <span className="ap-price-label">4 Giờ tiếp theo</span>
                                             <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.extraHour)}</span>
                                         </div>
                                     </div>

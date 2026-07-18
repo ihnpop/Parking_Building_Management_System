@@ -31188,3 +31188,29 @@ body,
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.ap-input-wrapper--error {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+.ap-error-msg {
+  color: #dc2626;
+  font-size: 0.78rem;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  animation: ap-shake 0.2s ease-in-out;
+}
+
+.ap-error-msg .material-symbols-outlined {
+  font-size: 14px;
+}
+
+@keyframes ap-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
