@@ -385,13 +385,16 @@ export const preCheckExit = async (plateNumber) => {
   const totalHours = diffMs / (1000 * 60 * 60);
   const billableHours = Math.max(1, Math.ceil(totalHours));
 
-  const durationStr = `${billableHours}h`;
+  const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   const formattedEntryTime = entryTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
   // 4. Tính toán phí gửi xe
   let fee = 0;
   if (!isMonthly) {
-    fee = billableHours * 10000; // Mặc định 10k/h nếu không tìm thấy biểu phí
+    fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Mặc định 10k/h nếu không tìm thấy biểu phí (miễn phí dưới 30 phút)
 
     if (vehicle && vehicle.vehicle_type_id) {
       try {
@@ -399,12 +402,12 @@ export const preCheckExit = async (plateNumber) => {
 
         if (priceItems && priceItems.length > 0) {
           const matchingItem = priceItems.find(item => {
-            const min = item.min_hour || 0;
-            const max = item.max_hour;
-            if (max === null || max === undefined) {
-              return billableHours >= min;
+            const min = Number(item.min_hour) || 0;
+            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+            if (max === null) {
+              return totalHours >= min;
             }
-            return billableHours >= min && billableHours <= max;
+            return totalHours >= min && totalHours < max;
           });
 
           if (matchingItem) {
@@ -516,7 +519,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     const totalHours = diffMs / (1000 * 60 * 60);
     const billableHours = Math.max(1, Math.ceil(totalHours));
 
-    fee = billableHours * 10000; // Giá mặc định 10k/giờ
+    fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Giá mặc định 10k/giờ (miễn phí dưới 30 phút)
 
     if (vehicle && vehicle.vehicle_type_id) {
       try {
@@ -524,12 +527,12 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 
         if (priceItems && priceItems.length > 0) {
           const matchingItem = priceItems.find(item => {
-            const min = item.min_hour || 0;
-            const max = item.max_hour;
-            if (max === null || max === undefined) {
-              return billableHours >= min;
+            const min = Number(item.min_hour) || 0;
+            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+            if (max === null) {
+              return totalHours >= min;
             }
-            return billableHours >= min && billableHours <= max;
+            return totalHours >= min && totalHours < max;
           });
 
           if (matchingItem) {

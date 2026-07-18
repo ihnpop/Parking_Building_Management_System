@@ -88,7 +88,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
   const totalHours = diffMs / (1000 * 60 * 60);
   const billableHours = Math.max(1, Math.ceil(totalHours)); // ít nhất 1 giờ
 
-  let fee = billableHours * 10000; // Giá mặc định 10k/giờ
+  let fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Giá mặc định 10k/giờ (miễn phí dưới 30 phút)
 
   // Thử tra cứu bảng giá từ Database dựa trên biển số xe
   try {
@@ -99,12 +99,12 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
 
       if (priceItems && priceItems.length > 0) {
         const matchingItem = priceItems.find(item => {
-          const min = item.min_hour || 0;
-          const max = item.max_hour;
-          if (max === null || max === undefined) {
-            return billableHours >= min;
+          const min = Number(item.min_hour) || 0;
+          const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+          if (max === null) {
+            return totalHours >= min;
           }
-          return billableHours >= min && billableHours <= max;
+          return totalHours >= min && totalHours < max;
         });
 
         if (matchingItem) {
