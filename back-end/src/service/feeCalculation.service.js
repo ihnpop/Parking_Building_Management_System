@@ -151,9 +151,9 @@ export async function calculateExitFee({ plate_number }) {
     const totalHours = diffMs / (1000 * 60 * 60);
     const billableHours = Math.max(1, Math.ceil(totalHours));
 
-    let estimated_fee = billableHours * 10000; // fallback mặc định
+    let estimated_fee = totalHours < 0.5 ? 0 : billableHours * 10000; // fallback mặc định
     let price_item_used = null;
-    let rate = 10000;
+    let rate = totalHours < 0.5 ? 0 : 10000;
 
     if (vehicle?.vehicle_type_id) {
         try {
@@ -198,12 +198,12 @@ export async function calculateExitFee({ plate_number }) {
 
             if (priceItems.length > 0) {
                 const matchingItem = priceItems.find((item) => {
-                    const min = item.min_hour ?? 0;
-                    const max = item.max_hour;
-                    if (max === null || max === undefined) {
-                        return billableHours >= min;
+                    const min = Number(item.min_hour) || 0;
+                    const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+                    if (max === null) {
+                        return totalHours >= min;
                     }
-                    return billableHours >= min && billableHours < max;
+                    return totalHours >= min && totalHours < max;
                 });
 
                 if (matchingItem) {
@@ -228,7 +228,7 @@ export async function calculateExitFee({ plate_number }) {
         is_monthly_valid: false,
         estimated_fee,
         fee_breakdown: {
-            hours: billableHours,
+            hours: Number(totalHours.toFixed(2)),
             price_item_used,
             rate,
         },
