@@ -7,7 +7,7 @@
 
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as vnpayService from "./vnpayService.js";
-import { calculateExitFee } from "./feeCalculation.service.js";
+import { calculateExitFee } from "./feeCalculationService.js";
 
 /**
  * Khởi tạo giao dịch thanh toán cho Vé lượt (xe chuẩn bị rời bãi)
