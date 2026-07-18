@@ -1,10 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { createLostCard } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
-export default function LostCardLogPage({ showBackButton = false }) {
+
+function filterRowsByTime(rows, mode, dateStr) {
+    if (!dateStr) return rows;
+    return rows.filter((r) => {
+        const t = r.reported_at || r.date || r.timestamp || r.created_at || r.time;
+        if (!t) return false;
+
+        let entry;
+        const strT = String(t).trim();
+        if (strT.includes('/')) {
+            const datePart = strT.split(' ').find(p => p.includes('/')) || strT;
+            const parts = datePart.split('/');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    entry = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+                } else {
+                    entry = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                }
+            } else {
+                entry = new Date(t);
+            }
+        } else {
+            entry = new Date(t);
+        }
+
+        if (isNaN(entry.getTime())) return false;
+        const entryDateVN = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(entry);
+        if (mode === 'day') {
+            return entryDateVN === dateStr;
+        }
+        return entryDateVN.slice(0, 7) === dateStr;
+    });
+}
+
+export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter, kpiDate, kpiMonth }) {
     const { showToast } = useNotification();
     const navigate = useNavigate();
     const { user, userRole, logout } = useAuth();
@@ -65,6 +99,10 @@ export default function LostCardLogPage({ showBackButton = false }) {
     const [statusFilter, setStatusFilter] = useState('Tất cả');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    // Phân trang
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Trạng thái hiển thị modal tạo báo mất thẻ
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -377,6 +415,7 @@ export default function LostCardLogPage({ showBackButton = false }) {
             return matchesSearch && matchesStatus && matchesDate;
         });
         setFilteredCards(filtered);
+        setCurrentPage(1);
     };
 
     useEffect(() => {
@@ -418,12 +457,44 @@ export default function LostCardLogPage({ showBackButton = false }) {
     };
 
     // Thống kê số liệu
-    const totalLost = lostCards.length;
-    const pendingCount = lostCards.filter(c => c.status === 'Đang chờ').length;
-    const processingCount = lostCards.filter(c => c.status === 'Đang xử lý').length;
-    const resolvedCount = lostCards.filter(c => c.status === 'Đã xong' || c.status === 'Đã tìm lại' || c.status === 'Đã xử lý').length;
-    const cancelledCount = lostCards.filter(c => c.status === 'Đã hủy thẻ').length;
-    const mistakeCount = lostCards.filter(c => c.status === 'Đã hủy (tạo nhầm)').length;
+    const kpiFilteredCards = useMemo(() => {
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        return filterRowsByTime(lostCards, kpiTimeFilter, dateStr);
+    }, [lostCards, kpiTimeFilter, kpiDate, kpiMonth]);
+
+    const totalLost = kpiFilteredCards.length;
+    const pendingCount = kpiFilteredCards.filter(c => c.status === 'Đang chờ').length;
+    const processingCount = kpiFilteredCards.filter(c => c.status === 'Đang xử lý').length;
+    const resolvedCount = kpiFilteredCards.filter(c => c.status === 'Đã xong' || c.status === 'Đã tìm lại' || c.status === 'Đã xử lý').length;
+    const cancelledCount = kpiFilteredCards.filter(c => c.status === 'Đã hủy thẻ').length;
+    const mistakeCount = kpiFilteredCards.filter(c => c.status === 'Đã hủy (tạo nhầm)').length;
+
+    // Pagination logic
+    const totalPages = Math.ceil(filteredCards.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const currentData = filteredCards.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage === 1) {
+                pages.push(1, 2, 3);
+            } else if (currentPage === totalPages) {
+                pages.push(totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(currentPage - 1, currentPage, currentPage + 1);
+            }
+        }
+        return pages;
+    };
 
     return (
         <section className={showBackButton ? "stats-dashboard-page" : ""}>
@@ -644,6 +715,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                 <option value="Đang chờ">Đang chờ</option>
                                 <option value="Đang xử lý">Đang xử lý</option>
                                 <option value="Đã xong">Đã xong</option>
+                                <option value="Đã hủy thẻ">Đã hủy thẻ</option>
+                                <option value="Đã hủy (tạo nhầm)">Đã hủy (tạo nhầm)</option>
                             </select>
                             <span className="material-symbols-outlined icon-right">expand_more</span>
                         </div>
@@ -728,8 +801,8 @@ export default function LostCardLogPage({ showBackButton = false }) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredCards.length > 0 ? (
-                                        filteredCards.map((row) => {
+                                    {currentData.length > 0 ? (
+                                        currentData.map((row, index) => {
                                             const reportId = row.lost_report_id || row.id;
                                             const cardCode = row.card_code || row.cardNo;
                                             const plateNumber = row.plate_number || row.plate;
@@ -782,14 +855,35 @@ export default function LostCardLogPage({ showBackButton = false }) {
 
                             {/* Footer */}
                             <div className="lost-table-footer">
-                                <span className="footer-info">Hiển thị {filteredCards.length} của {totalLost} báo cáo</span>
+                                <span className="footer-info">Hiển thị {filteredCards.length > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + itemsPerPage, filteredCards.length)} trong số {filteredCards.length} báo cáo</span>
                                 <div className="footer-right-actions">
                                     <div className="lost-pagination">
-                                        <button type="button" className="page-btn" disabled>
+                                        <button
+                                            type="button"
+                                            className="page-btn"
+                                            disabled={currentPage === 1}
+                                            onClick={() => handlePageChange(currentPage - 1)}
+                                        >
                                             <span className="material-symbols-outlined">chevron_left</span>
                                         </button>
-                                        <button type="button" className="page-btn active">1</button>
-                                        <button type="button" className="page-btn" disabled>
+
+                                        {getPageNumbers().map(page => (
+                                            <button
+                                                key={page}
+                                                type="button"
+                                                className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                                                onClick={() => handlePageChange(page)}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+
+                                        <button
+                                            type="button"
+                                            className="page-btn"
+                                            disabled={currentPage === totalPages || totalPages === 0}
+                                            onClick={() => handlePageChange(currentPage + 1)}
+                                        >
                                             <span className="material-symbols-outlined">chevron_right</span>
                                         </button>
                                     </div>

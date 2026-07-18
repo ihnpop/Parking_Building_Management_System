@@ -1,8 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLoginLogs } from '../../../service/userApi';
 
-export default function LoginLogPage() {
+function filterRowsByTime(rows, mode, dateStr) {
+    if (!dateStr) return rows;
+    return rows.filter((r) => {
+        const t = r.login_time || r.timestamp || r.time || r.created_at || r.date;
+        if (!t) return false;
+
+        let entry;
+        const strT = String(t).trim();
+        if (strT.includes('/')) {
+            const datePart = strT.split(' ').find(p => p.includes('/')) || strT;
+            const parts = datePart.split('/');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    entry = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+                } else {
+                    entry = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                }
+            } else {
+                entry = new Date(t);
+            }
+        } else {
+            entry = new Date(t);
+        }
+
+        if (isNaN(entry.getTime())) return false;
+        const entryDateVN = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(entry);
+        if (mode === 'day') {
+            return entryDateVN === dateStr;
+        }
+        return entryDateVN.slice(0, 7) === dateStr;
+    });
+}
+
+export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
@@ -61,7 +94,6 @@ export default function LoginLogPage() {
                     }
                 }
             }
-
             return matchesSearch && matchesRole && matchesDate;
         });
         setLogs(filtered);
@@ -78,12 +110,17 @@ export default function LoginLogPage() {
         return status?.toLowerCase() || '';
     };
 
-    const totalLogins = logs.length;
-    const failedLogins = logs.filter(log => {
+    const kpiFilteredLogs = useMemo(() => {
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        return filterRowsByTime(rawLogs, kpiTimeFilter, dateStr);
+    }, [rawLogs, kpiTimeFilter, kpiDate, kpiMonth]);
+
+    const totalLogins = kpiFilteredLogs.length;
+    const failedLogins = kpiFilteredLogs.filter(log => {
         const s = (log.status || '').toLowerCase();
         return s.includes('thất bại') || s.includes('khóa') || s === 'failed';
     }).length;
-    const successLogins = logs.filter(log => {
+    const successLogins = kpiFilteredLogs.filter(log => {
         const s = (log.status || '').toLowerCase();
         return s.includes('thành công') || s === 'success';
     }).length;
@@ -101,39 +138,17 @@ export default function LoginLogPage() {
 
     const getPageNumbers = () => {
         const pages = [];
-        const start = Math.max(1, currentPage - 2);
-        const end = Math.min(totalPages, currentPage + 2);
-
-        for (let i = start; i <= end; i++) {
-            pages.push(i);
-        }
-
-        if (start > 1) {
-            if (start > 3) {
-                pages.unshift('...');
-                pages.unshift(2);
-                pages.unshift(1);
-            } else if (start === 3) {
-                pages.unshift(2);
-                pages.unshift(1);
-            } else if (start === 2) {
-                pages.unshift(1);
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage === 1) {
+                pages.push(1, 2, 3);
+            } else if (currentPage === totalPages) {
+                pages.push(totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(currentPage - 1, currentPage, currentPage + 1);
             }
         }
-
-        if (end < totalPages) {
-            if (end < totalPages - 2) {
-                pages.push('...');
-                pages.push(totalPages - 1);
-                pages.push(totalPages);
-            } else if (end === totalPages - 2) {
-                pages.push(totalPages - 1);
-                pages.push(totalPages);
-            } else if (end === totalPages - 1) {
-                pages.push(totalPages);
-            }
-        }
-
         return pages;
     };
 
@@ -395,7 +410,7 @@ export default function LoginLogPage() {
 
                         {/* Footer */}
                         <div className="log-table-footer">
-                            <span className="footer-info">Đang hiển thị {Math.min(startIndex + 1, logs.length)} - {Math.min(startIndex + itemsPerPage, logs.length)} của {logs.length} bản ghi</span>
+                            <span className="footer-info">Đang hiển thị {logs.length > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + itemsPerPage, logs.length)} của {logs.length} bản ghi</span>
                             <div className="log-pagination">
                                 <button
                                     type="button"
@@ -410,9 +425,8 @@ export default function LoginLogPage() {
                                     <button
                                         key={index}
                                         type="button"
-                                        className={`page-btn ${page === currentPage ? 'active' : ''} ${page === '...' ? 'dots' : ''}`}
-                                        disabled={page === '...'}
-                                        onClick={() => page !== '...' && handlePageChange(page)}
+                                        className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                                        onClick={() => handlePageChange(page)}
                                     >
                                         {page}
                                     </button>

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     getCasualCardSessions,
-    getCasualTotalRevenue,
     mapSessionToRow,
 } from '../../../service/casualCardApi';
 
@@ -22,30 +21,66 @@ function getStatusClass(status) {
         case 'Hoàn thành': return 'success';
         case 'Đang gửi xe': return 'info';
         case 'Chờ thanh toán': return 'pending';
-        case 'Mất thẻ': return 'failed';
-        case 'Đã hủy': return 'failed';
+        case 'Thẻ đã cấp lại': return 'failed';
+        case 'Thất bại': return 'failed';
         default: return '';
     }
 }
 
+/** Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam */
+function todayVN() {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+}
+
+/** Trả về chuỗi yyyy-MM theo timezone Việt Nam */
+function thisMonthVN() {
+    const d = todayVN(); // yyyy-MM-dd
+    return d.slice(0, 7); // yyyy-MM
+}
+
+/**
+ * Lọc danh sách rows theo entry_time nằm trong khoảng thời gian.
+ * @param {'day'|'month'} mode
+ * @param {string} dateStr  yyyy-MM-dd (mode=day) hoặc yyyy-MM (mode=month)
+ */
+function filterRowsByTime(rows, mode, dateStr) {
+    if (!dateStr) return rows;
+    return rows.filter((r) => {
+        if (!r.entryTime) return false;
+        const entry = new Date(r.entryTime);
+        if (isNaN(entry.getTime())) return false;
+        // Chuyển sang ngày VN
+        const entryDateVN = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(entry);
+        if (mode === 'day') {
+            return entryDateVN === dateStr;
+        }
+        // mode === 'month'
+        return entryDateVN.slice(0, 7) === dateStr;
+    });
+}
+
 // ─── Component chính ──────────────────────────────────────────────────────────
-export default function CasualCardLogPage() {
+export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiDateProp, kpiMonth: kpiMonthProp }) {
+    // Fallback defaults nếu không nhận props
+    const kpiDate = kpiDateProp || todayVN();
+    const kpiMonth = kpiMonthProp || thisMonthVN();
     // ── State chính ──────────────────────────────────────────────────────────
     const [allRows, setAllRows] = useState([]);
     const [filteredRows, setFilteredRows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [totalRevenue, setTotalRevenue] = useState(0);
 
     // ── Pagination ───────────────────────────────────────────────────────────
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    // ── Filter state ─────────────────────────────────────────────────────────
+    // ── Filter state (bảng dữ liệu) ─────────────────────────────────────────
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+
+
 
     // ── VNPay Bill Modal ─────────────────────────────────────────────────────
     const [showBillModal, setShowBillModal] = useState(false);
@@ -56,14 +91,10 @@ export default function CasualCardLogPage() {
         try {
             setLoading(true);
             setError(null);
-            const [sessions, revenue] = await Promise.all([
-                getCasualCardSessions(),
-                getCasualTotalRevenue(),
-            ]);
+            const sessions = await getCasualCardSessions();
             const rows = (sessions || []).map(mapSessionToRow);
             setAllRows(rows);
             setFilteredRows(rows);
-            setTotalRevenue(revenue || 0);
         } catch (err) {
             console.error('[CasualCardLog] fetchData:', err);
             setError('Không thể tải nhật ký thẻ lượt. Vui lòng thử lại!');
@@ -76,7 +107,7 @@ export default function CasualCardLogPage() {
         fetchData();
     }, []);
 
-    // ── Filter logic ─────────────────────────────────────────────────────────
+    // ── Filter logic (bảng dữ liệu bên dưới) ────────────────────────────────
     useEffect(() => {
         let result = allRows;
 
@@ -109,11 +140,34 @@ export default function CasualCardLogPage() {
         setCurrentPage(1);
     }, [search, statusFilter, dateFrom, dateTo, allRows]);
 
-    // ── KPI tính từ allRows ──────────────────────────────────────────────────
-    const totalSessions = allRows.length;
-    const activeSessions = allRows.filter((r) => r.status === 'Đang gửi xe').length;
-    const completedSessions = allRows.filter((r) => r.status === 'Hoàn thành').length;
-    const otherSessions = totalSessions - activeSessions - completedSessions;
+    // ── KPI rows (lọc theo bộ lọc thời gian KPI) ────────────────────────────
+    const kpiFilteredRows = useMemo(() => {
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        return filterRowsByTime(allRows, kpiTimeFilter, dateStr);
+    }, [allRows, kpiTimeFilter, kpiDate, kpiMonth]);
+
+    // ── KPI values ───────────────────────────────────────────────────────────
+    // Ô 1: Tổng phiên (theo bộ lọc thời gian)
+    const kpiTotalSessions = kpiFilteredRows.length;
+    // Ô 2: Đang gửi xe (REAL-TIME – tất cả, không lọc)
+    const kpiActiveSessions = allRows.filter((r) => r.status === 'Đang gửi xe').length;
+    // Ô 3: Thất bại (theo bộ lọc thời gian)
+    const kpiFailedSessions = kpiFilteredRows.filter((r) => r.status === 'Thất bại').length;
+    // Ô 4: Tổng doanh thu (tính từ các phiên Hoàn thành trong khoảng thời gian)
+    const kpiRevenue = kpiFilteredRows
+        .filter((r) => r.status === 'Hoàn thành')
+        .reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
+
+    // ── Phân phối trạng thái (5 statuses, dùng kpiFilteredRows) ──────────────
+    const distTotal = kpiFilteredRows.length;
+    const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành').length;
+    const distActive = kpiFilteredRows.filter((r) => r.status === 'Đang gửi xe').length;
+    const distPending = kpiFilteredRows.filter((r) => r.status === 'Chờ thanh toán').length;
+    const distReissued = kpiFilteredRows.filter((r) => r.status === 'Thẻ đã cấp lại').length;
+    const distFailed = kpiFilteredRows.filter((r) => r.status === 'Thất bại').length;
+
+    const pct = (count) => distTotal > 0 ? Math.round((count / distTotal) * 100) : 0;
+    const pctWidth = (count) => distTotal > 0 ? `${(count / distTotal) * 100}%` : '0%';
 
     // ── Pagination ───────────────────────────────────────────────────────────
     const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
@@ -126,18 +180,16 @@ export default function CasualCardLogPage() {
 
     const getPageNumbers = () => {
         const pages = [];
-        const start = Math.max(1, currentPage - 2);
-        const end = Math.min(totalPages, currentPage + 2);
-        for (let i = start; i <= end; i++) pages.push(i);
-        if (start > 1) {
-            if (start > 3) { pages.unshift('...'); pages.unshift(2); pages.unshift(1); }
-            else if (start === 3) { pages.unshift(2); pages.unshift(1); }
-            else if (start === 2) pages.unshift(1);
-        }
-        if (end < totalPages) {
-            if (end < totalPages - 2) { pages.push('...'); pages.push(totalPages - 1); pages.push(totalPages); }
-            else if (end === totalPages - 2) { pages.push(totalPages - 1); pages.push(totalPages); }
-            else if (end === totalPages - 1) pages.push(totalPages);
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage === 1) {
+                pages.push(1, 2, 3);
+            } else if (currentPage === totalPages) {
+                pages.push(totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(currentPage - 1, currentPage, currentPage + 1);
+            }
         }
         return pages;
     };
@@ -146,11 +198,13 @@ export default function CasualCardLogPage() {
     return (
         <div className="lost-card-log-wrapper">
 
+
+
             {/* ── KPI + Phân phối ────────────────────────────────────────────── */}
             <div className="lost-kpi-container">
                 <div className="lost-kpi-grid">
 
-                    {/* Tổng giao dịch */}
+                    {/* Ô 1: Tổng phiên */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-gray">
@@ -159,13 +213,17 @@ export default function CasualCardLogPage() {
                             <span className="lost-kpi-title">Tổng phiên</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value">{loading ? '...' : totalSessions}</div>
+                            <div className="lost-kpi-value">{loading ? '...' : kpiTotalSessions}</div>
                             <div className="lost-kpi-footer txt-gray">Lượt xe vãng lai</div>
                         </div>
                     </div>
 
-                    {/* Đang gửi xe */}
+                    {/* Ô 2: Đang gửi xe (REAL-TIME) */}
                     <div className="lost-kpi-card">
+                        <span className="kpi-realtime-badge">
+                            <span className="kpi-realtime-dot" />
+                            Real-time
+                        </span>
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-blue">
                                 <span className="material-symbols-outlined">directions_car</span>
@@ -173,26 +231,26 @@ export default function CasualCardLogPage() {
                             <span className="lost-kpi-title">Đang gửi xe</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-blue">{loading ? '...' : activeSessions}</div>
+                            <div className="lost-kpi-value val-blue">{loading ? '...' : kpiActiveSessions}</div>
                             <div className="lost-kpi-footer txt-blue">Xe trong bãi</div>
                         </div>
                     </div>
 
-                    {/* Đã ra */}
+                    {/* Ô 3: Thất bại */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
-                            <div className="lost-kpi-icon-box icon-green">
-                                <span className="material-symbols-outlined">check_circle</span>
+                            <div className="lost-kpi-icon-box icon-red-soft">
+                                <span className="material-symbols-outlined">error</span>
                             </div>
-                            <span className="lost-kpi-title">Đã hoàn thành</span>
+                            <span className="lost-kpi-title">Thất bại</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-green">{loading ? '...' : completedSessions}</div>
-                            <div className="lost-kpi-footer txt-green">Xe đã ra thành công</div>
+                            <div className="lost-kpi-value val-red">{loading ? '...' : kpiFailedSessions}</div>
+                            <div className="lost-kpi-footer txt-red">Phiên lỗi / sự cố</div>
                         </div>
                     </div>
 
-                    {/* Tổng doanh thu */}
+                    {/* Ô 4: Tổng doanh thu */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-orange">
@@ -202,7 +260,7 @@ export default function CasualCardLogPage() {
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value val-orange" style={{ fontSize: '1.1rem' }}>
-                                {loading ? '...' : formatVND(totalRevenue)}
+                                {loading ? '...' : formatVND(kpiRevenue)}
                             </div>
                             <div className="lost-kpi-footer txt-orange">Vé lượt đã thanh toán</div>
                         </div>
@@ -210,7 +268,7 @@ export default function CasualCardLogPage() {
 
                 </div>
 
-                {/* Phân phối */}
+                {/* Phân phối trạng thái (5 trạng thái) */}
                 <div className="lost-dist-card">
                     <div className="lost-dist-title">
                         <span className="material-symbols-outlined">monitoring</span>
@@ -218,70 +276,73 @@ export default function CasualCardLogPage() {
                     </div>
                     <hr className="lost-dist-divider" />
 
-                    <div className="lost-dist-item">
-                        <div className="lost-dist-label-row">
-                            <span>Tổng phiên</span>
-                            <span>
-                                <span className="lost-dist-val">{totalSessions}</span>{' '}
-                                <span className="lost-dist-pct">(100%)</span>
-                            </span>
-                        </div>
-                        <div className="lost-dist-track">
-                            <div className="lost-dist-fill bg-dark" style={{ width: '100%' }} />
-                        </div>
-                    </div>
-
-                    <div className="lost-dist-item">
-                        <div className="lost-dist-label-row">
-                            <span>Đang gửi xe</span>
-                            <span>
-                                <span className="lost-dist-val">{activeSessions}</span>{' '}
-                                <span className="lost-dist-pct">
-                                    ({totalSessions > 0 ? Math.round((activeSessions / totalSessions) * 100) : 0}%)
-                                </span>
-                            </span>
-                        </div>
-                        <div className="lost-dist-track">
-                            <div
-                                className="lost-dist-fill bg-blue"
-                                style={{ width: `${totalSessions > 0 ? (activeSessions / totalSessions) * 100 : 0}%` }}
-                            />
-                        </div>
-                    </div>
-
+                    {/* Hoàn thành */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
                             <span>Hoàn thành</span>
                             <span>
-                                <span className="lost-dist-val">{completedSessions}</span>{' '}
-                                <span className="lost-dist-pct">
-                                    ({totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0}%)
-                                </span>
+                                <span className="lost-dist-val">{distCompleted}</span>{' '}
+                                <span className="lost-dist-pct">({pct(distCompleted)}%)</span>
                             </span>
                         </div>
                         <div className="lost-dist-track">
-                            <div
-                                className="lost-dist-fill bg-green"
-                                style={{ width: `${totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0}%` }}
-                            />
+                            <div className="lost-dist-fill bg-green" style={{ width: pctWidth(distCompleted) }} />
                         </div>
                     </div>
 
+                    {/* Đang gửi xe */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Khác (hủy / mất thẻ)</span>
+                            <span>Đang gửi xe</span>
                             <span>
-                                <span className="lost-dist-val">{otherSessions}</span>{' '}
-                                <span className="lost-dist-pct">
-                                    ({totalSessions > 0 ? Math.round((otherSessions / totalSessions) * 100) : 0}%)
-                                </span>
+                                <span className="lost-dist-val">{distActive}</span>{' '}
+                                <span className="lost-dist-pct">({pct(distActive)}%)</span>
                             </span>
                         </div>
                         <div className="lost-dist-track">
-                            <div
-                                className="lost-dist-fill bg-red"
-                                style={{ width: `${totalSessions > 0 ? (otherSessions / totalSessions) * 100 : 0}%` }}
-                            />
+                            <div className="lost-dist-fill bg-blue" style={{ width: pctWidth(distActive) }} />
+                        </div>
+                    </div>
+
+                    {/* Chờ thanh toán */}
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Chờ thanh toán</span>
+                            <span>
+                                <span className="lost-dist-val">{distPending}</span>{' '}
+                                <span className="lost-dist-pct">({pct(distPending)}%)</span>
+                            </span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-yellow" style={{ width: pctWidth(distPending) }} />
+                        </div>
+                    </div>
+
+                    {/* Thẻ đã cấp lại */}
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thẻ đã cấp lại</span>
+                            <span>
+                                <span className="lost-dist-val">{distReissued}</span>{' '}
+                                <span className="lost-dist-pct">({pct(distReissued)}%)</span>
+                            </span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-purple" style={{ width: pctWidth(distReissued) }} />
+                        </div>
+                    </div>
+
+                    {/* Thất bại */}
+                    <div className="lost-dist-item">
+                        <div className="lost-dist-label-row">
+                            <span>Thất bại</span>
+                            <span>
+                                <span className="lost-dist-val">{distFailed}</span>{' '}
+                                <span className="lost-dist-pct">({pct(distFailed)}%)</span>
+                            </span>
+                        </div>
+                        <div className="lost-dist-track">
+                            <div className="lost-dist-fill bg-red" style={{ width: pctWidth(distFailed) }} />
                         </div>
                     </div>
                 </div>
@@ -318,8 +379,8 @@ export default function CasualCardLogPage() {
                             <option value="Đang gửi xe">Đang gửi xe</option>
                             <option value="Chờ thanh toán">Chờ thanh toán</option>
                             <option value="Hoàn thành">Hoàn thành</option>
-                            <option value="Mất thẻ">Mất thẻ</option>
-                            <option value="Đã hủy">Đã hủy</option>
+                            <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
+                            <option value="Thất bại">Thất bại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
@@ -509,9 +570,8 @@ export default function CasualCardLogPage() {
                                         <button
                                             key={index}
                                             type="button"
-                                            className={`page-btn ${page === currentPage ? 'active' : ''} ${page === '...' ? 'dots' : ''}`}
-                                            disabled={page === '...'}
-                                            onClick={() => page !== '...' && handlePageChange(page)}
+                                            className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                                            onClick={() => handlePageChange(page)}
                                         >
                                             {page}
                                         </button>

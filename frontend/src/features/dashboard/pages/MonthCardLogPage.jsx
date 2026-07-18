@@ -1,7 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { getMonthCardLogs } from '../../../service/monthCardApi';
 
-export default function MonthCardLogPage() {
+function formatVND(amount) {
+    const num = Number(amount);
+    if (amount === null || amount === undefined || isNaN(num)) return '---';
+    const formatted = new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+        maximumFractionDigits: 0,
+    }).format(num);
+    return formatted.replace('₫', 'đ');
+}
+
+function parseAmount(amountStr) {
+    if (!amountStr) return 0;
+    if (typeof amountStr === 'number') return amountStr;
+    const cleanStr = String(amountStr).replace(/[^0-9]/g, '');
+    return parseInt(cleanStr, 10) || 0;
+}
+
+function filterRowsByTime(rows, mode, dateStr) {
+    if (!dateStr) return rows;
+    return rows.filter((r) => {
+        const t = r.timestamp || r.created_at || r.time || r.date || r.reported_at;
+        if (!t) return false;
+
+        let entry;
+        const strT = String(t).trim();
+        if (strT.includes('/')) {
+            // Find the part that contains slashes (the date part)
+            const datePart = strT.split(' ').find(p => p.includes('/')) || strT;
+            const parts = datePart.split('/');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) {
+                    // YYYY/MM/DD
+                    entry = new Date(`${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`);
+                } else {
+                    // DD/MM/YYYY
+                    entry = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+                }
+            } else {
+                entry = new Date(t);
+            }
+        } else {
+            entry = new Date(t);
+        }
+
+        if (isNaN(entry.getTime())) return false;
+        const entryDateVN = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(entry);
+        if (mode === 'day') {
+            return entryDateVN === dateStr;
+        }
+        return entryDateVN.slice(0, 7) === dateStr;
+    });
+}
+
+export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, refreshTrigger }) {
     const [allLogs, setAllLogs] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -22,7 +76,14 @@ export default function MonthCardLogPage() {
     const fetchLogs = async () => {
         try {
             setLoading(true);
-            const data = await getMonthCardLogs();
+            let data = await getMonthCardLogs();
+            if (data) {
+                data = data.map(log => ({
+                    ...log,
+                    status: log.status === 'Thành công' ? 'Hoàn thành' : log.status,
+                    type: log.type === 'Gia hạn nối tiếp' ? 'Gia hạn' : log.type
+                }));
+            }
             setAllLogs(data || []);
             setLogs(data || []);
             setError(null);
@@ -36,34 +97,47 @@ export default function MonthCardLogPage() {
 
     useEffect(() => {
         fetchLogs();
-    }, []);
+    }, [refreshTrigger]);
 
     const handleFilter = () => {
-        let filtered = allLogs.filter((log) => {
-            const matchesSearch =
-                (log.plate || '').toLowerCase().includes(search.toLowerCase()) ||
-                (log.owner || '').toLowerCase().includes(search.toLowerCase());
+        let result = allLogs;
 
-            const matchesType = typeFilter === 'Tất cả' || log.type === typeFilter;
-            const matchesStatus = statusFilter === 'Tất cả' || log.status === statusFilter;
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            result = result.filter(
+                (log) =>
+                    (log.plate || '').toLowerCase().includes(q) ||
+                    (log.owner || '').toLowerCase().includes(q)
+            );
+        }
 
-            let matchesDate = true;
-            if (dateFrom) {
-                const from = new Date(dateFrom);
-                from.setHours(0, 0, 0, 0);
+        if (typeFilter !== 'Tất cả') {
+            result = result.filter((log) => log.type === typeFilter);
+        }
+
+        if (statusFilter !== 'Tất cả') {
+            result = result.filter((log) => log.status === statusFilter);
+        }
+
+        if (dateFrom) {
+            const from = new Date(dateFrom);
+            from.setHours(0, 0, 0, 0);
+            result = result.filter((log) => {
                 const logDate = new Date(log.timestamp || log.created_at);
-                if (logDate < from) matchesDate = false;
-            }
-            if (dateTo) {
-                const to = new Date(dateTo);
-                to.setHours(23, 59, 59, 999);
-                const logDate = new Date(log.timestamp || log.created_at);
-                if (logDate > to) matchesDate = false;
-            }
+                return logDate >= from;
+            });
+        }
 
-            return matchesSearch && matchesType && matchesStatus && matchesDate;
-        });
-        setLogs(filtered);
+        if (dateTo) {
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            result = result.filter((log) => {
+                const logDate = new Date(log.timestamp || log.created_at);
+                return logDate <= to;
+            });
+        }
+
+        setLogs(result);
         setCurrentPage(1);
     };
 
@@ -80,10 +154,25 @@ export default function MonthCardLogPage() {
         }
     };
 
-    const totalTransactions = allLogs.length;
-    const renewals = allLogs.filter(log => log.type === 'Gia hạn').length;
-    const newRegistrations = allLogs.filter(log => log.type === 'Cấp mới').length;
-    const reissues = allLogs.filter(log => log.type === 'Thẻ đã cấp lại').length;
+    const kpiFilteredLogs = useMemo(() => {
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        return filterRowsByTime(allLogs, kpiTimeFilter, dateStr);
+    }, [allLogs, kpiTimeFilter, kpiDate, kpiMonth]);
+
+    const kpiTotalTransactions = kpiFilteredLogs.length;
+    const kpiPending = kpiFilteredLogs.filter(log => log.status === 'Chờ thanh toán').length;
+    const kpiFailed = kpiFilteredLogs.filter(log => log.status === 'Thất bại').length;
+    const kpiRevenue = kpiFilteredLogs
+        .filter(log => log.status === 'Hoàn thành')
+        .reduce((sum, log) => sum + parseAmount(log.amount), 0);
+
+    const distTotal = kpiFilteredLogs.length;
+    const distCompleted = kpiFilteredLogs.filter(log => log.status === 'Hoàn thành').length;
+    const distPending = kpiFilteredLogs.filter(log => log.status === 'Chờ thanh toán').length;
+    const distFailed = kpiFilteredLogs.filter(log => log.status === 'Thất bại').length;
+
+    const pct = (count) => distTotal > 0 ? Math.round((count / distTotal) * 100) : 0;
+    const pctWidth = (count) => `${pct(count)}%`;
 
     const totalPages = Math.ceil(logs.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -97,39 +186,17 @@ export default function MonthCardLogPage() {
 
     const getPageNumbers = () => {
         const pages = [];
-        const start = Math.max(1, currentPage - 2);
-        const end = Math.min(totalPages, currentPage + 2);
-
-        for (let i = start; i <= end; i++) {
-            pages.push(i);
-        }
-
-        if (start > 1) {
-            if (start > 3) {
-                pages.unshift('...');
-                pages.unshift(2);
-                pages.unshift(1);
-            } else if (start === 3) {
-                pages.unshift(2);
-                pages.unshift(1);
-            } else if (start === 2) {
-                pages.unshift(1);
+        if (totalPages <= 3) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            if (currentPage === 1) {
+                pages.push(1, 2, 3);
+            } else if (currentPage === totalPages) {
+                pages.push(totalPages - 2, totalPages - 1, totalPages);
+            } else {
+                pages.push(currentPage - 1, currentPage, currentPage + 1);
             }
         }
-
-        if (end < totalPages) {
-            if (end < totalPages - 2) {
-                pages.push('...');
-                pages.push(totalPages - 1);
-                pages.push(totalPages);
-            } else if (end === totalPages - 2) {
-                pages.push(totalPages - 1);
-                pages.push(totalPages);
-            } else if (end === totalPages - 1) {
-                pages.push(totalPages);
-            }
-        }
-
         return pages;
     };
 
@@ -138,6 +205,7 @@ export default function MonthCardLogPage() {
             {/* Stats Grid */}
             <div className="lost-kpi-container">
                 <div className="lost-kpi-grid">
+                    {/* Ô 1: Tổng giao dịch */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-gray">
@@ -146,47 +214,52 @@ export default function MonthCardLogPage() {
                             <span className="lost-kpi-title">Tổng giao dịch</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value">{loading ? '...' : totalTransactions}</div>
+                            <div className="lost-kpi-value">{loading ? '...' : kpiTotalTransactions}</div>
                             <div className="lost-kpi-footer txt-gray">Ghi nhận giao dịch</div>
                         </div>
                     </div>
 
+                    {/* Ô 2: Chờ thanh toán */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
-                            <div className="lost-kpi-icon-box icon-green">
-                                <span className="material-symbols-outlined">add_card</span>
+                            <div className="lost-kpi-icon-box icon-yellow">
+                                <span className="material-symbols-outlined">pending_actions</span>
                             </div>
-                            <span className="lost-kpi-title">Cấp mới</span>
+                            <span className="lost-kpi-title">Chờ thanh toán</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-green">{loading ? '...' : newRegistrations}</div>
-                            <div className="lost-kpi-footer txt-green">Thẻ đăng ký mới</div>
+                            <div className="lost-kpi-value val-yellow">{loading ? '...' : kpiPending}</div>
+                            <div className="lost-kpi-footer txt-yellow">Giao dịch đang xử lý</div>
                         </div>
                     </div>
 
+                    {/* Ô 3: Thất bại */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
-                            <div className="lost-kpi-icon-box icon-blue">
-                                <span className="material-symbols-outlined">autorenew</span>
+                            <div className="lost-kpi-icon-box icon-red-soft">
+                                <span className="material-symbols-outlined">error</span>
                             </div>
-                            <span className="lost-kpi-title">Gia hạn</span>
+                            <span className="lost-kpi-title">Thất bại</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-blue">{loading ? '...' : renewals}</div>
-                            <div className="lost-kpi-footer txt-blue">Gia hạn vé tháng</div>
+                            <div className="lost-kpi-value val-red">{loading ? '...' : kpiFailed}</div>
+                            <div className="lost-kpi-footer txt-red">Phiên lỗi / sự cố</div>
                         </div>
                     </div>
 
+                    {/* Ô 4: Doanh thu vé tháng */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
-                            <div className="lost-kpi-icon-box icon-red">
-                                <span className="material-symbols-outlined">credit_card</span>
+                            <div className="lost-kpi-icon-box icon-orange">
+                                <span className="material-symbols-outlined">payments</span>
                             </div>
-                            <span className="lost-kpi-title">Thẻ đã cấp lại</span>
+                            <span className="lost-kpi-title">Doanh thu vé tháng</span>
                         </div>
                         <div className="lost-kpi-body">
-                            <div className="lost-kpi-value val-red">{loading ? '...' : reissues}</div>
-                            <div className="lost-kpi-footer txt-red">Cấp lại thẻ</div>
+                            <div className="lost-kpi-value val-orange" style={{ fontSize: '1.1rem' }}>
+                                {loading ? '...' : formatVND(kpiRevenue)}
+                            </div>
+                            <div className="lost-kpi-footer txt-orange">Giao dịch đã hoàn thành</div>
                         </div>
                     </div>
                 </div>
@@ -201,40 +274,43 @@ export default function MonthCardLogPage() {
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
                             <span>Mốc tổng giao dịch</span>
-                            <span><span className="lost-dist-val">{totalTransactions}</span> <span className="lost-dist-pct">(100%)</span></span>
+                            <span><span className="lost-dist-val">{distTotal}</span> <span className="lost-dist-pct">(100%)</span></span>
                         </div>
                         <div className="lost-dist-track">
                             <div className="lost-dist-fill bg-dark" style={{ width: '100%' }}></div>
                         </div>
                     </div>
 
+                    {/* Hoàn thành */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Cấp mới</span>
-                            <span><span className="lost-dist-val">{newRegistrations}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((newRegistrations / totalTransactions) * 100) : 0}%)</span></span>
+                            <span>Hoàn thành</span>
+                            <span><span className="lost-dist-val">{distCompleted}</span> <span className="lost-dist-pct">({pct(distCompleted)}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
-                            <div className="lost-dist-fill bg-green" style={{ width: `${totalTransactions > 0 ? (newRegistrations / totalTransactions) * 100 : 0}%` }}></div>
+                            <div className="lost-dist-fill bg-green" style={{ width: pctWidth(distCompleted) }}></div>
                         </div>
                     </div>
 
+                    {/* Chờ thanh toán */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Gia hạn</span>
-                            <span><span className="lost-dist-val">{renewals}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((renewals / totalTransactions) * 100) : 0}%)</span></span>
+                            <span>Chờ thanh toán</span>
+                            <span><span className="lost-dist-val">{distPending}</span> <span className="lost-dist-pct">({pct(distPending)}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
-                            <div className="lost-dist-fill bg-blue" style={{ width: `${totalTransactions > 0 ? (renewals / totalTransactions) * 100 : 0}%` }}></div>
+                            <div className="lost-dist-fill bg-yellow" style={{ width: pctWidth(distPending) }}></div>
                         </div>
                     </div>
 
+                    {/* Thất bại */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Thẻ đã cấp lại</span>
-                            <span><span className="lost-dist-val">{reissues}</span> <span className="lost-dist-pct">({totalTransactions > 0 ? Math.round((reissues / totalTransactions) * 100) : 0}%)</span></span>
+                            <span>Thất bại</span>
+                            <span><span className="lost-dist-val">{distFailed}</span> <span className="lost-dist-pct">({pct(distFailed)}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
-                            <div className="lost-dist-fill bg-red" style={{ width: `${totalTransactions > 0 ? (reissues / totalTransactions) * 100 : 0}%` }}></div>
+                            <div className="lost-dist-fill bg-red" style={{ width: pctWidth(distFailed) }}></div>
                         </div>
                     </div>
                 </div>
@@ -418,7 +494,7 @@ export default function MonthCardLogPage() {
 
                         {/* Footer */}
                         <div className="lost-table-footer">
-                            <span className="footer-info">Hiển thị {Math.min(startIndex + 1, logs.length)} - {Math.min(startIndex + itemsPerPage, logs.length)} trong số {logs.length} giao dịch</span>
+                            <span className="footer-info">Hiển thị {logs.length > 0 ? startIndex + 1 : 0} - {Math.min(startIndex + itemsPerPage, logs.length)} trong số {logs.length} giao dịch</span>
                             <div className="lost-pagination">
                                 <button
                                     type="button"
@@ -433,9 +509,8 @@ export default function MonthCardLogPage() {
                                     <button
                                         key={index}
                                         type="button"
-                                        className={`page-btn ${page === currentPage ? 'active' : ''} ${page === '...' ? 'dots' : ''}`}
-                                        disabled={page === '...'}
-                                        onClick={() => page !== '...' && handlePageChange(page)}
+                                        className={`page-btn ${page === currentPage ? 'active' : ''}`}
+                                        onClick={() => handlePageChange(page)}
                                     >
                                         {page}
                                     </button>
