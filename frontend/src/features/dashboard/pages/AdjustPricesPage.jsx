@@ -67,12 +67,6 @@ export default function AdjustPricesPage() {
                         Giá theo tháng
                     </button>
                 </div>
-                <div className="mc-action-buttons">
-                    <span style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#f59e0b' }}>shield_lock</span>
-                        Chỉ MANAGER mới được chỉnh sửa
-                    </span>
-                </div>
             </div>
 
             {/* ── SESSION PRICES TAB ── */}
