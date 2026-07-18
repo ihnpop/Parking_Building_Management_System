@@ -1,41 +1,11 @@
-import supabase from "../config/supabaseClient.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
+import { uploadToStorage } from "../helpers/storageHelper.js";
 import { calculateExitFee } from "./feeCalculation.service.js";
-
-// ─── Bucket & folder constants ────────────────────────────────────────────────
-const BUCKET = "parking-images";
-
-/**
- * Upload một file buffer lên Supabase Storage và trả về public URL.
- *
- * @param {Buffer} buffer    - nội dung file (từ multer memoryStorage)
- * @param {string} folder    - thư mục trong bucket, ví dụ "entry/vehicle"
- * @param {string} filename  - tên file gốc
- * @returns {Promise<string>} public URL
- */
-const uploadToStorage = async (buffer, folder, filename) => {
-  const timestamp = Date.now();
-  const safeName = filename.replace(/\s+/g, "_");
-  const storagePath = `${folder}/${timestamp}-${safeName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, buffer, {
-      upsert: false,
-      contentType: "image/*",
-    });
-
-  if (uploadError) throw new Error(`Storage upload error: ${uploadError.message}`);
-
-  // Lấy public URL
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-  return data.publicUrl;
-};
 
 // ─── Check-in service ─────────────────────────────────────────────────────────
 
 /**
- * Xử lý check-in: validate → tìm vehicle → upload ảnh → tạo session.
+ * Xử lý check-in: validate → upload ảnh → tạo session.
  *
  * @param {string}  plateNumber       - biển số xe
  * @param {Express.Multer.File} vehicleImageFile - file ảnh xe (multer)
@@ -70,6 +40,8 @@ export const checkIn = async (plateNumber, vehicleImageFile, plateImageFile) => 
 
   return { success: true, message: "Check in successfully", session };
 };
+
+// ─── Check-out service ────────────────────────────────────────────────────────
 
 /**
  * Xử lý check-out: validate → tìm active session → upload ảnh OUT → tính tiền → cập nhật session.
@@ -120,22 +92,12 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
 
   // Thử tra cứu bảng giá từ Database dựa trên biển số xe
   try {
-    // Tìm thông tin xe để lấy vehicle_type_id
-    const { data: vehicle } = await supabase
-      .from("vehicle")
-      .select("vehicle_type_id")
-      .eq("plate_number", activeSession.plate_number)
-      .maybeSingle();
+    const vehicle = await parkingRepository.findVehicleByPlate(activeSession.plate_number);
 
     if (vehicle?.vehicle_type_id) {
-      // Tìm price_item khớp với loại xe và số giờ
-      const { data: priceItems } = await supabase
-        .from("price_item")
-        .select("price, min_hour, max_hour")
-        .eq("vehicle_type_id", vehicle.vehicle_type_id);
+      const priceItems = await parkingRepository.findPriceItemsByVehicleType(vehicle.vehicle_type_id);
 
       if (priceItems && priceItems.length > 0) {
-        // Tìm khoảng giờ phù hợp
         const matchingItem = priceItems.find(item => {
           const min = Number(item.min_hour) || 0;
           const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
@@ -167,9 +129,11 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     success: true,
     message: "Check out successfully",
     session: updatedSession,
-    fee
+    fee,
   };
 };
+
+// ─── openGateFree service ─────────────────────────────────────────────────────
 
 /**
  * Mở barie trực tiếp/miễn phí khi estimated_fee = 0 (vé tháng còn hạn hoặc thời gian gửi quá ngắn)
@@ -184,113 +148,77 @@ export const openGateFree = async ({ sessionId, staffId }) => {
   }
 
   // 1. Lấy thông tin session
-  const { data: session, error: sessionErr } = await supabase
-    .from("parking_sessions")
-    .select("*")
-    .eq("session_id", sessionId)
-    .single();
-
-  if (sessionErr || !session) {
-    throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
-  }
+  const session = await parkingRepository.getSessionById(sessionId);
 
   if (session.status !== "Đang gửi xe") {
-    throw Object.assign(new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể mở cổng ra trực tiếp.`), { statusCode: 400 });
+    throw Object.assign(
+      new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể mở cổng ra trực tiếp.`),
+      { statusCode: 400 }
+    );
   }
 
   // 2. Tính lại phí để đảm bảo an toàn (fee = 0)
   const feeResult = await calculateExitFee({ plate_number: session.plate_number });
   if (feeResult.estimated_fee > 0) {
-    throw Object.assign(new Error(`Phiên gửi xe này yêu cầu thanh toán ${feeResult.estimated_fee} VNĐ. Không thể cho ra miễn phí.`), { statusCode: 400 });
+    throw Object.assign(
+      new Error(`Phiên gửi xe này yêu cầu thanh toán ${feeResult.estimated_fee} VNĐ. Không thể cho ra miễn phí.`),
+      { statusCode: 400 }
+    );
   }
 
   const exitTime = new Date().toISOString();
 
   // 3. Cập nhật parking_sessions thành Hoàn thành
-  const { data: updatedSession, error: updateErr } = await supabase
-    .from("parking_sessions")
-    .update({
-      exit_time: exitTime,
-      final_fee: 0,
-      status: "Hoàn thành",
-      staff_out_id: staffId || null
-    })
-    .eq("session_id", sessionId)
-    .select()
-    .single();
-
-  if (updateErr) {
-    throw new Error("Lỗi cập nhật phiên gửi xe: " + updateErr.message);
-  }
+  const updatedSession = await parkingRepository.updateSessionById(sessionId, {
+    exit_time: exitTime,
+    final_fee: 0,
+    status: "Hoàn thành",
+    staff_out_id: staffId || null,
+  });
 
   // 4. Giải phóng thẻ tháng / thẻ lượt tương ứng
   if (session.card_id) {
-    // Hủy đăng ký thẻ hoạt động (nếu là thẻ lượt)
-    const { data: activeReg } = await supabase
-      .from("card_registrations")
-      .select("registration_id")
-      .eq("card_id", session.card_id)
-      .eq("status", "Hoạt động")
-      .maybeSingle();
+    const activeReg = await parkingRepository.findActiveCardRegistration(session.card_id);
 
     if (activeReg && feeResult.ticket_type === "Thẻ lượt") {
-      await supabase
-        .from("card_registrations")
-        .update({ status: "Không hoạt động" })
-        .eq("registration_id", activeReg.registration_id);
-
-      // Trả trạng thái thẻ về Đang chờ
-      await supabase
-        .from("card")
-        .update({ status: "Đang chờ" })
-        .eq("card_id", session.card_id);
+      await parkingRepository.deactivateCardRegistration(activeReg.registration_id);
+      await parkingRepository.resetCardStatus(session.card_id);
     }
   }
 
   // 5. Ghi nhận log xe ra
-  const { data: entryLog } = await supabase
-    .from("entry_exit_log")
-    .select("building_id, parking_id, gate_id")
-    .eq("session_id", sessionId)
-    .eq("direction", "Xe vào")
-    .maybeSingle();
+  const entryLog = await parkingRepository.getEntryLog(sessionId);
 
   let exitGateId = null;
   if (entryLog?.parking_id) {
-    const { data: gates } = await supabase
-      .from("gate")
-      .select("gate_id")
-      .eq("parking_id", entryLog.parking_id)
-      .eq("gate_type", "Cổng ra")
-      .limit(1);
-    if (gates?.length > 0) exitGateId = gates[0].gate_id;
+    exitGateId = await parkingRepository.findExitGate(entryLog.parking_id);
   }
 
   if (entryLog?.building_id && entryLog?.parking_id && exitGateId) {
-    await supabase
-      .from("entry_exit_log")
-      .insert({
-        session_id: sessionId,
-        vehicle_id: session.vehicle_id,
-        card_id: session.card_id || null,
-        building_id: entryLog.building_id,
-        parking_id: entryLog.parking_id,
-        gate_id: exitGateId,
-        staff_id: staffId || null,
-        direction: "Xe ra",
-        event_time: exitTime,
-        vehicle_type_id: feeResult.vehicle?.vehicle_type_id || null,
-        plate_number: session.plate_number,
-        ticket_type: feeResult.ticket_type,
-        applied_price: 0,
-        note: feeResult.ticket_type === "Thẻ tháng" ? "Xe tháng ra cổng (Miễn phí)" : "Xe lượt ra cổng dưới thời gian tính phí"
-      });
+    await parkingRepository.insertExitLog({
+      session_id: sessionId,
+      vehicle_id: session.vehicle_id,
+      card_id: session.card_id || null,
+      building_id: entryLog.building_id,
+      parking_id: entryLog.parking_id,
+      gate_id: exitGateId,
+      staff_id: staffId || null,
+      direction: "Xe ra",
+      event_time: exitTime,
+      vehicle_type_id: feeResult.vehicle?.vehicle_type_id || null,
+      plate_number: session.plate_number,
+      ticket_type: feeResult.ticket_type,
+      applied_price: 0,
+      note:
+        feeResult.ticket_type === "Thẻ tháng"
+          ? "Xe tháng ra cổng (Miễn phí)"
+          : "Xe lượt ra cổng dưới thời gian tính phí",
+    });
   }
 
   return {
     success: true,
     message: "Cho xe ra bãi thành công, mở cổng ra.",
-    session: updatedSession
+    session: updatedSession,
   };
 };
-

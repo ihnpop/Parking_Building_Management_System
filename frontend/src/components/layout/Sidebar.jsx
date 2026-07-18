@@ -119,7 +119,19 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                {/* 4. Nhật ký vận hành (Chỉ Manager) */}
+                {/* 4. Điều chỉnh giá (Chỉ Manager) */}
+                {computedRole === 'MANAGER' && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'adjust-prices' ? 'active' : ''}`}
+                        onClick={() => onTabChange('adjust-prices')}
+                    >
+                        <span className="material-symbols-outlined">price_change</span>
+                        {!isCollapsed && <span>Điều chỉnh giá</span>}
+                    </button>
+                )}
+
+                {/* 5. Nhật ký vận hành (Chỉ Manager) */}
                 {computedRole === 'MANAGER' && (
                     <button
                         type="button"

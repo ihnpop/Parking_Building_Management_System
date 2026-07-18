@@ -276,7 +276,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                     console.error("Lỗi parse note:", e);
                 }
                 setPendingNewExpiry(newExpiry);
-                
+
                 // Đồng bộ phương thức thanh toán và chuyển bước tương ứng
                 setPaymentMethod(info.pendingPayment.paymentMethod);
                 if (info.pendingPayment.paymentMethod === 'cash') {
@@ -351,6 +351,10 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                 paymentMethod,
             });
 
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('monthCardLogsUpdated'));
+            }
+
             if (paymentMethod === 'vnpay') {
                 if (result.payUrl) {
                     window.location.href = result.payUrl;
@@ -379,6 +383,9 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
         try {
             await confirmRenewalCash(pendingOrderCode);
             setConfirmSuccess(true);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('monthCardLogsUpdated'));
+            }
             if (onSuccess) setTimeout(onSuccess, 1800);
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Lỗi xác nhận tiền mặt.';
@@ -395,8 +402,8 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                 {/* Header */}
                 <div className="renew-modal-header">
                     <h2>
-                        {step === 'cash-pending' 
-                            ? 'Xác nhận thu tiền mặt' 
+                        {step === 'cash-pending'
+                            ? 'Xác nhận thu tiền mặt'
                             : step === 'vnpay-pending'
                                 ? 'Thanh toán VNPay đang chờ'
                                 : 'Gia hạn Vé tháng'
