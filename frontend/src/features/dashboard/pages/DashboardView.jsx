@@ -1,4 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+
+/** Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam */
+function todayVN() {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+}
+/** Trả về chuỗi yyyy-MM theo timezone Việt Nam */
+function thisMonthVN() {
+    return todayVN().slice(0, 7);
+}
 import DashboardShell from '../../../components/layout/DashboardShell';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -62,8 +71,14 @@ export default function DashboardView() {
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
+
+    // ── KPI Time Filter (lifted from CasualCardLogPage) ───────────────────
+    const [kpiTimeFilter, setKpiTimeFilter] = useState('day');
+    const [kpiDate, setKpiDate] = useState(todayVN);
+    const [kpiMonth, setKpiMonth] = useState(thisMonthVN);
     const [selectedPeriod, setSelectedPeriod] = useState('30 ngày qua');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
 
     // Modal state
@@ -126,6 +141,7 @@ export default function DashboardView() {
 
     const handleRefresh = () => {
         setIsRefreshing(true);
+        setRefreshTrigger(prev => prev + 1);
         loadData();
     };
 
@@ -173,17 +189,58 @@ export default function DashboardView() {
             {/* 2. VIEW NHẬT KÝ VẬN HÀNH */}
             {currentView === 'log-management' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 24px 24px 24px' }}>
-                    <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '0' }}>
-                        {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
-                        {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => setActiveLogTab('Thẻ lượt'))}
-                        {renderTabButton('Nhật ký vé tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
-                        {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f0f0f0', marginTop: '0', flexWrap: 'nowrap' }}>
+                        {/* Tab Menu - Không cho phép xuống dòng */}
+                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
+                            {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => setActiveLogTab('Thẻ lượt'))}
+                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
+                            {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
+                        </div>
+                        {/* KPI Time Filter – Áp dụng cho tất cả các tab */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '4px', flexShrink: 0 }}>
+                            <div className="kpi-seg-group">
+                                <button
+                                    type="button"
+                                    className={`kpi-seg-btn ${kpiTimeFilter === 'day' ? 'active' : ''}`}
+                                    onClick={() => setKpiTimeFilter('day')}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: 4 }}>today</span>
+                                    Theo ngày
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`kpi-seg-btn ${kpiTimeFilter === 'month' ? 'active' : ''}`}
+                                    onClick={() => setKpiTimeFilter('month')}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: 4 }}>calendar_month</span>
+                                    Theo tháng
+                                </button>
+                            </div>
+                            {kpiTimeFilter === 'day' ? (
+                                <input
+                                    type="date"
+                                    className="kpi-date-picker"
+                                    style={{ width: '160px' }}
+                                    value={kpiDate}
+                                    onChange={(e) => setKpiDate(e.target.value)}
+                                />
+                            ) : (
+                                <input
+                                    type="month"
+                                    className="kpi-date-picker"
+                                    style={{ width: '160px' }}
+                                    value={kpiMonth}
+                                    onChange={(e) => setKpiMonth(e.target.value)}
+                                />
+                            )}
+                        </div>
                     </div>
                     <div style={{ marginTop: '5px' }}>
-                        {activeLogTab === 'Quẹt thẻ' && <LostCardLogPage />}
-                        {activeLogTab === 'Thẻ lượt' && <CasualCardLogPage />}
-                        {activeLogTab === 'Vé tháng' && <MonthCardLogPage />}
-                        {activeLogTab === 'Đăng nhập' && <LoginLogPage />}
+                        {activeLogTab === 'Quẹt thẻ' && <LostCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} />}
+                        {activeLogTab === 'Thẻ lượt' && <CasualCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} />}
+                        {activeLogTab === 'Vé tháng' && <MonthCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} refreshTrigger={refreshTrigger} />}
+                        {activeLogTab === 'Đăng nhập' && <LoginLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} />}
                     </div>
                 </div>
             )}

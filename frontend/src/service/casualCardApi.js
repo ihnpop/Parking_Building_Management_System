@@ -55,6 +55,36 @@ export function formatDateTimeVN(dateValue) {
     }
 }
 
+export function formatDateTimeVNSplit(dateValue) {
+    if (!dateValue) return null;
+    try {
+        let val = dateValue;
+        if (typeof val === 'string') {
+            val = val.trim().replace(' ', 'T');
+            const hasTimezone = val.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(val);
+            if (!hasTimezone && val.includes('T')) val = val + 'Z';
+        }
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return null;
+        
+        const time = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const date = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return { time, date };
+    } catch {
+        return null;
+    }
+}
+
 /** Tính thời gian gửi xe (entry → exit) */
 export function computeDuration(entryTime, exitTime) {
     if (!entryTime || !exitTime) return '---';
@@ -111,20 +141,28 @@ export async function getCasualTotalRevenue() {
  */
 export function mapSessionToRow(session) {
     return {
-        session_id:       session.session_id || '',
-        cardCode:         session.cardCode   || session.card?.code || '---',
-        plate:            session.plate      || session.plate_number || '---',
-        vehicleType:      session.vehicleType || session.vehicle?.vehicle_type?.name || '---',
-        entryTime:        session.entryTime  || session.entry_time || null,
-        exitTime:         session.exitTime   || session.exit_time  || null,
+        session_id: session.session_id || '',
+        cardCode:   session.cardCode || session.card?.code || '---',
+        plate:      session.plate || session.plate_number || '---',
+        vehicleType: session.vehicleType || session.vehicle?.vehicle_type?.name || '---',
+        entryTime:  session.entryTime || session.entry_time || null,
+        exitTime:   session.exitTime || session.exit_time || null,
         entryTimeDisplay: session.entryTimeDisplay || formatDateTimeVN(session.entry_time),
         exitTimeDisplay:  session.exitTimeDisplay  || formatDateTimeVN(session.exit_time),
-        duration:         session.duration   || computeDuration(session.entry_time, session.exit_time),
-        fee:              session.fee        ?? session.final_fee ?? session.estimated_fee ?? null,
-        feeDisplay:       session.feeDisplay || '---',
-        status:           session.status     || '---',
-        entryGate:        session.entryGate  || session.entry_gate?.name || '---',
-        exitGate:         session.exitGate   || session.exit_gate?.name  || '---',
-        staffIn:          session.staffIn    || session.staff_in?.full_name || '---',
+        entryTimeSplit: formatDateTimeVNSplit(session.entry_time),
+        exitTimeSplit:  formatDateTimeVNSplit(session.exit_time),
+        duration: session.duration || computeDuration(session.entry_time, session.exit_time),
+        fee: session.fee ?? session.final_fee ?? session.estimated_fee ?? null,
+        feeDisplay: session.feeDisplay || (
+            session.exit_time
+                ? formatCasualVND(session.final_fee ?? session.estimated_fee)
+                : (session.estimated_fee ? formatCasualVND(session.estimated_fee) + ' (ước tính)' : '---')
+        ),
+        paymentMethod: session.payment?.payment_method || '---',
+        paymentInfo:   session.payment || null,
+        status:    session.status || '---',
+        entryGate: session.entryGate || session.entry_gate?.name || '---',
+        exitGate:  session.exitGate  || session.exit_gate?.name  || '---',
+        staffIn:   session.staffIn   || session.staff_in?.full_name || '---',
     };
 }
