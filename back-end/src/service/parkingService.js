@@ -1,6 +1,6 @@
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import { uploadToStorage } from "../helpers/storageHelper.js";
-import { calculateExitFee } from "./feeCalculation.service.js";
+import { calculateExitFee } from "./feeCalculationService.js";
 
 // ─── Check-in service ─────────────────────────────────────────────────────────
 

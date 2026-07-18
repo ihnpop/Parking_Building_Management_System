@@ -1,7 +1,7 @@
 import * as gateService from "../service/gateService.js";
 import * as ocrService from "../service/ocr.service.js";
 import supabase from "../config/supabaseClient.js";
-import { calculateExitFee } from "../service/feeCalculation.service.js";
+import { calculateExitFee } from "../service/feeCalculationService.js";
 
 const BUCKET = "parking-images";
 
