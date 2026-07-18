@@ -306,14 +306,31 @@ FROM pt
 CROSS JOIN vt
 JOIN (
     VALUES
-        ('Xe máy', 0, 2, 5000::numeric),
-        ('Xe máy', 3, 8, 10000::numeric),
-        ('Xe máy', 9, NULL, 20000::numeric),
 
-        ('Ô tô', 0, 2, 30000::numeric),
-        ('Ô tô', 3, 8, 60000::numeric),
-        ('Ô tô', 9, NULL, 120000::numeric)
-) AS x(vt_name, min_hour, max_hour, price)
+    -- ==========================
+    -- Xe máy
+    -- ==========================
+
+    ('Xe máy', 0.00::numeric, 0.50::numeric,      0::numeric),
+    ('Xe máy', 0.50::numeric, 2.00::numeric,   5000::numeric),
+    ('Xe máy', 2.00::numeric, 8.00::numeric,  10000::numeric),
+    ('Xe máy', 8.00::numeric, NULL,           20000::numeric),
+
+    -- ==========================
+    -- Ô tô
+    -- ==========================
+
+    ('Ô tô',    0.00::numeric, 0.50::numeric,      0::numeric),
+    ('Ô tô',    0.50::numeric, 2.00::numeric,  30000::numeric),
+    ('Ô tô',    2.00::numeric, 8.00::numeric,  60000::numeric),
+    ('Ô tô',    8.00::numeric, NULL,          120000::numeric)
+
+) AS x(
+    vt_name,
+    min_hour,
+    max_hour,
+    price
+)
 ON vt.name = x.vt_name;
 
 -- ============================================================

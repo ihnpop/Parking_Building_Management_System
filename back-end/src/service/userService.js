@@ -1,4 +1,4 @@
-import supabaseAdmin from "../config/supabaseAdmin.js";
+import * as userRepository from "../repositories/userRepository.js";
 
 /**
  * Tạo lời mời cho staff mới:
@@ -24,21 +24,18 @@ export const inviteStaff = async ({
     redirectTo,
 }) => {
     // 1. Gửi invite qua Supabase Auth
-    const { data: authData, error: authError } =
-        await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-            redirectTo, // URL trang custom đặt password trong frontend của bạn
-        });
-
-    if (authError) {
+    let authData;
+    try {
+        authData = await userRepository.inviteUserByEmail(email, redirectTo);
+    } catch (authError) {
         throw new Error(`Lỗi khi tạo invite: ${authError.message}`);
     }
 
     const userId = authData.user.id;
 
     // 2. Insert vào bảng profiles
-    const { data: profileData, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .insert({
+    try {
+        return await userRepository.createProfile({
             id: userId,
             role_id,
             username,
@@ -47,15 +44,14 @@ export const inviteStaff = async ({
             phone,
             status: "Hoạt động",
             building_id,
-        })
-        .select()
-        .single();
-
-    if (profileError) {
+        });
+    } catch (profileError) {
         // Nếu insert profile lỗi, nên rollback user vừa tạo trong auth để tránh user "rác"
-        await supabaseAdmin.auth.admin.deleteUser(userId);
+        try {
+            await userRepository.deleteAuthUser(userId);
+        } catch (rollbackError) {
+            console.error("Lỗi rollback user:", rollbackError);
+        }
         throw new Error(`Lỗi khi tạo profile: ${profileError.message}`);
     }
-
-    return profileData;
 };

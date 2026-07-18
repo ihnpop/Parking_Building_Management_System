@@ -117,8 +117,8 @@ CREATE TABLE public.price_table (
 CREATE TABLE public.price_item (
   price_table_id uuid NOT NULL,
   vehicle_type_id uuid NOT NULL,
-  min_hour integer NOT NULL,
-  max_hour integer,
+  min_hour numeric NOT NULL,
+  max_hour numeric,
   price numeric NOT NULL,
   price_item_id uuid NOT NULL DEFAULT gen_random_uuid(),
   CONSTRAINT price_item_pkey PRIMARY KEY (price_item_id),
