@@ -12,6 +12,7 @@ import LoginLogPage from './LoginLogPage';
 import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
 import SystemSettingsPage from './SystemSettingsPage';
+import AdjustPricesPage from './AdjustPricesPage';
 
 // Import Modal chi tiết doanh thu
 import RevenueTodayModal from '../components/RevenueTodayModal';
@@ -205,6 +206,13 @@ export default function DashboardView() {
             {currentView === 'revenue-traffic' && (
                 <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
                     <RevenueTrafficPage />
+                </div>
+            )}
+
+            {/* 6. VIEW ĐIỀU CHỈNH GIÁ (Chỉ Manager) */}
+            {currentView === 'adjust-prices' && (
+                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
+                    <AdjustPricesPage />
                 </div>
             )}
 
