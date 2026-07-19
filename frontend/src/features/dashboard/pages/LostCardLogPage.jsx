@@ -127,15 +127,39 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     const [showReissueForm, setShowReissueForm] = useState(false);
     const [newRfidCode, setNewRfidCode] = useState('');
     const [reissueStartDate, setReissueStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [reissuePayMethod, setReissuePayMethod] = useState('vnpay'); // 'vnpay' | 'cash' | 'defer'
+    const [showCashPanel, setShowCashPanel] = useState(false);
+    const [cashPanelData, setCashPanelData] = useState({ orderCode: '', amount: 50000 });
+    const [cashConfirmSuccess, setCashConfirmSuccess] = useState(false);
 
     useEffect(() => {
-        // Reset form cấp lại thẻ khi đóng modal hoặc đổi thẻ đang xem
-        setShowReissueForm(false);
-        setNewRfidCode('');
-        setReissueStartDate(new Date().toISOString().split('T')[0]);
+        if (editingCard?.pendingPayment) {
+            setShowReissueForm(true);
+            setNewRfidCode(editingCard.pendingPayment.newCode || '');
+            setReissuePayMethod(editingCard.pendingPayment.paymentMethod);
+            if (editingCard.pendingPayment.paymentMethod === 'cash') {
+                setShowCashPanel(true);
+                setCashPanelData({
+                    orderCode: editingCard.pendingPayment.orderCode,
+                    amount: editingCard.pendingPayment.amount
+                });
+            } else {
+                setShowCashPanel(false);
+            }
+            setCashConfirmSuccess(false);
+        } else {
+            // Reset form cấp lại thẻ khi đóng modal hoặc đổi thẻ đang xem
+            setShowReissueForm(false);
+            setNewRfidCode('');
+            setReissueStartDate(new Date().toISOString().split('T')[0]);
+            setReissuePayMethod('vnpay');
+            setShowCashPanel(false);
+            setCashPanelData({ orderCode: '', amount: 50000 });
+            setCashConfirmSuccess(false);
+        }
     }, [editingCard]);
 
-    const handleReissueCard = async () => {
+    const handleReissueCard = async (paymentMethod = 'vnpay') => {
         if (!newRfidCode.trim()) {
             showToast('Vui lòng nhập mã thẻ RFID mới!', 'error');
             return;
@@ -160,24 +184,62 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 {
                     cardId: editingCard.card_id,
                     newCode: newRfidCode.trim(),
-                    reportId: editingCard.raw_report_id
+                    reportId: editingCard.raw_report_id,
+                    paymentMethod
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            showToast('Đã cấp lại thẻ RFID thành công!', 'success');
+            if (paymentMethod === 'defer') {
+                showToast('Đã cấp lại thẻ, phí sẽ thu sau!', 'success');
+                setEditingCard(null);
+                await fetchLostCards();
+                return;
+            }
 
-            // res.data.data.payUrl theo shape { success, data: { card, payUrl, ... } }
+            if (paymentMethod === 'cash') {
+                showToast('Đã khởi tạo yêu cầu thu tiền mặt thành công!', 'success');
+                const orderCode = res.data?.data?.order_code || `REISSUE-${Date.now()}`;
+                setCashPanelData({ orderCode, amount: 50000 });
+                setShowCashPanel(true);
+                setCashConfirmSuccess(false);
+                await fetchLostCards();
+                return;
+            }
+
+            // VNPay
+            showToast('Đã khởi tạo giao dịch thanh toán VNPay!', 'success');
             const payUrl = res.data?.data?.payUrl;
             if (payUrl) {
                 window.location.href = payUrl;
             }
-
-            setEditingCard(null);
             await fetchLostCards();
+            setEditingCard(null);
         } catch (err) {
             console.error(err);
             const message = err.response?.data?.message || err.message || 'Không thể cấp lại thẻ';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleConfirmReissueCash = async () => {
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            await axios.post(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/confirm-reissue-cash/${cashPanelData.orderCode}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setCashConfirmSuccess(true);
+            showToast('Xác nhận thu tiền mặt thành công!', 'success');
+            await fetchLostCards();
+            setTimeout(() => setEditingCard(null), 1500);
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.message || 'Không thể xác nhận thu tiền mặt';
             showToast(message, 'error');
         } finally {
             setActionLoading(false);
@@ -933,6 +995,21 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 </div>
 
                                 <div className="lost-form-group">
+                                    <label>Phí cấp lại</label>
+                                    <input
+                                        type="text"
+                                        value="50.000 đ"
+                                        disabled
+                                        style={{
+                                            fontWeight: '600',
+                                            color: '#b45309',
+                                            background: '#fffbeb',
+                                            border: '1px solid #fde68a'
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="lost-form-group">
                                     <label>Trạng thái hiện tại</label>
                                     <div>
                                         <span className={`status-badge-lost ${getStatusClass(editingCard.status)}`}>
@@ -1032,77 +1109,251 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                         style={{ background: '#0284c7', borderColor: '#0284c7' }}
                                                         onClick={() => setShowReissueForm(true)}
                                                     >
-                                                        Cấp lại thẻ mới (Phí 50.000đ)
+                                                        Tiến hành cấp lại thẻ mới
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                    <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-                                                        Cấp lại RFID cho thẻ tháng
-                                                    </h3>
-                                                    <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                                                        Mã RFID mới sẽ được ghi đè trực tiếp lên thẻ cũ. Hợp đồng và đăng ký xe giữ nguyên.
-                                                    </p>
+                                                    {editingCard.pendingPayment && reissuePayMethod === 'vnpay' ? (
+                                                        /* ── Panel VNPay đang chờ thanh toán ── */
+                                                        <div>
+                                                            <div style={{
+                                                                background: '#fffbeb', border: '1px solid #fde68a',
+                                                                borderRadius: '10px', padding: '16px', marginBottom: '16px'
+                                                            }}>
+                                                                <p style={{ fontWeight: 600, color: '#b45309', fontSize: '0.9rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>credit_card</span>
+                                                                    Đang chờ thanh toán qua VNPay
+                                                                </p>
+                                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.85rem' }}>
+                                                                    <span style={{ color: '#64748b' }}>Mã giao dịch</span>
+                                                                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{editingCard.pendingPayment.orderCode}</span>
+                                                                    <span style={{ color: '#64748b' }}>Số tiền</span>
+                                                                    <span style={{ fontWeight: 700, color: '#b45309' }}>50.000 đ</span>
+                                                                    <span style={{ color: '#64748b' }}>Mã thẻ mới</span>
+                                                                    <span style={{ color: '#1e293b' }}>{newRfidCode}</span>
+                                                                    <span style={{ color: '#64748b' }}>Biển số xe</span>
+                                                                    <span style={{ fontWeight: 600, color: '#0284c7' }}>{editingCard.plate_number || editingCard.plate || '---'}</span>
+                                                                </div>
+                                                            </div>
 
-                                                    <div className="lost-form-group">
-                                                        <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
-                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Nhập hoặc quét mã thẻ RFID mới..."
-                                                                value={newRfidCode}
-                                                                onChange={(e) => setNewRfidCode(e.target.value)}
-                                                                style={{ flex: 1 }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                title="Tự động sinh mã RFID ngẫu nhiên"
-                                                                onClick={() => {
-                                                                    const rand = `MONTH${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0')}`;
-                                                                    setNewRfidCode(rand);
-                                                                }}
-                                                                style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '4px',
-                                                                    padding: '8px 12px',
-                                                                    background: '#f1f5f9',
-                                                                    border: '1px solid #cbd5e1',
-                                                                    borderRadius: '8px',
-                                                                    cursor: 'pointer',
-                                                                    fontSize: '13px',
-                                                                    color: '#475569',
-                                                                    whiteSpace: 'nowrap',
-                                                                    fontWeight: '500',
-                                                                    transition: 'all 0.15s'
-                                                                }}
-                                                                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; }}
-                                                                onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
-                                                            >
-                                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shuffle</span>
-                                                                Tự động sinh
-                                                            </button>
+                                                            <div style={{ display: 'flex', gap: '10px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    style={{
+                                                                        flex: 1, padding: '10px', borderRadius: '8px',
+                                                                        background: '#f8fafc', border: '1px solid #cbd5e1',
+                                                                        color: '#64748b', cursor: 'pointer', fontWeight: 500,
+                                                                        fontSize: '0.9rem'
+                                                                    }}
+                                                                    onClick={() => setEditingCard(null)}
+                                                                >
+                                                                    Để sau
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    style={{
+                                                                        flex: 2, padding: '10px', borderRadius: '8px',
+                                                                        background: '#f97316', color: '#fff', border: 'none',
+                                                                        cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                                                    }}
+                                                                    onClick={() => {
+                                                                        if (editingCard.pendingPayment.payUrl) {
+                                                                            window.location.href = editingCard.pendingPayment.payUrl;
+                                                                        }
+                                                                    }}
+                                                                    disabled={!editingCard.pendingPayment.payUrl}
+                                                                >
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>open_in_new</span>
+                                                                    Tiếp tục thanh toán VNPay
+                                                                </button>
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    ) : showCashPanel ? (
+                                                        /* ── Panel xác nhận thu tiền mặt ── */
+                                                        <div>
+                                                            <div style={{
+                                                                background: '#f0fdf4', border: '1px solid #86efac',
+                                                                borderRadius: '10px', padding: '16px', marginBottom: '16px'
+                                                            }}>
+                                                                <p style={{ fontWeight: 600, color: '#166534', fontSize: '0.9rem', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>payments</span>
+                                                                    Đang chờ xác nhận thu tiền mặt
+                                                                </p>
+                                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.85rem' }}>
+                                                                    <span style={{ color: '#64748b' }}>Mã giao dịch</span>
+                                                                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{cashPanelData.orderCode}</span>
+                                                                    <span style={{ color: '#64748b' }}>Số tiền</span>
+                                                                    <span style={{ fontWeight: 700, color: '#166534' }}>50.000 đ</span>
+                                                                    <span style={{ color: '#64748b' }}>Mã thẻ mới</span>
+                                                                    <span style={{ color: '#1e293b' }}>{newRfidCode}</span>
+                                                                    <span style={{ color: '#64748b' }}>Biển số xe</span>
+                                                                    <span style={{ fontWeight: 600, color: '#0284c7' }}>{editingCard.plate_number || editingCard.plate || '---'}</span>
+                                                                </div>
+                                                            </div>
 
-                                                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-save"
-                                                            onClick={handleReissueCard}
-                                                            disabled={actionLoading}
-                                                        >
-                                                            {actionLoading ? 'Đang xử lý...' : 'Xác nhận cấp lại & Thanh toán'}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-cancel"
-                                                            onClick={() => setShowReissueForm(false)}
-                                                            disabled={actionLoading}
-                                                        >
-                                                            Hủy
-                                                        </button>
-                                                    </div>
+                                                            {cashConfirmSuccess ? (
+                                                                <div style={{
+                                                                    background: '#f0fdf4', border: '1px solid #86efac',
+                                                                    borderRadius: '8px', padding: '16px', textAlign: 'center',
+                                                                    color: '#166534', fontSize: '0.95rem', fontWeight: 600
+                                                                }}>
+                                                                    <span className="material-symbols-outlined" style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>check_circle</span>
+                                                                    Xác nhận thu tiền mặt thành công!
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        style={{
+                                                                            flex: 1, padding: '10px', borderRadius: '8px',
+                                                                            background: '#f8fafc', border: '1px solid #cbd5e1',
+                                                                            color: '#64748b', cursor: 'pointer', fontWeight: 500,
+                                                                            fontSize: '0.9rem'
+                                                                        }}
+                                                                        onClick={() => setEditingCard(null)}
+                                                                        disabled={actionLoading}
+                                                                    >
+                                                                        Để sau
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        style={{
+                                                                            flex: 2, padding: '10px', borderRadius: '8px',
+                                                                            background: '#16a34a', color: '#fff', border: 'none',
+                                                                            cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem',
+                                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                                                        }}
+                                                                        onClick={handleConfirmReissueCash}
+                                                                        disabled={actionLoading}
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check</span>
+                                                                        Xác nhận đã thu 50.000 đ
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        /* ── Form nhập RFID + chọn phương thức ── */
+                                                        <>
+                                                            <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                                                                Cấp lại RFID cho thẻ tháng
+                                                            </h3>
+                                                            <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                                                                Mã RFID mới sẽ được ghi đè trực tiếp lên thẻ cũ. Hợp đồng và đăng ký xe giữ nguyên.
+                                                            </p>
+
+                                                            <div className="lost-form-group">
+                                                                <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Nhập hoặc quét mã thẻ RFID mới..."
+                                                                        value={newRfidCode}
+                                                                        onChange={(e) => setNewRfidCode(e.target.value)}
+                                                                        style={{ flex: 1 }}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Tự động sinh mã RFID ngẫu nhiên"
+                                                                        onClick={() => {
+                                                                            const rand = `MONTH${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0')}`;
+                                                                            setNewRfidCode(rand);
+                                                                        }}
+                                                                        style={{
+                                                                            display: 'flex', alignItems: 'center', gap: '4px',
+                                                                            padding: '8px 12px', background: '#f1f5f9',
+                                                                            border: '1px solid #cbd5e1', borderRadius: '8px',
+                                                                            cursor: 'pointer', fontSize: '13px', color: '#475569',
+                                                                            whiteSpace: 'nowrap', fontWeight: '500', transition: 'all 0.15s'
+                                                                        }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                                    >
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shuffle</span>
+                                                                        Tự động sinh
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Chọn phương thức thanh toán */}
+                                                            <div style={{ marginTop: '4px' }}>
+                                                                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px', fontWeight: '500' }}>Phương thức thanh toán (Phí 50.000đ)</p>
+                                                                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                                                                    {/* VNPay */}
+                                                                    <label style={{
+                                                                        flex: 1, display: 'flex', alignItems: 'center', gap: '8px',
+                                                                        padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                                                                        border: `2px solid ${reissuePayMethod === 'vnpay' ? '#2563eb' : '#e2e8f0'}`,
+                                                                        background: reissuePayMethod === 'vnpay' ? '#eff6ff' : '#f8fafc',
+                                                                        transition: 'all 0.15s', fontSize: '13px'
+                                                                    }}>
+                                                                        <input type="radio" name="reissuePayMethod" value="vnpay"
+                                                                            checked={reissuePayMethod === 'vnpay'}
+                                                                            onChange={() => setReissuePayMethod('vnpay')}
+                                                                            style={{ accentColor: '#2563eb' }}
+                                                                        />
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#2563eb' }}>credit_card</span>
+                                                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>VNPay</span>
+                                                                    </label>
+                                                                    {/* Tiền mặt */}
+                                                                    <label style={{
+                                                                        flex: 1, display: 'flex', alignItems: 'center', gap: '8px',
+                                                                        padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                                                                        border: `2px solid ${reissuePayMethod === 'cash' ? '#16a34a' : '#e2e8f0'}`,
+                                                                        background: reissuePayMethod === 'cash' ? '#f0fdf4' : '#f8fafc',
+                                                                        transition: 'all 0.15s', fontSize: '13px'
+                                                                    }}>
+                                                                        <input type="radio" name="reissuePayMethod" value="cash"
+                                                                            checked={reissuePayMethod === 'cash'}
+                                                                            onChange={() => setReissuePayMethod('cash')}
+                                                                            style={{ accentColor: '#16a34a' }}
+                                                                        />
+                                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#16a34a' }}>payments</span>
+                                                                        <span style={{ fontWeight: '600', color: '#1e293b' }}>Tiền mặt</span>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-save"
+                                                                    onClick={() => handleReissueCard(reissuePayMethod)}
+                                                                    disabled={actionLoading}
+                                                                    style={{
+                                                                        background: reissuePayMethod === 'vnpay' ? '#2563eb' : '#16a34a',
+                                                                        borderColor: reissuePayMethod === 'vnpay' ? '#2563eb' : '#16a34a'
+                                                                    }}
+                                                                >
+                                                                    {actionLoading ? 'Đang xử lý...' :
+                                                                        reissuePayMethod === 'vnpay' ? '💳 Thanh toán VNPay' : '💵 Thanh toán tiền mặt'
+                                                                    }
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-cancel"
+                                                                    onClick={() => handleReissueCard('defer')}
+                                                                    disabled={actionLoading}
+                                                                    style={{
+                                                                        background: '#f5f3ff', border: '1px solid #c4b5fd',
+                                                                        color: '#7c3aed', fontWeight: '500'
+                                                                    }}
+                                                                >
+                                                                    ⏱ Thanh toán sau
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn-cancel"
+                                                                    onClick={() => setShowReissueForm(false)}
+                                                                    disabled={actionLoading}
+                                                                >
+                                                                    Hủy
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )
                                         ) : (

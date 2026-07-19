@@ -221,6 +221,7 @@ export const getAllActivityLogs = async () => {
       card ( code ),
       profiles ( full_name )
     `)
+    .in('action', ['Thẻ đã khóa', 'Thẻ đã mở khóa', 'Thẻ đã xóa', 'Thẻ đã cấp lại'])
     .order('performed_at', { ascending: false })
     .limit(200);
 

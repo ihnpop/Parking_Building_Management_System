@@ -20,6 +20,7 @@ router.put('/lost-card/:reportId/accept', verifyToken, lostController.acceptLost
 router.put('/lost-card/:reportId/cancel', verifyToken, lostController.cancelLostCard);
 router.put('/lost-card/:reportId/resolve', verifyToken, lostController.resolveLostCard);
 router.post('/lost-card/reissue', verifyToken, lostController.reissueCard);
+router.post('/lost-card/confirm-reissue-cash/:orderCode', verifyToken, lostController.confirmReissueCash);
 
 router.post("/card", controller.createCard);
 
