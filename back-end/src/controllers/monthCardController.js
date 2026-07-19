@@ -350,14 +350,141 @@ export const initiatePayment = async (req, res) => {
     const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
     const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
 
+    // Lấy userId từ token JWT
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          userId = user.id;
+        }
+      } catch (authErr) {
+        console.error("Lỗi giải mã Supabase token:", authErr);
+      }
+    }
+
+    if (!userId) {
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
+      if (profiles && profiles.length > 0) {
+        userId = profiles[0].id;
+      }
+    }
+
     const result = await registrationService.initiateRegistration({
       ...req.body,
-      ip_addr: ipAddrClean
+      ip_addr: ipAddrClean,
+      created_by: userId
     });
 
     return res.status(200).json({ success: true, data: result });
   } catch (err) {
     console.error("Lỗi initiatePayment:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * BƯỚC 4 & 5: Kiểm tra và lấy giao dịch đăng ký vé tháng đang chờ thanh toán hoặc đã thanh toán nhưng chưa hoàn tất đăng ký
+ * GET /api/month-card/pending-registration
+ */
+export const getPendingRegistration = async (req, res) => {
+  try {
+    // 1. Lấy userId từ token JWT
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && user) {
+          userId = user.id;
+        }
+      } catch (authErr) {
+        console.error("Lỗi giải mã Supabase token:", authErr);
+      }
+    }
+
+    if (!userId) {
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
+      if (profiles && profiles.length > 0) {
+        userId = profiles[0].id;
+      }
+    }
+
+    if (!userId) {
+      return res.status(201).json({ success: true, pending: null });
+    }
+
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+    // Tìm giao dịch Đăng ký vé tháng trong vòng 15 phút, thuộc về user hiện tại, chưa liên kết với package nào
+    const { data: pm, error } = await supabase
+      .from('payment')
+      .select('*')
+      .eq('payment_type', 'Đăng ký vé tháng')
+      .in('status', ['Chờ thanh toán', 'Đã thanh toán'])
+      .is('vehicle_package_id', null)
+      .eq('created_by', userId)
+      .gt('payment_time', fifteenMinutesAgo)
+      .order('payment_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error("Lỗi truy vấn payment chờ thanh toán: " + error.message);
+    }
+
+    if (!pm) {
+      return res.status(200).json({ success: true, pending: null });
+    }
+
+    // Parse note
+    let noteObj = null;
+    try {
+      noteObj = JSON.parse(pm.note);
+    } catch (e) {
+      console.error("Lỗi parse note của pending payment:", e);
+    }
+
+    if (!noteObj) {
+      return res.status(200).json({ success: true, pending: null });
+    }
+
+    // Sinh lại payUrl nếu là VNPay và status là Chờ thanh toán
+    let payUrl = null;
+    const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
+    const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
+    
+    const methodLower = pm.payment_method === 'VNPay' ? 'vnpay' : 'cash';
+
+    if (methodLower === 'vnpay' && pm.status === 'Chờ thanh toán') {
+      const vnpayService = await import('../service/vnpayService.js');
+      const rawPlate = noteObj.vehicle_info?.plate_number || 'xe';
+      payUrl = vnpayService.createPaymentUrl({
+        orderCode: pm.order_code,
+        amount: pm.amount,
+        orderInfo: `Dang ky ve thang ${rawPlate}`,
+        ipAddr: ipAddrClean
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      pending: {
+        orderCode: pm.order_code,
+        amount: pm.amount,
+        status: pm.status === 'Đã thanh toán' ? 'paid' : 'pending',
+        paymentMethod: methodLower,
+        payUrl,
+        registrationData: noteObj,
+        paymentTime: pm.payment_time
+      }
+    });
+
+  } catch (err) {
+    console.error("Lỗi getPendingRegistration:", err);
     return res.status(500).json({ success: false, error: err.message });
   }
 };

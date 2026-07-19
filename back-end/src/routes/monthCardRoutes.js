@@ -40,6 +40,12 @@ router.get("/", monthCardController.getMonthCards);
 router.get("/logs", monthCardController.getMonthCardLogs);
 
 /**
+ * GET /api/month-card/pending-registration
+ * BƯỚC 4 & 5: Kiểm tra giao dịch đăng ký vé tháng đang chờ thanh toán hoặc chưa hoàn tất
+ */
+router.get("/pending-registration", monthCardController.getPendingRegistration);
+
+/**
  * Lấy danh sách các gói gia hạn thẻ tháng khả dụng
  */
 router.get("/renew-packages", monthCardController.getRenewPackages);
