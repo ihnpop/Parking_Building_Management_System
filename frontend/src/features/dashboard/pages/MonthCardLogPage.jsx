@@ -103,6 +103,14 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
         fetchLogs();
     }, [refreshTrigger]);
 
+    // Auto-refresh mỗi 1 giờ để cập nhật trạng thái giao dịch Chờ thanh toán
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchLogs();
+        }, 3600000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleFilter = () => {
         let result = allLogs;
 
@@ -111,7 +119,8 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
             result = result.filter(
                 (log) =>
                     (log.plate || '').toLowerCase().includes(q) ||
-                    (log.owner || '').toLowerCase().includes(q)
+                    (log.owner || '').toLowerCase().includes(q) ||
+                    (log.orderCode || '').toLowerCase().includes(q)
             );
         }
 
@@ -330,7 +339,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         <input
                             type="text"
                             className="filter-input has-icon-left"
-                            placeholder="Biển số, Chủ xe..."
+                            placeholder="Biển số, Chủ xe, Mã GD..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -424,18 +433,20 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         <div style={{ width: '100%', overflow: 'hidden' }}>
                             <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
                                 <colgroup>
-                                    <col style={{ width: '16%' }} /> {/* THỜI GIAN GIAO DỊCH */}
-                                    <col style={{ width: '12%' }} /> {/* BIỂN SỐ */}
-                                    <col style={{ width: '14%' }} /> {/* CHỦ XE */}
-                                    <col style={{ width: '13%' }} /> {/* LOẠI GIAO DỊCH */}
-                                    <col style={{ width: '12%' }} /> {/* PHÍ */}
-                                    <col style={{ width: '12%' }} /> {/* THANH TOÁN */}
-                                    <col style={{ width: '12%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '14%' }} /> {/* THỜI GIAN GIAO DỊCH */}
+                                    <col style={{ width: '13%' }} /> {/* MÃ GIAO DỊCH */}
+                                    <col style={{ width: '10%' }} /> {/* BIỂN SỐ */}
+                                    <col style={{ width: '13%' }} /> {/* CHỦ XE */}
+                                    <col style={{ width: '11%' }} /> {/* LOẠI GIAO DỊCH */}
+                                    <col style={{ width: '10%' }} /> {/* PHÍ */}
+                                    <col style={{ width: '10%' }} /> {/* THANH TOÁN */}
+                                    <col style={{ width: '10%' }} /> {/* TRẠNG THÁI */}
                                     <col style={{ width: '9%' }} />  {/* HÓA ĐƠN */}
                                 </colgroup>
                                 <thead>
                                     <tr>
                                         <th>THỜI GIAN GIAO DỊCH</th>
+                                        <th>MÃ GIAO DỊCH</th>
                                         <th>BIỂN SỐ</th>
                                         <th>CHỦ XE</th>
                                         <th>LOẠI GIAO DỊCH</th>
@@ -452,6 +463,12 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                         currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
                                                 <td className="log-time" style={{ fontFamily: 'monospace' }}>{log.time}</td>
+                                                <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#475569' }}>
+                                                    {log.orderCode
+                                                        ? <span title={log.orderCode} style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.orderCode}</span>
+                                                        : <span style={{ color: '#ccc' }}>---</span>
+                                                    }
+                                                </td>
                                                 <td className="mc-td-bold">{log.plate}</td>
                                                 <td>{log.owner}</td>
                                                 <td>{log.type}</td>
@@ -488,7 +505,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="8" className="table-status-empty">
+                                            <td colSpan="9" className="table-status-empty">
                                                 Không tìm thấy nhật ký giao dịch phù hợp
                                             </td>
                                         </tr>
