@@ -458,6 +458,7 @@ export default function OccupancyChart() {
                                         >
                                             <option value="ALL">Tất cả</option>
                                             <option value="INSIDE">Đang gửi</option>
+                                            <option value="PENDING">Chờ thanh toán</option>
                                             <option value="OUT">Đã ra</option>
                                         </select>
                                     </th>
@@ -468,6 +469,7 @@ export default function OccupancyChart() {
                                     const filtered = sessions.filter(session => {
                                         // 1. Top filterType
                                         if (filterType === 'INSIDE' && session.status !== 'Đang gửi xe') return false;
+                                        if (filterType === 'PENDING' && session.status !== 'Chờ thanh toán') return false;
                                         if (filterType === 'OUT' && session.status !== 'Hoàn thành') return false;
 
                                         // 2. Column: Biển số xe
@@ -529,6 +531,7 @@ export default function OccupancyChart() {
                                         // 7. Column: Trạng thái
                                         if (columnFilters.status !== 'ALL') {
                                             if (columnFilters.status === 'INSIDE' && session.status !== 'Đang gửi xe') return false;
+                                            if (columnFilters.status === 'PENDING' && session.status !== 'Chờ thanh toán') return false;
                                             if (columnFilters.status === 'OUT' && session.status !== 'Hoàn thành') return false;
                                         }
 
@@ -545,10 +548,11 @@ export default function OccupancyChart() {
                                     }
                                     return filtered.map((session, index) => {
                                         const isInside = session.status === 'Đang gửi xe';
+                                        const isPending = session.status === 'Chờ thanh toán';
 
                                         // Calculate duration in ms
                                         let durationMs = 0;
-                                        if (isInside) {
+                                        if (isInside || isPending) {
                                             let entryTimeStr = session.entry_time;
                                             if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
                                                 entryTimeStr += "Z";
@@ -590,17 +594,17 @@ export default function OccupancyChart() {
                                                 <td>{new Date(session.entry_time).toLocaleString('vi-VN')}</td>
                                                 <td>{session.exit_time ? new Date(session.exit_time).toLocaleString('vi-VN') : '-- : --'}</td>
                                                 <td>
-                                                    <div className={`realtime-timer ${isInside ? '' : 'stopped'}`}>
+                                                    <div className={`realtime-timer ${(isInside || isPending) ? '' : 'stopped'}`}>
                                                         <span className="material-symbols-outlined timer-icon">
-                                                            {isInside ? 'schedule' : 'hourglass_empty'}
+                                                            {(isInside || isPending) ? 'schedule' : 'hourglass_empty'}
                                                         </span>
                                                         {durationStr}
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span className={`session-status-badge ${isInside ? 'inside' : 'out'}`}>
+                                                    <span className={`session-status-badge ${isInside ? 'inside' : isPending ? 'pending' : 'out'}`}>
                                                         <span className="badge-dot"></span>
-                                                        {isInside ? 'Đang gửi' : 'Đã ra'}
+                                                        {isInside ? 'Đang gửi' : isPending ? 'Chờ thanh toán' : 'Đã ra'}
                                                     </span>
                                                 </td>
                                             </tr>

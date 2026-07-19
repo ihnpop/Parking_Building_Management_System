@@ -27029,6 +27029,12 @@ body,
   border: 1px solid #e2e8f0;
 }
 
+.session-status-badge.pending {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
 .session-status-badge .badge-dot {
   width: 6px;
   height: 6px;
@@ -27037,6 +27043,10 @@ body,
 }
 
 .session-status-badge.inside .badge-dot {
+  animation: pulse-dot 1.5s infinite;
+}
+
+.session-status-badge.pending .badge-dot {
   animation: pulse-dot 1.5s infinite;
 }
 
