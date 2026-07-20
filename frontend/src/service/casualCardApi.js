@@ -66,7 +66,7 @@ export function formatDateTimeVNSplit(dateValue) {
         }
         const d = new Date(val);
         if (isNaN(d.getTime())) return null;
-        
+
         const time = new Intl.DateTimeFormat('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
@@ -90,11 +90,11 @@ export function computeDuration(entryTime, exitTime) {
     if (!entryTime || !exitTime) return '---';
     try {
         const entry = new Date(entryTime);
-        const exit  = new Date(exitTime);
+        const exit = new Date(exitTime);
         const diffMs = exit - entry;
         if (diffMs < 0) return '---';
         const totalMinutes = Math.floor(diffMs / 60000);
-        const hours   = Math.floor(totalMinutes / 60);
+        const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
         if (hours > 0 && minutes > 0) return `${hours}g ${minutes}p`;
         if (hours > 0) return `${hours} giờ`;
@@ -140,29 +140,31 @@ export async function getCasualTotalRevenue() {
  * Lưu ý: backend đã map sẵn, hàm này chỉ là helper phòng hờ.
  */
 export function mapSessionToRow(session) {
+    // Nếu backend đã map sẵn (có session.entryTimeDisplay hoặc session.feeDisplay),
+    // ta ưu tiên sử dụng dữ liệu đã map từ backend.
     return {
         session_id: session.session_id || '',
-        cardCode:   session.cardCode || session.card?.code || '---',
-        plate:      session.plate || session.plate_number || '---',
+        cardCode: session.cardCode || session.card?.code || '---',
+        plate: session.plate || session.plate_number || '---',
         vehicleType: session.vehicleType || session.vehicle?.vehicle_type?.name || '---',
-        entryTime:  session.entryTime || session.entry_time || null,
-        exitTime:   session.exitTime || session.exit_time || null,
-        entryTimeDisplay: session.entryTimeDisplay || formatDateTimeVN(session.entry_time),
-        exitTimeDisplay:  session.exitTimeDisplay  || formatDateTimeVN(session.exit_time),
-        entryTimeSplit: formatDateTimeVNSplit(session.entry_time),
-        exitTimeSplit:  formatDateTimeVNSplit(session.exit_time),
-        duration: session.duration || computeDuration(session.entry_time, session.exit_time),
+        entryTime: session.entryTime || session.entry_time || null,
+        exitTime: session.exitTime || session.exit_time || null,
+        entryTimeDisplay: session.entryTimeDisplay || formatDateTimeVN(session.entry_time || session.entryTime),
+        exitTimeDisplay: session.exitTimeDisplay || formatDateTimeVN(session.exit_time || session.exitTime),
+        entryTimeSplit: session.entryTimeSplit || formatDateTimeVNSplit(session.entry_time || session.entryTime),
+        exitTimeSplit: session.exitTimeSplit || formatDateTimeVNSplit(session.exit_time || session.exitTime),
+        duration: session.duration || computeDuration(session.entry_time || session.entryTime, session.exit_time || session.exitTime),
         fee: session.fee ?? session.final_fee ?? session.estimated_fee ?? null,
         feeDisplay: session.feeDisplay || (
-            session.exit_time
-                ? formatCasualVND(session.final_fee ?? session.estimated_fee)
-                : (session.estimated_fee ? formatCasualVND(session.estimated_fee) + ' (ước tính)' : '---')
+            (session.exit_time || session.exitTime)
+                ? formatCasualVND(session.final_fee ?? session.estimated_fee ?? session.fee)
+                : ((session.estimated_fee ?? session.fee) ? formatCasualVND(session.estimated_fee ?? session.fee) + ' (ước tính)' : '---')
         ),
-        paymentMethod: session.payment?.payment_method || '---',
-        paymentInfo:   session.payment || null,
-        status:    session.status || '---',
+        paymentMethod: session.paymentMethod || session.payment?.payment_method || '---',
+        paymentInfo: session.paymentInfo || session.payment || null,
+        status: session.status || '---',
         entryGate: session.entryGate || session.entry_gate?.name || '---',
-        exitGate:  session.exitGate  || session.exit_gate?.name  || '---',
-        staffIn:   session.staffIn   || session.staff_in?.full_name || '---',
+        exitGate: session.exitGate || session.exit_gate?.name || '---',
+        staffIn: session.staffIn || session.staff_in?.full_name || '---',
     };
 }

@@ -135,7 +135,7 @@ export const reissueCard = async (req, res) => {
       });
     }
 
-    const { cardId, newCode, reportId } = req.body;
+    const { cardId, newCode, reportId, paymentMethod } = req.body;
 
     // Lấy IP của client (dùng cho VNPay)
     let ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
@@ -148,10 +148,25 @@ export const reissueCard = async (req, res) => {
       newCode,
       reportId,
       performedBy,
-      ipAddr
+      ipAddr,
+      paymentMethod
     });
 
     return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /lost-card/confirm-reissue-cash/:orderCode
+ * Xác nhận thu tiền mặt cho phí cấp lại thẻ.
+ */
+export const confirmReissueCash = async (req, res) => {
+  try {
+    const { orderCode } = req.params;
+    const result = await lostCardService.confirmReissueCash(orderCode);
+    return res.status(200).json({ success: true, message: "Xác nhận thu tiền mặt thành công!", data: result });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }

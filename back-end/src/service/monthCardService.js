@@ -690,7 +690,9 @@ export const getMonthCards = async () => {
 
 export const getMonthCardLogs = async () => {
   const data = await monthCardRepository.getMonthCardLogs();
-  if (!data || data.length === 0) return [];
+
+  // ─── Kết quả từ card_activity_logs (giao dịch đã hoàn thành) ───────────
+  if (!data) return [];
 
   // Manual join for card codes
   const cardIds = [...new Set(data.map(item => item.card_id).filter(Boolean))];
@@ -769,7 +771,158 @@ export const getMonthCardLogs = async () => {
     }
   }
 
-  return data.map((item, idx) => {
+  // ─── Giao dịch đang Chờ thanh toán hoặc đã Thất bại (từ bảng payment) ──
+  // Tập order_codes đã có trong activity logs (để tránh trùng lặp)
+  const completedOrderCodes = new Set(Object.values(logOrderCodeMap));
+
+  const pendingPayments = await monthCardRepository.getPendingAndExpiredMonthCardPayments();
+
+  // Parse note để lấy plate/owner/cardCode cho từng giao dịch pending
+  const pendingItemsRaw = pendingPayments
+    .filter(p => !completedOrderCodes.has(p.order_code))
+    .map(p => {
+      let plate = 'Chưa có';
+      let owner = 'Khách vãng lai';
+      let cardNo = '---';
+      let vehicleId = null;
+      let cardId = null;
+      let reportId = null;
+      let type = p.payment_type === 'Gia hạn vé tháng' ? 'Gia hạn'
+               : p.payment_type === 'Phí cấp lại thẻ' ? 'Thẻ đã cấp lại'
+               : 'Cấp mới';
+
+      // 1. Regex match UUID to find reportId in note (works for both JSON and plain text)
+      const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      const uuidMatch = (p.note || '').match(uuidRegex);
+      if (uuidMatch) {
+        reportId = uuidMatch[0];
+      }
+
+      try {
+        const noteObj = JSON.parse(p.note || '{}');
+        if (p.payment_type === 'Gia hạn vé tháng') {
+          cardNo = noteObj.cardCode || '---';
+          vehicleId = noteObj.vehicleId || null;
+        } else if (p.payment_type === 'Phí cấp lại thẻ') {
+          cardNo = noteObj.newCode || '---';
+          cardId = noteObj.cardId || null;
+          vehicleId = noteObj.vehicleId || null;
+          if (noteObj.reportId) {
+            reportId = noteObj.reportId;
+          }
+        } else {
+          plate = noteObj.vehicle_info?.plate_number || 'Chưa có';
+          owner = noteObj.customer_info?.full_name || 'Khách vãng lai';
+        }
+      } catch (e) { /* bỏ qua lỗi parse note dạng plain text */ }
+
+      const displayStatus = (p.status === 'Hết hạn' || p.status === 'Thất bại') ? 'Thất bại' : 'Chờ thanh toán';
+      const amountNum = Number(p.amount) || 0;
+      const amountStr = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountNum).replace('₫', 'đ');
+
+      return {
+        time: new Date(p.payment_time).toLocaleString('vi-VN'),
+        timestamp: p.payment_time,
+        cardNo,
+        plate,
+        owner,
+        type,
+        amount: amountStr,
+        status: displayStatus,
+        paymentMethod: p.payment_method || 'Tiền mặt',
+        orderCode: p.order_code,
+        paymentInfo: p.payment_method === 'VNPay' ? { order_code: p.order_code, transaction_no: null } : null,
+        _vehicleId: vehicleId,
+        _cardId: cardId,
+        _reportId: reportId
+      };
+    });
+
+  // 1. Batch lookup card_lost_log cho những items có _reportId để giải quyết card_id / vehicle_id
+  const reportIdsToLookup = [...new Set(pendingItemsRaw.map(i => i._reportId).filter(Boolean))];
+  if (reportIdsToLookup.length > 0) {
+    try {
+      const reports = await monthCardRepository.getLostReportsByIds(reportIdsToLookup);
+      const reportMap = {};
+      reports.forEach(r => {
+        reportMap[r.lost_report_id] = r;
+      });
+      pendingItemsRaw.forEach(item => {
+        if (item._reportId && reportMap[item._reportId]) {
+          const r = reportMap[item._reportId];
+          if (!item._cardId) item._cardId = r.card_id;
+          if (!item._vehicleId) item._vehicleId = r.vehicle_id;
+        }
+      });
+    } catch (err) {
+      console.error("Lỗi khi tra cứu card_lost_logs cho pending items:", err);
+    }
+  }
+
+  // 2. Batch lookup biển số và chủ xe qua _vehicleId
+  const vehicleIdsToLookup = [...new Set(pendingItemsRaw.map(i => i._vehicleId).filter(Boolean))];
+  if (vehicleIdsToLookup.length > 0) {
+    try {
+      const vehicleInfos = await monthCardRepository.getVehiclesByIds(vehicleIdsToLookup);
+      const vehiclePlateMap = {};
+      const vehicleOwnerMap = {};
+      vehicleInfos.forEach(v => {
+        vehiclePlateMap[v.vehicle_id] = v.plate_number;
+        vehicleOwnerMap[v.vehicle_id] = v.customer?.full_name || 'Khách vãng lai';
+      });
+      pendingItemsRaw.forEach(item => {
+        if (item._vehicleId) {
+          item.plate = vehiclePlateMap[item._vehicleId] || item.plate;
+          item.owner = vehicleOwnerMap[item._vehicleId] || item.owner;
+        }
+      });
+    } catch (err) {
+      console.error("Lỗi khi tra cứu xe theo vehicleId:", err);
+    }
+  }
+
+  // 3. Batch lookup biển số, chủ xe và mã thẻ qua _cardId (khi không có registration trực tiếp hoặc thiếu thông tin)
+  const cardIdsToLookup = [...new Set(pendingItemsRaw.map(i => i._cardId).filter(Boolean))];
+  if (cardIdsToLookup.length > 0) {
+    try {
+      const regs = await monthCardRepository.getRegistrationsWithCustomerByCardIds(cardIdsToLookup);
+      const cardRegMap = {};
+      regs.forEach(r => {
+        cardRegMap[r.card_id] = r;
+      });
+
+      const cards = await monthCardRepository.getCardsByIds(cardIdsToLookup);
+      const cardCodeMap = {};
+      cards.forEach(c => {
+        cardCodeMap[c.card_id] = c.code;
+      });
+
+      pendingItemsRaw.forEach(item => {
+        if (item._cardId) {
+          const reg = cardRegMap[item._cardId];
+          if (reg && reg.vehicle) {
+            if (item.plate === 'Chưa có' || !item.plate) {
+              item.plate = reg.vehicle.plate_number || 'Chưa có';
+            }
+            if (item.owner === 'Khách vãng lai' || !item.owner) {
+              item.owner = reg.vehicle.customer?.full_name || 'Khách vãng lai';
+            }
+          }
+          if (item.cardNo === '---' || item.cardNo === '') {
+            item.cardNo = cardCodeMap[item._cardId] || '---';
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Lỗi khi tra cứu card registrations cho pending items:", err);
+    }
+  }
+
+  // Xóa các trường phục vụ lookup nội bộ khỏi kết quả trả về
+  const pendingItems = pendingItemsRaw.map(({ _vehicleId, _cardId, _reportId, ...rest }) => rest);
+
+
+  const completedItems = data.map((item, idx) => {
     const cardCode = cardMap[item.card_id] || `CARD${1000 + idx}`;
     const plate = item.plate_number || plateMap[item.card_id] || "Chưa có";
     const owner = item.customer_name || ownerMap[item.card_id] || ownerMap[item.plate_number] || "Khách vãng lai";
@@ -779,7 +932,7 @@ export const getMonthCardLogs = async () => {
     if (amountVal === 0 && item.action === 'Thẻ đã cấp lại') {
       amountVal = 50000;
     }
-    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal);
+    const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal).replace('₫', 'đ');
     const status = "Thành công";
 
     let type = item.action;
@@ -797,6 +950,7 @@ export const getMonthCardLogs = async () => {
 
     return {
       time,
+      timestamp: item.performed_at,
       cardNo: cardCode,
       plate,
       owner,
@@ -804,10 +958,19 @@ export const getMonthCardLogs = async () => {
       amount,
       status,
       paymentMethod,
-      paymentInfo: dbPaymentMethod === 'VNPay' && oc ? { order_code: oc } : null
+      orderCode: oc || null,
+      paymentInfo: dbPaymentMethod === 'VNPay' && oc ? { order_code: oc, transaction_no: null } : null
     };
   });
+
+  // ─── Gộp completed logs + pending/failed và sắp xếp theo thời gian mới nhất ───
+  const allItems = [...pendingItems, ...completedItems];
+  allItems.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+  return allItems;
 };
+
+
 
 /**
  * Kiểm tra trạng thái biển số xe phục vụ bước 2 đăng ký

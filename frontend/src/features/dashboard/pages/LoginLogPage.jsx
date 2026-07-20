@@ -44,6 +44,8 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
     const [rawLogs, setRawLogs] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const loadLogs = async () => {
         setLoading(true);
@@ -94,6 +96,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
             return matchesSearch && matchesRole && matchesDate;
         });
         setLogs(filtered);
+        setCurrentPage(1);
     };
 
     useEffect(() => {
@@ -271,7 +274,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                 </div>
 
                 <div className="filter-block">
-                    <label className="filter-label">VAI TRÒ (ROLE)</label>
+                    <label className="filter-label">VAI TRÒ</label>
                     <div className="filter-input-wrapper">
                         <select
                             className="filter-select"

@@ -13,7 +13,7 @@ import supabase from "../config/supabaseClient.js";
 export async function getCasualCardSessions(limit = 1000) {
     const { data: sessions, error: sessionsErr } = await supabase
         .from('parking_sessions')
-        .select('session_id, plate_number, entry_time, exit_time, final_fee, estimated_fee, status, card_id, vehicle_id, staff_in_id, entry_gate_id, exit_gate_id')
+        .select('session_id, plate_number, entry_time, exit_time, final_fee, estimated_fee, status, card_id, vehicle_id, staff_in_id, entry_gate_id, exit_gate_id, payment(*)')
         .order('entry_time', { ascending: false })
         .limit(limit);
 

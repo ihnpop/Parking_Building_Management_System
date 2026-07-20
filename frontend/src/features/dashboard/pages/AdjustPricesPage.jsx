@@ -124,6 +124,7 @@ export default function AdjustPricesPage() {
     }
 
     return (
+<<<<<<< HEAD
         <div className="ap-page">
             {/* ── Header ── */}
             <div className="ap-header">
@@ -137,33 +138,33 @@ export default function AdjustPricesPage() {
                         </h1>
                         <p className="ap-page-subtitle">Quản lý biểu giá lượt và giá tháng áp dụng cho tòa nhà bạn được phân công</p>
                     </div>
+=======
+        <div className="mc-page">
+            {/* ── Action Bar (tab switcher + info) ── */}
+            <div className="mc-action-bar">
+                <div className="mc-filters" style={{ gap: '8px' }}>
+                    <button
+                        className={`mc-btn ${activeTab === 'session' ? 'mc-btn-primary' : 'mc-btn-outline'}`}
+                        onClick={() => setActiveTab('session')}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>timer</span>
+                        Giá theo lượt
+                    </button>
+                    <button
+                        className={`mc-btn ${activeTab === 'monthly' ? 'mc-btn-primary' : 'mc-btn-outline'}`}
+                        onClick={() => setActiveTab('monthly')}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span>
+                        Giá theo tháng
+                    </button>
+>>>>>>> 9dff1bd846b5d6f8efe26cabb9aca78de150dfc3
                 </div>
-            </div>
-
-            {/* ── Tab switcher ── */}
-            <div className="ap-tabs">
-                <button
-                    className={`ap-tab ${activeTab === 'session' ? 'ap-tab--active' : ''}`}
-                    onClick={() => setActiveTab('session')}
-                >
-                    <span className="material-symbols-outlined">timer</span>
-                    Giá theo lượt
-                    <span className="ap-tab-count">{sessionPrices.length}</span>
-                </button>
-                <button
-                    className={`ap-tab ${activeTab === 'monthly' ? 'ap-tab--active' : ''}`}
-                    onClick={() => setActiveTab('monthly')}
-                >
-                    <span className="material-symbols-outlined">calendar_month</span>
-                    Giá theo tháng
-                    <span className="ap-tab-count">{monthlyPrices.length}</span>
-                </button>
             </div>
 
             {/* ── SESSION PRICES TAB ── */}
             {activeTab === 'session' && (
-                <div className="ap-section">
-                    <div className="ap-section-info">
+                <div className="mc-table-card" style={{ padding: '20px' }}>
+                    <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
                         <span>Giá lượt tính theo giờ. Khách gửi xe trả tiền theo thời gian thực tế trong tòa nhà.</span>
                     </div>
@@ -180,11 +181,13 @@ export default function AdjustPricesPage() {
                                         <span className="ap-card-type-badge">Giá lượt</span>
                                     </div>
                                     <button
-                                        className="ap-edit-btn"
+                                        className="mc-btn mc-btn-outline"
+                                        style={{ padding: '8px 12px', fontSize: '13px' }}
                                         onClick={() => setEditingSession(item)}
                                         title="Chỉnh sửa giá"
                                     >
-                                        <span className="material-symbols-outlined">edit</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                        Sửa
                                     </button>
                                 </div>
 
@@ -196,7 +199,11 @@ export default function AdjustPricesPage() {
                                         </div>
                                         <div className="ap-price-divider" />
                                         <div className="ap-price-item">
+<<<<<<< HEAD
                                             <span className="ap-price-label">Các giờ tiếp theo</span>
+=======
+                                            <span className="ap-price-label">Giờ tiếp theo</span>
+>>>>>>> 9dff1bd846b5d6f8efe26cabb9aca78de150dfc3
                                             <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.extraHour)}</span>
                                         </div>
                                     </div>
@@ -217,8 +224,8 @@ export default function AdjustPricesPage() {
 
             {/* ── MONTHLY PRICES TAB ── */}
             {activeTab === 'monthly' && (
-                <div className="ap-section">
-                    <div className="ap-section-info">
+                <div className="mc-table-card" style={{ padding: '20px' }}>
+                    <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
                         <span>Giá tháng áp dụng khi khách đăng ký gói vé tháng tại tòa nhà.</span>
                     </div>
@@ -235,11 +242,13 @@ export default function AdjustPricesPage() {
                                         <span className="ap-card-type-badge ap-card-type-badge--monthly">Giá tháng</span>
                                     </div>
                                     <button
-                                        className="ap-edit-btn"
+                                        className="mc-btn mc-btn-outline"
+                                        style={{ padding: '8px 12px', fontSize: '13px' }}
                                         onClick={() => setEditingMonthly(item)}
                                         title="Chỉnh sửa giá"
                                     >
-                                        <span className="material-symbols-outlined">edit</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                        Sửa
                                     </button>
                                 </div>
 

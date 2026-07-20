@@ -128,6 +128,11 @@ export async function handleIpn(query) {
             const { processRenewalSuccess } = await import("./renewalService.js");
             await processRenewalSuccess(orderCode);
         }
+        // --- TRƯỜNG HỢP 3: Phí cấp lại thẻ tháng ---
+        else if (payment.payment_type === "Phí cấp lại thẻ") {
+            const { processReissueSuccess } = await import("./lostCardService.js");
+            await processReissueSuccess(orderCode);
+        }
     }
 
     return { RspCode: "00", Message: "Confirm Success" };

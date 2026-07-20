@@ -14,48 +14,100 @@ const parseNumber = (str) => {
 };
 
 // ─── Edit Session Price Modal ──────────────────────────────────────────────────
-export function EditSessionPriceModal({ item, saving, onClose, onSave }) {
-    const [firstHour, setFirstHour] = useState(item.firstHour);
-    const [extraHour, setExtraHour] = useState(item.extraHour);
-    const [autoCalculate, setAutoCalculate] = useState(item.dayMax === (item.firstHour + 6 * item.extraHour));
-    const [dayMax, setDayMax] = useState(item.dayMax);
 
-    const activeDayMax = autoCalculate ? (firstHour + 6 * extraHour) : dayMax;
+export function EditSessionPriceModal({ item, onClose, onSave }) {
+    const [timeSlots, setTimeSlots] = useState([
+        { min: 0, max: 6, price: item.firstHour }
+    ]);
 
-    // Validation rules
-    const errors = {};
-    if (firstHour <= 0) {
-        errors.firstHour = 'Giá giờ đầu phải lớn hơn 0 đ.';
-    } else if (firstHour % 1000 !== 0) {
-        errors.firstHour = 'Giá phải là bội số của 1.000 đ (Ví dụ: 5.000 đ).';
-    }
+    const addSlot = () => {
+        const last = timeSlots[timeSlots.length - 1];
+        setTimeSlots([...timeSlots, { min: last?.max ?? 6, max: 24, price: 0 }]);
+    };
 
-    if (extraHour <= 0) {
-        errors.extraHour = 'Giá giờ tiếp theo phải lớn hơn 0 đ.';
-    } else if (extraHour % 1000 !== 0) {
-        errors.extraHour = 'Giá phải là bội số của 1.000 đ (Ví dụ: 3.000 đ).';
-    }
+    const removeSlot = (idx) => {
+        if (timeSlots.length <= 1) return;
+        setTimeSlots(timeSlots.filter((_, i) => i !== idx));
+    };
 
-    if (!autoCalculate) {
-        if (dayMax <= 0) {
-            errors.dayMax = 'Giá tối đa 1 ngày phải lớn hơn 0 đ.';
-        } else if (dayMax % 1000 !== 0) {
-            errors.dayMax = 'Giá phải là bội số của 1.000 đ (Ví dụ: 30.000 đ).';
-        } else if (dayMax < firstHour) {
-            errors.dayMax = 'Giá tối đa 1 ngày phải lớn hơn hoặc bằng giá giờ đầu.';
+    const updateSlot = (idx, field, raw) => {
+        let val;
+        if (field === 'min' || field === 'max') {
+            val = Math.max(0, Math.min(24, parseInt(raw, 10) || 0));
+        } else {
+            // price — no upper limit clamp
+            val = parseNumber(String(raw));
+        }
+        setTimeSlots(timeSlots.map((s, i) => i === idx ? { ...s, [field]: val } : s));
+    };
+
+    // Detect overlapping slots (compare integer hours directly)
+    const overlapIndices = new Set();
+    for (let i = 0; i < timeSlots.length; i++) {
+        for (let j = i + 1; j < timeSlots.length; j++) {
+            const a = timeSlots[i], b = timeSlots[j];
+            if (a.min < b.max && b.min < a.max) {
+                overlapIndices.add(i);
+                overlapIndices.add(j);
+            }
         }
     }
 
-    const hasErrors = Object.keys(errors).length > 0;
+    // Detect slots where min >= max (invalid range)
+    const invalidRangeIndices = new Set(
+        timeSlots.map((s, i) => s.min >= s.max ? i : -1).filter(i => i >= 0)
+    );
+
+    const hasPriceErrors = timeSlots.some(s => s.price <= 0 || s.price % 1000 !== 0);
+    const hasOverlap = overlapIndices.size > 0;
+    const hasInvalidRange = invalidRangeIndices.size > 0;
+    const hasErrors = hasPriceErrors || hasOverlap || hasInvalidRange;
 
     const handleSave = () => {
         if (hasErrors) return;
-        onSave({ ...item, firstHour, extraHour, dayMax: activeDayMax });
+        const firstSlotPrice = timeSlots[0]?.price ?? item.firstHour;
+        const secondSlotPrice = timeSlots[1]?.price ?? item.extraHour;
+        const calculatedDayMax = timeSlots.reduce((sum, s) => sum + s.price, 0);
+        onSave({
+            ...item,
+            firstHour: firstSlotPrice,
+            extraHour: secondSlotPrice || firstSlotPrice,
+            dayMax: calculatedDayMax
+        });
+    };
+
+    const cellLabelStyle = {
+        padding: '0 8px',
+        fontSize: '11px',
+        fontWeight: 700,
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+    };
+
+    const hourInputStyle = {
+        width: '100%',
+        padding: '7px 8px',
+        border: '1px solid #e2e8f0',
+        borderRadius: '7px',
+        fontSize: '14px',
+        fontFamily: 'inherit',
+        outline: 'none',
+        color: '#334155',
+        boxSizing: 'border-box',
+        textAlign: 'center',
+        transition: 'border-color 0.15s',
+    };
+
+    const getRowBg = (idx) => {
+        if (overlapIndices.has(idx) || invalidRangeIndices.has(idx)) return '#fff5f5';
+        return idx % 2 === 0 ? '#fff' : '#fafbfc';
     };
 
     return (
         <div className="ap-modal-overlay" onClick={onClose}>
-            <div className="ap-modal" onClick={e => e.stopPropagation()}>
+            <div className="ap-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+                {/* ── Header ── */}
                 <div className="ap-modal-header">
                     <div className="ap-modal-icon" style={{ background: `${item.color}20`, color: item.color }}>
                         <span className="material-symbols-outlined">{item.icon}</span>
@@ -70,117 +122,167 @@ export function EditSessionPriceModal({ item, saving, onClose, onSave }) {
                 </div>
 
                 <div className="ap-modal-body">
-                    <div className="ap-field-group">
-                        <label className="ap-field-label">
-                            <span className="material-symbols-outlined">schedule</span>
-                            Giá giờ đầu (VNĐ)
-                        </label>
-                        <div className={`ap-input-wrapper ${errors.firstHour ? 'ap-input-wrapper--error' : ''}`}>
-                            <input
-                                className="ap-input"
-                                type="number"
-                                value={firstHour}
-                                min="0"
-                                step="1000"
-                                onChange={e => setFirstHour(parseNumber(e.target.value))}
-                            />
-                            <span className="ap-input-suffix">đ</span>
+                    {/* ── Time Range Box ── */}
+                    <div style={{
+                        border: '1.5px solid #e2e8f0',
+                        borderRadius: '10px',
+                        background: '#fff',
+                    }}>
+                        {/* Column headers */}
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr 1.2fr 32px',
+                            padding: '9px 14px 8px',
+                            borderBottom: '1px solid #e2e8f0',
+                            background: '#f8fafc',
+                            borderRadius: '10px 10px 0 0',
+                            gap: '8px',
+                        }}>
+                            <span style={cellLabelStyle}>Min (giờ)</span>
+                            <span style={cellLabelStyle}>Max (giờ)</span>
+                            <span style={cellLabelStyle}>Price</span>
+                            <span />
                         </div>
-                        {errors.firstHour ? (
-                            <p className="ap-error-msg">
-                                <span className="material-symbols-outlined">error</span>
-                                {errors.firstHour}
-                            </p>
-                        ) : (
-                            <p className="ap-field-hint">Áp dụng cho giờ đầu tiên khi xe vào</p>
-                        )}
+
+                        {/* Slot rows — scrollable */}
+                        <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                            {timeSlots.map((slot, idx) => (
+                                <div key={idx} style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr 1.2fr 32px',
+                                    alignItems: 'center',
+                                    background: getRowBg(idx),
+                                    padding: '10px 14px',
+                                    borderBottom: idx < timeSlots.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                    gap: '8px',
+                                }}>
+                                    {/* Min hour */}
+                                    <input
+                                        type="number"
+                                        value={slot.min}
+                                        min="0"
+                                        max="23"
+                                        step="1"
+                                        onChange={e => updateSlot(idx, 'min', e.target.value)}
+                                        style={{
+                                            ...hourInputStyle,
+                                            borderColor: invalidRangeIndices.has(idx) || overlapIndices.has(idx) ? '#f87171' : '#e2e8f0',
+                                        }}
+                                    />
+                                    {/* Max hour */}
+                                    <input
+                                        type="number"
+                                        value={slot.max}
+                                        min="1"
+                                        max="24"
+                                        step="1"
+                                        onChange={e => updateSlot(idx, 'max', e.target.value)}
+                                        style={{
+                                            ...hourInputStyle,
+                                            borderColor: invalidRangeIndices.has(idx) || overlapIndices.has(idx) ? '#f87171' : '#e2e8f0',
+                                        }}
+                                    />
+                                    {/* Price */}
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="number"
+                                            value={slot.price}
+                                            min="0"
+                                            step="1000"
+                                            placeholder="0"
+                                            onChange={e => updateSlot(idx, 'price', e.target.value * 1)}
+                                            style={{
+                                                ...hourInputStyle,
+                                                padding: '7px 26px 7px 8px',
+                                                textAlign: 'left',
+                                                borderColor: slot.price <= 0 || slot.price % 1000 !== 0 ? '#f87171' : '#e2e8f0',
+                                            }}
+                                        />
+                                        <span style={{
+                                            position: 'absolute', right: '8px', top: '50%',
+                                            transform: 'translateY(-50%)', fontSize: '12px',
+                                            color: '#94a3b8', pointerEvents: 'none',
+                                        }}>đ</span>
+                                    </div>
+                                    {/* Delete button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeSlot(idx)}
+                                        disabled={timeSlots.length <= 1}
+                                        title="Xóa khung giờ"
+                                        style={{
+                                            width: '28px', height: '28px', border: 'none',
+                                            borderRadius: '6px',
+                                            background: timeSlots.length <= 1 ? '#f1f5f9' : '#fef2f2',
+                                            color: timeSlots.length <= 1 ? '#cbd5e1' : '#ef4444',
+                                            cursor: timeSlots.length <= 1 ? 'not-allowed' : 'pointer',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            padding: 0, flexShrink: 0, transition: 'all 0.15s',
+                                        }}
+                                    >
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="ap-field-group">
-                        <label className="ap-field-label">
-                            <span className="material-symbols-outlined">more_time</span>
-                            Giá mỗi 4 giờ tiếp theo (VNĐ)
-                        </label>
-                        <div className={`ap-input-wrapper ${errors.extraHour ? 'ap-input-wrapper--error' : ''}`}>
-                            <input
-                                className="ap-input"
-                                type="number"
-                                value={extraHour}
-                                min="0"
-                                step="1000"
-                                onChange={e => setExtraHour(parseNumber(e.target.value))}
-                            />
-                            <span className="ap-input-suffix">đ</span>
-                        </div>
-                        {errors.extraHour ? (
-                            <p className="ap-error-msg">
-                                <span className="material-symbols-outlined">error</span>
-                                {errors.extraHour}
-                            </p>
-                        ) : (
-                            <p className="ap-field-hint">Tính từ giờ thứ 4 trở đi</p>
-                        )}
-                    </div>
+                    {/* ── Add slot button ── */}
+                    <button
+                        type="button"
+                        onClick={addSlot}
+                        style={{
+                            width: '100%', padding: '9px 14px',
+                            border: '1.5px dashed #cbd5e1',
+                            borderRadius: '8px', background: '#f8fafc', color: '#475569',
+                            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                            fontFamily: 'inherit', transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = item.color; e.currentTarget.style.color = item.color; e.currentTarget.style.background = `${item.color}08`; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#f8fafc'; }}
+                    >
+                        <span className="material-symbols-outlined">add</span>
+                        Thêm khung giờ
+                    </button>
 
-                    <div className="ap-field-group">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label className="ap-field-label">
-                                <span className="material-symbols-outlined">today</span>
-                                Giá tối đa 1 ngày (VNĐ)
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={autoCalculate}
-                                    onChange={e => setAutoCalculate(e.target.checked)}
-                                    style={{ width: '14px', height: '14px', accentColor: item.color }}
-                                />
-                                Tự động tính (24h)
-                            </label>
-                        </div>
-                        <div className={`ap-input-wrapper ${errors.dayMax ? 'ap-input-wrapper--error' : ''}`} style={{ opacity: autoCalculate ? 0.75 : 1, background: autoCalculate ? '#f1f5f9' : '#fff' }}>
-                            <input
-                                className="ap-input"
-                                type="number"
-                                value={activeDayMax}
-                                min="0"
-                                step="1000"
-                                onChange={e => setDayMax(parseNumber(e.target.value))}
-                                disabled={autoCalculate}
-                            />
-                            <span className="ap-input-suffix">đ</span>
-                        </div>
-                        {autoCalculate ? (
-                            <p className="ap-field-hint" style={{ color: item.color, fontWeight: '500' }}>
-                                Công thức: Giờ đầu + 6 × Giá 4h tiếp theo
-                            </p>
-                        ) : errors.dayMax ? (
-                            <p className="ap-error-msg">
-                                <span className="material-symbols-outlined">error</span>
-                                {errors.dayMax}
-                            </p>
-                        ) : (
-                            <p className="ap-field-hint">Mức tối đa tính phí trong 1 ngày</p>
-                        )}
-                    </div>
-
+                    {/* ── Preview ── */}
                     <div className="ap-price-preview">
-                        <div className="ap-preview-label">Xem trước</div>
-                        <div className="ap-preview-row">
-                            <span>Giờ đầu:</span>
-                            <strong style={{ color: item.color }}>{formatVND(firstHour)}</strong>
+                        <div className="ap-preview-label">XEM TRƯỚC</div>
+                        <div style={{ maxHeight: '90px', overflowY: 'auto', paddingRight: '4px' }}>
+                            {timeSlots.map((slot, idx) => (
+                                <div className="ap-preview-row" key={idx}>
+                                    <span>Khung {idx + 1} ({slot.min}h – {slot.max}h):</span>
+                                    <strong style={{ color: item.color }}>{formatVND(slot.price)}</strong>
+                                </div>
+                            ))}
                         </div>
-                        <div className="ap-preview-row">
-                            <span>4 Giờ tiếp theo:</span>
-                            <strong style={{ color: item.color }}>{formatVND(extraHour)}</strong>
+                        <div className="ap-preview-row" style={{ borderTop: '1.5px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+                            <span>Tổng tối đa/ngày:</span>
+                            <strong style={{ color: item.color }}>{formatVND(timeSlots.reduce((sum, s) => sum + s.price, 0))}</strong>
                         </div>
-                        <div className="ap-preview-row">
-                            <span>Tối đa/ngày:</span>
-                            <strong style={{ color: item.color }}>{formatVND(activeDayMax)}</strong>
-                        </div>
+                        {hasPriceErrors && (
+                            <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+                                Tất cả mức giá phải lớn hơn 0 và là bội số của 1.000 đ.
+                            </p>
+                        )}
+                        {hasInvalidRange && (
+                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+                                Min phải nhỏ hơn Max.
+                            </p>
+                        )}
+                        {hasOverlap && (
+                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f97316', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>schedule</span>
+                                Các khung giờ bị trùng nhau. Vui lòng điều chỉnh lại.
+                            </p>
+                        )}
                     </div>
                 </div>
 
+                {/* ── Footer ── */}
                 <div className="ap-modal-footer">
                     <button className="ap-btn-cancel" onClick={onClose} disabled={saving}>Hủy bỏ</button>
                     <button
@@ -198,8 +300,8 @@ export function EditSessionPriceModal({ item, saving, onClose, onSave }) {
     );
 }
 
-// ─── Edit Monthly Price Modal ──────────────────────────────────────────────────
-export function EditMonthlyPriceModal({ item, saving, onClose, onSave }) {
+
+export function EditMonthlyPriceModal({ item, onClose, onSave }) {
     const [price1, setPrice1] = useState(item.price1Month);
     const [price3, setPrice3] = useState(item.price3Month);
     const [price6, setPrice6] = useState(item.price6Month);
