@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import supabase from '../../../config/supabaseClient';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -45,23 +46,68 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [checking, setChecking] = useState(false);
     const [payUrl, setPayUrl] = useState(null);
 
-    // ── Reset khi đóng/mở dialog ──────────────────────────────────
+    // ── Reset khi đóng/mở dialog & Tải danh mục loại xe, gói cước ─────
     useEffect(() => {
         if (isOpen) {
             resetAll();
             const fetchMetadataAndCheckPending = async () => {
                 try {
                     const token = localStorage.getItem('token');
-                    const headers = { Authorization: `Bearer ${token}` };
-                    const [resType, resPkg] = await Promise.all([
-                        axios.get(`${API}/month-card/vehicle-types`, { headers }),
-                        axios.get(`${API}/month-card/packages`, { headers })
-                    ]);
-                    setVehicleTypes(Array.isArray(resType.data) ? resType.data : []);
-                    setPackages(Array.isArray(resPkg.data) ? resPkg.data : []);
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                    // 1. Tải danh sách nhóm xe (vehicleTypes)
+                    let types = [];
+                    try {
+                        const resType = await axios.get(`${API}/month-card/vehicle-types`, { headers });
+                        const rawTypes = resType.data?.data || resType.data;
+                        if (Array.isArray(rawTypes) && rawTypes.length > 0) {
+                            types = rawTypes;
+                        }
+                    } catch (err) {
+                        console.warn('Lỗi gọi API vehicle-types, chuyển sang đọc trực tiếp từ Supabase:', err.message);
+                    }
+
+                    // Fallback: Lấy trực tiếp từ bảng vehicle_type trong Supabase nếu API không trả về
+                    if (!types || types.length === 0) {
+                        const { data: supaTypes } = await supabase
+                            .from('vehicle_type')
+                            .select('vehicle_type_id, name')
+                            .order('name', { ascending: true });
+                        if (supaTypes && supaTypes.length > 0) {
+                            types = supaTypes;
+                        }
+                    }
+                    setVehicleTypes(types);
+
+                    // 2. Tải danh sách gói cước tháng (packages)
+                    let pkgs = [];
+                    try {
+                        const resPkg = await axios.get(`${API}/month-card/packages`, { headers });
+                        const rawPkgs = resPkg.data?.data || resPkg.data;
+                        if (Array.isArray(rawPkgs) && rawPkgs.length > 0) {
+                            pkgs = rawPkgs;
+                        }
+                    } catch (err) {
+                        console.warn('Lỗi gọi API packages, chuyển sang đọc trực tiếp từ Supabase:', err.message);
+                    }
+
+                    // Fallback: Lấy trực tiếp từ bảng package trong Supabase nếu API không trả về
+                    if (!pkgs || pkgs.length === 0) {
+                        const { data: supaPkgs } = await supabase
+                            .from('package')
+                            .select('*')
+                            .eq('status', 'Hoạt động')
+                            .order('vehicle_type_id');
+                        if (supaPkgs && supaPkgs.length > 0) {
+                            pkgs = supaPkgs;
+                        }
+                    }
+                    setPackages(pkgs);
+
+                    // 3. Kiểm tra giao dịch đang chờ thanh toán
                     await checkPendingRegistration();
                 } catch (err) {
-                    console.error('Lỗi tải danh mục:', err);
+                    console.error('Lỗi tải danh mục đăng ký vé tháng:', err);
                 }
             };
             fetchMetadataAndCheckPending();
