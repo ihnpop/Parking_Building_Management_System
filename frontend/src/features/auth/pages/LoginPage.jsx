@@ -54,6 +54,9 @@ export default function LoginPage() {
             localStorage.setItem("accessToken", token);
             localStorage.setItem("access_token", token);
 
+            // Xóa tab đã lưu từ phiên trước để khi đăng nhập mới luôn hiển thị tab đầu tiên của sidebar
+            localStorage.removeItem("dashboard_current_view");
+
             // Đồng bộ phiên đăng nhập với client Supabase trên frontend
             if (refreshToken) {
                 await supabase.auth.setSession({
