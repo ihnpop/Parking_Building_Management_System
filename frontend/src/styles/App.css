@@ -31531,12 +31531,13 @@ body,
     display: inline-block;
 }
 
+/* Khung hợp đồng đăng ký vé tháng: Mở rộng tự nhiên, loại bỏ scrollbar con để Modal chỉ có 1 thanh cuộn duy nhất */
 .contract-box {
     border: 1px solid #e1e1ee;
     border-radius: 8px;
     padding: 16px;
-    max-height: 260px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
     background: #fafafa;
     font-size: 14px;
     line-height: 1.7;
