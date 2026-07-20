@@ -6,15 +6,15 @@ const router = express.Router();
 
 /**
  * GET /api/users
- * Lấy danh sách tất cả người dùng kèm role
+ * Lấy danh sách tất cả người dùng kèm role (chỉ ADMIN)
  */
-router.get("/", getUsers);
+router.get("/", verifyToken, authorize("ADMIN"), getUsers);
 
 /**
  * PATCH /api/users/:id/role
- * Cập nhật role cho người dùng
+ * Cập nhật role cho người dùng (chỉ ADMIN)
  */
-router.patch("/:id/role", updateUserRole);
+router.patch("/:id/role", verifyToken, authorize("ADMIN"), updateUserRole);
 
 /**
  * GET /api/users/login-logs

@@ -14,7 +14,7 @@ const parseNumber = (str) => {
 };
 
 // ─── Edit Session Price Modal ──────────────────────────────────────────────────
-export function EditSessionPriceModal({ item, onClose, onSave }) {
+export function EditSessionPriceModal({ item, saving, onClose, onSave }) {
     const [firstHour, setFirstHour] = useState(item.firstHour);
     const [extraHour, setExtraHour] = useState(item.extraHour);
     const [autoCalculate, setAutoCalculate] = useState(item.dayMax === (item.firstHour + 6 * item.extraHour));
@@ -182,15 +182,15 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
                 </div>
 
                 <div className="ap-modal-footer">
-                    <button className="ap-btn-cancel" onClick={onClose}>Hủy bỏ</button>
+                    <button className="ap-btn-cancel" onClick={onClose} disabled={saving}>Hủy bỏ</button>
                     <button
                         className="ap-btn-save"
                         onClick={handleSave}
-                        style={{ background: hasErrors ? '#cbd5e1' : item.color, cursor: hasErrors ? 'not-allowed' : 'pointer' }}
-                        disabled={hasErrors}
+                        style={{ background: (hasErrors || saving) ? '#cbd5e1' : item.color, cursor: (hasErrors || saving) ? 'not-allowed' : 'pointer' }}
+                        disabled={hasErrors || saving}
                     >
-                        <span className="material-symbols-outlined">save</span>
-                        Lưu thay đổi
+                        <span className="material-symbols-outlined">{saving ? 'progress_activity' : 'save'}</span>
+                        {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </button>
                 </div>
             </div>
@@ -199,7 +199,7 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
 }
 
 // ─── Edit Monthly Price Modal ──────────────────────────────────────────────────
-export function EditMonthlyPriceModal({ item, onClose, onSave }) {
+export function EditMonthlyPriceModal({ item, saving, onClose, onSave }) {
     const [price1, setPrice1] = useState(item.price1Month);
     const [price3, setPrice3] = useState(item.price3Month);
     const [price6, setPrice6] = useState(item.price6Month);
@@ -325,15 +325,15 @@ export function EditMonthlyPriceModal({ item, onClose, onSave }) {
                 </div>
 
                 <div className="ap-modal-footer">
-                    <button className="ap-btn-cancel" onClick={onClose}>Hủy bỏ</button>
+                    <button className="ap-btn-cancel" onClick={onClose} disabled={saving}>Hủy bỏ</button>
                     <button
                         className="ap-btn-save"
                         onClick={handleSave}
-                        style={{ background: hasErrors ? '#cbd5e1' : item.color, cursor: hasErrors ? 'not-allowed' : 'pointer' }}
-                        disabled={hasErrors}
+                        style={{ background: (hasErrors || saving) ? '#cbd5e1' : item.color, cursor: (hasErrors || saving) ? 'not-allowed' : 'pointer' }}
+                        disabled={hasErrors || saving}
                     >
-                        <span className="material-symbols-outlined">save</span>
-                        Lưu thay đổi
+                        <span className="material-symbols-outlined">{saving ? 'progress_activity' : 'save'}</span>
+                        {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </button>
                 </div>
             </div>

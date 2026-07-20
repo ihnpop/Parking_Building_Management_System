@@ -1,3 +1,4 @@
+﻿import AppError from "../utils/AppError.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import { uploadToStorage } from "../helpers/storageHelper.js";
 import { calculateExitFee } from "./feeCalculationService.js";
@@ -15,13 +16,13 @@ import { calculateExitFee } from "./feeCalculationService.js";
 export const checkIn = async (plateNumber, vehicleImageFile, plateImageFile) => {
   // 1. Validate đầu vào
   if (!plateNumber || !plateNumber.trim()) {
-    throw Object.assign(new Error("plate_number is required"), { statusCode: 400 });
+    throw new AppError("plate_number is required", 400);
   }
   if (!vehicleImageFile) {
-    throw Object.assign(new Error("vehicleImage is required"), { statusCode: 400 });
+    throw new AppError("vehicleImage is required", 400);
   }
   if (!plateImageFile) {
-    throw Object.assign(new Error("plateImage is required"), { statusCode: 400 });
+    throw new AppError("plateImage is required", 400);
   }
 
   // 2. Upload ảnh lên Supabase Storage
@@ -54,13 +55,13 @@ export const checkIn = async (plateNumber, vehicleImageFile, plateImageFile) => 
 export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) => {
   // 1. Validate đầu vào
   if (!plateNumber || !plateNumber.trim()) {
-    throw Object.assign(new Error("plate_number is required"), { statusCode: 400 });
+    throw new AppError("plate_number is required", 400);
   }
   if (!vehicleImageFile) {
-    throw Object.assign(new Error("vehicleImage is required"), { statusCode: 400 });
+    throw new AppError("vehicleImage is required", 400);
   }
   if (!plateImageFile) {
-    throw Object.assign(new Error("plateImage is required"), { statusCode: 400 });
+    throw new AppError("plateImage is required", 400);
   }
 
   const cleanPlate = plateNumber.trim().toUpperCase();
@@ -68,7 +69,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
   // 2. Tìm active session của biển số này
   const activeSession = await parkingRepository.findActiveSessionByPlate(cleanPlate);
   if (!activeSession) {
-    throw Object.assign(new Error("No active parking session found for this vehicle"), { statusCode: 404 });
+    throw new AppError("No active parking session found for this vehicle", 404);
   }
 
   // 3. Upload ảnh ra lên Supabase Storage
@@ -144,7 +145,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
  */
 export const openGateFree = async ({ sessionId, staffId }) => {
   if (!sessionId) {
-    throw Object.assign(new Error("Thiếu session_id"), { statusCode: 400 });
+    throw new AppError("Thiếu session_id", 400);
   }
 
   // 1. Lấy thông tin session

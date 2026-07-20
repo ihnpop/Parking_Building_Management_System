@@ -337,22 +337,67 @@ ON vt.name = x.vt_name;
 -- 10) PACKAGE (Chỉ Xe máy & Ô tô)
 -- ============================================================
 
-INSERT INTO package (vehicle_type_id, name, duration_month, price, status)
-SELECT
-  vt.vehicle_type_id,
-  p.name,
-  p.duration_month,
-  p.price,
-  'Hoạt động'
-FROM (
-  VALUES
-    ('Xe máy', 'Gói xe máy 1 tháng', 1, 300000::numeric),
-    ('Xe máy', 'Gói xe máy 3 tháng', 3, 850000::numeric),
-    ('Ô tô', 'Gói ô tô 1 tháng', 1, 2500000::numeric),
-    ('Ô tô', 'Gói ô tô 3 tháng', 3, 7000000::numeric)
-) AS p(vehicle_type_name, name, duration_month, price)
-JOIN vehicle_type vt ON vt.name = p.vehicle_type_name;
 
+  -- 
+  WITH pt AS (
+    SELECT
+        price_table_id
+    FROM price_table
+),
+vt AS (
+    SELECT
+        vehicle_type_id,
+        name
+    FROM vehicle_type
+)
+
+INSERT INTO monthly_package (
+    price_table_id,
+    vehicle_type_id,
+    name,
+    duration_month,
+    price,
+    status
+)
+SELECT
+    pt.price_table_id,
+    vt.vehicle_type_id,
+    p.name,
+    p.duration_month,
+    p.price,
+    'Hoạt động'
+FROM pt
+CROSS JOIN vt
+JOIN (
+    VALUES
+        -- ===========================
+        -- Xe máy
+        -- ===========================
+        ('Xe máy', 'Gói xe máy 1 tháng', 1, 300000::numeric),
+        ('Xe máy', 'Gói xe máy 3 tháng', 3, 850000::numeric),
+        ('Xe máy', 'Gói xe máy 6 tháng', 6, 1700000::numeric),
+        ('Xe máy', 'Gói xe máy 12 tháng',12, 3300000::numeric),
+
+        -- ===========================
+        -- Ô tô
+        -- ===========================
+        ('Ô tô', 'Gói ô tô 1 tháng', 1, 2500000::numeric),
+        ('Ô tô', 'Gói ô tô 3 tháng', 3, 7000000::numeric),
+        ('Ô tô', 'Gói ô tô 6 tháng', 6,14000000::numeric),
+        ('Ô tô', 'Gói ô tô 12 tháng',12,26000000::numeric)
+
+) AS p(
+    vehicle_type_name,
+    name,
+    duration_month,
+    price
+)
+ON vt.name = p.vehicle_type_name
+
+ORDER BY
+    pt.price_table_id,
+    vt.name,
+    p.duration_month;
 -- ============================================================
 -- 11) CUSTOMER + VEHICLE
 -- ============================================================

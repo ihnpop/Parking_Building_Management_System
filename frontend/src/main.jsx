@@ -13,9 +13,9 @@ function MainApp() {
   const [isProcessingAuth, setIsProcessingAuth] = useState(() => {
     const hash = window.location.hash || "";
     // Only intercept if we have access_token (login flow) and are NOT on password recovery flows
-    return hash.includes("access_token=") && 
-           !hash.includes("set-password") && 
-           !hash.includes("reset-password");
+    return hash.includes("access_token=") &&
+      !hash.includes("set-password") &&
+      !hash.includes("reset-password");
   });
 
   useEffect(() => {
@@ -65,7 +65,8 @@ function MainApp() {
         }}></div>
         <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Đang xử lý đăng nhập với Google...</h3>
         <p style={{ color: '#94a3b8', marginTop: '8px' }}>Vui lòng đợi trong giây lát</p>
-        <style dangerouslySetInnerHTML={{__html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @keyframes spin {
             to { transform: rotate(360deg); }
           }

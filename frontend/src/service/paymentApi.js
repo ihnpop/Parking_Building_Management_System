@@ -5,10 +5,29 @@
  */
 
 import axios from "axios";
+import supabase from "../config/supabaseClient";
 
 // Khởi tạo instance Axios kết nối với backend port 3636
 const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
+});
+
+// Tự động lấy token Supabase mới nhất trước mỗi request
+API.interceptors.request.use(async (config) => {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+            config.headers.Authorization = `Bearer ${session.access_token}`;
+        } else {
+            const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        }
+    } catch (err) {
+        console.warn('[paymentApi] Could not get session token:', err.message);
+    }
+    return config;
 });
 
 // Hàm hỗ trợ đính kèm mã định danh JWT Token tự động vào header để xác thực quyền truy cập
@@ -40,7 +59,7 @@ export const getPaymentByOrderCode = (orderCode) =>
  * API: Kiểm tra thông tin xe ra và tính phí trước (check-exit)
  */
 export const checkExitFee = (plateNumber) =>
-    API.get(`/gate/check-exit`, { params: { plate_number: plateNumber } });
+    API.get(`/gate/check-exit`, { params: { plate_number: plateNumber }, headers: getAuthHeaders() });
 
 /**
  * API: Thanh toán tiền mặt
@@ -58,4 +77,4 @@ export const createVnpayCheckout = (sessionId) =>
  * API: Polling trạng thái thanh toán VNPay theo order_code
  */
 export const getPaymentStatus = (orderCode) =>
-    API.get("/payments/status", { params: { order_code: orderCode } });
+    API.get("/payments/status", { params: { order_code: orderCode } });

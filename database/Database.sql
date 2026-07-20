@@ -125,15 +125,38 @@ CREATE TABLE public.price_item (
   CONSTRAINT price_item_price_table_id_fkey FOREIGN KEY (price_table_id) REFERENCES public.price_table(price_table_id),
   CONSTRAINT price_item_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
 );
-CREATE TABLE public.package (
-  vehicle_type_id uuid NOT NULL,
-  name character varying NOT NULL,
-  duration_month integer NOT NULL,
-  price numeric NOT NULL,
-  package_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  status character varying DEFAULT 'Hoạt động'::character varying,
-  CONSTRAINT package_pkey PRIMARY KEY (package_id),
-  CONSTRAINT package_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
+CREATE TABLE public.monthly_package (
+    package_id UUID NOT NULL DEFAULT gen_random_uuid(),
+
+    price_table_id UUID NOT NULL,
+
+    vehicle_type_id UUID NOT NULL,
+
+    name VARCHAR(255) NOT NULL,
+
+    duration_month INTEGER NOT NULL,
+
+    price NUMERIC(18,2) NOT NULL,
+
+    status VARCHAR(50) NOT NULL DEFAULT 'Hoạt động',
+
+    CONSTRAINT monthly_package_pkey
+        PRIMARY KEY (package_id),
+
+    CONSTRAINT monthly_package_price_table_id_fkey
+        FOREIGN KEY (price_table_id)
+        REFERENCES public.price_table(price_table_id),
+
+    CONSTRAINT monthly_package_vehicle_type_id_fkey
+        FOREIGN KEY (vehicle_type_id)
+        REFERENCES public.vehicle_type(vehicle_type_id),
+
+    CONSTRAINT monthly_package_unique
+        UNIQUE (
+            price_table_id,
+            vehicle_type_id,
+            duration_month
+        )
 );
 CREATE TABLE public.vehicle_package (
   previous_vehicle_package_id uuid,
