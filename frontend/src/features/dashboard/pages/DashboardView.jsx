@@ -120,6 +120,7 @@ export default function DashboardView() {
 
     // ─── KPI state ────────────────────────────────────────────────────────────
     const [stats, setStats] = useState({
+        todayTraffic: 0,
         activeSessions: 0,
         emptySlots: 0,
         usedSlots: 0,
@@ -142,7 +143,13 @@ export default function DashboardView() {
         try {
             const data = await fetchAllDashboardData();
 
+            // Tính tổng lượt xe ra/vào hôm nay dựa trên biểu đồ lưu lượng theo giờ (hourlyTraffic)
+            const totalTodayTraffic = Array.isArray(data.hourlyTraffic)
+                ? data.hourlyTraffic.reduce((sum, val) => sum + Number(val || 0), 0)
+                : 0;
+
             setStats({
+                todayTraffic: totalTodayTraffic,
                 activeSessions: data.activeSessions,
                 emptySlots: data.availableSlots,
                 usedSlots: data.occupiedSlots,
@@ -336,16 +343,16 @@ export default function DashboardView() {
 
                     {/* ── KPI Cards ── */}
                     <div className="db-kpis">
-                        {/* Phiên đang hoạt động – từ parking_sessions / parking_order */}
+                        {/* Lượt xe ra/vào hôm nay – Móc từ dữ liệu tổng hợp lưu lượng theo giờ */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
-                                <span>PHIÊN ĐANG HOẠT ĐỘNG</span>
+                                <span>LƯỢT XE RA/VÀO HÔM NAY</span>
                                 <span className="db-kpi-icon" style={{ color: '#3B82F6' }}>
-                                    <span className="material-symbols-outlined">directions_car</span>
+                                    <span className="material-symbols-outlined">swap_vert</span>
                                 </span>
                             </div>
-                            <div className="db-kpi-value">{stats.activeSessions} lượt đỗ</div>
-                            <div className="db-kpi-note">Xe hiện đang trong bãi</div>
+                            <div className="db-kpi-value">{stats.todayTraffic} lượt</div>
+                            <div className="db-kpi-note">Tổng lượt xe ra/vào trong ngày</div>
                             <div className="db-kpi-status-cue" style={{ color: '#3b82f6' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>sync</span>
                                 <span>Cập nhật tự động</span>
