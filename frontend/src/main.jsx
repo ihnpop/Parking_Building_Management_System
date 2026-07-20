@@ -12,8 +12,16 @@ import App from './App.jsx'
 function MainApp() {
   const [isProcessingAuth, setIsProcessingAuth] = useState(() => {
     const hash = window.location.hash || "";
-    // Only intercept if we have access_token (e.g. login, invite, or recovery flows)
-    return hash.includes("access_token=");
+    const search = window.location.search || "";
+    const pathname = window.location.pathname || "";
+    const href = window.location.href || "";
+
+    // Phát hiện người dùng quay lại từ Supabase Auth redirect (Google OAuth, Reset Password, hoặc Invite)
+    return hash.includes("access_token=") ||
+      href.includes("type=invite") ||
+      href.includes("type=recovery") ||
+      pathname.includes("set-password") ||
+      search.includes("type=invite");
   });
 
   useEffect(() => {
@@ -21,31 +29,48 @@ function MainApp() {
 
     const checkAuth = async () => {
       const hash = window.location.hash || "";
+      const search = window.location.search || "";
+      const pathname = window.location.pathname || "";
+      const href = window.location.href || "";
+
       let targetRoute = "#/login/dashboard";
 
-      if (hash.includes("type=invite")) {
+      // Bắt chính xác luồng đặt mật khẩu mới cho nhân viên được mời (Invite)
+      if (
+        pathname.includes("set-password") ||
+        href.includes("set-password") ||
+        href.includes("type=invite") ||
+        hash.includes("type=invite") ||
+        search.includes("type=invite")
+      ) {
         targetRoute = "#/set-password";
-      } else if (hash.includes("type=recovery")) {
+      } else if (
+        pathname.includes("reset-password") ||
+        href.includes("reset-password") ||
+        href.includes("type=recovery") ||
+        hash.includes("type=recovery") ||
+        search.includes("type=recovery")
+      ) {
         targetRoute = "#/reset-password";
       }
 
       try {
-        // Wait for Supabase to extract and save the session from the URL hash
+        // Chờ Supabase bóc tách token và lưu thông tin phiên đăng nhập
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("OAuth Session retrieved successfully:", session);
+        console.log("OAuth/Invite Session retrieved successfully:", session);
       } catch (err) {
-        console.error("Error processing OAuth redirect:", err);
+        console.error("Error processing Auth redirect:", err);
       } finally {
-        // Change hash to the target route and let the App render
+        // Chuyển hướng tới hash route phù hợp (ví dụ: #/set-password)
         window.location.hash = targetRoute;
         setIsProcessingAuth(false);
       }
     };
 
-    // Give Supabase a brief moment to process the hash parameters
+    // Đợi Supabase giải mã hash parameters
     const timer = setTimeout(() => {
       checkAuth();
-    }, 1500);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, [isProcessingAuth]);
