@@ -1428,27 +1428,33 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 {showHistoryModal && (
                     <div className="lost-modal-overlay">
                         <div className="lost-modal history-modal-wide">
-                            <div className="lost-modal-header history-modal-header" style={{ padding: '12px 20px' }}>
-                                <h2 style={{ fontSize: '16px', margin: 0, fontWeight: '600', color: '#1e293b' }}>Lịch sử xử lý</h2>
-                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                    <input
-                                        type="text"
-                                        className="history-search-input"
-                                        style={{ padding: '6px 12px', height: '32px', fontSize: '13px', width: '250px' }}
-                                        placeholder="Tìm kiếm thẻ hoặc biển số..."
-                                        value={historySearch}
-                                        onChange={e => { setHistorySearch(e.target.value); setHistoryPage(1); }}
-                                    />
-                                    <button className="history-close-btn" style={{ padding: '2px', display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }} onClick={() => setShowHistoryModal(false)}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+                            <div className="history-modal-header">
+                                <div className="history-modal-header-left">
+                                    <span className="material-symbols-outlined">manage_history</span>
+                                    <h2>Lịch sử xử lý</h2>
+                                </div>
+                                <div className="history-modal-header-right">
+                                    <div className="history-search-container">
+                                        <span className="material-symbols-outlined">search</span>
+                                        <input
+                                            type="text"
+                                            className="history-search-input"
+                                            placeholder="Tìm kiếm thẻ hoặc biển số..."
+                                            value={historySearch}
+                                            onChange={e => { setHistorySearch(e.target.value); setHistoryPage(1); }}
+                                        />
+                                    </div>
+                                    <button className="history-close-btn" onClick={() => setShowHistoryModal(false)} title="Đóng">
+                                        <span className="material-symbols-outlined">close</span>
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="lost-modal-body" style={{ maxHeight: '75vh', minHeight: '55vh', display: 'flex', flexDirection: 'column', padding: 0, backgroundColor: '#f8fafc' }}>
+                            <div className="history-modal-body">
                                 {historyLoading ? (
-                                    <div style={{ flex: 1, padding: '24px' }}>
-                                        <p className="history-empty" style={{ textAlign: 'center', padding: '20px' }}>Đang tải...</p>
+                                    <div className="history-empty-container">
+                                        <span className="material-symbols-outlined">sync</span>
+                                        <p>Đang tải lịch sử...</p>
                                     </div>
                                 ) : (() => {
                                     const filtered = historyData.filter(item => {
@@ -1460,7 +1466,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                     const totalPages = Math.ceil(filtered.length / historyItemsPerPage) || 1;
                                     const paginated = filtered.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
 
-                                    // Pagination window logic (show 3 pages max)
                                     let startPage = Math.max(1, historyPage - 1);
                                     let endPage = Math.min(totalPages, historyPage + 1);
                                     if (totalPages > 3) {
@@ -1478,21 +1483,24 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                                     return (
                                         <>
-                                            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+                                            <div className="history-list-scroll">
                                                 {paginated.length === 0 ? (
-                                                    <p className="history-empty" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Không tìm thấy dữ liệu.</p>
+                                                    <div className="history-empty-container">
+                                                        <span className="material-symbols-outlined">history_toggle_off</span>
+                                                        <p>Không tìm thấy dữ liệu lịch sử phù hợp.</p>
+                                                    </div>
                                                 ) : (
                                                     paginated.map((item) => {
                                                         let colorClass = '#94a3b8';
                                                         const actionLower = (item.action || '').toLowerCase();
                                                         if (actionLower.includes('mở khóa') || actionLower.includes('tìm lại')) {
-                                                            colorClass = '#10b981'; // green
+                                                            colorClass = '#10b981';
                                                         } else if (actionLower.includes('khóa') || actionLower.includes('vô hiệu')) {
-                                                            colorClass = '#f59e0b'; // orange
+                                                            colorClass = '#f59e0b';
                                                         } else if (actionLower.includes('xóa') || actionLower.includes('hủy')) {
-                                                            colorClass = '#ef4444'; // red
+                                                            colorClass = '#ef4444';
                                                         } else if (actionLower.includes('cấp lại') || actionLower.includes('hoàn thành')) {
-                                                            colorClass = '#3b82f6'; // blue
+                                                            colorClass = '#3b82f6';
                                                         }
 
                                                         let noteText = item.note || 'Không có ghi chú';
@@ -1500,21 +1508,21 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                                                         return (
                                                             <div key={item.log_id} className="history-card" style={{ borderLeftColor: colorClass }}>
-                                                                <div className="history-col-1">
-                                                                    <span className="history-action-text" style={{ color: colorClass }}>{item.action} —</span>
-                                                                    <span style={{ color: '#475569' }}>Thẻ {item.card_code} ({item.plate_number || '---'})</span>
-                                                                </div>
-                                                                <div className="history-col-2">
-                                                                    <span style={{ fontWeight: '500', color: '#1e293b' }}>{new Date(item.performed_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' })}</span>
-                                                                    <span className="history-sub-text">
-                                                                        <i style={{ color: '#94a3b8' }}>bởi {item.performed_by_name}</i>
-                                                                    </span>
-                                                                </div>
-                                                                <div className="history-col-3">
-                                                                    <div style={{ fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Ghi chú:</div>
-                                                                    <div style={{ color: '#334155', lineHeight: '1.5', fontSize: '14px', whiteSpace: 'pre-line', wordBreak: 'break-word' }}>
-                                                                        {noteText}
+                                                                <div className="history-card-header">
+                                                                    <div className="history-action-badge">
+                                                                        <span style={{ color: colorClass }}>{item.action} —</span>
+                                                                        <span style={{ color: '#475569' }}>Thẻ {item.card_code} ({item.plate_number || '---'})</span>
                                                                     </div>
+                                                                    <div className="history-card-time">
+                                                                        <span>{new Date(item.performed_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: 'numeric', month: 'numeric', year: 'numeric' })}</span>
+                                                                        <span className="history-card-sub" style={{ marginLeft: '6px' }}>
+                                                                            <i>bởi {item.performed_by_name}</i>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="history-card-note">
+                                                                    <div style={{ fontWeight: '600', color: '#475569', marginBottom: '2px', fontSize: '12px' }}>Ghi chú:</div>
+                                                                    <div>{noteText}</div>
                                                                 </div>
                                                             </div>
                                                         );
@@ -1522,16 +1530,16 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                 )}
                                             </div>
 
-                                            <div style={{ padding: '12px 24px', backgroundColor: '#fff', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
-                                                <div className="history-pagination" style={{ margin: 0, display: 'flex', gap: '6px' }}>
-                                                    <button className="history-page-btn" style={{ height: '28px', minWidth: '28px', padding: '0 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)}>
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span>
+                                            <div className="history-modal-footer">
+                                                <div className="history-pagination">
+                                                    <button className="history-page-btn" disabled={historyPage === 1} onClick={() => setHistoryPage(p => p - 1)}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
                                                     </button>
                                                     {pageNumbers.map(p => (
-                                                        <button key={p} className={`history-page-btn ${historyPage === p ? 'active' : ''}`} style={{ height: '28px', minWidth: '28px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={() => setHistoryPage(p)}>{p}</button>
+                                                        <button key={p} className={`history-page-btn ${historyPage === p ? 'active' : ''}`} onClick={() => setHistoryPage(p)}>{p}</button>
                                                     ))}
-                                                    <button className="history-page-btn" style={{ height: '28px', minWidth: '28px', padding: '0 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} disabled={historyPage === totalPages} onClick={() => setHistoryPage(p => p + 1)}>
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_right</span>
+                                                    <button className="history-page-btn" disabled={historyPage === totalPages} onClick={() => setHistoryPage(p => p + 1)}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
                                                     </button>
                                                 </div>
                                             </div>

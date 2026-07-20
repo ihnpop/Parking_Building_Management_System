@@ -18775,8 +18775,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(36, 25, 18, 0.4);
-  /* Ná» n má»  xÃ¡m áº¥m dá»‹u máº¯t */
+  background-color: rgba(0, 0, 0, 0.45);
+  /* Nền mờ tối trung tính sạch sẽ */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -30313,6 +30313,120 @@ body,
     gap: 8px !important;
   }
 
+  /* 1. Chuẩn hóa ô Bộ Lọc Khoảng Ngày / Khoảng Thời Gian trong Nhật Ký Vận Hành */
+  .filter-input.date-range-wrapper {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 38px !important;
+    padding: 0 10px !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .filter-input.date-range-wrapper:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+  }
+
+  /* Ép cố định kích thước ô date input để chữ nn/mm/yyyy và cuốn lịch [📅] nằm khít nhau trên TẤT CẢ các tab */
+  .date-range-wrapper .date-range-input {
+    border: none !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    outline: none !important;
+    flex: 0 0 auto !important;
+    width: 118px !important;
+    min-width: 115px !important;
+    max-width: 122px !important;
+    box-shadow: none !important;
+  }
+
+  .date-range-wrapper .date-range-input::-webkit-calendar-picker-indicator {
+    cursor: pointer !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0.75 !important;
+  }
+
+  .date-range-wrapper .date-range-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1 !important;
+  }
+
+  .date-range-wrapper .date-range-sep {
+    font-size: 12px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 0 2px !important;
+  }
+
+  /* Đảm bảo ô filter-block chứa Khoảng ngày giữ kích thước chuẩn gọn gàng, không bị giãn quá rộng */
+  .filter-block:has(.date-range-wrapper),
+  .lost-filter-card .filter-block:has(.date-range-wrapper) {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  /* 2. Chuẩn hóa Bộ Chọn Ngày Top-Right KPI (kpi-date-picker) */
+  .kpi-date-picker {
+    height: 34px !important;
+    padding: 0 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+    background: #ffffff !important;
+    outline: none !important;
+  }
+
+  /* 3. Đảm bảo nhãn Tiêu đề Filter nằm trên cùng hàng phẳng */
+  .filter-block label,
+  .lost-filter-card .filter-block label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    letter-spacing: 0.3px !important;
+    text-transform: uppercase !important;
+    margin-bottom: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  /* 4. Sửa lỗi màu nền Modal Phân quyền (User Management Modal Backdrop) */
+  .user-management-modal-overlay {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+  }
+
+  /* 5. Chuẩn hóa tất cả các nút và khoảng cách trong bộ lọc Nhật Ký Vận Hành (Đầy đặn 100% chiều rộng, khít viền, căn bằng đáy 100%) */
+  .lost-filter-card {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 16px 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Cho các ô lọc tìm kiếm co giãn đều và lấp đầy không gian bên trái mà không để khoảng trống rỗng */
+  .lost-filter-card .filter-block:not(.reset-filter-btn-container):not(:has(.date-range-wrapper)) {
+    flex: 1 !important;
+    min-width: 140px !important;
+  }
+
   /* Form and details area on mobile */
   .system-page .active-transaction {
     display: flex !important;
@@ -31578,4 +31692,699 @@ body,
 
 .pay-method-card:hover {
     border-color: #93c5fd;
-}
+}
+
+/* ==========================================================================
+   NHẬT KÝ VẬN HÀNH (LOG MANAGEMENT) - CHUẨN HÓA CSS THỜI GIAN & BỘ LỌC
+   ========================================================================== */
+
+/* 1. Chuẩn hóa ô Bộ Lọc Khoảng Ngày / Khoảng Thời Gian trong Nhật Ký Vận Hành */
+.filter-input.date-range-wrapper {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 38px !important;
+    padding: 0 10px !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+.filter-input.date-range-wrapper:focus-within {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Ép cố định kích thước ô date input để chữ nn/mm/yyyy và cuốn lịch [📅] nằm khít sát nhau trên TẤT CẢ các tab */
+.date-range-wrapper .date-range-input {
+    border: none !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    outline: none !important;
+    flex: 0 0 auto !important;
+    width: 118px !important;
+    min-width: 115px !important;
+    max-width: 122px !important;
+    box-shadow: none !important;
+}
+
+.date-range-wrapper .date-range-input::-webkit-calendar-picker-indicator {
+    cursor: pointer !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0.75 !important;
+}
+
+.date-range-wrapper .date-range-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1 !important;
+}
+
+.date-range-wrapper .date-range-sep {
+    font-size: 12px !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 0 2px !important;
+}
+
+/* Đảm bảo ô filter-block chứa Khoảng ngày giữ kích thước chuẩn gọn gàng trên mọi tab */
+.filter-block:has(.date-range-wrapper),
+.lost-filter-card .filter-block:has(.date-range-wrapper) {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+}
+
+/* 2. Chuẩn hóa Bộ Chọn Ngày Top-Right KPI (kpi-date-picker) */
+.kpi-date-picker {
+    height: 34px !important;
+    padding: 0 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+    background-color: #ffffff !important;
+    outline: none !important;
+    cursor: pointer !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.kpi-date-picker:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* 3. Chuẩn hóa Cột Hiển Thị Thời Gian Trong Bảng Nhật Ký */
+.log-time,
+.log-time-cell,
+.log-timestamp {
+    white-space: nowrap !important;
+    font-size: 13px !important;
+    vertical-align: middle !important;
+}
+
+.log-timestamp > div {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+/* 4. Sửa lỗi màu nền Modal Phân quyền (User Management Modal Backdrop) */
+.user-management-modal-overlay {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+}
+
+/* 5. Chuẩn hóa tất cả các nút và khoảng cách trong bộ lọc Nhật Ký Vận Hành (Đầy đặn 100% chiều rộng, khít viền, căn bằng đáy 100%) */
+.lost-filter-card {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding: 16px 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Cho các ô lọc tìm kiếm co giãn đều và lấp đầy không gian bên trái mà không để khoảng trống rỗng */
+.lost-filter-card .filter-block:not(.reset-filter-btn-container):not(:has(.date-range-wrapper)) {
+    flex: 1 !important;
+    min-width: 140px !important;
+}
+
+/* Nút xóa lọc đặt cạnh ô ngày */
+.lost-filter-card .reset-filter-btn-container {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+}
+
+/* Khối nút bấm phía bên phải (Lịch sử + Tạo báo mất) kịch sát biên phải */
+.lost-filter-card > div[style*="marginLeft"],
+.lost-filter-card > div[style*="margin-left"],
+.lost-filter-card > div:has(.lost-create-button) {
+    margin-left: auto !important;
+    gap: 10px !important;
+    flex: 0 0 auto !important;
+}
+
+/* Đảm bảo tất cả khối nút căn bằng đáy 100% phẳng với ô Input */
+.lost-filter-card .reset-filter-btn-container,
+.lost-filter-card > div[style*="marginLeft"],
+.lost-filter-card > div[style*="margin-left"],
+.lost-filter-card > div:has(.icon-reset-btn),
+.lost-filter-card > div:has(.lost-create-button) {
+    align-self: flex-end !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Nút icon vuông chuẩn hóa (Reset Filter, Lịch Sử xử lý, v.v.) */
+.icon-reset-btn,
+button.icon-reset-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    color: #475569 !important;
+    cursor: pointer !important;
+    outline: none !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.2s ease-in-out !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    vertical-align: middle !important;
+}
+
+.icon-reset-btn:hover,
+button.icon-reset-btn:hover {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+}
+
+.icon-reset-btn:active,
+button.icon-reset-btn:active {
+    background: #e2e8f0 !important;
+    transform: scale(0.97);
+}
+
+.icon-reset-btn .material-symbols-outlined,
+button.icon-reset-btn .material-symbols-outlined {
+    font-size: 20px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: inherit !important;
+}
+
+/* Nút hành động chính (Nút "Tạo báo mất") */
+.lost-create-button,
+button.lost-create-button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 38px !important;
+    padding: 0 16px !important;
+    margin: 0 !important;
+    background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+    transition: all 0.2s ease-in-out !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    vertical-align: middle !important;
+}
+
+.lost-create-button:hover,
+button.lost-create-button:hover {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.lost-create-button:active,
+button.lost-create-button:active {
+    transform: scale(0.97);
+}
+
+.lost-create-button .material-symbols-outlined,
+button.lost-create-button .material-symbols-outlined {
+    font-size: 18px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* ==========================================================================
+   6. MODAL LỊCH SỬ XỬ LÝ (PROCESSING HISTORY MODAL - UI/UX PROMAX & ANTI-SLOP)
+   ========================================================================== */
+
+.lost-modal-overlay:has(.history-modal-wide) {
+    background-color: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(4px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1050 !important;
+    animation: fadeInModal 0.2s ease-out;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.history-modal-wide {
+    width: 780px !important;
+    max-width: 92vw !important;
+    background: #ffffff !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border: 1px solid #e2e8f0 !important;
+    animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpModal {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.history-modal-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 24px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    gap: 16px !important;
+}
+
+.history-modal-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.history-modal-header-left .material-symbols-outlined {
+    font-size: 22px !important;
+    color: #2563eb !important;
+    background: #eff6ff !important;
+    padding: 6px !important;
+    border-radius: 8px !important;
+}
+
+.history-modal-header-left h2 {
+    font-size: 16.5px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+}
+
+.history-modal-header-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.history-search-container {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.history-search-container .material-symbols-outlined {
+    position: absolute !important;
+    left: 10px !important;
+    font-size: 18px !important;
+    color: #94a3b8 !important;
+    pointer-events: none !important;
+}
+
+.history-search-input {
+    height: 36px !important;
+    padding: 0 12px 0 34px !important;
+    font-size: 13.5px !important;
+    color: #1e293b !important;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    width: 260px !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+}
+
+.history-search-input:focus {
+    background: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+.history-close-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    background: #f1f5f9 !important;
+    border: none !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.history-close-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+/* History Body & Cards */
+.history-modal-body {
+    max-height: 68vh !important;
+    min-height: 400px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    background-color: #f8fafc !important;
+}
+
+.history-list-scroll {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 20px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+}
+
+.history-empty-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 60px 20px !important;
+    color: #94a3b8 !important;
+    gap: 8px !important;
+    margin: auto !important;
+}
+
+.history-empty-container .material-symbols-outlined {
+    font-size: 48px !important;
+    color: #cbd5e1 !important;
+}
+
+.history-empty-container p {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    margin: 0 !important;
+}
+
+.history-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left-width: 4px !important;
+    border-radius: 10px !important;
+    padding: 14px 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.history-card:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.history-card-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.history-action-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-weight: 600 !important;
+    font-size: 13.5px !important;
+}
+
+.history-card-time {
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+}
+
+.history-card-sub {
+    font-size: 12.5px !important;
+    color: #94a3b8 !important;
+}
+
+.history-card-note {
+    background: #f8fafc !important;
+    border: 1px solid #f1f5f9 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    color: #334155 !important;
+    line-height: 1.5 !important;
+    white-space: pre-line !important;
+    word-break: break-word !important;
+}
+
+/* History Footer & Pagination */
+.history-modal-footer {
+    padding: 14px 24px !important;
+    background-color: #ffffff !important;
+    border-top: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+}
+
+.history-pagination {
+    display: flex !important;
+    gap: 6px !important;
+    align-items: center !important;
+}
+
+.history-page-btn {
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #475569 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+}
+
+.history-page-btn:hover:not(:disabled) {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+.history-page-btn.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25) !important;
+}
+
+.history-page-btn:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
+/* ==========================================================================
+   7. CHUẨN HÓA KÍCH THƯỚC ĐỒNG BỘ ACTION BAR (QUẢN LÝ THẺ LƯỢT & VÉ THÁNG)
+   ========================================================================== */
+
+.mc-action-bar {
+    background: #ffffff !important;
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    min-height: 68px !important;
+    box-sizing: border-box !important;
+}
+
+.mc-filters {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+/* Tìm kiếm đồng kích thước */
+.mc-search-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 320px !important;
+    max-width: 100% !important;
+    flex: 0 0 320px !important;
+    height: 40px !important;
+}
+
+.mc-search-icon {
+    position: absolute !important;
+    left: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #64748b !important;
+    font-size: 20px !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.mc-search-input {
+    width: 100% !important;
+    height: 40px !important;
+    padding: 0 14px 0 40px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    outline: none !important;
+    font-size: 13.5px !important;
+    color: #1e293b !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s ease !important;
+}
+
+.mc-search-input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Ô Lựa chọn (Select) đồng kích thước */
+.mc-filter-select {
+    height: 40px !important;
+    padding: 0 32px 0 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    color: #1e293b !important;
+    outline: none !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    min-width: 165px !important;
+    flex: 0 0 auto !important;
+    transition: all 0.2s ease !important;
+}
+
+.mc-filter-select:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Nhóm Nút thao tác bên phải */
+.mc-action-buttons {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex-shrink: 0 !important;
+    height: 40px !important;
+}
+
+/* Nút bấm đồng kích thước */
+.mc-btn,
+button.mc-btn {
+    height: 40px !important;
+    padding: 0 18px !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+}
+
+/* Nút "Làm mới" */
+.mc-btn-outline,
+button.mc-btn-outline {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    min-width: 110px !important;
+}
+
+.mc-btn-outline:hover,
+button.mc-btn-outline:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* Nút "Đăng ký thẻ mới" / "Đăng ký vé tháng" */
+.mc-btn-primary,
+button.mc-btn-primary {
+    background: #2563eb !important;
+    border: 1px solid #2563eb !important;
+    color: #ffffff !important;
+    min-width: 175px !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+}
+
+.mc-btn-primary:hover,
+button.mc-btn-primary:hover {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.mc-btn .material-symbols-outlined,
+button.mc-btn .material-symbols-outlined {
+    font-size: 18px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+
+
+
+
+
+
+
+
