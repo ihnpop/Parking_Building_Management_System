@@ -31154,6 +31154,168 @@ body,
   margin: 2px 0 0;
 }
 
+/* ==========================================================================
+   7. CHUẨN HÓA KÍCH THƯỚC ĐỒNG BỘ ACTION BAR (QUẢN LÝ THẺ LƯỢT & VÉ THÁNG)
+   CẤM XUỐNG HÀNG - TẤT CẢ THÀNH PHẦN NẰM TRÊN 1 HÀNG THẲNG ĐỀU
+   ========================================================================== */
+
+.mc-action-bar {
+    background: #ffffff !important;
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    min-height: 68px !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+}
+
+.mc-filters {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+/* Tìm kiếm co giãn linh hoạt trên 1 hàng */
+.mc-search-wrapper {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    flex: 1 1 auto !important;
+    min-width: 180px !important;
+    height: 40px !important;
+}
+
+.mc-search-icon {
+    position: absolute !important;
+    left: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    color: #64748b !important;
+    font-size: 20px !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.mc-search-input {
+    width: 100% !important;
+    height: 40px !important;
+    padding: 0 14px 0 40px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    outline: none !important;
+    font-size: 13.5px !important;
+    color: #1e293b !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s ease !important;
+}
+
+.mc-search-input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Ô Lựa chọn (Select) giữ nguyên trên 1 hàng */
+.mc-filter-select {
+    height: 40px !important;
+    padding: 0 32px 0 12px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    color: #1e293b !important;
+    outline: none !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    min-width: 150px !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    transition: all 0.2s ease !important;
+}
+
+.mc-filter-select:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Nhóm Nút thao tác bên phải */
+.mc-action-buttons {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 0 0 auto !important;
+    height: 40px !important;
+}
+
+/* Nút bấm đồng kích thước trên 1 hàng */
+.mc-btn,
+button.mc-btn {
+    height: 40px !important;
+    padding: 0 18px !important;
+    border-radius: 8px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+}
+
+/* Nút "Làm mới" */
+.mc-btn-outline,
+button.mc-btn-outline {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+.mc-btn-outline:hover,
+button.mc-btn-outline:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+
+/* Nút "Đăng ký..." */
+.mc-btn-primary,
+button.mc-btn-primary {
+    background: #2563eb !important;
+    border: 1px solid #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+}
+
+.mc-btn-primary:hover,
+button.mc-btn-primary:hover {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.mc-btn .material-symbols-outlined,
+button.mc-btn .material-symbols-outlined {
+    font-size: 18px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 .ap-modal-close {
   position: absolute;
   right: 20px;
@@ -32248,14 +32410,14 @@ button.lost-create-button .material-symbols-outlined {
     min-width: 0 !important;
 }
 
-/* Tìm kiếm đồng kích thước */
+/* Tìm kiếm tự mở rộng lấp đầy khoảng trống (khít đều đặn) */
 .mc-search-wrapper {
     position: relative !important;
     display: flex !important;
     align-items: center !important;
-    width: 320px !important;
-    max-width: 100% !important;
-    flex: 0 0 320px !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 200px !important;
     height: 40px !important;
 }
 
