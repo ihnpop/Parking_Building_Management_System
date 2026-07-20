@@ -16,11 +16,11 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
 
     // Danh sách tab được phép truy cập theo từng vai trò
     const MANAGER_ALLOWED_VIEWS = ['card-management', 'adjust-prices', 'log-management', 'system-settings'];
-    const ADMIN_ALLOWED_VIEWS = ['dashboard', 'user-management', 'system-settings', 'revenue-traffic'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
 
     const getDefaultTab = (currentRole) => {
-        if (currentRole === 'ADMIN') return 'dashboard';
-        if (currentRole === 'MANAGER') return 'card-management';
+        if (currentRole === 'ADMIN') return 'user-management'; // Tab đầu tiên của Admin
+        if (currentRole === 'MANAGER') return 'card-management'; // Tab đầu tiên của Manager
         return 'system';
     };
 
@@ -33,11 +33,11 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             if (role === 'STAFF') {
                 setActiveTab('system');
             } else if (role === 'MANAGER' && !MANAGER_ALLOWED_VIEWS.includes(currentTab)) {
-                // Manager không có quyền xem tab này (ví dụ: dashboard/user-management), đặt lại về 'card-management'
+                // Manager không có quyền xem tab này, đặt lại về 'card-management' (tab đầu tiên của Manager)
                 setActiveTab('card-management');
             } else if (role === 'ADMIN' && !ADMIN_ALLOWED_VIEWS.includes(currentTab)) {
-                // Admin không có quyền truy cập tab riêng của Manager, đặt lại về 'dashboard'
-                setActiveTab('dashboard');
+                // Admin không có quyền truy cập tab riêng của Manager, đặt lại về 'user-management' (tab đầu tiên của Admin)
+                setActiveTab('user-management');
             } else if (currentTab) {
                 setActiveTab(currentTab);
             }

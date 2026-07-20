@@ -57,21 +57,25 @@ export default function DashboardView() {
 
     // Danh sách các tab được phép truy cập theo từng vai trò người dùng
     const MANAGER_ALLOWED_VIEWS = ['card-management', 'adjust-prices', 'log-management', 'system-settings'];
-    const ADMIN_ALLOWED_VIEWS = ['dashboard', 'user-management', 'system-settings', 'revenue-traffic'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
 
-    // Khởi tạo tab hiện tại từ localStorage hoặc chọn tab mặc định hợp lệ theo vai trò người dùng
+    // Trả về tab đầu tiên trên Sidebar của từng vai trò
+    const getDefaultViewForRole = (r) => {
+        if (r === 'ADMIN') return 'user-management'; // Tab 1 của Admin: Phân quyền
+        if (r === 'MANAGER') return 'card-management'; // Tab 1 của Manager: Quản lý Thẻ
+        return 'system'; // Tab 1 của Staff
+    };
+
+    // Khởi tạo tab hiện tại: Dùng savedView nếu hợp lệ với vai trò, ngược lại mặc định dùng tab đầu tiên của Sidebar
     const [currentView, setCurrentView] = useState(() => {
         const savedView = localStorage.getItem('dashboard_current_view');
-        // Nếu là Manager và tab lưu trữ không được phép (như dashboard hoặc user-management) -> tự động chọn 'card-management'
-        if (computedRole === 'MANAGER' && savedView && !MANAGER_ALLOWED_VIEWS.includes(savedView)) {
-            return 'card-management';
+        if (computedRole === 'MANAGER' && savedView && MANAGER_ALLOWED_VIEWS.includes(savedView)) {
+            return savedView;
         }
-        // Nếu là Admin và tab lưu trữ không hợp lệ -> tự động chọn 'dashboard'
-        if (computedRole === 'ADMIN' && savedView && !ADMIN_ALLOWED_VIEWS.includes(savedView)) {
-            return 'dashboard';
+        if (computedRole === 'ADMIN' && savedView && ADMIN_ALLOWED_VIEWS.includes(savedView)) {
+            return savedView;
         }
-        if (computedRole === 'MANAGER' && !savedView) return 'card-management';
-        return savedView || 'dashboard';
+        return getDefaultViewForRole(computedRole);
     });
 
     // Cập nhật localStorage khi tab hiện tại thay đổi
