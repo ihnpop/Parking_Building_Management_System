@@ -31518,3 +31518,63 @@ body,
   height: 30px;
   min-width: 30px;
 }
+
+/* ─── CreateMonthCardDialog ──────────────────────────────────────────────────── */
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+.contract-box {
+    border: 1px solid #e1e1ee;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fafafa;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.contract-box table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.contract-box td {
+    padding: 5px 10px;
+    border: 1px solid #e5e7eb;
+}
+
+.contract-box td:first-child {
+    font-weight: 600;
+    background: #f3f4f6;
+    width: 40%;
+    color: #374151;
+}
+
+.pay-method-card {
+    border: 2px solid #e1e1ee;
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+}
+
+.pay-method-card.selected {
+    border-color: #004bca;
+    background: #f0f5ff;
+}
+
+.pay-method-card:hover {
+    border-color: #93c5fd;
+}
