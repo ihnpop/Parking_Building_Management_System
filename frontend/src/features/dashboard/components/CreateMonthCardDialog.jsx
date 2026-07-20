@@ -20,7 +20,11 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [verifying, setVerifying] = useState(false);
 
     // ── Metadata ──────────────────────────────────────────────────
-    const [vehicleTypes, setVehicleTypes] = useState([]);
+    const DEFAULT_VEHICLE_TYPES = [
+        { vehicle_type_id: '439d3c41-838a-4aba-bd05-ff91f7dd6127', name: 'Ô tô' },
+        { vehicle_type_id: '7a2fa08c-7d47-4b0d-96be-557daadd3641', name: 'Xe máy' }
+    ];
+    const [vehicleTypes, setVehicleTypes] = useState(DEFAULT_VEHICLE_TYPES);
     const [packages, setPackages] = useState([]);
 
     // ── Form data ──────────────────────────────────────────────────
@@ -67,7 +71,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                         console.warn('Lỗi gọi API vehicle-types, chuyển sang đọc trực tiếp từ Supabase:', err.message);
                     }
 
-                    // Fallback: Lấy trực tiếp từ bảng vehicle_type trong Supabase nếu API không trả về
+                    // Fallback 1: Lấy trực tiếp từ bảng vehicle_type trong Supabase nếu API không trả về
                     if (!types || types.length === 0) {
                         const { data: supaTypes } = await supabase
                             .from('vehicle_type')
@@ -76,6 +80,11 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                         if (supaTypes && supaTypes.length > 0) {
                             types = supaTypes;
                         }
+                    }
+
+                    // Fallback 2: Sử dụng danh sách nhóm xe mặc định từ DB nếu cả 2 phương thức trên đều trống
+                    if (!types || types.length === 0) {
+                        types = DEFAULT_VEHICLE_TYPES;
                     }
                     setVehicleTypes(types);
 
