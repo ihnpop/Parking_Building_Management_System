@@ -174,6 +174,13 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             });
             if (res.data?.success && res.data.pending) {
                 const pending = res.data.pending;
+
+                // Bỏ qua nếu orderCode này đã được hoàn tất đăng ký trước đó
+                const finalizedKey = `finalized_order_${pending.orderCode}`;
+                if (sessionStorage.getItem(finalizedKey)) {
+                    return;
+                }
+
                 const regData = pending.registrationData;
 
                 // Đánh dấu eKYC là đã xác thực
@@ -407,6 +414,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
 
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new Event('monthCardLogsUpdated'));
+            }
+            // Đánh dấu orderCode này đã hoàn tất để không bị khôi phục lại ở lần mở tiếp theo
+            if (paymentOrderCode) {
+                sessionStorage.setItem(`finalized_order_${paymentOrderCode}`, '1');
             }
             setSuccessMessage('Đăng ký vé tháng thành công!');
             setTimeout(() => { onSuccess?.(); onClose(); }, 1500);
