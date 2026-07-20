@@ -6,9 +6,9 @@ import { getMonthCards } from "../../../service/monthCardApi";
 import { useNotification } from "../../../context/NotificationContext";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const STORAGE_KEY    = "exit_pending_vnpay";
-const PRECHECK_KEY   = "exit_precheck_state";
-const EXPIRY_MS      = 15 * 60 * 1000; // 15 phút
+const STORAGE_KEY = "exit_pending_vnpay";
+const PRECHECK_KEY = "exit_precheck_state";
+const EXPIRY_MS = 15 * 60 * 1000; // 15 phút
 
 // ─── Storage helpers — VNPay pending ─────────────────────────────────────────
 const savePendingVNPay = (data) => {
