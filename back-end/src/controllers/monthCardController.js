@@ -55,11 +55,64 @@ export const getVehicleTypes = async (req, res) => {
 
 export const getPackages = async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Lấy userId từ token JWT
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        userId = user?.id || null;
+      } catch (authErr) {
+        console.error("Lỗi giải mã Supabase token:", authErr);
+      }
+    }
+
+    let query = supabase
       .from('package')
       .select('*')
-      .eq('status', 'Hoạt động')
-      .order('vehicle_type_id');
+      .eq('status', 'Hoạt động');
+
+    if (userId) {
+      // 1. Lấy building_id từ profiles của user
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('building_id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profile?.building_id) {
+        // 2. Tìm tất cả parking thuộc building này
+        const { data: parkings } = await supabase
+          .from('parking')
+          .select('parking_id')
+          .eq('building_id', profile.building_id);
+
+        const parkingIds = parkings?.map(p => p.parking_id) || [];
+        if (parkingIds.length > 0) {
+          // 3. Tìm tất cả price_table thuộc các parking_id trên
+          const { data: priceTables } = await supabase
+            .from('price_table')
+            .select('price_table_id')
+            .in('parking_id', parkingIds);
+
+          const priceTableIds = priceTables?.map(pt => pt.price_table_id) || [];
+          if (priceTableIds.length > 0) {
+            // Lọc theo price_table_id hoặc price_table_id is null (để không mất các package cũ)
+            query = query.or(`price_table_id.is.null,price_table_id.in.(${priceTableIds.map(id => `"${id}"`).join(',')})`);
+          } else {
+            // Nếu có bãi đỗ xe nhưng không có price table, chỉ hiển thị package global
+            query = query.is('price_table_id', null);
+          }
+        } else {
+          query = query.is('price_table_id', null);
+        }
+      } else {
+        query = query.is('price_table_id', null);
+      }
+    }
+
+    const { data, error } = await query.order('vehicle_type_id');
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -70,6 +123,7 @@ export const getPackages = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
 
 /**
  * Lấy danh sách gói gia hạn thẻ tháng
@@ -675,13 +729,32 @@ export const getRenewalInfo = async (req, res) => {
   try {
     const { cardId } = req.params;
     if (!cardId) return res.status(400).json({ error: 'Thiếu cardId.' });
-    const info = await renewalService.getRenewalInfo(cardId);
+
+    // Lấy userId từ token JWT
+    let userId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      try {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        userId = user?.id || null;
+      } catch (authErr) {
+        console.error("Lỗi giải mã Supabase token:", authErr);
+      }
+    }
+    if (!userId) {
+      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
+      userId = profiles?.[0]?.id || null;
+    }
+
+    const info = await renewalService.getRenewalInfo(cardId, userId);
     return res.status(200).json({ success: true, data: info });
   } catch (err) {
     console.error('getRenewalInfo error:', err);
     return res.status(400).json({ success: false, error: err.message });
   }
 };
+
 
 /**
  * Khởi tạo giao dịch gia hạn: tạo payment record + VNPay URL (hoặc cash orderCode).
