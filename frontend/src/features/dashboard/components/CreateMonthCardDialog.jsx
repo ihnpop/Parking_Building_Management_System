@@ -113,8 +113,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     }
                     setPackages(pkgs);
 
-                    // 3. Kiểm tra giao dịch đang chờ thanh toán
-                    await checkPendingRegistration();
+                    // 3. Đã tắt tự động khôi phục giao dịch chờ thanh toán khi mở Modal.
+                    // Giúp người dùng có thể tạo đăng ký thẻ tháng mới ngay lập tức từ Bước 1
+                    // mà không bị chặn bởi các giao dịch cũ chọn "Để sau".
+                    // Các giao dịch "Chờ thanh toán" sẽ được xử lý riêng tại tab "Nhật ký thẻ tháng".
                 } catch (err) {
                     console.error('Lỗi tải danh mục đăng ký vé tháng:', err);
                 }
