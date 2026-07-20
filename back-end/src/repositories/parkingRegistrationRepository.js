@@ -65,17 +65,22 @@ export const updateCustomer = async (customerId, payload) => {
 };
 
 /**
- * Ghi log xác thực eKYC cho khách hàng vào bảng customer_kyc
+ * Ghi hoặc cập nhật log xác thực eKYC cho khách hàng vào bảng customer_kyc.
+ * Dùng upsert để tránh lỗi duplicate key khi cùng customer_id hoặc cccd_number
+ * đã tồn tại (ví dụ: khách hàng đăng ký lại sau khi hết hạn vé tháng).
  * @param {{ customer_id: string, cccd_number: string, ekyc_status: string, verified_at: string }} payload
  * @returns {Promise<void>}
  */
 export const createCustomerKyc = async (payload) => {
+    // Insert bản ghi mới mỗi lần đăng ký để lưu lịch sử KYC
+    // Yêu cầu: bảng customer_kyc không có UNIQUE constraint trên customer_id và cccd_number
     const { error } = await supabase
         .from('customer_kyc')
         .insert([payload]);
 
     if (error) throw new Error('Lỗi lưu log KYC: ' + error.message);
 };
+
 
 // ============================================================
 // VEHICLE

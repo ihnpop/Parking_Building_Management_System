@@ -207,18 +207,59 @@ export async function findPackageById(packageId) {
  * Lấy danh sách gói vé tháng đang hoạt động theo loại xe.
  * Dùng để hiển thị dropdown chọn gói trong dialog gia hạn.
  * @param {string} vehicleTypeId
+ * @param {string} [userId]
  * @returns {Promise<object[]>}
  */
-export async function findAvailablePackages(vehicleTypeId) {
-    const { data, error } = await supabase
+export async function findAvailablePackages(vehicleTypeId, userId) {
+    let query = supabase
         .from('package')
-        .select('package_id, name, price, duration_month')
+        .select('package_id, name, price, duration_month, price_table_id')
         .eq('vehicle_type_id', vehicleTypeId)
-        .eq('status', 'Hoạt động')
-        .order('duration_month', { ascending: true });
+        .eq('status', 'Hoạt động');
+
+    if (userId) {
+        // Lấy building_id từ profiles của user
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('building_id')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (profile?.building_id) {
+            // Tìm các parking thuộc building
+            const { data: parkings } = await supabase
+                .from('parking')
+                .select('parking_id')
+                .eq('building_id', profile.building_id);
+
+            const parkingIds = parkings?.map(p => p.parking_id) || [];
+            if (parkingIds.length > 0) {
+                // Tìm price_table của các parking này
+                const { data: priceTables } = await supabase
+                    .from('price_table')
+                    .select('price_table_id')
+                    .in('parking_id', parkingIds);
+
+                const priceTableIds = priceTables?.map(pt => pt.price_table_id) || [];
+                if (priceTableIds.length > 0) {
+                    // Lọc theo các price_table này hoặc price_table_id is null (để không mất các package cũ)
+                    query = query.or(`price_table_id.is.null,price_table_id.in.(${priceTableIds.map(id => `"${id}"`).join(',')})`);
+                } else {
+                    query = query.is('price_table_id', null);
+                }
+            } else {
+                query = query.is('price_table_id', null);
+            }
+        } else {
+            query = query.is('price_table_id', null);
+        }
+    }
+
+    const { data, error } = await query.order('duration_month', { ascending: true });
     if (error) throw new Error('Lỗi truy vấn danh sách gói: ' + error.message);
     return data || [];
 }
+
 
 // ─────────────────────────────────────────────────────────────
 // PAYMENT

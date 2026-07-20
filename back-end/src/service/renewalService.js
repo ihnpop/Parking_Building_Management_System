@@ -334,8 +334,9 @@ export async function processRenewalSuccess(orderCode) {
  * - Trạng thái (còn hạn / hết hạn)
  * - Danh sách gói vé tháng có thể chọn (theo loại xe)
  * @param {string} cardId
+ * @param {string} [userId]
  */
-export async function getRenewalInfo(cardId) {
+export async function getRenewalInfo(cardId, userId) {
     // Lấy thẻ + registration + vehicle + package
     const card = await renewalRepository.findCardWithDetails(cardId);
     if (!card) throw new Error('Không tìm thấy thẻ tháng.');
@@ -357,8 +358,9 @@ export async function getRenewalInfo(cardId) {
     // Lấy danh sách gói khả dụng theo loại xe (cho dropdown chọn gói)
     let availablePackages = [];
     if (vehicleTypeId && !isExpired) {
-        availablePackages = await renewalRepository.findAvailablePackages(vehicleTypeId);
+        availablePackages = await renewalRepository.findAvailablePackages(vehicleTypeId, userId);
     }
+
 
     // Kiểm tra xem có giao dịch gia hạn nào đang ở trạng thái 'Chờ thanh toán' và chưa bị timeout
     let pendingPayment = null;

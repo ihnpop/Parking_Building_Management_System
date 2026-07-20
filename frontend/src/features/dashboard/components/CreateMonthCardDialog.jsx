@@ -309,7 +309,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 customer_info: {
                     full_name: formData.full_name,
                     phone: formData.phone,
-                    email: formData.email
+                    email: formData.email,
+                    cccd_number: formData.cccd_number || ''
                 },
                 vehicle_info: {
                     vehicle_type_id: formData.vehicle_type_id,
