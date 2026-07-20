@@ -1,7 +1,7 @@
 # FastAPI OCR Service Dockerfile
 # Build image for YOLOv8 + EasyOCR OCR microservice
 
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # Set environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -14,9 +14,16 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy requirements and install Python packages (including torch CPU version)
-COPY requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# Copy requirements and install Python packages (including torch with CUDA support)
+# COPY requirements.txt ./requirements.txt
+COPY requirements.txt .
+# Cài Torch CPU trước
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.3.1 torchvision==0.18.1
+
+# Sau đó cài các package còn lại
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code and model weights
 COPY app.py ./app.py

@@ -14,7 +14,7 @@ COPY package*.json pnpm-lock.yaml .npmrc* ./
 
 RUN npm install -g pnpm
 
-RUN pnpm install --ignore-scripts
+RUN pnpm install
 
 COPY . .
 

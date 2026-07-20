@@ -1,7 +1,7 @@
-import supabase from "../config/supabaseClient.js";
 import * as vehicleRepository from "../repositories/vehicleRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
+import * as gateRepository from "../repositories/gateRepository.js";
 
 /**
  * Giả lập OCR: nhận diện biển số từ ảnh upload
@@ -21,12 +21,8 @@ export const simulateOCR = async (fileName) => {
 
   // Nếu không tìm thấy, lấy ngẫu nhiên 1 biển số đã có trong DB của Xe tháng để mô phỏng cho thật
   try {
-    const { data: vehicles } = await supabase
-      .from('vehicle')
-      .select('plate_number')
-      .limit(10);
-
-    if (vehicles && vehicles.length > 0) {
+    const vehicles = await gateRepository.getRandomVehiclePlates(10);
+    if (vehicles.length > 0) {
       const randomIndex = Math.floor(Math.random() * vehicles.length);
       return vehicles[randomIndex].plate_number;
     }
@@ -91,10 +87,7 @@ export const preCheckEntry = async (plateNumber) => {
   }
 
   // Kiểm tra gói cước xe (vehicle_package)
-  const { data: packages } = await supabase
-    .from('vehicle_package')
-    .select('*')
-    .eq('vehicle_id', vehicle.vehicle_id);
+  const packages = await gateRepository.getVehiclePackages(vehicle.vehicle_id);
 
   if (packages && packages.length > 0) {
     // Nếu có đăng ký gói, kiểm tra xem có gói nào ACTIVE và chưa hết hạn không
@@ -143,24 +136,11 @@ export const preCheckEntry = async (plateNumber) => {
  * Lấy danh sách thẻ lượt khả dụng cho xe vãng lai
  */
 const getVisitorEntryResponse = async (plateNumber) => {
-  // Lấy các thẻ có trạng thái 'AVAILABLE' và loại 'Thẻ lượt'
-  // const { data: cards, error } = await supabase
-  //   .from('card')
-  //   .select('card_id, code, type, status')
-  //   .in('status', ['Hoạt động', 'Chưa sử dụng'])
-  //   .in('type', ['Thẻ lượt', 'DAILY', 'Thẻ ngày']);
-
-  const { data: cards, error } = await supabase
-    .from('card')
-    .select('card_id, code, type, status')
-    .eq('type', 'Thẻ lượt')
-    .eq('status', 'Đang chờ');
-  if (error) throw new Error(error.message);
-
+  const cards = await gateRepository.getAvailableVisitorCards();
   return {
     vehicleType: "VISITOR",
     plateNumber,
-    availableCards: cards || []
+    availableCards: cards
   };
 };
 
@@ -184,11 +164,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
   if (!staffId) {
     throw Object.assign(new Error("Yêu cầu đăng nhập để thực hiện."), { statusCode: 401 });
   }
-  const { data: profile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('building_id')
-    .eq('id', staffId)
-    .maybeSingle();
+  const { profile, error: profileErr } = await gateRepository.getStaffProfile(staffId);
 
   if (profileErr || !profile) {
     throw Object.assign(new Error("Không tìm thấy thông tin tài khoản nhân viên."), { statusCode: 404 });
@@ -204,11 +180,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
   let finalParkingId = null;
 
   if (finalGateId) {
-    const { data: gateObj } = await supabase
-      .from('gate')
-      .select('parking_id')
-      .eq('gate_id', finalGateId)
-      .maybeSingle();
+    const gateObj = await gateRepository.getGateParkingId(finalGateId);
     if (gateObj) {
       finalParkingId = gateObj.parking_id;
     }
@@ -216,23 +188,13 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
 
   if (!finalGateId || !finalParkingId) {
     // Fallback: Tìm bãi đỗ xe thuộc tòa nhà của Staff
-    const { data: parkings } = await supabase
-      .from('parking')
-      .select('parking_id')
-      .eq('building_id', buildingId)
-      .limit(1);
-
-    if (parkings && parkings.length > 0) {
-      finalParkingId = parkings[0].parking_id;
+    const parking = await gateRepository.getParkingByBuilding(buildingId);
+    if (parking) {
+      finalParkingId = parking.parking_id;
       // Tìm cổng của bãi đỗ xe này
-      const { data: gates } = await supabase
-        .from('gate')
-        .select('gate_id')
-        .eq('parking_id', finalParkingId)
-        .limit(1);
-
-      if (gates && gates.length > 0) {
-        finalGateId = gates[0].gate_id;
+      const gate = await gateRepository.getGateByParking(finalParkingId);
+      if (gate) {
+        finalGateId = gate.gate_id;
       }
     }
   }
@@ -279,18 +241,11 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
         searchTypeName = 'Xe máy';
       }
 
-      const { data: vtList } = await supabase
-        .from('vehicle_type')
-        .select('vehicle_type_id')
-        .or(`name.eq."${vehicleType || 'Xe máy'}",name.eq."${searchTypeName}"`)
-        .limit(1);
-
-      vtId = vtList && vtList.length > 0 ? vtList[0].vehicle_type_id : null;
+      vtId = await gateRepository.getVehicleTypeId(searchTypeName);
 
       if (!vtId) {
         // Fallback lấy loại xe đầu tiên
-        const { data: allVt } = await supabase.from('vehicle_type').select('vehicle_type_id').limit(1);
-        vtId = allVt && allVt.length > 0 ? allVt[0].vehicle_type_id : null;
+        vtId = await gateRepository.getFallbackVehicleTypeId();
       }
 
       if (!vtId) {
@@ -358,24 +313,22 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
   }
 
   // Ghi log vào entry_exit_log
-  const { error: logErr } = await supabase
-    .from('entry_exit_log')
-    .insert({
-      session_id: session.session_id,
-      vehicle_id: vehicle.vehicle_id,
-      card_id: cardIdVal,
-      building_id: buildingId,
-      parking_id: finalParkingId,
-      gate_id: finalGateId,
-      staff_id: staffId,
-      direction: 'Xe vào',
-      event_time: new Date().toISOString(),
-      vehicle_type_id: vehicle.vehicle_type_id,
-      plate_number: cleanPlate,
-      ticket_type: ticketType,
-      applied_price: 0,
-      note: 'Nhân viên check-in xe vào bãi'
-    });
+  const logErr = await gateRepository.insertEntryExitLog({
+    session_id: session.session_id,
+    vehicle_id: vehicle.vehicle_id,
+    card_id: cardIdVal,
+    building_id: buildingId,
+    parking_id: finalParkingId,
+    gate_id: finalGateId,
+    staff_id: staffId,
+    direction: 'Xe vào',
+    event_time: new Date().toISOString(),
+    vehicle_type_id: vehicle.vehicle_type_id,
+    plate_number: cleanPlate,
+    ticket_type: ticketType,
+    applied_price: 0,
+    note: 'Nhân viên check-in xe vào bãi'
+  });
 
   if (logErr) {
     throw new Error("Lỗi ghi nhật ký vào/ra: " + logErr.message);
@@ -432,29 +385,29 @@ export const preCheckExit = async (plateNumber) => {
   const totalHours = diffMs / (1000 * 60 * 60);
   const billableHours = Math.max(1, Math.ceil(totalHours));
 
-  const durationStr = `${billableHours}h`;
+  const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   const formattedEntryTime = entryTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
   // 4. Tính toán phí gửi xe
   let fee = 0;
   if (!isMonthly) {
-    fee = billableHours * 10000; // Mặc định 10k/h nếu không tìm thấy biểu phí
+    fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Mặc định 10k/h nếu không tìm thấy biểu phí (miễn phí dưới 30 phút)
 
     if (vehicle && vehicle.vehicle_type_id) {
       try {
-        const { data: priceItems } = await supabase
-          .from("price_item")
-          .select("price, min_hour, max_hour")
-          .eq("vehicle_type_id", vehicle.vehicle_type_id);
+        const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
 
         if (priceItems && priceItems.length > 0) {
           const matchingItem = priceItems.find(item => {
-            const min = item.min_hour || 0;
-            const max = item.max_hour;
-            if (max === null || max === undefined) {
-              return billableHours >= min;
+            const min = Number(item.min_hour) || 0;
+            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+            if (max === null) {
+              return totalHours >= min;
             }
-            return billableHours >= min && billableHours <= max;
+            return totalHours >= min && totalHours < max;
           });
 
           if (matchingItem) {
@@ -490,11 +443,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
   if (!staffId) {
     throw Object.assign(new Error("Yêu cầu đăng nhập để thực hiện."), { statusCode: 401 });
   }
-  const { data: profile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('building_id')
-    .eq('id', staffId)
-    .maybeSingle();
+  const { profile, error: profileErr } = await gateRepository.getStaffProfile(staffId);
 
   if (profileErr || !profile) {
     throw Object.assign(new Error("Không tìm thấy thông tin tài khoản nhân viên."), { statusCode: 404 });
@@ -510,33 +459,19 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
   let finalParkingId = null;
 
   if (finalGateId) {
-    const { data: gateObj } = await supabase
-      .from('gate')
-      .select('parking_id')
-      .eq('gate_id', finalGateId)
-      .maybeSingle();
+    const gateObj = await gateRepository.getGateParkingId(finalGateId);
     if (gateObj) {
       finalParkingId = gateObj.parking_id;
     }
   }
 
   if (!finalGateId || !finalParkingId) {
-    const { data: parkings } = await supabase
-      .from('parking')
-      .select('parking_id')
-      .eq('building_id', buildingId)
-      .limit(1);
-
-    if (parkings && parkings.length > 0) {
-      finalParkingId = parkings[0].parking_id;
-      const { data: gates } = await supabase
-        .from('gate')
-        .select('gate_id')
-        .eq('parking_id', finalParkingId)
-        .limit(1);
-
-      if (gates && gates.length > 0) {
-        finalGateId = gates[0].gate_id;
+    const parking = await gateRepository.getParkingByBuilding(buildingId);
+    if (parking) {
+      finalParkingId = parking.parking_id;
+      const gate = await gateRepository.getGateByParking(finalParkingId);
+      if (gate) {
+        finalGateId = gate.gate_id;
       }
     }
   }
@@ -584,23 +519,20 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     const totalHours = diffMs / (1000 * 60 * 60);
     const billableHours = Math.max(1, Math.ceil(totalHours));
 
-    fee = billableHours * 10000; // Giá mặc định 10k/giờ
+    fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Giá mặc định 10k/giờ (miễn phí dưới 30 phút)
 
     if (vehicle && vehicle.vehicle_type_id) {
       try {
-        const { data: priceItems } = await supabase
-          .from("price_item")
-          .select("price, min_hour, max_hour")
-          .eq("vehicle_type_id", vehicle.vehicle_type_id);
+        const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
 
         if (priceItems && priceItems.length > 0) {
           const matchingItem = priceItems.find(item => {
-            const min = item.min_hour || 0;
-            const max = item.max_hour;
-            if (max === null || max === undefined) {
-              return billableHours >= min;
+            const min = Number(item.min_hour) || 0;
+            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+            if (max === null) {
+              return totalHours >= min;
             }
-            return billableHours >= min && billableHours <= max;
+            return totalHours >= min && totalHours < max;
           });
 
           if (matchingItem) {
@@ -630,25 +562,18 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 
     // Chèn thông tin payment cho xe vãng lai (CASUAL)
     try {
-      const { data: existingPayment } = await supabase
-        .from('payment')
-        .select('payment_id')
-        .eq('session_id', activeSession.session_id)
-        .eq('payment_type', 'Vé lượt')
-        .maybeSingle();
+      const existingPayment = await gateRepository.checkExistingPayment(activeSession.session_id, 'Vé lượt');
 
       if (!existingPayment) {
-        const { error: paymentErr } = await supabase
-          .from('payment')
-          .insert({
-            session_id: activeSession.session_id,
-            amount: fee,
-            payment_method: 'Tiền mặt',
-            status: 'Đã thanh toán',
-            payment_time: exitTime.toISOString(),
-            payment_type: 'Vé lượt',
-            created_by: staffId || null
-          });
+        const paymentErr = await gateRepository.insertPayment({
+          session_id: activeSession.session_id,
+          amount: fee,
+          payment_method: 'Tiền mặt',
+          status: 'Đã thanh toán',
+          payment_time: exitTime.toISOString(),
+          payment_type: 'Vé lượt',
+          created_by: staffId || null
+        });
         if (paymentErr) {
           console.error("Lỗi insert payment checkout thẻ lượt:", paymentErr.message);
         }
@@ -694,24 +619,22 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
   }
 
   // Ghi log vào entry_exit_log
-  const { error: logErr } = await supabase
-    .from('entry_exit_log')
-    .insert({
-      session_id: session.session_id,
-      vehicle_id: vehicle.vehicle_id,
-      card_id: cardIdVal,
-      building_id: buildingId,
-      parking_id: finalParkingId,
-      gate_id: finalGateId,
-      staff_id: staffId,
-      direction: 'Xe ra',
-      event_time: exitTime.toISOString(),
-      vehicle_type_id: vehicle.vehicle_type_id,
-      plate_number: vehicle.plate_number,
-      ticket_type: ticketType,
-      applied_price: fee,
-      note: 'Nhân viên check-out xe ra khỏi bãi'
-    });
+  const logErr = await gateRepository.insertEntryExitLog({
+    session_id: session.session_id,
+    vehicle_id: vehicle.vehicle_id,
+    card_id: cardIdVal,
+    building_id: buildingId,
+    parking_id: finalParkingId,
+    gate_id: finalGateId,
+    staff_id: staffId,
+    direction: 'Xe ra',
+    event_time: exitTime.toISOString(),
+    vehicle_type_id: vehicle.vehicle_type_id,
+    plate_number: vehicle.plate_number,
+    ticket_type: ticketType,
+    applied_price: fee,
+    note: 'Nhân viên check-out xe ra khỏi bãi'
+  });
 
   if (logErr) {
     throw new Error("Lỗi ghi nhật ký vào/ra: " + logErr.message);
@@ -754,45 +677,23 @@ export const getStats = async (dateStr = null) => {
   // 1. Số lượng xe trong bãi (status = 'Đang gửi xe') — chỉ có nghĩa khi xem hôm nay
   let insideCount = 0;
   if (isToday) {
-    const { count, error: err1 } = await supabase
-      .from("parking_sessions")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "Đang gửi xe");
-    if (err1) throw new Error("Lỗi đếm số xe trong bãi: " + err1.message);
-    insideCount = count || 0;
+    insideCount = await gateRepository.countInsideVehicles();
   } else {
     // Với ngày trong quá khứ: đếm xe đang ở trong bãi tại thời điểm cuối ngày đó
-    // (xe đã vào trước endOfDay và chưa ra hoặc ra sau endOfDay)
-    const { count, error: err1 } = await supabase
-      .from("parking_sessions")
-      .select("*", { count: "exact", head: true })
-      .lt("entry_time", endOfDay.toISOString())
-      .or(`exit_time.is.null,exit_time.gte.${endOfDay.toISOString()}`);
-    if (err1) throw new Error("Lỗi đếm số xe trong bãi: " + err1.message);
-    insideCount = count || 0;
+    insideCount = await gateRepository.countInsideVehiclesAtEnd(endOfDay);
   }
 
   // 2. Xe đã vào trong ngày
-  const { count: inCount, error: err2 } = await supabase
-    .from("parking_sessions")
-    .select("*", { count: "exact", head: true })
-    .gte("entry_time", startOfDay.toISOString())
-    .lt("entry_time", endOfDay.toISOString());
-  if (err2) throw new Error("Lỗi đếm số xe đã vào: " + err2.message);
+  const inCount = await gateRepository.countVehiclesIn(startOfDay, endOfDay);
 
   // 3. Xe đã ra trong ngày
-  const { count: outCount, error: err3 } = await supabase
-    .from("parking_sessions")
-    .select("*", { count: "exact", head: true })
-    .gte("exit_time", startOfDay.toISOString())
-    .lt("exit_time", endOfDay.toISOString());
-  if (err3) throw new Error("Lỗi đếm số xe đã ra: " + err3.message);
+  const outCount = await gateRepository.countVehiclesOut(startOfDay, endOfDay);
 
   return {
     success: true,
     insideCount,
-    inCount: inCount || 0,
-    outCount: outCount || 0,
+    inCount,
+    outCount,
   };
 };
 
@@ -803,23 +704,7 @@ export const getStats = async (dateStr = null) => {
 export const getSessions = async (dateStr = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
 
-  const { data: sessions, error: sessionsErr } = await supabase
-    .from("parking_sessions")
-    .select(`
-      session_id,
-      vehicle_id,
-      plate_number,
-      entry_time,
-      exit_time,
-      status,
-      card_id,
-      final_fee
-    `)
-    .lt("entry_time", endOfDay.toISOString())
-    .or(`exit_time.is.null,exit_time.gte.${startOfDay.toISOString()}`)
-    .order("entry_time", { ascending: false });
-
-  if (sessionsErr) throw new Error("Lỗi lấy danh sách phiên gửi xe: " + sessionsErr.message);
+  const sessions = await gateRepository.getSessionsByDateRange(startOfDay, endOfDay);
 
   if (!sessions || sessions.length === 0) {
     return { success: true, sessions: [] };
@@ -828,16 +713,10 @@ export const getSessions = async (dateStr = null) => {
   // Lấy danh sách card_id duy nhất để query thông tin thẻ
   const cardIds = [...new Set(sessions.map(s => s.card_id).filter(id => !!id))];
   let cardsMap = {};
-  
-  if (cardIds.length > 0) {
-    const { data: cards, error: cardsErr } = await supabase
-      .from("card")
-      .select("card_id, code, type")
-      .in("card_id", cardIds);
 
-    if (cardsErr) {
-      console.error("Lỗi lấy thông tin thẻ trong getSessions:", cardsErr.message);
-    } else if (cards) {
+  if (cardIds.length > 0) {
+    const cards = await gateRepository.getCardsByIds(cardIds);
+    if (cards) {
       cards.forEach(c => {
         cardsMap[c.card_id] = { code: c.code, type: c.type };
       });
@@ -853,4 +732,3 @@ export const getSessions = async (dateStr = null) => {
 
   return { success: true, sessions: mappedSessions };
 };
-

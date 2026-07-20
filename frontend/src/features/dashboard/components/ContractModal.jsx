@@ -224,7 +224,7 @@ export default function ContractModal({ isOpen, onClose, cardData }) {
             onClick={handleSendEmail}
             disabled={sendingEmail || downloading || !cardData.email || contractStatus === 'Đã ký'}
             style={{
-              backgroundColor: contractStatus === 'Đã ký' ? '#cbd5e1' : '#ea580c',
+              backgroundColor: contractStatus === 'Đã ký' ? '#cbd5e1' : 'var(--primary, #2563eb)',
               color: contractStatus === 'Đã ký' ? '#64748b' : '#ffffff',
               cursor: (sendingEmail || downloading || !cardData.email || contractStatus === 'Đã ký') ? 'not-allowed' : 'pointer'
             }}

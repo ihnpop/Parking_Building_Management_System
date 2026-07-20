@@ -1,7 +1,16 @@
+﻿# ultralytics==8.2.5
+# torch==2.4.0
+# easyocr==1.7.1
+# opencv-python==4.10.0.84
+# opencv-contrib-python==4.10.0.84
+# numpy==1.26.4
+# pillow==12.2.0
+# fastapi==0.138.1
+# uvicorn==0.49.0
+# python-multipart==0.0.32
+
 ultralytics==8.2.5
-torch==2.4.0
 easyocr==1.7.1
-opencv-python==4.10.0.84
 opencv-contrib-python==4.10.0.84
 numpy==1.26.4
 pillow==12.2.0

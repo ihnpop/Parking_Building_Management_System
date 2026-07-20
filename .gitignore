@@ -14,7 +14,7 @@ __pycache__/
 .venv/
 venv/
 
-node_modules
+*node_modules
 dist
 dist-ssr
 *.local
@@ -36,3 +36,6 @@ back-end/.pnpm-store/
 
 # Environment variables - Backend
 
+**/.env
+**/.env.*
+!.env.example

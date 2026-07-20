@@ -54,8 +54,8 @@ export const getMonthCardLogs = async () => {
   const data = await cardRepository.getPaymentLogs();
 
   return data.map((item) => {
-    const plate = item.parking_order?.vehicle?.plate_number || "Chưa có";
-    const owner = item.parking_order?.vehicle?.customer?.full_name || "Khách vãng lai";
+    const plate = item.parking_sessions?.vehicle?.plate_number || "Chưa có";
+    const owner = item.parking_sessions?.vehicle?.customer?.full_name || "Khách vãng lai";
     const time = new Date(item.payment_time).toLocaleString('vi-VN');
     const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.amount);
     const status = (item.status === 'PAID' || item.status === 'Đã thanh toán')

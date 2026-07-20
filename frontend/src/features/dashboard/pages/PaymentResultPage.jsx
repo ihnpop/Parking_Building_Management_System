@@ -167,7 +167,7 @@ export default function PaymentResultPage() {
 
     // Lấy thông tin orderCode và status (success/failed) từ URL query
     const orderCode = searchParams.get("orderCode");
-    const status = searchParams.get("status"); 
+    const status = searchParams.get("status");
 
     const [payment, setPayment] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -261,7 +261,7 @@ export default function PaymentResultPage() {
                         style={styles.btnSecondary}
                         onClick={() => {
                             const isMonthCardTx = ["Đăng ký vé tháng", "Gia hạn vé tháng", "Phí cấp lại thẻ"].includes(payment?.payment_type);
-                            navigate(isMonthCardTx ? "/login/dashboard/month-card" : "/login/dashboard");
+                            navigate(isMonthCardTx ? "/login/dashboard" : "/login/dashboard");
                         }}
                         onMouseEnter={e => e.target.style.background = "#343849"}
                         onMouseLeave={e => e.target.style.background = "#2a2e3d"}

@@ -1,5 +1,5 @@
-import supabase from "../config/supabaseClient.js";
 import { inviteStaff } from "../service/userService.js";
+import * as userRepository from "../repositories/userRepository.js";
 
 /**
  * GET /api/users
@@ -7,27 +7,7 @@ import { inviteStaff } from "../service/userService.js";
  */
 export const getUsers = async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from("profiles")
-            .select(`
-                id,
-                username,
-                full_name,
-                email,
-                phone,
-                status,
-                created_at,
-                role:role_id (
-                    role_id,
-                    role_name
-                )
-            `)
-            .order("created_at", { ascending: false });
-
-        if (error) {
-            return res.status(400).json({ message: error.message });
-        }
-
+        const data = await userRepository.getAllProfilesWithRoles();
         return res.json({ data });
     } catch (err) {
         return res.status(500).json({ message: err.message });
@@ -47,7 +27,7 @@ export const inviteUserController = async (req, res) => {
         }
 
         // URL trang custom đặt password trong frontend (đổi domain theo môi trường thực tế)
-        const redirectTo = `${process.env.FRONTEND_URL}/#/set-password`;
+        const redirectTo = `${process.env.FRONTEND_URL}/set-password`;
 
         const profile = await inviteStaff({
             email,
@@ -95,23 +75,21 @@ export const updateUserRole = async (req, res) => {
         }
 
         // Bước 1: Lấy role_id từ bảng role theo role_name
-        const { data: roleData, error: roleError } = await supabase
-            .from("role")
-            .select("role_id")
-            .eq("role_name", role_name)
-            .single();
+        let roleData;
+        try {
+            roleData = await userRepository.findRoleByName(role_name);
+        } catch (roleError) {
+            return res.status(404).json({ message: "Không tìm thấy role" });
+        }
 
-        if (roleError || !roleData) {
+        if (!roleData) {
             return res.status(404).json({ message: "Không tìm thấy role" });
         }
 
         // Bước 2: Cập nhật profiles.role_id
-        const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ role_id: roleData.role_id })
-            .eq("id", id);
-
-        if (updateError) {
+        try {
+            await userRepository.updateProfileRole(id, roleData.role_id);
+        } catch (updateError) {
             return res.status(400).json({ message: updateError.message });
         }
 
@@ -144,22 +122,10 @@ const getDeviceIcon = (device) => {
 
 export const getLoginLogs = async (req, res) => {
     try {
-        const { data: logs, error } = await supabase
-            .from("login_logs")
-            .select(`
-                log_id,
-                profiles_id,
-                username,
-                ip_address,
-                device_browser,
-                location,
-                status,
-                login_time
-            `)
-            .order("login_time", { ascending: false })
-            .limit(100);
-
-        if (error) {
+        let logs;
+        try {
+            logs = await userRepository.getLoginLogs(100);
+        } catch (error) {
             return res.status(400).json({ message: error.message });
         }
 
@@ -171,19 +137,13 @@ export const getLoginLogs = async (req, res) => {
         const profileIds = [...new Set(logs.map(item => item.profiles_id).filter(Boolean))];
         let profileMap = {};
         if (profileIds.length > 0) {
-            const { data: profiles } = await supabase
-                .from("profiles")
-                .select("id, full_name, role_id")
-                .in("id", profileIds);
+            const profiles = await userRepository.getProfilesByIds(profileIds);
 
-            if (profiles) {
+            if (profiles && profiles.length > 0) {
                 const roleIds = [...new Set(profiles.map(p => p.role_id).filter(Boolean))];
                 let roleMap = {};
                 if (roleIds.length > 0) {
-                    const { data: roles } = await supabase
-                        .from("role")
-                        .select("role_id, role_name")
-                        .in("role_id", roleIds);
+                    const roles = await userRepository.getRolesByIds(roleIds);
                     if (roles) {
                         roles.forEach(r => {
                             roleMap[r.role_id] = r.role_name;

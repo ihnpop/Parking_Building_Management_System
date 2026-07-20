@@ -36,7 +36,6 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         cccd_number: '' // Số CCCD/CMND (tự động điền sau khi eKYC thành công hoặc nhập tay)
     });
 
-    // ── Bước 4: Thanh toán ────────────────────────────────────────
     const [contractAccepted, setContractAccepted] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('vnpay');
     const [paymentStatus, setPaymentStatus] = useState(null); // null | 'pending' | 'paid' | 'failed'
@@ -44,11 +43,13 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [vehiclePackageId, setVehiclePackageId] = useState(null);
     const [initiating, setInitiating] = useState(false);
     const [checking, setChecking] = useState(false);
+    const [payUrl, setPayUrl] = useState(null);
 
     // ── Reset khi đóng/mở dialog ──────────────────────────────────
     useEffect(() => {
         if (isOpen) {
-            const fetchMetadata = async () => {
+            resetAll();
+            const fetchMetadataAndCheckPending = async () => {
                 try {
                     const token = localStorage.getItem('token');
                     const headers = { Authorization: `Bearer ${token}` };
@@ -58,12 +59,12 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     ]);
                     setVehicleTypes(Array.isArray(resType.data) ? resType.data : []);
                     setPackages(Array.isArray(resPkg.data) ? resPkg.data : []);
+                    await checkPendingRegistration();
                 } catch (err) {
                     console.error('Lỗi tải danh mục:', err);
                 }
             };
-            fetchMetadata();
-            resetAll();
+            fetchMetadataAndCheckPending();
         }
     }, [isOpen]);
 
@@ -94,21 +95,66 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
         setVerifyResult(null); setVerifying(false);
         setContractAccepted(false); setPaymentMethod('vnpay');
         setPaymentStatus(null); setPaymentOrderCode(null); setVehiclePackageId(null);
-        setInitiating(false); setChecking(false);
-        setFormData({ 
-            full_name: '', 
-            phone: '', 
-            email: '', 
-            vehicle_type_id: '', 
-            plate_number: '', 
-            brand: '', 
-            color: '', 
-            package_id: '', 
-            card_code: '', 
+        setInitiating(false); setChecking(false); setPayUrl(null);
+        setFormData({
+            full_name: '',
+            phone: '',
+            email: '',
+            vehicle_type_id: '',
+            plate_number: '',
+            brand: '',
+            color: '',
+            package_id: '',
+            card_code: '',
             cccd_number: '' // Reset thông tin CCCD
         });
     };
 
+    // ── Kiểm tra và khôi phục giao dịch chờ thanh toán ─────────────
+    const checkPendingRegistration = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API}/month-card/pending-registration`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.data?.success && res.data.pending) {
+                const pending = res.data.pending;
+                const regData = pending.registrationData;
+
+                // Đánh dấu eKYC là đã xác thực
+                setVerifyResult({ isReal: true, liveness_msg: 'Đã xác thực trước đó' });
+                setFrontPreview(null);
+                setBackPreview(null);
+
+                setFormData({
+                    full_name: regData.customer_info?.full_name || '',
+                    phone: regData.customer_info?.phone || '',
+                    email: regData.customer_info?.email || '',
+                    vehicle_type_id: regData.vehicle_info?.vehicle_type_id || '',
+                    plate_number: regData.vehicle_info?.plate_number || '',
+                    brand: regData.vehicle_info?.brand || '',
+                    color: regData.vehicle_info?.color || '',
+                    package_id: regData.package_id || '',
+                    card_code: regData.card_code || '',
+                    cccd_number: regData.customer_info?.cccd_number || ''
+                });
+
+                setPaymentOrderCode(pending.orderCode);
+                setPaymentMethod(pending.paymentMethod);
+                setPaymentStatus(pending.status);
+                setPayUrl(pending.payUrl);
+                setContractAccepted(true);
+
+                if (pending.status === 'paid') {
+                    setStep(5);
+                } else {
+                    setStep(4);
+                }
+            }
+        } catch (err) {
+            console.error('Lỗi khi kiểm tra giao dịch chờ thanh toán:', err);
+        }
+    };
     // ── Helpers ───────────────────────────────────────────────────
     const convertToBase64 = (file) => new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -224,6 +270,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             setVehiclePackageId(data.vehiclePackageId);
             setPaymentOrderCode(data.orderCode);
             setPaymentStatus('pending');
+            setPayUrl(data.payUrl);
 
             if (paymentMethod === 'vnpay') {
                 // Mở trang VNPay trong tab mới
@@ -302,6 +349,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 package_id: formData.package_id
             }, { headers: authHeaders() });
 
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('monthCardLogsUpdated'));
+            }
             setSuccessMessage('Đăng ký vé tháng thành công!');
             setTimeout(() => { onSuccess?.(); onClose(); }, 1500);
         } catch (err) {
@@ -574,7 +624,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     <p style={{ fontWeight: 600, fontSize: 15, marginBottom: 10 }}>💳 Phương thức thanh toán</p>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                         <div className={`pay-method-card ${paymentMethod === 'vnpay' ? 'selected' : ''}`} onClick={() => { setPaymentMethod('vnpay'); setPaymentStatus(null); }}>
-                                            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/image002-20230907165956795.jpg" alt="VNPay" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6 }} onError={e => e.target.style.display='none'} />
+                                            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/image002-20230907165956795.jpg" alt="VNPay" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6 }} onError={e => e.target.style.display = 'none'} />
                                             <div>
                                                 <div style={{ fontWeight: 700, fontSize: 14 }}>VNPay</div>
                                                 <div style={{ fontSize: 12, color: '#666' }}>Thanh toán qua cổng VNPay</div>
@@ -604,7 +654,13 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                             </button>
                                             <button type="button"
                                                 style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
-                                                onClick={handleInitiatePayment} disabled={initiating}>
+                                                onClick={() => {
+                                                    if (payUrl) {
+                                                        window.open(payUrl, '_blank');
+                                                    } else {
+                                                        handleInitiatePayment();
+                                                    }
+                                                }} disabled={initiating}>
                                                 🔄 Mở lại trang VNPay
                                             </button>
                                         </div>
@@ -624,7 +680,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                 )}
                                 {paymentStatus === 'paid' && (
                                     <div style={{ background: '#ecfdf5', border: '1px solid #34d399', borderRadius: 8, padding: 14, fontWeight: 700, color: '#065f46' }}>
-                                        {paymentMethod === 'vnpay' 
+                                        {paymentMethod === 'vnpay'
                                             ? '✅ Thanh toán VNPay xác nhận thành công! Vui lòng bấm Tiếp theo để qua Bước 5.'
                                             : '✅ Đã xác nhận thu tiền mặt thành công! Vui lòng bấm Tiếp theo để qua Bước 5.'}
                                     </div>
@@ -699,7 +755,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button type="button" className="renew-btn secondary" onClick={onClose} disabled={loading || initiating}>Hủy bỏ</button>
+                            <button type="button" className="renew-btn secondary" onClick={onClose} disabled={loading || initiating}>
+                                {paymentStatus === 'pending' ? 'Để sau' : 'Hủy bỏ'}
+                            </button>
 
                             {/* Bước 1–3: nút Tiếp theo */}
                             {step < 4 && (
