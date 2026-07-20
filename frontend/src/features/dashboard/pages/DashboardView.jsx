@@ -41,33 +41,62 @@ const MAX_BAR = dashboardFallbackData.revenueTrendMaxBar;
 
 export default function DashboardView() {
     const { userRole, user } = useAuth();
-    // eslint-disable-next-line no-unused-vars
-    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+
+    // Lấy thông tin email người dùng để xác định vai trò chính xác (đồng bộ với Sidebar và DashboardShell)
+    const userEmail = user?.email || '';
+    const email = userEmail.toLowerCase().trim();
+
+    // Xác định vai trò chuẩn của người dùng
+    let computedRole = userRole ? userRole.toUpperCase() : 'STAFF';
+    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
+    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
+    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
+
     // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
+    // Danh sách các tab được phép truy cập theo từng vai trò người dùng
+    const MANAGER_ALLOWED_VIEWS = ['card-management', 'adjust-prices', 'log-management', 'system-settings'];
+    const ADMIN_ALLOWED_VIEWS = ['dashboard', 'user-management', 'system-settings', 'revenue-traffic'];
+
+    // Khởi tạo tab hiện tại từ localStorage hoặc chọn tab mặc định hợp lệ theo vai trò người dùng
     const [currentView, setCurrentView] = useState(() => {
         const savedView = localStorage.getItem('dashboard_current_view');
+        // Nếu là Manager và tab lưu trữ không được phép (như dashboard hoặc user-management) -> tự động chọn 'card-management'
+        if (computedRole === 'MANAGER' && savedView && !MANAGER_ALLOWED_VIEWS.includes(savedView)) {
+            return 'card-management';
+        }
+        // Nếu là Admin và tab lưu trữ không hợp lệ -> tự động chọn 'dashboard'
+        if (computedRole === 'ADMIN' && savedView && !ADMIN_ALLOWED_VIEWS.includes(savedView)) {
+            return 'dashboard';
+        }
+        if (computedRole === 'MANAGER' && !savedView) return 'card-management';
         return savedView || 'dashboard';
     });
 
-    // Update localStorage when view changes
+    // Cập nhật localStorage khi tab hiện tại thay đổi
     useEffect(() => {
         if (currentView) {
             localStorage.setItem('dashboard_current_view', currentView);
         }
     }, [currentView]);
 
-    // Force role boundary checks
+    // Kiểm tra ranh giới phân quyền (Role Boundary Check): Ngăn chặn việc xem trái phép màn hình không thuộc vai trò
     useEffect(() => {
-        if (!userRole) return;
-        const normalizedRole = userRole.toUpperCase();
-        if (normalizedRole === 'STAFF' && currentView !== 'system') {
+        if (!computedRole) return;
+
+        if (computedRole === 'STAFF' && currentView !== 'system') {
+            // Staff chỉ được truy cập giao diện hệ thống
             setCurrentView('system');
-        } else if (normalizedRole === 'MANAGER' && currentView === 'user-management') {
+        } else if (computedRole === 'MANAGER' && !MANAGER_ALLOWED_VIEWS.includes(currentView)) {
+            // Manager KHÔNG có quyền xem Bảng điều khiển (dashboard) hoặc Phân quyền (user-management)
+            // Tự động chuyển về tab mặc định của Manager là Quản lý Thẻ (card-management)
+            setCurrentView('card-management');
+        } else if (computedRole === 'ADMIN' && !ADMIN_ALLOWED_VIEWS.includes(currentView)) {
+            // Admin không truy cập tab công việc riêng của Manager, chuyển về Bảng điều khiển (dashboard)
             setCurrentView('dashboard');
         }
-    }, [userRole, currentView]);
+    }, [computedRole, currentView]);
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
