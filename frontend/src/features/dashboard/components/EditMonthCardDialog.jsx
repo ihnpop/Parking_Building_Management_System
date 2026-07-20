@@ -16,6 +16,8 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Lưu thông báo lỗi
     const [error, setError] = useState(null);
+    // Lưu lỗi từng field
+    const [fieldErrors, setFieldErrors] = useState({ phone: '', email: '' });
     // Lưu thông báo thành công
     const [successMessage, setSuccessMessage] = useState('');
     // Khi mở modal thì load dữ liệu vào form
@@ -53,7 +55,12 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
     if (!isOpen || !cardData) return null;
     // Cập nhật dữ liệu khi người dùng thay đổi giá trị trong form
     const handleFormChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Xóa lỗi field khi người dùng bắt đầu chỉnh sửa
+        if (name === 'phone' || name === 'email') {
+            setFieldErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
     // Kiểm tra thẻ đã được gán biển số xe hay chưa
     const hasPlate = formData.plate && formData.plate.trim() !== '';
@@ -67,6 +74,26 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
             setError('Vui lòng điền đầy đủ thông tin khách hàng và biển số xe.');
             return;
         }
+
+        // Validate số điện thoại: đúng 10 chữ số và bắt đầu bằng 0
+        const phoneRegex = /^0\d{9}$/;
+        // Validate email: định dạng hợp lệ
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        const newFieldErrors = { phone: '', email: '' };
+        let hasFieldError = false;
+
+        if (!phoneRegex.test(formData.phone.trim())) {
+            newFieldErrors.phone = 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.';
+            hasFieldError = true;
+        }
+        if (!emailRegex.test(formData.email.trim())) {
+            newFieldErrors.email = 'Email/Gmail không đúng định dạng (vd: example@gmail.com).';
+            hasFieldError = true;
+        }
+
+        setFieldErrors(newFieldErrors);
+        if (hasFieldError) return;
         // Set trạng thái đang gửi dữ liệu
         setIsSubmitting(true);
         // Gửi dữ liệu lên server
@@ -102,7 +129,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
 
     return (
         <div className="renew-modal-overlay">
-            <div className="renew-modal" style={{ maxWidth: '600px' }}>
+            <div className="renew-modal emc-modal">
                 <div className="renew-modal-header">
                     <h2>Cập nhật Thẻ tháng</h2>
                     <button type="button" className="renew-modal-close" onClick={onClose} disabled={isSubmitting}>
@@ -110,19 +137,19 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <form onSubmit={handleSubmit} className="emc-form">
                     {error && (
-                        <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fee2e2', padding: '12px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
+                        <div className="emc-alert-error">
                             {error}
                         </div>
                     )}
                     {successMessage && (
-                        <div style={{ color: '#10b981', backgroundColor: '#ecfdf5', border: '1px solid #d1fae5', padding: '12px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
+                        <div className="emc-alert-success">
                             {successMessage}
                         </div>
                     )}
 
-                    <div className="renew-info-grid" style={{ marginBottom: '0px' }}>
+                    <div className="renew-info-grid emc-info-grid">
                         <div className="renew-info-item">
                             <span className="renew-info-label">Số thẻ</span>
                             <span className="renew-info-value">{cardData.cardNo}</span>
@@ -133,9 +160,9 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <div className="renew-form-group" style={{ marginBottom: '0px' }}>
-                            <label htmlFor="plate">Biển số xe <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div className="emc-grid-2col">
+                        <div className="renew-form-group emc-form-group-0">
+                            <label htmlFor="plate">Biển số xe <span className="emc-required-star">*</span></label>
                             <input
                                 id="plate"
                                 name="plate"
@@ -148,7 +175,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                             />
                         </div>
 
-                        <div className="renew-form-group" style={{ marginBottom: '0px' }}>
+                        <div className="renew-form-group emc-form-group-0">
                             <label htmlFor="status">Trạng thái</label>
                             <select
                                 id="status"
@@ -166,8 +193,8 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <div className="renew-form-group" style={{ marginBottom: '0px' }}>
+                    <div className="emc-grid-2col">
+                        <div className="renew-form-group emc-form-group-0">
                             <label htmlFor="checkInTime">Thời gian vào</label>
                             <input
                                 id="checkInTime"
@@ -180,7 +207,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                             />
                         </div>
 
-                        <div className="renew-form-group" style={{ marginBottom: '0px' }}>
+                        <div className="renew-form-group emc-form-group-0">
                             <label htmlFor="checkOutTime">Thời gian ra</label>
                             <input
                                 id="checkOutTime"
@@ -194,8 +221,8 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         </div>
                     </div>
 
-                    <div className="renew-form-group" style={{ marginBottom: '0px' }}>
-                        <label htmlFor="fullName">Tên khách hàng <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div className="renew-form-group emc-form-group-0">
+                        <label htmlFor="fullName">Tên khách hàng <span className="emc-required-star">*</span></label>
                         <input
                             id="fullName"
                             name="fullName"
@@ -208,43 +235,53 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <div className="renew-form-group" style={{ marginBottom: '0px' }}>
-                            <label htmlFor="phone">Số điện thoại <span style={{ color: '#ef4444' }}>*</span></label>
+                    <div className="emc-grid-2col">
+                        <div className="renew-form-group emc-form-group-0">
+                            <label htmlFor="phone">Số điện thoại <span className="emc-required-star">*</span></label>
                             <input
                                 id="phone"
                                 name="phone"
                                 type="tel"
-                                className="renew-select"
+                                className={`renew-select${fieldErrors.phone ? ' emc-input-error' : ''}`}
                                 value={formData.phone}
                                 onChange={handleFormChange}
                                 required
                                 disabled={isSubmitting}
                             />
+                            {fieldErrors.phone && (
+                                <span className="emc-field-error-msg">
+                                    {fieldErrors.phone}
+                                </span>
+                            )}
                         </div>
 
-                        <div className="renew-form-group" style={{ marginBottom: '0px' }}>
-                            <label htmlFor="email">Email <span style={{ color: '#ef4444' }}>*</span></label>
+                        <div className="renew-form-group emc-form-group-0">
+                            <label htmlFor="email">Email / Gmail <span className="emc-required-star">*</span></label>
                             <input
                                 id="email"
                                 name="email"
-                                type="email"
-                                className="renew-select"
+                                type="text"
+                                className={`renew-select${fieldErrors.email ? ' emc-input-error' : ''}`}
                                 value={formData.email}
                                 onChange={handleFormChange}
                                 required
                                 disabled={isSubmitting}
                             />
+                            {fieldErrors.email && (
+                                <span className="emc-field-error-msg">
+                                    {fieldErrors.email}
+                                </span>
+                            )}
                         </div>
                     </div>
 
                     {!hasPlate && (
-                        <p style={{ color: '#004BCA', fontSize: '13px', margin: '0' }}>
+                        <p className="emc-hint-no-plate">
                             Thẻ chưa có biển số nên không thể cập nhật thời gian vào/ra.
                         </p>
                     )}
 
-                    <div className="renew-modal-actions" style={{ marginTop: '8px' }}>
+                    <div className="renew-modal-actions emc-modal-actions">
                         <button
                             type="button"
                             className="renew-btn secondary"
@@ -257,7 +294,6 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                             type="submit"
                             className="cp-btn cp-btn-primary"
                             disabled={isSubmitting}
-
                         >
                             {isSubmitting ? 'Đang lưu...' : 'Xác nhận cập nhật'}
                         </button>
