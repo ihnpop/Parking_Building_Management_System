@@ -32971,10 +32971,10 @@ button.mc-btn .material-symbols-outlined {
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
-    padding: 10px 12px !important;
+    padding: 6px 10px !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 8px !important;
+    gap: 4px !important;
     width: 100% !important;
     height: auto !important;
     max-height: none !important;
@@ -32987,7 +32987,7 @@ button.mc-btn .material-symbols-outlined {
 .system-page .shift-info-card .shift-grid {
     display: flex !important;
     flex-direction: column !important;
-    gap: 6px !important;
+    gap: 4px !important;
     width: 100% !important;
 }
 
@@ -32997,7 +32997,7 @@ button.mc-btn .material-symbols-outlined {
     .system-page .shift-info-card .shift-grid {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        gap: 8px 12px !important;
+        gap: 6px 10px !important;
     }
 }
 
@@ -33007,38 +33007,54 @@ button.mc-btn .material-symbols-outlined {
     flex-direction: column !important;
     align-items: flex-start !important;
     justify-content: flex-start !important;
-    gap: 2px !important;
+    gap: 1px !important;
     min-width: 0 !important;
 }
 
 .shift-info-card .shift-label,
 .system-page .shift-info-card .shift-label {
     display: block !important;
-    font-size: 10.5px !important;
+    font-size: 10px !important;
     font-weight: 600 !important;
     color: #64748b !important;
     text-transform: uppercase !important;
     letter-spacing: 0.2px !important;
     line-height: 1.2 !important;
-    margin-bottom: 1px !important;
+    margin-bottom: 0px !important;
 }
 
 .shift-info-card .shift-value,
 .system-page .shift-info-card .shift-value {
     display: block !important;
-    font-size: 12px !important;
+    font-size: 11.5px !important;
     font-weight: 700 !important;
     color: #1e293b !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
     word-break: break-word !important;
     overflow-wrap: break-word !important;
 }
 
-/* --- 2. Thẻ Giao dịch gần đây (Chống dính chữ thời gian & số tiền khi thu nhỏ) --- */
+/* --- 2. Thẻ Giao dịch gần đây (Chống tràn khung và dính chữ) --- */
 .recent-transactions-list-card,
 .system-page .recent-transactions-list-card {
     width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: none !important;
     box-sizing: border-box !important;
+    overflow: visible !important;
+    padding: 6px 8px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+}
+
+.recent-transactions-list-card .recent-items-container,
+.system-page .recent-transactions-list-card .recent-items-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    height: auto !important;
 }
 
 .recent-transactions-list-card .recent-item,
@@ -33046,9 +33062,12 @@ button.mc-btn .material-symbols-outlined {
     display: flex !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 6px 8px !important;
-    gap: 8px !important;
+    padding: 4px 6px !important;
+    gap: 6px !important;
     flex-wrap: wrap !important;
+    border-radius: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #f1f5f9 !important;
 }
 
 .recent-transactions-list-card .recent-item-left,
@@ -33063,7 +33082,7 @@ button.mc-btn .material-symbols-outlined {
 .system-page .recent-transactions-list-card .recent-item-right {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
     margin-left: auto !important;
     white-space: nowrap !important;
 }
@@ -33078,7 +33097,7 @@ button.mc-btn .material-symbols-outlined {
 .system-page .recent-transactions-list-card .recent-time::after {
     content: " • " !important;
     color: #94a3b8 !important;
-    margin-left: 4px !important;
+    margin-left: 3px !important;
     font-weight: bold !important;
 }
 
@@ -33136,20 +33155,22 @@ button.mc-btn .material-symbols-outlined {
     max-height: none !important;
 }
 
-/* Đảm bảo thẻ active-transaction không bị cắt xén nội dung */
+/* Đảm bảo thẻ active-transaction và transaction-details không làm lòi thẻ con ra ngoài */
 .system-page .active-transaction {
-    overflow: visible !important;
+    overflow: hidden !important;
     height: auto !important;
     max-height: none !important;
 }
 
 .system-page .transaction-details {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
+    overflow-y: auto !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 8px !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    padding-right: 2px !important;
 }
 
 /* Khi chiều rộng màn hình/khung cửa sổ thu nhỏ (< 1100px), chuyển active-transaction từ 2 cột sang 1 cột chồng dọc tự nhiên */
@@ -33164,6 +33185,7 @@ button.mc-btn .material-symbols-outlined {
         display: flex !important;
         flex-direction: column !important;
         gap: 12px !important;
+        overflow: visible !important;
     }
 
     .system-page .transaction-details {
@@ -33172,5 +33194,7 @@ button.mc-btn .material-symbols-outlined {
         padding-left: 0 !important;
         padding-top: 12px !important;
         margin-top: 6px !important;
+        overflow: visible !important;
+        max-height: none !important;
     }
 }
