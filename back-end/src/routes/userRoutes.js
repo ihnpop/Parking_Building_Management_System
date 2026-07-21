@@ -20,7 +20,7 @@ router.patch("/:id/role", verifyToken, authorize("ADMIN"), updateUserRole);
  * GET /api/users/login-logs
  * Lấy danh sách nhật ký đăng nhập
  */
-router.get("/login-logs", verifyToken, getLoginLogs);
+router.get("/login-logs", getLoginLogs);
 
 // Chỉ admin mới được tạo user mới
 router.post("/invite", verifyToken, authorize("ADMIN"), inviteUserController);

@@ -441,8 +441,9 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                     <div className="table-status-loading">Đang tải nhật ký thẻ lượt...</div>
                 ) : (
                     <>
-                        <div style={{ width: '100%', overflow: 'hidden' }}>
-                            <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
+                        {/* Bọc bảng trong container cuộn ngang tự động và thiết lập minWidth để tránh dính/vỡ chữ khi thu nhỏ màn hình */}
+                        <div style={{ width: '100%', overflowX: 'auto' }}>
+                            <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '1050px' }}>
                                 <colgroup>
                                     <col style={{ width: '8%' }} />
                                     <col style={{ width: '8%' }} />

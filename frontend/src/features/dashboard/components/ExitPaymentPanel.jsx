@@ -404,6 +404,45 @@ export default function ExitPaymentPanel({
 
     const formatVND = (value) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value || 0);
 
+    // Helper định dạng thời gian gửi từ dạng số thập phân (VD: 3.44 giờ) hoặc mốc thời gian entry_time sang "X giờ Y phút"
+    const formatDurationText = (hoursVal, entryTimeVal) => {
+        let totalMinutes = 0;
+
+        if (entryTimeVal) {
+            let entryStr = entryTimeVal;
+            if (typeof entryStr === "string" && !entryStr.endsWith("Z") && !entryStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                entryStr += "Z";
+            }
+            const entry = new Date(entryStr);
+            if (!isNaN(entry.getTime())) {
+                const diffMs = Math.max(0, Date.now() - entry.getTime());
+                totalMinutes = Math.floor(diffMs / (1000 * 60));
+            }
+        }
+
+        if (totalMinutes === 0 && hoursVal !== undefined && hoursVal !== null) {
+            let cleanVal = hoursVal;
+            if (typeof cleanVal === 'string') {
+                cleanVal = cleanVal.replace(/[^0-9.]/g, '');
+            }
+            const numHours = typeof cleanVal === 'number' ? cleanVal : parseFloat(cleanVal);
+            if (!isNaN(numHours) && numHours > 0) {
+                totalMinutes = Math.round(numHours * 60);
+            }
+        }
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        if (hours > 0 && minutes > 0) {
+            return `${hours} giờ ${minutes} phút`;
+        } else if (hours > 0) {
+            return `${hours} giờ 0 phút`;
+        } else {
+            return `${minutes} phút`;
+        }
+    };
+
     const isDisableActions = loading || parentLoading;
     const isMonthly = preCheckResult?.ticket_type === "Thẻ tháng";
     const isMonthlyValid = preCheckResult?.is_monthly_valid;
@@ -588,10 +627,12 @@ export default function ExitPaymentPanel({
                                         <span style={s.infoLabel}>Hiện tại:</span>
                                         <span style={s.infoValue}>{new Date().toLocaleString("vi-VN")}</span>
                                     </div>
-                                    {preCheckResult.fee_breakdown?.hours && (
+                                    {(preCheckResult.session?.entry_time || preCheckResult.fee_breakdown?.hours) && (
                                         <div style={{ ...s.infoItem, gridColumn: "span 2" }}>
                                             <span style={s.infoLabel}>Thời gian gửi:</span>
-                                            <span style={s.infoValue}>{preCheckResult.fee_breakdown.hours} giờ</span>
+                                            <span style={s.infoValue}>
+                                                {formatDurationText(preCheckResult.fee_breakdown?.hours, preCheckResult.session?.entry_time)}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -620,7 +661,18 @@ export default function ExitPaymentPanel({
                                             </button>
                                         </>
                                     )}
-                                    <button type="button" onClick={handleReset} style={{ ...s.btnCancel, height: 30 }}>Hủy giao dịch</button>
+                                    <button
+                                        type="button"
+                                        onClick={handleReset}
+                                        style={{
+                                            ...s.btnCancel,
+                                            background: "#db1f1f",
+                                            color: "#fff",
+                                            height: 38,
+                                        }}
+                                    >
+                                        Hủy giao dịch
+                                    </button>
                                 </div>
                             </div>
                         </div>

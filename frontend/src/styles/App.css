@@ -533,14 +533,248 @@ body {
 }
 
 .bell::after {
-  content: '';
-  width: 7px;
-  height: 7px;
-  background: #ef4444;
+  content: none !important;
+}
+
+/* ─── Notification Bell & Dropdown ─────────────────────────────── */
+.notif-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.bell-btn {
+  position: relative;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.bell-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.bell-badge-dot {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.4);
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 350px;
+  max-height: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: notifFadeIn 0.2s ease-out;
+}
+
+@keyframes notifFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notif-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.notif-header-title .material-symbols-outlined {
+  font-size: 18px;
+  color: #2563eb;
+}
+
+.notif-count-badge {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.notif-mark-read-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.notif-mark-read-btn:hover {
+  background: #eff6ff;
+}
+
+.notif-list {
+  overflow-y: auto;
+  max-height: 350px;
+}
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 16px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.notif-empty .material-symbols-outlined {
+  font-size: 40px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.notif-empty p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  position: relative;
+}
+
+.notif-item:hover {
+  background: #f8fafc;
+}
+
+.notif-item.unread {
+  background: #f0f9ff;
+}
+
+.notif-item.unread:hover {
+  background: #e0f2fe;
+}
+
+.notif-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-icon.entry {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.notif-icon.exit {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.notif-icon .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.notif-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notif-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.notif-action-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.notif-plate {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.notif-unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #2563eb;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .avatar {
@@ -32542,11 +32776,425 @@ button.mc-btn .material-symbols-outlined {
     padding: 0 !important;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   CUSTOM STYLES: Giao diện Modal Thanh toán & Bảng Nhật ký
+   (Nhật ký thẻ tháng - Manager Dashboard)
+   ───────────────────────────────────────────────────────────── */
 
+/* Nút Thanh toán tinh tế trong bảng nhật ký (Cột Hóa đơn - Không bị co cắt chữ) */
+.btn-monthcard-pay {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.2s ease-in-out;
+    line-height: 1;
+    white-space: nowrap !important;
+    height: 28px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
 
+.btn-monthcard-pay:hover {
+    background: #047857;
+    color: #ffffff;
+    border-color: #047857;
+    box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
+}
 
+.btn-monthcard-pay:active {
+    transform: translateY(0);
+}
 
+/* Badge Trạng thái "Chờ thanh toán" (Bo tròn, Nền vàng nhạt, Chữ vàng đậm) */
+.status-badge-log.pending {
+    background-color: #fef3c7 !important;
+    color: #92400e !important;
+    border-radius: 9999px !important;
+    padding: 4px 12px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    display: inline-block !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
 
+.pending-modal-content {
+    background-color: #ffffff;
+    border-radius: 14px;
+    width: 550px !important;
+    max-width: 95vw !important;
+    padding: 24px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
 
+.pending-modal-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important; /* Khoảng cách 12px vừa đặn giữa 2 nút */
+    margin-top: 20px !important;
+    padding-top: 16px !important;
+    border-top: 1px solid #f1f5f9 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-wrap: nowrap !important; /* Cùng nằm trên 1 hàng ngang */
+}
 
-
+/* Đồng bộ 100% kích thước, chiều cao, font-size cho 2 nút bấm trong Modal */
+.pending-modal-footer button,
+.btn-vnpay-open,
+.btn-vnpay-check {
+    flex: 1 1 0% !important; /* Chia đều 50-50 chiều rộng 2 nút */
+    min-width: 0 !important; /* Đảm bảo không bị tràn lề ra ngoài khung modal */
+    height: 38px !important;
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    box-sizing: border-box !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    transition: all 0.15s ease-in-out !important;
+    margin: 0 !important;
+}
+
+.btn-vnpay-open {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border: 1px solid #0284c7 !important;
+    box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2) !important;
+}
+
+.btn-vnpay-open:hover {
+    background-color: #0369a1 !important;
+    border-color: #0369a1 !important;
+    box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-vnpay-check {
+    background-color: #006d38 !important;
+    color: #ffffff !important;
+    border: 1px solid #006d38 !important;
+    box-shadow: 0 1px 2px rgba(0, 109, 56, 0.2) !important;
+}
+
+.btn-vnpay-check:hover {
+    background-color: #00522a !important;
+    border-color: #00522a !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 109, 56, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-vnpay-check:disabled,
+.btn-vnpay-open:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ĐỊNH DẠNG CỘT THỜI GIAN 2 DÒNG DỌC (DÒNG 1: GIỜ, DÒNG 2: NGÀY)
+   & CĂN CHỈNH ĐỒNG ĐỀU CÁC CỘT BẢNG NHẬT KÝ VẬN HÀNH
+   ───────────────────────────────────────────────────────────── */
+
+.log-time-column {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 1px !important;
+    line-height: 1.3 !important;
+}
+
+.log-time-clock {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    letter-spacing: 0.2px !important;
+}
+
+.log-time-date {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+}
+
+/* Căn chỉnh đồng nhất padding và vertical-align cho toàn bộ bảng nhật ký */
+.mc-table th {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.4px !important;
+    color: #475569 !important;
+    background-color: #f8fafc !important;
+}
+
+.mc-table td {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    font-size: 13px !important;
+}
+
+.mc-table-row {
+    height: 52px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ĐỊNH DẠNG RESPONSIVE CHỐNG VỠ GIAO DIỆN & DÍNH CHỮ KHI THU NHỎ
+   1. Hộp Thông tin ca trực (Staff Dashboard - System Operations)
+   2. Danh sách Giao dịch gần đây (Staff Dashboard)
+   3. Bảng Nhật ký vận hành (Manager Log Management)
+   ───────────────────────────────────────────────────────────── */
+
+/* --- 1. Thẻ Thông tin ca trực --- */
+.shift-info-card,
+.system-page .shift-info-card {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
+/* Trong chế độ desktop 2 cột (sidebar bên phải hẹp ~250-350px), xếp 3 thông tin theo chiều dọc để chữ nguyên vẹn không bị cắt vụn */
+.shift-info-card .shift-grid,
+.system-page .shift-info-card .shift-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+}
+
+/* Khi màn hình ở chế độ xếp lớp dọc full width (768px -> 1100px), hiển thị 3 cột ngang tận dụng không gian rộng */
+@media (min-width: 768px) and (max-width: 1100px) {
+    .shift-info-card .shift-grid,
+    .system-page .shift-info-card .shift-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 6px 10px !important;
+    }
+}
+
+.shift-info-card .shift-item,
+.system-page .shift-info-card .shift-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 1px !important;
+    min-width: 0 !important;
+}
+
+.shift-info-card .shift-label,
+.system-page .shift-info-card .shift-label {
+    display: block !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0px !important;
+}
+
+.shift-info-card .shift-value,
+.system-page .shift-info-card .shift-value {
+    display: block !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* --- 2. Thẻ Giao dịch gần đây (Chống tràn khung và dính chữ) --- */
+.recent-transactions-list-card,
+.system-page .recent-transactions-list-card {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    padding: 6px 8px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+}
+
+.recent-transactions-list-card .recent-items-container,
+.system-page .recent-transactions-list-card .recent-items-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    height: auto !important;
+}
+
+.recent-transactions-list-card .recent-item,
+.system-page .recent-transactions-list-card .recent-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 4px 6px !important;
+    gap: 6px !important;
+    flex-wrap: wrap !important;
+    border-radius: 4px !important;
+    background: #f8fafc !important;
+    border: 1px solid #f1f5f9 !important;
+}
+
+.recent-transactions-list-card .recent-item-left,
+.system-page .recent-transactions-list-card .recent-item-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+}
+
+.recent-transactions-list-card .recent-item-right,
+.system-page .recent-transactions-list-card .recent-item-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-left: auto !important;
+    white-space: nowrap !important;
+}
+
+.recent-transactions-list-card .recent-time,
+.system-page .recent-transactions-list-card .recent-time {
+    font-size: 11px !important;
+    color: #64748b !important;
+}
+
+.recent-transactions-list-card .recent-time::after,
+.system-page .recent-transactions-list-card .recent-time::after {
+    content: " • " !important;
+    color: #94a3b8 !important;
+    margin-left: 3px !important;
+    font-weight: bold !important;
+}
+
+.recent-transactions-list-card .recent-fee,
+.system-page .recent-transactions-list-card .recent-fee {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    color: #0f766e !important;
+}
+
+/* --- 3. Container Bảng Nhật ký vận hành --- */
+.mc-table-card,
+.lost-table-card,
+.log-table-card,
+.lost-card-log-wrapper .lost-table-card,
+.lost-card-log-wrapper .log-table-card {
+    width: 100% !important;
+    overflow-x: auto !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+}
+
+.mc-table,
+.lost-table,
+.log-table {
+    width: 100% !important;
+    min-width: 1000px !important; /* Đảm bảo bảng giữ nguyên kích thước tối thiểu để không bị co chữ/dính chữ */
+    border-collapse: collapse !important;
+}
+
+.mc-table th, .mc-table td,
+.lost-table th, .lost-table td,
+.log-table th, .log-table td {
+    white-space: nowrap !important; /* Tránh vỡ chữ tiêu đề và ô dữ liệu khi co giãn */
+}
+
+.mc-table td.log-content-cell,
+.lost-table td.lost-content-cell {
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 200px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   KHẮC PHỤC TRIỆT ĐỂ LỖI CẮT CHỮ / MẤT KHUNG TRÊN MỌI KÍCH THƯỚC MÀN HÌNH (STAFF DASHBOARD)
+   ───────────────────────────────────────────────────────────── */
+
+/* Cho phép trang System Operations cuộn dọc tự nhiên nếu chiều cao màn hình/khung cửa sổ thu nhỏ */
+.system-page,
+.system-page .system-content,
+.layout:has(.system-page) .content,
+.layout:has(.system-page),
+.layout:has(.system-page) .main {
+    overflow-y: auto !important;
+    max-height: none !important;
+}
+
+/* Đảm bảo thẻ active-transaction và transaction-details không làm lòi thẻ con ra ngoài */
+.system-page .active-transaction {
+    overflow: hidden !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.system-page .transaction-details {
+    overflow-y: auto !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+    padding-right: 2px !important;
+}
+
+/* Khi chiều rộng màn hình/khung cửa sổ thu nhỏ (< 1100px), chuyển active-transaction từ 2 cột sang 1 cột chồng dọc tự nhiên */
+@media (max-width: 1100px) {
+    .system-page .system-content {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    .system-page .active-transaction {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        overflow: visible !important;
+    }
+
+    .system-page .transaction-details {
+        border-left: none !important;
+        border-top: 1px dashed #e2e8f0 !important;
+        padding-left: 0 !important;
+        padding-top: 12px !important;
+        margin-top: 6px !important;
+        overflow: visible !important;
+        max-height: none !important;
+    }
+}
