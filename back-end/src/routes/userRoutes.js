@@ -8,21 +8,21 @@ const router = express.Router();
  * GET /api/users
  * Lấy danh sách tất cả người dùng kèm role (chỉ ADMIN)
  */
-router.get("/", verifyToken, authorize("ADMIN"), getUsers);
+router.get("/", authorize("ADMIN"), getUsers);
 
 /**
  * PATCH /api/users/:id/role
  * Cập nhật role cho người dùng (chỉ ADMIN)
  */
-router.patch("/:id/role", verifyToken, authorize("ADMIN"), updateUserRole);
+router.patch("/:id/role", authorize("ADMIN"), updateUserRole);
 
 /**
  * GET /api/users/login-logs
  * Lấy danh sách nhật ký đăng nhập
  */
-router.get("/login-logs", verifyToken, getLoginLogs);
+router.get("/login-logs", getLoginLogs);
 
 // Chỉ admin mới được tạo user mới
-router.post("/invite", verifyToken, authorize("ADMIN"), inviteUserController);
+router.post("/invite", authorize("ADMIN"), inviteUserController);
 
 export default router;
