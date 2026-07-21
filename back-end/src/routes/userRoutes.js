@@ -8,13 +8,13 @@ const router = express.Router();
  * GET /api/users
  * Lấy danh sách tất cả người dùng kèm role (chỉ ADMIN)
  */
-router.get("/", authorize("ADMIN"), getUsers);
+router.get("/", verifyToken, authorize("ADMIN"), getUsers);
 
 /**
  * PATCH /api/users/:id/role
  * Cập nhật role cho người dùng (chỉ ADMIN)
  */
-router.patch("/:id/role", authorize("ADMIN"), updateUserRole);
+router.patch("/:id/role", verifyToken, authorize("ADMIN"), updateUserRole);
 
 /**
  * GET /api/users/login-logs
@@ -23,6 +23,6 @@ router.patch("/:id/role", authorize("ADMIN"), updateUserRole);
 router.get("/login-logs", getLoginLogs);
 
 // Chỉ admin mới được tạo user mới
-router.post("/invite", authorize("ADMIN"), inviteUserController);
+router.post("/invite", verifyToken, authorize("ADMIN"), inviteUserController);
 
 export default router;
