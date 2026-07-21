@@ -648,7 +648,8 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                                                 onClick={() => handleOpenPendingModal(log)}
                                                             >
                                                                 <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>payments</span>
-                                                                <span>Thanh toán</span>                                                            </button>
+                                                                <span>Thanh toán</span>
+                                                            </button>
                                                         ) : log.paymentMethod?.toLowerCase() === 'vnpay' ? (
                                                             <button
                                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}

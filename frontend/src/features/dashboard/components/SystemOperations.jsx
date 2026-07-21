@@ -127,11 +127,14 @@ export default function SystemOperations() {
 
     const navigate = useNavigate();
     const { user } = useAuth();
+    // Trạng thái lưu tên tòa nhà làm việc của nhân viên
+    const [buildingName, setBuildingName] = useState('');
 
     useEffect(() => {
         const checkBuildingAssignment = async () => {
             if (!user) return;
             try {
+                // Truy vấn bảng profiles lấy building_id của tài khoản hiện tại
                 const { data } = await supabase
                     .from('profiles')
                     .select('building_id')
@@ -140,6 +143,17 @@ export default function SystemOperations() {
 
                 if (data && !data.building_id) {
                     showToast('Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out.', 'error');
+                } else if (data?.building_id) {
+                    // Truy vấn động tên tòa nhà từ bảng building dựa theo building_id
+                    const { data: bData } = await supabase
+                        .from('building')
+                        .select('name')
+                        .eq('building_id', data.building_id)
+                        .maybeSingle();
+
+                    if (bData?.name) {
+                        setBuildingName(bData.name);
+                    }
                 }
             } catch (err) {
                 console.error("Error checking building assignment:", err);
@@ -147,6 +161,45 @@ export default function SystemOperations() {
         };
         checkBuildingAssignment();
     }, [user]);
+
+    // Helper định dạng thời gian gửi từ dạng số thập phân (VD: 3.44 giờ) hoặc mốc thời gian entryTime sang "X giờ Y phút"
+    const formatDurationText = (durationVal, entryTimeVal) => {
+        let totalMinutes = 0;
+
+        if (entryTimeVal) {
+            let entryStr = entryTimeVal;
+            if (typeof entryStr === "string" && !entryStr.endsWith("Z") && !entryStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+                entryStr += "Z";
+            }
+            const entry = new Date(entryStr);
+            if (!isNaN(entry.getTime())) {
+                const diffMs = Math.max(0, Date.now() - entry.getTime());
+                totalMinutes = Math.floor(diffMs / (1000 * 60));
+            }
+        }
+
+        if (totalMinutes === 0 && durationVal !== undefined && durationVal !== null) {
+            let cleanVal = durationVal;
+            if (typeof cleanVal === 'string') {
+                cleanVal = cleanVal.replace(/[^0-9.]/g, '');
+            }
+            const numHours = typeof cleanVal === 'number' ? cleanVal : parseFloat(cleanVal);
+            if (!isNaN(numHours) && numHours > 0) {
+                totalMinutes = Math.round(numHours * 60);
+            }
+        }
+
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        if (hours > 0 && minutes > 0) {
+            return `${hours} giờ ${minutes} phút`;
+        } else if (hours > 0) {
+            return `${hours} giờ 0 phút`;
+        } else {
+            return `${minutes} phút`;
+        }
+    };
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -282,6 +335,7 @@ export default function SystemOperations() {
                 resetInForm();
                 fetchStats();
                 fetchRecentSessions();
+                window.dispatchEvent(new CustomEvent('vehicle-session-change'));
             } else {
                 showToast(result.message || 'Check in thất bại.', 'error');
             }
@@ -335,6 +389,7 @@ export default function SystemOperations() {
                 resetOutForm();
                 fetchStats();
                 fetchRecentSessions();
+                window.dispatchEvent(new CustomEvent('vehicle-session-change'));
             } else {
                 showToast(result.message || 'Check out thất bại.', 'error');
             }
@@ -1132,6 +1187,7 @@ export default function SystemOperations() {
                         )}
 
                         {/* Shift Information Card — Moved to the right column */}
+                        {/* Shift Information Card — Dynamic Building Info */}
                         <div className="shift-info-card" style={{ marginTop: '0px', marginBottom: '8px' }}>
                             <div className="shift-title">
                                 <span className="material-symbols-outlined">badge</span>
@@ -1141,6 +1197,10 @@ export default function SystemOperations() {
                                 <div className="shift-item">
                                     <span className="shift-label">Nhân viên</span>
                                     <span className="shift-value">{user?.email || 'staff@gmail.com'}</span>
+                                </div>
+                                <div className="shift-item">
+                                    <span className="shift-label">Tòa nhà</span>
+                                    <span className="shift-value">{buildingName || 'Chưa phân công'}</span>
                                 </div>
                                 <div className="shift-item">
                                     <span className="shift-label">Thời gian</span>
@@ -1397,7 +1457,7 @@ export default function SystemOperations() {
                                     </div>
                                     <div className="op-modal-detail-row">
                                         <span className="op-modal-detail-label">Thời gian gửi:</span>
-                                        <strong className="op-modal-detail-value">{preCheckResult.duration}</strong>
+                                        <strong className="op-modal-detail-value">{formatDurationText(preCheckResult.duration, preCheckResult.entryTime)}</strong>
                                     </div>
                                     <div className="op-modal-detail-row highlight-row no-border">
                                         <span className="op-modal-detail-label label-bold">Phí thanh toán:</span>
