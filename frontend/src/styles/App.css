@@ -32957,3 +32957,220 @@ button.mc-btn .material-symbols-outlined {
 .mc-table-row {
     height: 52px !important;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   ĐỊNH DẠNG RESPONSIVE CHỐNG VỠ GIAO DIỆN & DÍNH CHỮ KHI THU NHỎ
+   1. Hộp Thông tin ca trực (Staff Dashboard - System Operations)
+   2. Danh sách Giao dịch gần đây (Staff Dashboard)
+   3. Bảng Nhật ký vận hành (Manager Log Management)
+   ───────────────────────────────────────────────────────────── */
+
+/* --- 1. Thẻ Thông tin ca trực --- */
+.shift-info-card,
+.system-page .shift-info-card {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 10px 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
+/* Trong chế độ desktop 2 cột (sidebar bên phải hẹp ~250-350px), xếp 3 thông tin theo chiều dọc để chữ nguyên vẹn không bị cắt vụn */
+.shift-info-card .shift-grid,
+.system-page .shift-info-card .shift-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+}
+
+/* Khi màn hình ở chế độ xếp lớp dọc full width (768px -> 1100px), hiển thị 3 cột ngang tận dụng không gian rộng */
+@media (min-width: 768px) and (max-width: 1100px) {
+    .shift-info-card .shift-grid,
+    .system-page .shift-info-card .shift-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px 12px !important;
+    }
+}
+
+.shift-info-card .shift-item,
+.system-page .shift-info-card .shift-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 2px !important;
+    min-width: 0 !important;
+}
+
+.shift-info-card .shift-label,
+.system-page .shift-info-card .shift-label {
+    display: block !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1px !important;
+}
+
+.shift-info-card .shift-value,
+.system-page .shift-info-card .shift-value {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    line-height: 1.3 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+}
+
+/* --- 2. Thẻ Giao dịch gần đây (Chống dính chữ thời gian & số tiền khi thu nhỏ) --- */
+.recent-transactions-list-card,
+.system-page .recent-transactions-list-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.recent-transactions-list-card .recent-item,
+.system-page .recent-transactions-list-card .recent-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 8px !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+.recent-transactions-list-card .recent-item-left,
+.system-page .recent-transactions-list-card .recent-item-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+}
+
+.recent-transactions-list-card .recent-item-right,
+.system-page .recent-transactions-list-card .recent-item-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: auto !important;
+    white-space: nowrap !important;
+}
+
+.recent-transactions-list-card .recent-time,
+.system-page .recent-transactions-list-card .recent-time {
+    font-size: 11px !important;
+    color: #64748b !important;
+}
+
+.recent-transactions-list-card .recent-time::after,
+.system-page .recent-transactions-list-card .recent-time::after {
+    content: " • " !important;
+    color: #94a3b8 !important;
+    margin-left: 4px !important;
+    font-weight: bold !important;
+}
+
+.recent-transactions-list-card .recent-fee,
+.system-page .recent-transactions-list-card .recent-fee {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    color: #0f766e !important;
+}
+
+/* --- 3. Container Bảng Nhật ký vận hành --- */
+.mc-table-card,
+.lost-table-card,
+.log-table-card,
+.lost-card-log-wrapper .lost-table-card,
+.lost-card-log-wrapper .log-table-card {
+    width: 100% !important;
+    overflow-x: auto !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+}
+
+.mc-table,
+.lost-table,
+.log-table {
+    width: 100% !important;
+    min-width: 1000px !important; /* Đảm bảo bảng giữ nguyên kích thước tối thiểu để không bị co chữ/dính chữ */
+    border-collapse: collapse !important;
+}
+
+.mc-table th, .mc-table td,
+.lost-table th, .lost-table td,
+.log-table th, .log-table td {
+    white-space: nowrap !important; /* Tránh vỡ chữ tiêu đề và ô dữ liệu khi co giãn */
+}
+
+.mc-table td.log-content-cell,
+.lost-table td.lost-content-cell {
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 200px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   KHẮC PHỤC TRIỆT ĐỂ LỖI CẮT CHỮ / MẤT KHUNG TRÊN MỌI KÍCH THƯỚC MÀN HÌNH (STAFF DASHBOARD)
+   ───────────────────────────────────────────────────────────── */
+
+/* Cho phép trang System Operations cuộn dọc tự nhiên nếu chiều cao màn hình/khung cửa sổ thu nhỏ */
+.system-page,
+.system-page .system-content,
+.layout:has(.system-page) .content,
+.layout:has(.system-page),
+.layout:has(.system-page) .main {
+    overflow-y: auto !important;
+    max-height: none !important;
+}
+
+/* Đảm bảo thẻ active-transaction không bị cắt xén nội dung */
+.system-page .active-transaction {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.system-page .transaction-details {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+/* Khi chiều rộng màn hình/khung cửa sổ thu nhỏ (< 1100px), chuyển active-transaction từ 2 cột sang 1 cột chồng dọc tự nhiên */
+@media (max-width: 1100px) {
+    .system-page .system-content {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    .system-page .active-transaction {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    .system-page .transaction-details {
+        border-left: none !important;
+        border-top: 1px dashed #e2e8f0 !important;
+        padding-left: 0 !important;
+        padding-top: 12px !important;
+        margin-top: 6px !important;
+    }
+}
