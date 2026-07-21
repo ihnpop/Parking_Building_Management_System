@@ -15,10 +15,16 @@ const parseNumber = (str) => {
 
 // ─── Edit Session Price Modal ──────────────────────────────────────────────────
 
-export function EditSessionPriceModal({ item, onClose, onSave }) {
-    const [timeSlots, setTimeSlots] = useState([
-        { min: 0, max: 6, price: item.firstHour }
-    ]);
+export function EditSessionPriceModal({ item, saving = false, onClose, onSave }) {
+    const [timeSlots, setTimeSlots] = useState(() => {
+        if (item.timeSlots && item.timeSlots.length > 0) {
+            return item.timeSlots;
+        }
+        return [
+            { min: 0, max: 1, price: item.firstHour ?? 5000 }
+        ];
+    });
+
 
     const addSlot = () => {
         const last = timeSlots[timeSlots.length - 1];
@@ -33,7 +39,12 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
     const updateSlot = (idx, field, raw) => {
         let val;
         if (field === 'min' || field === 'max') {
-            val = Math.max(0, Math.min(24, parseInt(raw, 10) || 0));
+            if (raw === '' || raw === undefined) {
+                val = '';
+            } else {
+                const parsed = parseFloat(raw);
+                val = isNaN(parsed) ? 0 : Math.max(0, Math.min(24, parsed));
+            }
         } else {
             // price — no upper limit clamp
             val = parseNumber(String(raw));
@@ -41,12 +52,14 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
         setTimeSlots(timeSlots.map((s, i) => i === idx ? { ...s, [field]: val } : s));
     };
 
-    // Detect overlapping slots (compare integer hours directly)
+    // Detect overlapping slots
     const overlapIndices = new Set();
     for (let i = 0; i < timeSlots.length; i++) {
         for (let j = i + 1; j < timeSlots.length; j++) {
             const a = timeSlots[i], b = timeSlots[j];
-            if (a.min < b.max && b.min < a.max) {
+            const minA = Number(a.min) || 0, maxA = Number(a.max) || 0;
+            const minB = Number(b.min) || 0, maxB = Number(b.max) || 0;
+            if (minA < maxB && minB < maxA) {
                 overlapIndices.add(i);
                 overlapIndices.add(j);
             }
@@ -55,10 +68,11 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
 
     // Detect slots where min >= max (invalid range)
     const invalidRangeIndices = new Set(
-        timeSlots.map((s, i) => s.min >= s.max ? i : -1).filter(i => i >= 0)
+        timeSlots.map((s, i) => (Number(s.min) || 0) >= (Number(s.max) || 0) ? i : -1).filter(i => i >= 0)
     );
 
-    const hasPriceErrors = timeSlots.some(s => s.price <= 0 || s.price % 1000 !== 0);
+
+    const hasPriceErrors = timeSlots.some(s => s.price < 0 || s.price % 1000 !== 0);
     const hasOverlap = overlapIndices.size > 0;
     const hasInvalidRange = invalidRangeIndices.size > 0;
     const hasErrors = hasPriceErrors || hasOverlap || hasInvalidRange;
@@ -70,11 +84,13 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
         const calculatedDayMax = timeSlots.reduce((sum, s) => sum + s.price, 0);
         onSave({
             ...item,
+            timeSlots,
             firstHour: firstSlotPrice,
             extraHour: secondSlotPrice || firstSlotPrice,
             dayMax: calculatedDayMax
         });
     };
+
 
     const cellLabelStyle = {
         padding: '0 8px',
@@ -161,8 +177,8 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
                                         type="number"
                                         value={slot.min}
                                         min="0"
-                                        max="23"
-                                        step="1"
+                                        max="24"
+                                        step="any"
                                         onChange={e => updateSlot(idx, 'min', e.target.value)}
                                         style={{
                                             ...hourInputStyle,
@@ -173,15 +189,16 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
                                     <input
                                         type="number"
                                         value={slot.max}
-                                        min="1"
+                                        min="0"
                                         max="24"
-                                        step="1"
+                                        step="any"
                                         onChange={e => updateSlot(idx, 'max', e.target.value)}
                                         style={{
                                             ...hourInputStyle,
                                             borderColor: invalidRangeIndices.has(idx) || overlapIndices.has(idx) ? '#f87171' : '#e2e8f0',
                                         }}
                                     />
+
                                     {/* Price */}
                                     <div style={{ position: 'relative' }}>
                                         <input
@@ -195,7 +212,7 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
                                                 ...hourInputStyle,
                                                 padding: '7px 26px 7px 8px',
                                                 textAlign: 'left',
-                                                borderColor: slot.price <= 0 || slot.price % 1000 !== 0 ? '#f87171' : '#e2e8f0',
+                                                borderColor: slot.price < 0 || slot.price % 1000 !== 0 ? '#f87171' : '#e2e8f0',
                                             }}
                                         />
                                         <span style={{
@@ -264,9 +281,10 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
                         {hasPriceErrors && (
                             <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
-                                Tất cả mức giá phải lớn hơn 0 và là bội số của 1.000 đ.
+                                Tất cả mức giá phải lớn hơn hoặc bằng 0 đ và là bội số của 1.000 đ.
                             </p>
                         )}
+
                         {hasInvalidRange && (
                             <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
@@ -301,7 +319,7 @@ export function EditSessionPriceModal({ item, onClose, onSave }) {
 }
 
 
-export function EditMonthlyPriceModal({ item, onClose, onSave }) {
+export function EditMonthlyPriceModal({ item, saving = false, onClose, onSave }) {
     const [price1, setPrice1] = useState(item.price1Month);
     const [price3, setPrice3] = useState(item.price3Month);
     const [price6, setPrice6] = useState(item.price6Month);

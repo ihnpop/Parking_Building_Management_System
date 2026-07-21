@@ -49,10 +49,12 @@ export default function AdjustPricesPage() {
             setSaving(true);
             const data = await updateSessionPrices({
                 vehicleTypeId: updated.vehicleTypeId || updated.id,
+                timeSlots: updated.timeSlots,
                 firstHour: updated.firstHour,
                 extraHour: updated.extraHour,
                 dayMax: updated.dayMax,
             });
+
             if (data) {
                 setSessionPrices(data.sessionPrices || []);
                 setMonthlyPrices(data.monthlyPrices || []);
@@ -124,21 +126,6 @@ export default function AdjustPricesPage() {
     }
 
     return (
-<<<<<<< HEAD
-        <div className="ap-page">
-            {/* ── Header ── */}
-            <div className="ap-header">
-                <div className="ap-header-left">
-                    <div className="ap-header-icon">
-                        <span className="material-symbols-outlined">price_change</span>
-                    </div>
-                    <div>
-                        <h1 className="ap-page-title">
-                            Điều chỉnh giá dịch vụ {buildingName ? `— ${buildingName}` : ''}
-                        </h1>
-                        <p className="ap-page-subtitle">Quản lý biểu giá lượt và giá tháng áp dụng cho tòa nhà bạn được phân công</p>
-                    </div>
-=======
         <div className="mc-page">
             {/* ── Action Bar (tab switcher + info) ── */}
             <div className="mc-action-bar">
@@ -157,7 +144,6 @@ export default function AdjustPricesPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span>
                         Giá theo tháng
                     </button>
->>>>>>> 9dff1bd846b5d6f8efe26cabb9aca78de150dfc3
                 </div>
             </div>
 
@@ -192,21 +178,28 @@ export default function AdjustPricesPage() {
                                 </div>
 
                                 <div className="ap-card-body">
-                                    <div className="ap-price-row">
-                                        <div className="ap-price-item">
-                                            <span className="ap-price-label">Giờ đầu</span>
-                                            <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.firstHour)}</span>
+                                    {item.timeSlots && item.timeSlots.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0' }}>
+                                            {item.timeSlots.map((s, sIdx) => (
+                                                <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                                                    <span style={{ color: '#64748b', fontWeight: 500 }}>Khung {sIdx + 1} ({s.min}h – {s.max >= 24 ? 'hết ngày' : `${s.max}h`}):</span>
+                                                    <strong style={{ color: item.color, fontWeight: 700 }}>{formatVND(s.price)}</strong>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div className="ap-price-divider" />
-                                        <div className="ap-price-item">
-<<<<<<< HEAD
-                                            <span className="ap-price-label">Các giờ tiếp theo</span>
-=======
-                                            <span className="ap-price-label">Giờ tiếp theo</span>
->>>>>>> 9dff1bd846b5d6f8efe26cabb9aca78de150dfc3
-                                            <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.extraHour)}</span>
+                                    ) : (
+                                        <div className="ap-price-row">
+                                            <div className="ap-price-item">
+                                                <span className="ap-price-label">Giờ đầu</span>
+                                                <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.firstHour)}</span>
+                                            </div>
+                                            <div className="ap-price-divider" />
+                                            <div className="ap-price-item">
+                                                <span className="ap-price-label">Giờ tiếp theo</span>
+                                                <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.extraHour)}</span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <div className="ap-day-max-row">
                                         <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#94a3b8' }}>today</span>
@@ -214,6 +207,7 @@ export default function AdjustPricesPage() {
                                         <span className="ap-day-max-value" style={{ color: item.color }}>{formatVND(item.dayMax)}</span>
                                     </div>
                                 </div>
+
 
                                 <div className="ap-card-accent-bar" style={{ background: item.color }} />
                             </div>

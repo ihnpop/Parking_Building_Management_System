@@ -12,15 +12,10 @@ import App from './App.jsx'
 function MainApp() {
   const [isProcessingAuth, setIsProcessingAuth] = useState(() => {
     const hash = window.location.hash || "";
-<<<<<<< HEAD
     // Only intercept if we have access_token (login flow) and are NOT on password recovery flows
     return hash.includes("access_token=") &&
       !hash.includes("set-password") &&
       !hash.includes("reset-password");
-=======
-    // Only intercept if we have access_token (e.g. login, invite, or recovery flows)
-    return hash.includes("access_token=");
->>>>>>> 9dff1bd846b5d6f8efe26cabb9aca78de150dfc3
   });
 
   useEffect(() => {

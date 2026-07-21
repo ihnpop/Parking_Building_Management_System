@@ -4,7 +4,6 @@ const getVehicleIcon = (name) => {
     const lower = (name || "").toLowerCase();
     if (lower.includes("ô tô") || lower.includes("car") || lower.includes("oto")) return "directions_car";
     if (lower.includes("xe máy") || lower.includes("motor") || lower.includes("bike")) return "two_wheeler";
-    if (lower.includes("xe đạp")) return "pedal_bike";
     return "directions_car";
 };
 
@@ -53,7 +52,7 @@ export const getPricesForManager = async (userId) => {
     // 6. Format dữ liệu giá lượt (sessionPrices)
     const sessionPrices = vehicleTypes.map((vt) => {
         const itemsForVt = rawPriceItems.filter((item) => item.vehicle_type_id === vt.vehicle_type_id);
-        
+
         // Map 3 dòng: min_hour 0->1 (firstHour), min_hour 1->8 (extraHour), min_hour >=8 (dayMax)
         let firstHour = 5000;
         let extraHour = 3000;
@@ -73,6 +72,16 @@ export const getPricesForManager = async (userId) => {
         if (itemExtra) extraHour = Number(itemExtra.price);
         if (itemMax) dayMax = Number(itemMax.price);
 
+        const formattedTimeSlots = itemsForVt.length > 0
+            ? itemsForVt
+                .map((i) => ({
+                    min: Number(i.min_hour),
+                    max: i.max_hour !== null && i.max_hour !== undefined ? Number(i.max_hour) : 24,
+                    price: Number(i.price),
+                }))
+                .sort((a, b) => a.min - b.min)
+            : [];
+
         return {
             id: vt.vehicle_type_id,
             vehicleTypeId: vt.vehicle_type_id,
@@ -82,8 +91,10 @@ export const getPricesForManager = async (userId) => {
             firstHour,
             extraHour,
             dayMax,
+            timeSlots: formattedTimeSlots,
         };
     });
+
 
     // 7. Format dữ liệu giá tháng (monthlyPrices)
     const monthlyPrices = vehicleTypes.map((vt) => {
@@ -139,7 +150,7 @@ export const getPricesForManager = async (userId) => {
  * @param {object} payload - { vehicleTypeId, firstHour, extraHour, dayMax }
  */
 export const updateSessionPrices = async (userId, payload) => {
-    const { vehicleTypeId, firstHour, extraHour, dayMax } = payload;
+    const { vehicleTypeId, timeSlots, firstHour, extraHour, dayMax } = payload;
     if (!vehicleTypeId) {
         const err = new Error("Thiếu thông tin loại xe (vehicleTypeId).");
         err.statusCode = 400;
@@ -151,37 +162,50 @@ export const updateSessionPrices = async (userId, payload) => {
     // 1. Xóa các item cũ của vehicleTypeId này trong priceTableId để ghi đè sạch đẹp
     await priceRepository.deletePriceItemsByVehicleType(priceTableId, vehicleTypeId);
 
-    // 2. Tạo 3 dòng price_item mới:
-    // - Giờ đầu: min_hour = 0, max_hour = 1
-    // - Giờ tiếp theo: min_hour = 1, max_hour = 8
-    // - Tối đa ngày: min_hour = 8, max_hour = null
-    const newItems = [
-        {
-            price_table_id: priceTableId,
-            vehicle_type_id: vehicleTypeId,
-            min_hour: 0,
-            max_hour: 1,
-            price: firstHour,
-        },
-        {
-            price_table_id: priceTableId,
-            vehicle_type_id: vehicleTypeId,
-            min_hour: 1,
-            max_hour: 8,
-            price: extraHour,
-        },
-        {
-            price_table_id: priceTableId,
-            vehicle_type_id: vehicleTypeId,
-            min_hour: 8,
-            max_hour: null,
-            price: dayMax,
-        },
-    ];
+    // 2. Tạo các dòng price_item mới:
+    let newItems = [];
+    if (timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0) {
+        newItems = timeSlots.map((slot, index) => {
+            const isLast = index === timeSlots.length - 1;
+            const maxVal = (slot.max === null || slot.max === undefined || slot.max === '' || (Number(slot.max) >= 24 && isLast)) ? null : Number(slot.max);
+            return {
+                price_table_id: priceTableId,
+                vehicle_type_id: vehicleTypeId,
+                min_hour: Number(slot.min),
+                max_hour: maxVal,
+                price: Number(slot.price),
+            };
+        });
+    } else {
+        newItems = [
+            {
+                price_table_id: priceTableId,
+                vehicle_type_id: vehicleTypeId,
+                min_hour: 0,
+                max_hour: 1,
+                price: firstHour,
+            },
+            {
+                price_table_id: priceTableId,
+                vehicle_type_id: vehicleTypeId,
+                min_hour: 1,
+                max_hour: 8,
+                price: extraHour,
+            },
+            {
+                price_table_id: priceTableId,
+                vehicle_type_id: vehicleTypeId,
+                min_hour: 8,
+                max_hour: null,
+                price: dayMax,
+            },
+        ];
+    }
 
     await priceRepository.upsertPriceItems(newItems);
     return getPricesForManager(userId);
 };
+
 
 /**
  * Cập nhật giá tháng cho 1 loại xe thuộc tòa nhà của Manager
