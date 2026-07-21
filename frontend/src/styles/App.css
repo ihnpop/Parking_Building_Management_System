@@ -32542,11 +32542,184 @@ button.mc-btn .material-symbols-outlined {
     padding: 0 !important;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   CUSTOM STYLES: Giao diện Modal Thanh toán & Bảng Nhật ký
+   (Nhật ký thẻ tháng - Manager Dashboard)
+   ───────────────────────────────────────────────────────────── */
 
+/* Nút Thanh toán tinh tế trong bảng nhật ký (Cột Hóa đơn - Không bị co cắt chữ) */
+.btn-monthcard-pay {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.2s ease-in-out;
+    line-height: 1;
+    white-space: nowrap !important;
+    height: 28px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+}
 
+.btn-monthcard-pay:hover {
+    background: #047857;
+    color: #ffffff;
+    border-color: #047857;
+    box-shadow: 0 2px 4px rgba(4, 120, 87, 0.2);
+}
 
+.btn-monthcard-pay:active {
+    transform: translateY(0);
+}
 
+/* Badge Trạng thái "Chờ thanh toán" (Bo tròn, Nền vàng nhạt, Chữ vàng đậm) */
+.status-badge-log.pending {
+    background-color: #fef3c7 !important;
+    color: #92400e !important;
+    border-radius: 9999px !important;
+    padding: 4px 12px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    display: inline-block !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
 
+.pending-modal-content {
+    background-color: #ffffff;
+    border-radius: 14px;
+    width: 550px !important;
+    max-width: 95vw !important;
+    padding: 24px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
 
+.pending-modal-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important; /* Khoảng cách 12px vừa đặn giữa 2 nút */
+    margin-top: 20px !important;
+    padding-top: 16px !important;
+    border-top: 1px solid #f1f5f9 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-wrap: nowrap !important; /* Cùng nằm trên 1 hàng ngang */
+}
 
-
+/* Đồng bộ 100% kích thước, chiều cao, font-size cho 2 nút bấm trong Modal */
+.pending-modal-footer button,
+.btn-vnpay-open,
+.btn-vnpay-check {
+    flex: 1 1 0% !important; /* Chia đều 50-50 chiều rộng 2 nút */
+    min-width: 0 !important; /* Đảm bảo không bị tràn lề ra ngoài khung modal */
+    height: 38px !important;
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    box-sizing: border-box !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    transition: all 0.15s ease-in-out !important;
+    margin: 0 !important;
+}
+
+.btn-vnpay-open {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border: 1px solid #0284c7 !important;
+    box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2) !important;
+}
+
+.btn-vnpay-open:hover {
+    background-color: #0369a1 !important;
+    border-color: #0369a1 !important;
+    box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-vnpay-check {
+    background-color: #006d38 !important;
+    color: #ffffff !important;
+    border: 1px solid #006d38 !important;
+    box-shadow: 0 1px 2px rgba(0, 109, 56, 0.2) !important;
+}
+
+.btn-vnpay-check:hover {
+    background-color: #00522a !important;
+    border-color: #00522a !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 109, 56, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-vnpay-check:disabled,
+.btn-vnpay-open:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ĐỊNH DẠNG CỘT THỜI GIAN 2 DÒNG DỌC (DÒNG 1: GIỜ, DÒNG 2: NGÀY)
+   & CĂN CHỈNH ĐỒNG ĐỀU CÁC CỘT BẢNG NHẬT KÝ VẬN HÀNH
+   ───────────────────────────────────────────────────────────── */
+
+.log-time-column {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 1px !important;
+    line-height: 1.3 !important;
+}
+
+.log-time-clock {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    letter-spacing: 0.2px !important;
+}
+
+.log-time-date {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+}
+
+/* Căn chỉnh đồng nhất padding và vertical-align cho toàn bộ bảng nhật ký */
+.mc-table th {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.4px !important;
+    color: #475569 !important;
+    background-color: #f8fafc !important;
+}
+
+.mc-table td {
+    padding: 12px 14px !important;
+    vertical-align: middle !important;
+    font-size: 13px !important;
+}
+
+.mc-table-row {
+    height: 52px !important;
+}
