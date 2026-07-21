@@ -119,7 +119,7 @@ export const getPriceItemsByTable = async (priceTableId) => {
  */
 export const getMonthlyPackagesByTable = async (priceTableId) => {
     const { data, error } = await supabase
-        .from("monthly_package")
+        .from("package")
         .select(`
             package_id,
             price_table_id,

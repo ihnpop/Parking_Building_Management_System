@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import supabase from '../../../config/supabaseClient';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -19,7 +20,11 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [verifying, setVerifying] = useState(false);
 
     // ── Metadata ──────────────────────────────────────────────────
-    const [vehicleTypes, setVehicleTypes] = useState([]);
+    const DEFAULT_VEHICLE_TYPES = [
+        { vehicle_type_id: '439d3c41-838a-4aba-bd05-ff91f7dd6127', name: 'Ô tô' },
+        { vehicle_type_id: '7a2fa08c-7d47-4b0d-96be-557daadd3641', name: 'Xe máy' }
+    ];
+    const [vehicleTypes, setVehicleTypes] = useState(DEFAULT_VEHICLE_TYPES);
     const [packages, setPackages] = useState([]);
 
     // ── Form data ──────────────────────────────────────────────────
@@ -45,23 +50,75 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     const [checking, setChecking] = useState(false);
     const [payUrl, setPayUrl] = useState(null);
 
-    // ── Reset khi đóng/mở dialog ──────────────────────────────────
+    // ── Reset khi đóng/mở dialog & Tải danh mục loại xe, gói cước ─────
     useEffect(() => {
         if (isOpen) {
             resetAll();
             const fetchMetadataAndCheckPending = async () => {
                 try {
                     const token = localStorage.getItem('token');
-                    const headers = { Authorization: `Bearer ${token}` };
-                    const [resType, resPkg] = await Promise.all([
-                        axios.get(`${API}/month-card/vehicle-types`, { headers }),
-                        axios.get(`${API}/month-card/packages`, { headers })
-                    ]);
-                    setVehicleTypes(Array.isArray(resType.data) ? resType.data : []);
-                    setPackages(Array.isArray(resPkg.data) ? resPkg.data : []);
-                    await checkPendingRegistration();
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                    // 1. Tải danh sách nhóm xe (vehicleTypes)
+                    let types = [];
+                    try {
+                        const resType = await axios.get(`${API}/month-card/vehicle-types`, { headers });
+                        const rawTypes = resType.data?.data || resType.data;
+                        if (Array.isArray(rawTypes) && rawTypes.length > 0) {
+                            types = rawTypes;
+                        }
+                    } catch (err) {
+                        console.warn('Lỗi gọi API vehicle-types, chuyển sang đọc trực tiếp từ Supabase:', err.message);
+                    }
+
+                    // Fallback 1: Lấy trực tiếp từ bảng vehicle_type trong Supabase nếu API không trả về
+                    if (!types || types.length === 0) {
+                        const { data: supaTypes } = await supabase
+                            .from('vehicle_type')
+                            .select('vehicle_type_id, name')
+                            .order('name', { ascending: true });
+                        if (supaTypes && supaTypes.length > 0) {
+                            types = supaTypes;
+                        }
+                    }
+
+                    // Fallback 2: Sử dụng danh sách nhóm xe mặc định từ DB nếu cả 2 phương thức trên đều trống
+                    if (!types || types.length === 0) {
+                        types = DEFAULT_VEHICLE_TYPES;
+                    }
+                    setVehicleTypes(types);
+
+                    // 2. Tải danh sách gói cước tháng (packages)
+                    let pkgs = [];
+                    try {
+                        const resPkg = await axios.get(`${API}/month-card/packages`, { headers });
+                        const rawPkgs = resPkg.data?.data || resPkg.data;
+                        if (Array.isArray(rawPkgs) && rawPkgs.length > 0) {
+                            pkgs = rawPkgs;
+                        }
+                    } catch (err) {
+                        console.warn('Lỗi gọi API packages, chuyển sang đọc trực tiếp từ Supabase:', err.message);
+                    }
+
+                    // Fallback: Lấy trực tiếp từ bảng package trong Supabase nếu API không trả về
+                    if (!pkgs || pkgs.length === 0) {
+                        const { data: supaPkgs } = await supabase
+                            .from('package')
+                            .select('*')
+                            .eq('status', 'Hoạt động')
+                            .order('vehicle_type_id');
+                        if (supaPkgs && supaPkgs.length > 0) {
+                            pkgs = supaPkgs;
+                        }
+                    }
+                    setPackages(pkgs);
+
+                    // 3. Đã tắt tự động khôi phục giao dịch chờ thanh toán khi mở Modal.
+                    // Giúp người dùng có thể tạo đăng ký thẻ tháng mới ngay lập tức từ Bước 1
+                    // mà không bị chặn bởi các giao dịch cũ chọn "Để sau".
+                    // Các giao dịch "Chờ thanh toán" sẽ được xử lý riêng tại tab "Nhật ký thẻ tháng".
                 } catch (err) {
-                    console.error('Lỗi tải danh mục:', err);
+                    console.error('Lỗi tải danh mục đăng ký vé tháng:', err);
                 }
             };
             fetchMetadataAndCheckPending();
@@ -119,6 +176,13 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             });
             if (res.data?.success && res.data.pending) {
                 const pending = res.data.pending;
+
+                // Bỏ qua nếu orderCode này đã được hoàn tất đăng ký trước đó
+                const finalizedKey = `finalized_order_${pending.orderCode}`;
+                if (sessionStorage.getItem(finalizedKey)) {
+                    return;
+                }
+
                 const regData = pending.registrationData;
 
                 // Đánh dấu eKYC là đã xác thực
@@ -254,7 +318,8 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                 customer_info: {
                     full_name: formData.full_name,
                     phone: formData.phone,
-                    email: formData.email
+                    email: formData.email,
+                    cccd_number: formData.cccd_number || ''
                 },
                 vehicle_info: {
                     vehicle_type_id: formData.vehicle_type_id,
@@ -352,6 +417,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new Event('monthCardLogsUpdated'));
             }
+            // Đánh dấu orderCode này đã hoàn tất để không bị khôi phục lại ở lần mở tiếp theo
+            if (paymentOrderCode) {
+                sessionStorage.setItem(`finalized_order_${paymentOrderCode}`, '1');
+            }
             setSuccessMessage('Đăng ký vé tháng thành công!');
             setTimeout(() => { onSuccess?.(); onClose(); }, 1500);
         } catch (err) {
@@ -411,17 +480,6 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     })}
                 </div>
 
-                <style>{`
-                    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                    .animate-spin { animation: spin 1s linear infinite; display: inline-block; }
-                    .contract-box { border: 1px solid #e1e1ee; border-radius: 8px; padding: 16px; max-height: 260px; overflow-y: auto; background: #fafafa; font-size: 14px; line-height: 1.7; }
-                    .contract-box table { width: 100%; border-collapse: collapse; }
-                    .contract-box td { padding: 5px 10px; border: 1px solid #e5e7eb; }
-                    .contract-box td:first-child { font-weight: 600; background: #f3f4f6; width: 40%; color: #374151; }
-                    .pay-method-card { border: 2px solid #e1e1ee; border-radius: 10px; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; }
-                    .pay-method-card.selected { border-color: #004bca; background: #f0f5ff; }
-                    .pay-method-card:hover { border-color: #93c5fd; }
-                `}</style>
 
                 <form onSubmit={step === 5 ? handleFinalSubmit : e => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                     <div style={{ padding: '20px 24px', flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>

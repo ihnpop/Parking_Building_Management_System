@@ -277,6 +277,7 @@ class ParkingRegistrationService {
                 order_code: orderCode,
                 status: 'Chờ thanh toán',
                 payment_method: mapPaymentMethod(payment_method),
+                payment_time: new Date().toISOString(),
                 note: JSON.stringify(savedPayload),
                 created_by: created_by || null
             });

@@ -351,7 +351,7 @@ vt AS (
     FROM vehicle_type
 )
 
-INSERT INTO monthly_package (
+INSERT INTO package (
     price_table_id,
     vehicle_type_id,
     name,
