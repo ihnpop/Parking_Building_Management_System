@@ -453,8 +453,8 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                                     <col style={{ width: '9%' }} />
                                     <col style={{ width: '9%' }} />
                                     <col style={{ width: '11%' }} />
-                                    <col style={{ width: '14%' }} />
-                                    <col style={{ width: '6%' }} />
+                                    <col style={{ width: '11%' }} />
+                                    <col style={{ width: '9%' }} />
                                 </colgroup>
                                 <thead>
                                     <tr>
@@ -469,7 +469,7 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                                         <th>TRẠNG THÁI</th>
                                         <th>NHÂN VIÊN</th>
                                         <th style={{ textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>BILL</div>
+                                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', whiteSpace: 'nowrap' }}>HÓA ĐƠN</div>
                                         </th>
                                     </tr>
                                 </thead>

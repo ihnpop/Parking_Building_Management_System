@@ -1,93 +1,158 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNotification } from '../../../context/NotificationContext';
 import { EditSessionPriceModal, EditMonthlyPriceModal } from '../components/EditPricesDialog';
-
-// ─── Mock dữ liệu giá hiện tại ────────────────────────────────────────────────
-const initialSessionPrices = [
-    { id: 1, vehicleType: 'Xe máy', icon: 'two_wheeler', firstHour: 5000, extraHour: 3000, dayMax: 30000, color: '#3B82F6' },
-    { id: 2, vehicleType: 'Ô tô', icon: 'directions_car', firstHour: 15000, extraHour: 10000, dayMax: 100000, color: '#8B5CF6' },
-];
-
-const initialMonthlyPrices = [
-    { id: 1, vehicleType: 'Xe máy', icon: 'two_wheeler', price1Month: 200000, price3Month: 550000, price6Month: 1000000, price12Month: 1800000, color: '#3B82F6' },
-    { id: 2, vehicleType: 'Ô tô', icon: 'directions_car', price1Month: 800000, price3Month: 2200000, price6Month: 4000000, price12Month: 7200000, color: '#8B5CF6' },
-];
+import { getPrices, updateSessionPrices, updateMonthlyPrices } from '../../../service/priceApi';
 
 const formatVND = (value) => {
     if (!value && value !== 0) return '0 ₫';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-const parseNumber = (str) => {
-    if (typeof str !== 'string') {
-        str = String(str);
-    }
-    const num = parseInt(str.replace(/[^\d]/g, ''), 10);
-    return isNaN(num) ? 0 : num;
-};
-
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function AdjustPricesPage() {
     const { showToast } = useNotification();
     const [activeTab, setActiveTab] = useState('session');
-    const [sessionPrices, setSessionPrices] = useState(initialSessionPrices);
-    const [monthlyPrices, setMonthlyPrices] = useState(initialMonthlyPrices);
+    const [buildingName, setBuildingName] = useState('');
+    const [sessionPrices, setSessionPrices] = useState([]);
+    const [monthlyPrices, setMonthlyPrices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [saving, setSaving] = useState(false);
+
     const [editingSession, setEditingSession] = useState(null);
     const [editingMonthly, setEditingMonthly] = useState(null);
 
-    const handleSaveSession = (updated) => {
-        setSessionPrices(prev => prev.map(p => p.id === updated.id ? updated : p));
-        setEditingSession(null);
-        showToast(`Đã cập nhật giá lượt cho ${updated.vehicleType}!`, 'success');
+    const fetchPrices = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await getPrices();
+            setBuildingName(data.buildingName || '');
+            setSessionPrices(data.sessionPrices || []);
+            setMonthlyPrices(data.monthlyPrices || []);
+        } catch (err) {
+            console.error("Lỗi tải thông tin biểu giá:", err);
+            const msg = err.response?.data?.message || err.message || "Không thể tải bảng giá từ máy chủ.";
+            setError(msg);
+            showToast(msg, 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSaveMonthly = (updated) => {
-        setMonthlyPrices(prev => prev.map(p => p.id === updated.id ? updated : p));
-        setEditingMonthly(null);
-        showToast(`Đã cập nhật giá tháng cho ${updated.vehicleType}!`, 'success');
+    useEffect(() => {
+        fetchPrices();
+    }, []);
+
+    const handleSaveSession = async (updated) => {
+        try {
+            setSaving(true);
+            const data = await updateSessionPrices({
+                vehicleTypeId: updated.vehicleTypeId || updated.id,
+                timeSlots: updated.timeSlots,
+                firstHour: updated.firstHour,
+                extraHour: updated.extraHour,
+                dayMax: updated.dayMax,
+            });
+
+            if (data) {
+                setSessionPrices(data.sessionPrices || []);
+                setMonthlyPrices(data.monthlyPrices || []);
+            }
+            setEditingSession(null);
+            showToast(`Đã cập nhật biểu giá lượt thành công cho ${updated.vehicleType}!`, 'success');
+        } catch (err) {
+            console.error("Lỗi cập nhật giá lượt:", err);
+            const msg = err.response?.data?.message || err.message || "Lỗi cập nhật biểu giá lượt";
+            showToast(msg, 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    return (
-        <div className="ap-page">
-            {/* ── Header ── */}
-            <div className="ap-header">
-                <div className="ap-header-left">
-                    <div className="ap-header-icon">
-                        <span className="material-symbols-outlined">price_change</span>
-                    </div>
-                    <div>
-                        <h1 className="ap-page-title">Điều chỉnh giá dịch vụ</h1>
-                        <p className="ap-page-subtitle">Quản lý biểu giá lượt và giá tháng cho từng loại xe</p>
-                    </div>
+    const handleSaveMonthly = async (updated) => {
+        try {
+            setSaving(true);
+            const data = await updateMonthlyPrices({
+                vehicleTypeId: updated.vehicleTypeId || updated.id,
+                vehicleType: updated.vehicleType,
+                price1Month: updated.price1Month,
+                price3Month: updated.price3Month,
+                price6Month: updated.price6Month,
+                price12Month: updated.price12Month,
+            });
+            if (data) {
+                setSessionPrices(data.sessionPrices || []);
+                setMonthlyPrices(data.monthlyPrices || []);
+            }
+            setEditingMonthly(null);
+            showToast(`Đã cập nhật biểu giá tháng thành công cho ${updated.vehicleType}!`, 'success');
+        } catch (err) {
+            console.error("Lỗi cập nhật giá tháng:", err);
+            const msg = err.response?.data?.message || err.message || "Lỗi cập nhật biểu giá tháng";
+            showToast(msg, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="ap-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+                <div style={{ textAlign: 'center', color: '#64748b' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'spin 1s linear infinite' }}>progress_activity</span>
+                    <p style={{ marginTop: '12px', fontWeight: '500' }}>Đang tải biểu giá tòa nhà...</p>
                 </div>
             </div>
+        );
+    }
 
-            {/* ── Tab switcher ── */}
-            <div className="ap-tabs">
-                <button
-                    className={`ap-tab ${activeTab === 'session' ? 'ap-tab--active' : ''}`}
-                    onClick={() => setActiveTab('session')}
-                >
-                    <span className="material-symbols-outlined">timer</span>
-                    Giá theo lượt
-                    <span className="ap-tab-count">{sessionPrices.length}</span>
-                </button>
-                <button
-                    className={`ap-tab ${activeTab === 'monthly' ? 'ap-tab--active' : ''}`}
-                    onClick={() => setActiveTab('monthly')}
-                >
-                    <span className="material-symbols-outlined">calendar_month</span>
-                    Giá theo tháng
-                    <span className="ap-tab-count">{monthlyPrices.length}</span>
-                </button>
+    if (error) {
+        return (
+            <div className="ap-page" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ maxWidth: '480px', margin: '0 auto', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '24px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#dc2626' }}>warning</span>
+                    <h3 style={{ color: '#991b1b', marginTop: '12px' }}>Không thể tải bảng giá</h3>
+                    <p style={{ color: '#b91c1c', fontSize: '0.9rem', marginTop: '8px' }}>{error}</p>
+                    <button
+                        onClick={fetchPrices}
+                        style={{ marginTop: '16px', padding: '8px 20px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                        Thử lại
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mc-page">
+            {/* ── Action Bar (tab switcher + info) ── */}
+            <div className="mc-action-bar">
+                <div className="mc-filters" style={{ gap: '8px' }}>
+                    <button
+                        className={`mc-btn ${activeTab === 'session' ? 'mc-btn-primary' : 'mc-btn-outline'}`}
+                        onClick={() => setActiveTab('session')}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>timer</span>
+                        Giá theo lượt
+                    </button>
+                    <button
+                        className={`mc-btn ${activeTab === 'monthly' ? 'mc-btn-primary' : 'mc-btn-outline'}`}
+                        onClick={() => setActiveTab('monthly')}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span>
+                        Giá theo tháng
+                    </button>
+                </div>
             </div>
 
             {/* ── SESSION PRICES TAB ── */}
             {activeTab === 'session' && (
-                <div className="ap-section">
-                    <div className="ap-section-info">
+                <div className="mc-table-card" style={{ padding: '20px' }}>
+                    <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
-                        <span>Giá lượt tính theo giờ. Khách gửi xe trả tiền theo thời gian thực tế.</span>
+                        <span>Giá lượt tính theo giờ. Khách gửi xe trả tiền theo thời gian thực tế trong tòa nhà.</span>
                     </div>
 
                     <div className="ap-cards-grid">
@@ -102,26 +167,39 @@ export default function AdjustPricesPage() {
                                         <span className="ap-card-type-badge">Giá lượt</span>
                                     </div>
                                     <button
-                                        className="ap-edit-btn"
+                                        className="mc-btn mc-btn-outline"
+                                        style={{ padding: '8px 12px', fontSize: '13px' }}
                                         onClick={() => setEditingSession(item)}
                                         title="Chỉnh sửa giá"
                                     >
-                                        <span className="material-symbols-outlined">edit</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                        Sửa
                                     </button>
                                 </div>
 
                                 <div className="ap-card-body">
-                                    <div className="ap-price-row">
-                                        <div className="ap-price-item">
-                                            <span className="ap-price-label">Giờ đầu</span>
-                                            <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.firstHour)}</span>
+                                    {item.timeSlots && item.timeSlots.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0' }}>
+                                            {item.timeSlots.map((s, sIdx) => (
+                                                <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                                                    <span style={{ color: '#64748b', fontWeight: 500 }}>Khung {sIdx + 1} ({s.min}h – {s.max >= 24 ? 'hết ngày' : `${s.max}h`}):</span>
+                                                    <strong style={{ color: item.color, fontWeight: 700 }}>{formatVND(s.price)}</strong>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div className="ap-price-divider" />
-                                        <div className="ap-price-item">
-                                            <span className="ap-price-label">4 Giờ tiếp theo</span>
-                                            <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.extraHour)}</span>
+                                    ) : (
+                                        <div className="ap-price-row">
+                                            <div className="ap-price-item">
+                                                <span className="ap-price-label">Giờ đầu</span>
+                                                <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.firstHour)}</span>
+                                            </div>
+                                            <div className="ap-price-divider" />
+                                            <div className="ap-price-item">
+                                                <span className="ap-price-label">Giờ tiếp theo</span>
+                                                <span className="ap-price-value" style={{ color: item.color }}>{formatVND(item.extraHour)}</span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <div className="ap-day-max-row">
                                         <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#94a3b8' }}>today</span>
@@ -129,6 +207,7 @@ export default function AdjustPricesPage() {
                                         <span className="ap-day-max-value" style={{ color: item.color }}>{formatVND(item.dayMax)}</span>
                                     </div>
                                 </div>
+
 
                                 <div className="ap-card-accent-bar" style={{ background: item.color }} />
                             </div>
@@ -139,10 +218,10 @@ export default function AdjustPricesPage() {
 
             {/* ── MONTHLY PRICES TAB ── */}
             {activeTab === 'monthly' && (
-                <div className="ap-section">
-                    <div className="ap-section-info">
+                <div className="mc-table-card" style={{ padding: '20px' }}>
+                    <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
-                        <span>Giá tháng áp dụng khi khách đăng ký gói. Thời hạn theo từng gói đã chọn.</span>
+                        <span>Giá tháng áp dụng khi khách đăng ký gói vé tháng tại tòa nhà.</span>
                     </div>
 
                     <div className="ap-monthly-grid">
@@ -157,11 +236,13 @@ export default function AdjustPricesPage() {
                                         <span className="ap-card-type-badge ap-card-type-badge--monthly">Giá tháng</span>
                                     </div>
                                     <button
-                                        className="ap-edit-btn"
+                                        className="mc-btn mc-btn-outline"
+                                        style={{ padding: '8px 12px', fontSize: '13px' }}
                                         onClick={() => setEditingMonthly(item)}
                                         title="Chỉnh sửa giá"
                                     >
-                                        <span className="material-symbols-outlined">edit</span>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                        Sửa
                                     </button>
                                 </div>
 
@@ -202,6 +283,7 @@ export default function AdjustPricesPage() {
             {editingSession && (
                 <EditSessionPriceModal
                     item={editingSession}
+                    saving={saving}
                     onClose={() => setEditingSession(null)}
                     onSave={handleSaveSession}
                 />
@@ -209,6 +291,7 @@ export default function AdjustPricesPage() {
             {editingMonthly && (
                 <EditMonthlyPriceModal
                     item={editingMonthly}
+                    saving={saving}
                     onClose={() => setEditingMonthly(null)}
                     onSave={handleSaveMonthly}
                 />

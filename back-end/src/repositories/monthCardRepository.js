@@ -958,3 +958,59 @@ export const getLatestPaymentByVehiclePackage = async (vehiclePackageId) => {
   if (error) throw new Error(error.message);
   return data;
 };
+
+/**
+ * Lấy các giao dịch thẻ tháng đang chờ thanh toán hoặc đã hết hạn/thất bại
+ * @returns {Promise<object[]>}
+ */
+export const getPendingAndExpiredMonthCardPayments = async () => {
+  const { data, error } = await supabase
+    .from('payment')
+    .select('payment_id, order_code, payment_time, amount, payment_method, payment_type, note, status')
+    .in('payment_type', ['Đăng ký vé tháng', 'Gia hạn vé tháng', 'Phí cấp lại thẻ'])
+    .in('status', ['Chờ thanh toán', 'Hết hạn', 'Thất bại'])
+    .order('payment_time', { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy thông tin xe (biển số + chủ xe) theo danh sách vehicle_id
+ * @param {string[]} vehicleIds
+ * @returns {Promise<object[]>}
+ */
+export const getVehiclesByIds = async (vehicleIds) => {
+  if (!vehicleIds || vehicleIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('vehicle')
+    .select(`
+      vehicle_id,
+      plate_number,
+      customer (
+        full_name
+      )
+    `)
+    .in('vehicle_id', vehicleIds);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy danh sách card_lost_log theo danh sách UUID (report_id)
+ * @param {string[]} reportIds
+ * @returns {Promise<object[]>}
+ */
+export const getLostReportsByIds = async (reportIds) => {
+  if (!reportIds || reportIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id, card_id, vehicle_id')
+    .in('lost_report_id', reportIds);
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+

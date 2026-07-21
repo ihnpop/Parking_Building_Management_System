@@ -225,7 +225,8 @@ class ParkingRegistrationService {
             vehicle_info,
             package_id,
             payment_method, // 'vnpay' | 'cash'
-            ip_addr
+            ip_addr,
+            created_by
         } = payload;
 
         const phone = (customer_info.phone || '').trim();
@@ -276,7 +277,9 @@ class ParkingRegistrationService {
                 order_code: orderCode,
                 status: 'Chờ thanh toán',
                 payment_method: mapPaymentMethod(payment_method),
-                note: JSON.stringify(savedPayload)
+                payment_time: new Date().toISOString(),
+                note: JSON.stringify(savedPayload),
+                created_by: created_by || null
             });
 
             if (payment_method === 'vnpay') {

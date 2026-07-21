@@ -57,6 +57,50 @@ export const getLostCards = async () => {
         statusText = 'Đang chờ';
       }
 
+      // Kiểm tra có giao dịch cấp lại đang chờ thanh toán (timeout 15 phút)
+      let pendingPayment = null;
+      if (statusVal === 'Đã hủy thẻ') {
+        const timeoutThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        const { data: pm } = await supabase
+          .from('payment')
+          .select('*')
+          .eq('payment_type', 'Phí cấp lại thẻ')
+          .eq('status', 'Chờ thanh toán')
+          .gt('payment_time', timeoutThreshold)
+          .ilike('note', `%${log.lost_report_id}%`)
+          .order('payment_time', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pm) {
+          let noteObj = {};
+          try {
+            noteObj = JSON.parse(pm.note) || {};
+          } catch (e) {
+            console.error("Lỗi parse note:", e);
+          }
+
+          let payUrl = null;
+          if (pm.payment_method === 'VNPay') {
+            payUrl = vnpayService.createPaymentUrl({
+              orderCode: pm.order_code,
+              amount: pm.amount,
+              orderInfo: `Phi cap lai the - Report ${log.lost_report_id.substring(0, 8).toUpperCase()}`,
+              ipAddr: '127.0.0.1',
+            });
+          }
+
+          pendingPayment = {
+            orderCode: pm.order_code,
+            amount: pm.amount,
+            paymentMethod: pm.payment_method === 'Tiền mặt' ? 'cash' : 'vnpay',
+            payUrl,
+            newCode: noteObj.newCode || '',
+            paymentTime: pm.payment_time
+          };
+        }
+      }
+
       return {
         id: reportId,
         cardNo: cardCode,
@@ -77,7 +121,8 @@ export const getLostCards = async () => {
         handler_name: handlerName,
         description,
 
-        status: statusText
+        status: statusText,
+        pendingPayment
       };
     })
   );
@@ -343,9 +388,9 @@ export const resolveLostCardReport = async ({ reportId, performedBy, resolution,
  * - card.status → 'Hoạt động'
  * - card_registrations, hợp đồng giữ nguyên (card_id không đổi)
  *
- * @param {{ cardId, newCode, reportId, performedBy, ipAddr }} params
+ * @param {{ cardId, newCode, reportId, performedBy, ipAddr, paymentMethod }} params
  */
-export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr }) => {
+export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr, paymentMethod = 'vnpay' }) => {
   if (!cardId) throw new Error("Thiếu card_id.");
   if (!newCode?.trim()) throw new Error("Thiếu mã RFID mới (newCode).");
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
@@ -388,13 +433,78 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
   }
 
   const oldCode = cardObj.code; // lưu mã cũ để ghi vào audit log
-
-  // ── 4. Update-in-place: ghi đè mã RFID và khôi phục trạng thái ──────────────
-  const updatedCard = await cardRepository.reissueCardUpdate(cardId, newCode.trim());
-
-  // ── 5. Tạo phiếu thu phí cấp lại thẻ 50.000đ ────────────────────────────────
   const REISSUE_FEE = 50000;
   const orderCode = `RI${Date.now()}`;
+
+  // ── 4. Nếu phương thức thanh toán là 'defer' (Thanh toán sau) ──
+  if (paymentMethod === 'defer') {
+    // Cập nhật card và hoàn tất report ngay lập tức
+    const updatedCard = await cardRepository.reissueCardUpdate(cardId, newCode.trim());
+
+    // Ghi audit log
+    const regForAudit = await lostCardRepository.findRegForAudit(cardId, report.vehicle_id);
+    let plateForAudit = null;
+    let customerNameForAudit = null;
+    if (report.vehicle_id) {
+      const { data: vWithCust } = await supabase
+        .from('vehicle')
+        .select(`
+          plate_number,
+          customer ( full_name )
+        `)
+        .eq('vehicle_id', report.vehicle_id)
+        .maybeSingle();
+      if (vWithCust) {
+        plateForAudit = vWithCust.plate_number;
+        customerNameForAudit = vWithCust.customer?.full_name || null;
+      }
+    }
+
+    await lostCardRepository.insertActivityLog({
+      card_id: cardId,
+      registration_id: regForAudit?.registration_id ?? null,
+      action: 'Thẻ đã cấp lại',
+      plate_number: plateForAudit,
+      customer_name: customerNameForAudit,
+      amount: REISSUE_FEE,
+      old_data: { code: oldCode },
+      new_data: { code: newCode.trim(), status: 'Hoạt động' },
+      note: `Cấp lại thẻ tháng (Thanh toán sau) - mã RFID cũ: ${oldCode} → mới: ${newCode.trim()} - Report ID: ${reportId}`,
+      performed_by: performedBy
+    });
+
+    await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
+
+    // Tạo phiếu thu ở DB ở trạng thái Chờ thanh toán
+    await supabase
+      .from('payment')
+      .insert({
+        amount: REISSUE_FEE,
+        payment_type: 'Phí cấp lại thẻ',
+        status: 'Chờ thanh toán',
+        payment_method: 'Tiền mặt',
+        order_code: orderCode,
+        note: `Phí cấp lại thẻ tháng do mất (Thanh toán sau) - Report ID: ${reportId}`,
+        payment_time: new Date().toISOString(),
+        created_by: performedBy
+      });
+
+    return {
+      card: updatedCard,
+      order_code: orderCode,
+      reissue_fee: REISSUE_FEE,
+      paymentMethod
+    };
+  }
+
+  // ── 5. Nếu phương thức là 'vnpay' hoặc 'cash' (Chờ thanh toán rồi mới update card) ──
+  const savedPayload = {
+    cardId,
+    newCode: newCode.trim(),
+    reportId,
+    paymentMethod,
+    performedBy
+  };
 
   const { data: paymentData, error: paymentErr } = await supabase
     .from('payment')
@@ -403,8 +513,10 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
       payment_type: 'Phí cấp lại thẻ',
       status: 'Chờ thanh toán',
       order_code: orderCode,
-      note: `Phí cấp lại thẻ tháng do mất - Report ID: ${reportId}`,
-      payment_time: new Date().toISOString()
+      payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
+      note: JSON.stringify(savedPayload),
+      payment_time: new Date().toISOString(),
+      created_by: performedBy
     })
     .select('payment_id')
     .single();
@@ -413,24 +525,66 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     throw new Error(`Không thể tạo phiếu thu phí cấp lại thẻ: ${paymentErr.message}`);
   }
 
-  // ── 6. Sinh link thanh toán VNPay ────────────────────────────────────────────
   let payUrl = null;
-  try {
-    const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:'))
-      ? ipAddr
-      : '127.0.0.1';
-    payUrl = vnpayService.createPaymentUrl({
-      orderCode,
-      amount: REISSUE_FEE,
-      orderInfo: `Phi cap lai the thang - Report ${reportId.substring(0, 8).toUpperCase()}`,
-      ipAddr: clientIp
-    });
-  } catch (vnpayErr) {
-    console.error('[reissueCard] Lỗi sinh URL VNPay:', vnpayErr.message);
-    // Không rollback — thẻ đã cấp lại thành công, chỉ thiếu payUrl
+  if (paymentMethod === 'vnpay') {
+    try {
+      const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:'))
+        ? ipAddr
+        : '127.0.0.1';
+      payUrl = vnpayService.createPaymentUrl({
+        orderCode,
+        amount: REISSUE_FEE,
+        orderInfo: `Phi cap lai the thang - Report ${reportId.substring(0, 8).toUpperCase()}`,
+        ipAddr: clientIp
+      });
+    } catch (vnpayErr) {
+      console.error('[reissueCard] Lỗi sinh URL VNPay:', vnpayErr.message);
+    }
   }
 
-  // ── 7. Ghi audit log ─────────────────────────────────────────────────────────
+  return {
+    payment_id: paymentData.payment_id,
+    order_code: orderCode,
+    reissue_fee: REISSUE_FEE,
+    payUrl,
+    paymentMethod
+  };
+};
+
+/**
+ * Xử lý cấp lại thẻ thành công sau khi xác nhận thanh toán (VNPay / Tiền mặt)
+ */
+export const processReissueSuccess = async (orderCode) => {
+  const { data: payment, error: paymentErr } = await supabase
+    .from('payment')
+    .select('*')
+    .eq('order_code', orderCode)
+    .single();
+
+  if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch: " + orderCode);
+  if (payment.status !== 'Đã thanh toán') throw new Error("Giao dịch chưa được xác nhận thanh toán.");
+
+  let payload;
+  try {
+    payload = JSON.parse(payment.note);
+  } catch {
+    throw new Error("Dữ liệu note của giao dịch cấp lại không hợp lệ.");
+  }
+
+  const { cardId, newCode, reportId, performedBy } = payload;
+
+  const report = await lostCardRepository.findLostReport(reportId);
+  if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
+
+  const cardObj = await cardRepository.findCardTypeAndStatus(cardId);
+  if (!cardObj) throw new Error("Không tìm thấy thẻ.");
+
+  const oldCode = cardObj.code;
+
+  // Thực thi cập nhật card RFID
+  const updatedCard = await cardRepository.reissueCardUpdate(cardId, newCode.trim());
+
+  // Ghi audit log
   const regForAudit = await lostCardRepository.findRegForAudit(cardId, report.vehicle_id);
   let plateForAudit = null;
   let customerNameForAudit = null;
@@ -439,9 +593,7 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
       .from('vehicle')
       .select(`
         plate_number,
-        customer (
-          full_name
-        )
+        customer ( full_name )
       `)
       .eq('vehicle_id', report.vehicle_id)
       .maybeSingle();
@@ -458,26 +610,46 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     action: 'Thẻ đã cấp lại',
     plate_number: plateForAudit,
     customer_name: customerNameForAudit,
-    amount: REISSUE_FEE,
+    amount: payment.amount,
     old_data: { code: oldCode },
     new_data: { code: newCode.trim(), status: 'Hoạt động' },
     note: `Cấp lại thẻ tháng - mã RFID cũ: ${oldCode} → mới: ${newCode.trim()} - Report ID: ${reportId}`,
     performed_by: performedBy
   });
 
-  // ── 8. Cập nhật trạng thái report → 'Đã xong' ──────────────────────────────
-  // Thẻ đã được cấp lại thành công (update-in-place hoàn tất).
-  // Việc thanh toán 50k là phí bổ sung; dù thanh toán sau thì report cũng đã giải quyết xong.
+  // Cập nhật trạng thái report → 'Đã xong'
   await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
 
-  // ── 9. Trả về kết quả ────────────────────────────────────────────────────────
-  return {
-    card: updatedCard,
-    payment_id: paymentData.payment_id,
-    order_code: orderCode,
-    reissue_fee: REISSUE_FEE,
-    payUrl
-  };
+  return { success: true, updatedCard };
+};
+
+/**
+ * Cashier xác nhận thu tiền mặt cho giao dịch cấp lại thẻ
+ */
+export const confirmReissueCash = async (orderCode) => {
+  const { data: payment, error: paymentErr } = await supabase
+    .from('payment')
+    .select('*')
+    .eq('order_code', orderCode)
+    .single();
+
+  if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch.");
+  if (payment.payment_type !== 'Phí cấp lại thẻ') throw new Error("Giao dịch không phải phí cấp lại thẻ.");
+  if (payment.status !== 'Chờ thanh toán') throw new Error("Giao dịch đã được xử lý trước đó.");
+
+  // Cập nhật trạng thái payment
+  const { error: updateErr } = await supabase
+    .from('payment')
+    .update({
+      status: 'Đã thanh toán',
+      paid_at: new Date().toISOString()
+    })
+    .eq('order_code', orderCode);
+
+  if (updateErr) throw new Error("Không thể cập nhật trạng thái thanh toán.");
+
+  // Thực thi nghiệp vụ cấp lại
+  return await processReissueSuccess(orderCode);
 };
 
 /**

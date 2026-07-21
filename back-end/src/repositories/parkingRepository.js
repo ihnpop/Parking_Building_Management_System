@@ -1,3 +1,4 @@
+﻿import AppError from "../utils/AppError.js";
 import supabase from "../config/supabaseClient.js";
 import crypto from "crypto";
 
@@ -88,7 +89,7 @@ export const getSessionById = async (sessionId) => {
     .eq("session_id", sessionId)
     .single();
 
-  if (error || !data) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
+  if (error || !data) throw new AppError("Không tìm thấy phiên gửi xe", 404);
   return data;
 };
 

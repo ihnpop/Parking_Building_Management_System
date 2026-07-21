@@ -41,33 +41,66 @@ const MAX_BAR = dashboardFallbackData.revenueTrendMaxBar;
 
 export default function DashboardView() {
     const { userRole, user } = useAuth();
-    // eslint-disable-next-line no-unused-vars
-    const role = userRole ? userRole.toUpperCase() : 'STAFF';
+
+    // Lấy thông tin email người dùng để xác định vai trò chính xác (đồng bộ với Sidebar và DashboardShell)
+    const userEmail = user?.email || '';
+    const email = userEmail.toLowerCase().trim();
+
+    // Xác định vai trò chuẩn của người dùng
+    let computedRole = userRole ? userRole.toUpperCase() : 'STAFF';
+    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
+    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
+    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
+
     // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
+    // Danh sách các tab được phép truy cập theo từng vai trò người dùng
+    const MANAGER_ALLOWED_VIEWS = ['card-management', 'adjust-prices', 'log-management', 'system-settings'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
+
+    // Trả về tab đầu tiên trên Sidebar của từng vai trò
+    const getDefaultViewForRole = (r) => {
+        if (r === 'ADMIN') return 'user-management'; // Tab 1 của Admin: Phân quyền
+        if (r === 'MANAGER') return 'card-management'; // Tab 1 của Manager: Quản lý Thẻ
+        return 'system'; // Tab 1 của Staff
+    };
+
+    // Khởi tạo tab hiện tại: Dùng savedView nếu hợp lệ với vai trò, ngược lại mặc định dùng tab đầu tiên của Sidebar
     const [currentView, setCurrentView] = useState(() => {
         const savedView = localStorage.getItem('dashboard_current_view');
-        return savedView || 'dashboard';
+        if (computedRole === 'MANAGER' && savedView && MANAGER_ALLOWED_VIEWS.includes(savedView)) {
+            return savedView;
+        }
+        if (computedRole === 'ADMIN' && savedView && ADMIN_ALLOWED_VIEWS.includes(savedView)) {
+            return savedView;
+        }
+        return getDefaultViewForRole(computedRole);
     });
 
-    // Update localStorage when view changes
+    // Cập nhật localStorage khi tab hiện tại thay đổi
     useEffect(() => {
         if (currentView) {
             localStorage.setItem('dashboard_current_view', currentView);
         }
     }, [currentView]);
 
-    // Force role boundary checks
+    // Kiểm tra ranh giới phân quyền (Role Boundary Check): Ngăn chặn việc xem trái phép màn hình không thuộc vai trò
     useEffect(() => {
-        if (!userRole) return;
-        const normalizedRole = userRole.toUpperCase();
-        if (normalizedRole === 'STAFF' && currentView !== 'system') {
+        if (!computedRole) return;
+
+        if (computedRole === 'STAFF' && currentView !== 'system') {
+            // Staff chỉ được truy cập giao diện hệ thống
             setCurrentView('system');
-        } else if (normalizedRole === 'MANAGER' && currentView === 'user-management') {
+        } else if (computedRole === 'MANAGER' && !MANAGER_ALLOWED_VIEWS.includes(currentView)) {
+            // Manager KHÔNG có quyền xem Bảng điều khiển (dashboard) hoặc Phân quyền (user-management)
+            // Tự động chuyển về tab mặc định của Manager là Quản lý Thẻ (card-management)
+            setCurrentView('card-management');
+        } else if (computedRole === 'ADMIN' && !ADMIN_ALLOWED_VIEWS.includes(currentView)) {
+            // Admin không truy cập tab công việc riêng của Manager, chuyển về Bảng điều khiển (dashboard)
             setCurrentView('dashboard');
         }
-    }, [userRole, currentView]);
+    }, [computedRole, currentView]);
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
@@ -87,6 +120,7 @@ export default function DashboardView() {
 
     // ─── KPI state ────────────────────────────────────────────────────────────
     const [stats, setStats] = useState({
+        todayTraffic: 0,
         activeSessions: 0,
         emptySlots: 0,
         usedSlots: 0,
@@ -109,7 +143,13 @@ export default function DashboardView() {
         try {
             const data = await fetchAllDashboardData();
 
+            // Tính tổng lượt xe ra/vào hôm nay dựa trên biểu đồ lưu lượng theo giờ (hourlyTraffic)
+            const totalTodayTraffic = Array.isArray(data.hourlyTraffic)
+                ? data.hourlyTraffic.reduce((sum, val) => sum + Number(val || 0), 0)
+                : 0;
+
             setStats({
+                todayTraffic: totalTodayTraffic,
                 activeSessions: data.activeSessions,
                 emptySlots: data.availableSlots,
                 usedSlots: data.occupiedSlots,
@@ -303,16 +343,16 @@ export default function DashboardView() {
 
                     {/* ── KPI Cards ── */}
                     <div className="db-kpis">
-                        {/* Phiên đang hoạt động – từ parking_sessions / parking_order */}
+                        {/* Lượt xe ra/vào hôm nay – Móc từ dữ liệu tổng hợp lưu lượng theo giờ */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
-                                <span>PHIÊN ĐANG HOẠT ĐỘNG</span>
+                                <span>LƯỢT XE RA/VÀO HÔM NAY</span>
                                 <span className="db-kpi-icon" style={{ color: '#3B82F6' }}>
-                                    <span className="material-symbols-outlined">directions_car</span>
+                                    <span className="material-symbols-outlined">swap_vert</span>
                                 </span>
                             </div>
-                            <div className="db-kpi-value">{stats.activeSessions} lượt đỗ</div>
-                            <div className="db-kpi-note">Xe hiện đang trong bãi</div>
+                            <div className="db-kpi-value">{stats.todayTraffic} lượt</div>
+                            <div className="db-kpi-note">Tổng lượt xe ra/vào trong ngày</div>
                             <div className="db-kpi-status-cue" style={{ color: '#3b82f6' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>sync</span>
                                 <span>Cập nhật tự động</span>

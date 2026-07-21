@@ -1,3 +1,4 @@
+﻿import AppError from "../utils/AppError.js";
 /**
  * paymentService.js
  * Dịch vụ xử lý nghiệp vụ thanh toán trung gian giữa database của bãi xe và cổng thanh toán VNPay.
@@ -7,7 +8,7 @@
 
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as vnpayService from "./vnpayService.js";
-import { calculateExitFee } from "./feeCalculation.service.js";
+import { calculateExitFee } from "./feeCalculationService.js";
 
 /**
  * Khởi tạo giao dịch thanh toán cho Vé lượt (xe chuẩn bị rời bãi)
@@ -127,6 +128,11 @@ export async function handleIpn(query) {
             const { processRenewalSuccess } = await import("./renewalService.js");
             await processRenewalSuccess(orderCode);
         }
+        // --- TRƯỜNG HỢP 3: Phí cấp lại thẻ tháng ---
+        else if (payment.payment_type === "Phí cấp lại thẻ") {
+            const { processReissueSuccess } = await import("./lostCardService.js");
+            await processReissueSuccess(orderCode);
+        }
     }
 
     return { RspCode: "00", Message: "Confirm Success" };
@@ -146,7 +152,7 @@ export async function getPaymentByOrderCode(orderCode) {
  */
 export async function getPaymentStatus(orderCode) {
     const data = await paymentRepository.findStatusByOrderCode(orderCode);
-    if (!data) throw Object.assign(new Error("Không tìm thấy giao dịch"), { statusCode: 404 });
+    if (!data) throw new AppError("Không tìm thấy giao dịch", 404);
     return data;
 }
 
@@ -165,7 +171,7 @@ export async function getPaymentStatus(orderCode) {
 export async function cashPayment(sessionId, staffId) {
     // 1. Lấy và validate session
     const session = await paymentRepository.findSessionById(sessionId);
-    if (!session) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
+    if (!session) throw new AppError("Không tìm thấy phiên gửi xe", 404);
     if (session.status !== "Đang gửi xe" && session.status !== "Chờ thanh toán") {
         throw Object.assign(
             new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể thanh toán tiền mặt.`),
@@ -259,7 +265,7 @@ export async function cashPayment(sessionId, staffId) {
 export async function createVnpayPayment(sessionId, staffId, ipAddr) {
     // 1. Lấy + validate session
     const session = await paymentRepository.findSessionById(sessionId);
-    if (!session) throw Object.assign(new Error("Không tìm thấy phiên gửi xe"), { statusCode: 404 });
+    if (!session) throw new AppError("Không tìm thấy phiên gửi xe", 404);
     if (session.status !== "Đang gửi xe" && session.status !== "Chờ thanh toán") {
         throw Object.assign(
             new Error(`Phiên gửi xe có trạng thái '${session.status}', không thể tạo giao dịch VNPay.`),

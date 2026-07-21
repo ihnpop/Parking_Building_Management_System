@@ -12,7 +12,7 @@
  *   4. processRenewalSuccess(orderCode) — ghi DB sau khi payment thành công
  */
 
-import supabase from '../config/supabaseClient.js';
+import * as renewalRepository from '../repositories/renewalRepository.js';
 import * as paymentRepository from '../repositories/paymentRepository.js';
 import * as vnpayService from './vnpayService.js';
 
@@ -48,6 +48,13 @@ function toDateStr(date) {
     return new Date(date).toISOString().split('T')[0];
 }
 
+// Helper: Cộng thêm 1 ngày
+function addOneDay(dateStr) {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+}
+
 // ─────────────────────────────────────────────────────────────
 // 1. Kiểm tra điều kiện gia hạn
 // ─────────────────────────────────────────────────────────────
@@ -59,13 +66,8 @@ function toDateStr(date) {
  */
 export async function checkRenewalEligibility(cardId) {
     // 1. Lấy thông tin thẻ
-    const { data: card, error: cardErr } = await supabase
-        .from('card')
-        .select('card_id, code, type, status, expired_date, active_vehicle_package_id')
-        .eq('card_id', cardId)
-        .single();
-
-    if (cardErr || !card) {
+    const card = await renewalRepository.findCardForRenewal(cardId);
+    if (!card) {
         throw new Error('Không tìm thấy thẻ tháng.');
     }
     if (card.type !== 'Thẻ tháng') {
@@ -87,39 +89,23 @@ export async function checkRenewalEligibility(cardId) {
     }
 
     // 3. Lấy registration đang hoạt động
-    const { data: registration, error: regErr } = await supabase
-        .from('card_registrations')
-        .select('registration_id, vehicle_id, status')
-        .eq('card_id', cardId)
-        .eq('status', 'Hoạt động')
-        .maybeSingle();
-
-    if (regErr) throw new Error('Lỗi truy vấn đăng ký thẻ: ' + regErr.message);
-    if (!registration) throw new Error('Không tìm thấy liên kết đăng ký thẻ đang hoạt động.');
+    const registration = await renewalRepository.findActiveRegistration(cardId);
+    if (!registration) {
+        throw new Error('Không tìm thấy liên kết đăng ký thẻ đang hoạt động.');
+    }
 
     // 4. Lấy vehicle_package đang hoạt động của xe
-    const { data: vehiclePackage, error: vpErr } = await supabase
-        .from('vehicle_package')
-        .select('vehicle_package_id, package_id, start_date, end_date, status, renewal_type')
-        .eq('vehicle_id', registration.vehicle_id)
-        .eq('status', 'Hoạt động')
-        .order('end_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    if (vpErr) throw new Error('Lỗi truy vấn gói vé tháng: ' + vpErr.message);
-    if (!vehiclePackage) throw new Error('Không tìm thấy gói vé tháng đang hoạt động.');
+    const vehiclePackage = await renewalRepository.findActiveVehiclePackage(registration.vehicle_id);
+    if (!vehiclePackage) {
+        throw new Error('Không tìm thấy gói vé tháng đang hoạt động.');
+    }
 
     // 5. Kiểm tra không có pending payment đang chờ xử lý (BR-06)
     const timeoutThreshold = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000).toISOString();
-    const { data: pendingPayment } = await supabase
-        .from('payment')
-        .select('payment_id, order_code, payment_time')
-        .eq('vehicle_package_id', vehiclePackage.vehicle_package_id)
-        .eq('status', 'Chờ thanh toán')
-        .eq('payment_type', 'Gia hạn vé tháng')
-        .gte('payment_time', timeoutThreshold) // Chỉ check payment chưa timeout
-        .maybeSingle();
+    const pendingPayment = await renewalRepository.findPendingRenewalPayment(
+        vehiclePackage.vehicle_package_id,
+        timeoutThreshold
+    );
 
     if (pendingPayment) {
         throw new Error(
@@ -153,13 +139,8 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
     const { card, registration, vehiclePackage, currentExpiry } = await checkRenewalEligibility(cardId);
 
     // Lấy thông tin gói đã chọn (snapshot giá - BR-14)
-    const { data: pkg, error: pkgErr } = await supabase
-        .from('package')
-        .select('package_id, name, price, duration_month, status')
-        .eq('package_id', packageId)
-        .single();
-
-    if (pkgErr || !pkg) throw new Error('Không tìm thấy gói vé tháng đã chọn.');
+    const pkg = await renewalRepository.findPackageById(packageId);
+    if (!pkg) throw new Error('Không tìm thấy gói vé tháng đã chọn.');
     if (pkg.status !== 'Hoạt động') throw new Error('Gói vé tháng đã chọn không còn khả dụng.');
 
     const amount = Number(pkg.price);
@@ -290,73 +271,49 @@ export async function processRenewalSuccess(orderCode) {
     } = payload;
 
     // 1. UPDATE vehicle_package cũ → 'Hết hạn' TRƯỚC (tránh vi phạm unique constraint uq_vehicle_active_package)
-    const { error: vpExpireErr } = await supabase
-        .from('vehicle_package')
-        .update({ status: 'Hết hạn' })
-        .eq('vehicle_package_id', vehiclePackageId);
-
-    if (vpExpireErr) throw new Error('Lỗi cập nhật kỳ cũ: ' + vpExpireErr.message);
+    await renewalRepository.expireVehiclePackage(vehiclePackageId);
 
     // 2. INSERT vehicle_package mới (kỳ gia hạn)
-    const { data: newVp, error: vpInsertErr } = await supabase
-        .from('vehicle_package')
-        .insert({
-            vehicle_id: vehicleId,
-            package_id: packageId,
-            start_date: newStartDate,
-            end_date: newExpiry,
-            status: 'Hoạt động',
-            renewal_type: 'Gia hạn nối tiếp',
-            previous_vehicle_package_id: vehiclePackageId,
-        })
-        .select()
-        .single();
-
-    if (vpInsertErr) throw new Error('Lỗi tạo kỳ gia hạn: ' + vpInsertErr.message);
+    const newVp = await renewalRepository.insertNewVehiclePackage({
+        vehicle_id: vehicleId,
+        package_id: packageId,
+        start_date: newStartDate,
+        end_date: newExpiry,
+        status: 'Hoạt động',
+        renewal_type: 'Gia hạn nối tiếp',
+        previous_vehicle_package_id: vehiclePackageId,
+    });
 
     // 3. UPDATE card: expired_date + active_vehicle_package_id
-    const { error: cardUpdateErr } = await supabase
-        .from('card')
-        .update({
-            expired_date: newExpiry,
-            active_vehicle_package_id: newVp.vehicle_package_id,
-        })
-        .eq('card_id', cardId);
-
-    if (cardUpdateErr) throw new Error('Lỗi cập nhật thẻ: ' + cardUpdateErr.message);
+    await renewalRepository.updateCardAfterRenewal(cardId, newExpiry, newVp.vehicle_package_id);
 
     // 4. UPDATE payment: gắn vehicle_package_id mới (để truy vết)
-    await supabase
-        .from('payment')
-        .update({ vehicle_package_id: newVp.vehicle_package_id })
-        .eq('order_code', orderCode);
+    await renewalRepository.linkPaymentToNewVehiclePackage(orderCode, newVp.vehicle_package_id);
 
     // 5. INSERT card_activity_logs
-    await supabase
-        .from('card_activity_logs')
-        .insert({
-            card_id: cardId,
-            registration_id: registrationId,
-            action: 'Gia hạn nối tiếp',
-            duration_months: durationMonth,
-            amount: amount,
-            expired_date_before: currentExpiry,
-            expired_date_after: newExpiry,
-            new_data: {
-                vehicle_package_id: newVp.vehicle_package_id,
-                start_date: newStartDate,
-                end_date: newExpiry,
-                package_id: packageId,
-                order_code: orderCode,
-            },
-            old_data: {
-                vehicle_package_id: vehiclePackageId,
-                end_date: currentExpiry,
-            },
-            note: `Gia hạn vé tháng ${cardCode} qua ${payment.payment_method === 'vnpay' ? 'VNPay' : 'tiền mặt'} - Đơn: ${orderCode}`,
-            performed_by: payment.created_by || null,
-            performed_at: new Date().toISOString(),
-        });
+    await renewalRepository.insertRenewalActivityLog({
+        card_id: cardId,
+        registration_id: registrationId,
+        action: 'Gia hạn nối tiếp',
+        duration_months: durationMonth,
+        amount: amount,
+        expired_date_before: currentExpiry,
+        expired_date_after: newExpiry,
+        new_data: {
+            vehicle_package_id: newVp.vehicle_package_id,
+            start_date: newStartDate,
+            end_date: newExpiry,
+            package_id: packageId,
+            order_code: orderCode,
+        },
+        old_data: {
+            vehicle_package_id: vehiclePackageId,
+            end_date: currentExpiry,
+        },
+        note: `Gia hạn vé tháng ${cardCode} qua ${payment.payment_method === 'vnpay' ? 'VNPay' : 'tiền mặt'} - Đơn: ${orderCode}`,
+        performed_by: payment.created_by || null,
+        performed_at: new Date().toISOString(),
+    });
 
     return {
         success: true,
@@ -377,29 +334,12 @@ export async function processRenewalSuccess(orderCode) {
  * - Trạng thái (còn hạn / hết hạn)
  * - Danh sách gói vé tháng có thể chọn (theo loại xe)
  * @param {string} cardId
+ * @param {string} [userId]
  */
-export async function getRenewalInfo(cardId) {
+export async function getRenewalInfo(cardId, userId) {
     // Lấy thẻ + registration + vehicle + package
-    const { data: card, error: cardErr } = await supabase
-        .from('card')
-        .select(`
-            card_id, code, type, status, expired_date,
-            card_registrations (
-                registration_id, status,
-                vehicle (
-                    vehicle_id, plate_number,
-                    vehicle_type ( vehicle_type_id, name ),
-                    customer ( full_name, phone ),
-                    vehicle_package (
-                        vehicle_package_id, start_date, end_date, status, renewal_type, package_id
-                    )
-                )
-            )
-        `)
-        .eq('card_id', cardId)
-        .single();
-
-    if (cardErr || !card) throw new Error('Không tìm thấy thẻ tháng.');
+    const card = await renewalRepository.findCardWithDetails(cardId);
+    if (!card) throw new Error('Không tìm thấy thẻ tháng.');
 
     const activeReg = card.card_registrations?.find(r => r.status === 'Hoạt động');
     const vehicle = activeReg?.vehicle;
@@ -418,27 +358,18 @@ export async function getRenewalInfo(cardId) {
     // Lấy danh sách gói khả dụng theo loại xe (cho dropdown chọn gói)
     let availablePackages = [];
     if (vehicleTypeId && !isExpired) {
-        const { data: pkgs } = await supabase
-            .from('package')
-            .select('package_id, name, price, duration_month')
-            .eq('vehicle_type_id', vehicleTypeId)
-            .eq('status', 'Hoạt động')
-            .order('duration_month', { ascending: true });
-        availablePackages = pkgs || [];
+        availablePackages = await renewalRepository.findAvailablePackages(vehicleTypeId, userId);
     }
+
 
     // Kiểm tra xem có giao dịch gia hạn nào đang ở trạng thái 'Chờ thanh toán' và chưa bị timeout
     let pendingPayment = null;
     if (activeVp && !isExpired) {
         const timeoutThreshold = new Date(Date.now() - PAYMENT_TIMEOUT_MINUTES * 60 * 1000).toISOString();
-        const { data: pm } = await supabase
-            .from('payment')
-            .select('payment_id, order_code, amount, payment_method, note, payment_time')
-            .eq('vehicle_package_id', activeVp.vehicle_package_id)
-            .eq('status', 'Chờ thanh toán')
-            .eq('payment_type', 'Gia hạn vé tháng')
-            .gte('payment_time', timeoutThreshold)
-            .maybeSingle();
+        const pm = await renewalRepository.findPendingRenewalPaymentDetail(
+            activeVp.vehicle_package_id,
+            timeoutThreshold
+        );
         if (pm) {
             let payUrl = null;
             if (pm.payment_method === 'VNPay') {
@@ -512,16 +443,7 @@ export async function runExpiryJob() {
     console.log(`[ExpiryJob] Running at ${today}...`);
 
     // 1. Lấy danh sách vehicle_package đã quá hạn nhưng vẫn 'Hoạt động'
-    const { data: expiredVps, error } = await supabase
-        .from('vehicle_package')
-        .select('vehicle_package_id, vehicle_id, end_date')
-        .eq('status', 'Hoạt động')
-        .lt('end_date', today);
-
-    if (error) {
-        console.error('[ExpiryJob] Lỗi truy vấn:', error.message);
-        return { expired: 0, error: error.message };
-    }
+    const expiredVps = await renewalRepository.findExpiredVehiclePackages(today);
 
     if (!expiredVps || expiredVps.length === 0) {
         console.log('[ExpiryJob] Không có gói nào hết hạn.');
@@ -529,29 +451,13 @@ export async function runExpiryJob() {
     }
 
     const vpIds = expiredVps.map(vp => vp.vehicle_package_id);
-    const vehicleIds = expiredVps.map(vp => vp.vehicle_id);
 
     // 2. UPDATE vehicle_package → 'Hết hạn'
-    await supabase
-        .from('vehicle_package')
-        .update({ status: 'Hết hạn' })
-        .in('vehicle_package_id', vpIds);
+    await renewalRepository.expireVehiclePackagesBatch(vpIds);
 
     // 3. Xóa liên kết active_vehicle_package_id trên các thẻ tương ứng
-    await supabase
-        .from('card')
-        .update({ active_vehicle_package_id: null })
-        .in('active_vehicle_package_id', vpIds);
+    await renewalRepository.clearActiveVehiclePackage(vpIds);
 
     console.log(`[ExpiryJob] Đã expire ${expiredVps.length} gói vé tháng.`);
     return { expired: expiredVps.length };
-}
-
-// ─────────────────────────────────────────────────────────────
-// Helper nội bộ
-// ─────────────────────────────────────────────────────────────
-function addOneDay(dateStr) {
-    const d = new Date(dateStr);
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
 }

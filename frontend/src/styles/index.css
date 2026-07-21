@@ -27029,6 +27029,12 @@ body,
   border: 1px solid #e2e8f0;
 }
 
+.session-status-badge.pending {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
 .session-status-badge .badge-dot {
   width: 6px;
   height: 6px;
@@ -27037,6 +27043,10 @@ body,
 }
 
 .session-status-badge.inside .badge-dot {
+  animation: pulse-dot 1.5s infinite;
+}
+
+.session-status-badge.pending .badge-dot {
   animation: pulse-dot 1.5s infinite;
 }
 
@@ -28609,4 +28619,97 @@ body,
 .loading-spin {
   display: inline-block;
   animation: spin-rotate 1s linear infinite;
+}
+
+/* ===== History Modal & Card ===== */
+.history-modal-wide {
+  width: 760px !important;
+  max-width: 95vw !important;
+}
+
+.history-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.history-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+}
+
+@media (min-width: 768px) {
+  .history-card {
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .history-col-1 {
+    flex: 2;
+  }
+  .history-col-2 {
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .history-col-3 {
+    flex: 3;
+  }
+}
+
+.history-action-text {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.history-sub-text {
+  font-size: 13px;
+}
+
+.history-empty {
+  color: #64748b;
+  font-style: italic;
+}
+
+.history-page-btn {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-page-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.history-page-btn.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.history-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-search-input {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.history-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }

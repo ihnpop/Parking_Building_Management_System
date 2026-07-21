@@ -1,7 +1,116 @@
-import * as vehicleRepository from "../repositories/vehicleRepository.js";
+﻿import * as vehicleRepository from "../repositories/vehicleRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
+import AppError from "../utils/AppError.js";
+
+// ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
+
+/**
+ * Tính phí gửi xe dựa trên thời gian vào-ra và bảng giá trong DB.
+ * Hàm này được dùng chung bởi preCheckExit và exitTap để tránh duplication.
+ *
+ * @param {Date} entryTime  – Thời điểm xe vào
+ * @param {Date} exitTime   – Thời điểm xe ra (hoặc thời điểm hiện tại khi pre-check)
+ * @param {object|null} vehicle – Thông tin xe (cần vehicle_type_id)
+ * @returns {Promise<{fee: number, totalHours: number, durationStr: string, formattedEntryTime: string}>}
+ */
+const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
+  const diffMs = exitTime.getTime() - entryTime.getTime();
+  const totalHours = diffMs / (1000 * 60 * 60);
+  const billableHours = Math.max(1, Math.ceil(totalHours));
+
+  const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  const formattedEntryTime = entryTime.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+
+  // Giá mặc định: 10,000/giờ, miễn phí dưới 30 phút
+  let fee = totalHours < 0.5 ? 0 : billableHours * 10000;
+
+  if (vehicle?.vehicle_type_id) {
+    try {
+      const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
+      if (priceItems?.length > 0) {
+        const matchingItem = priceItems.find((item) => {
+          const min = Number(item.min_hour) || 0;
+          const max = item.max_hour != null ? Number(item.max_hour) : null;
+          return max === null ? totalHours >= min : totalHours >= min && totalHours < max;
+        });
+        if (matchingItem) {
+          fee = Number(matchingItem.price);
+        }
+      }
+    } catch (dbErr) {
+      console.error("[gateService] Lỗi tra cứu bảng phí, dùng mặc định:", dbErr.message);
+    }
+  }
+
+  return { fee, totalHours, durationStr, formattedEntryTime };
+};
+
+/**
+ * Chuẩn hóa entry_time thành Date object.
+ * Xử lý trường hợp timestamp không có timezone suffix.
+ *
+ * @param {string} entryTimeRaw
+ * @returns {Date}
+ */
+const parseEntryTime = (entryTimeRaw) => {
+  let entryTimeStr = entryTimeRaw;
+  if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
+    entryTimeStr += "Z";
+  }
+  return new Date(entryTimeStr);
+};
+
+/**
+ * Lấy thông tin gate và parking dựa trên staffId.
+ * Dùng chung cho entryTap và exitTap.
+ *
+ * @param {string} staffId
+ * @param {string|null} gateId – có thể truyền từ frontend
+ * @returns {Promise<{buildingId: string, finalGateId: string, finalParkingId: string}>}
+ */
+const resolveStaffGateParking = async (staffId, gateId) => {
+  if (!staffId) {
+    throw new AppError("Yêu cầu đăng nhập để thực hiện.", 401);
+  }
+
+  const { profile, error: profileErr } = await gateRepository.getStaffProfile(staffId);
+  if (profileErr || !profile) {
+    throw new AppError("Không tìm thấy thông tin tài khoản nhân viên.", 404);
+  }
+
+  const buildingId = profile.building_id;
+  if (!buildingId) {
+    throw new AppError("Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out.", 403);
+  }
+
+  let finalGateId = gateId;
+  let finalParkingId = null;
+
+  if (finalGateId) {
+    const gateObj = await gateRepository.getGateParkingId(finalGateId);
+    if (gateObj) finalParkingId = gateObj.parking_id;
+  }
+
+  if (!finalGateId || !finalParkingId) {
+    const parking = await gateRepository.getParkingByBuilding(buildingId);
+    if (parking) {
+      finalParkingId = parking.parking_id;
+      const gate = await gateRepository.getGateByParking(finalParkingId);
+      if (gate) finalGateId = gate.gate_id;
+    }
+  }
+
+  if (!finalGateId || !finalParkingId) {
+    throw new AppError("Không tìm thấy cấu hình bãi đỗ xe hoặc cổng tương ứng với tòa nhà này.", 400);
+  }
+
+  return { buildingId, finalGateId, finalParkingId };
+};
 
 /**
  * Giả lập OCR: nhận diện biển số từ ảnh upload
@@ -38,7 +147,7 @@ export const simulateOCR = async (fileName) => {
  */
 export const preCheckEntry = async (plateNumber) => {
   if (!plateNumber || !plateNumber.trim()) {
-    throw Object.assign(new Error("Biển số xe là bắt buộc."), { statusCode: 400 });
+    throw new AppError("Biển số xe là bắt buộc.", 400);
   }
 
   const cleanPlate = plateNumber.trim().toUpperCase();
@@ -149,7 +258,7 @@ const getVisitorEntryResponse = async (plateNumber) => {
  */
 export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entryPlateImage, vehicleType, staffId, gateId }) => {
   if (!plateNumber || !plateNumber.trim()) {
-    throw Object.assign(new Error("Biển số xe là bắt buộc."), { statusCode: 400 });
+    throw new AppError("Biển số xe là bắt buộc.", 400);
   }
 
   const cleanPlate = plateNumber.trim().toUpperCase();
@@ -157,51 +266,11 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
   // Kiểm tra xe đã ở trong bãi chưa
   const activeSession = await parkingRepository.findActiveSessionByPlate(cleanPlate);
   if (activeSession) {
-    throw Object.assign(new Error("Phương tiện đang ở trong bãi xe."), { statusCode: 400 });
+    throw new AppError("Phương tiện đang ở trong bãi xe.", 400);
   }
 
-  // Lấy tòa nhà của Staff
-  if (!staffId) {
-    throw Object.assign(new Error("Yêu cầu đăng nhập để thực hiện."), { statusCode: 401 });
-  }
-  const { profile, error: profileErr } = await gateRepository.getStaffProfile(staffId);
-
-  if (profileErr || !profile) {
-    throw Object.assign(new Error("Không tìm thấy thông tin tài khoản nhân viên."), { statusCode: 404 });
-  }
-
-  const buildingId = profile.building_id;
-  if (!buildingId) {
-    throw Object.assign(new Error("Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out."), { statusCode: 403 });
-  }
-
-  // Xác định gate_id và parking_id
-  let finalGateId = gateId;
-  let finalParkingId = null;
-
-  if (finalGateId) {
-    const gateObj = await gateRepository.getGateParkingId(finalGateId);
-    if (gateObj) {
-      finalParkingId = gateObj.parking_id;
-    }
-  }
-
-  if (!finalGateId || !finalParkingId) {
-    // Fallback: Tìm bãi đỗ xe thuộc tòa nhà của Staff
-    const parking = await gateRepository.getParkingByBuilding(buildingId);
-    if (parking) {
-      finalParkingId = parking.parking_id;
-      // Tìm cổng của bãi đỗ xe này
-      const gate = await gateRepository.getGateByParking(finalParkingId);
-      if (gate) {
-        finalGateId = gate.gate_id;
-      }
-    }
-  }
-
-  if (!finalGateId || !finalParkingId) {
-    throw Object.assign(new Error("Không tìm thấy cấu hình bãi đỗ xe hoặc cổng tương ứng với tòa nhà này."), { statusCode: 400 });
-  }
+  // Lấy thông tin gate/parking của Staff
+  const { buildingId, finalGateId, finalParkingId } = await resolveStaffGateParking(staffId, gateId);
 
   let session = null;
   let vehicle = null;
@@ -214,17 +283,17 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     // Validate thẻ
     const card = await cardRepository.findByCode(cardCode);
     if (!card) {
-      throw Object.assign(new Error(`Thẻ ${cardCode} không tồn tại trong hệ thống.`), { statusCode: 404 });
+      throw new AppError(`Thẻ ${cardCode} không tồn tại trong hệ thống.`, 404);
     }
 
     const isAvailable = card.status === 'Đang chờ';
     const isDaily = card.type === 'Thẻ lượt';
 
     if (!isAvailable) {
-      throw Object.assign(new Error("Thẻ hiện đã được sử dụng hoặc không ở trạng thái sẵn sàng."), { statusCode: 400 });
+      throw new AppError("Thẻ hiện đã được sử dụng hoặc không ở trạng thái sẵn sàng.", 400);
     }
     if (!isDaily) {
-      throw Object.assign(new Error("Thẻ được chọn không phải là thẻ lượt."), { statusCode: 400 });
+      throw new AppError("Thẻ được chọn không phải là thẻ lượt.", 400);
     }
 
     cardIdVal = card.card_id;
@@ -278,18 +347,18 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     // Backend tự xác định thẻ
     vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
-      throw Object.assign(new Error(`Không tìm thấy phương tiện đăng ký cho biển số ${cleanPlate}.`), { statusCode: 404 });
+      throw new AppError(`Không tìm thấy phương tiện đăng ký cho biển số ${cleanPlate}.`, 404);
     }
 
     // Lấy liên kết thẻ tháng
     const activeReg = await cardRepository.findActiveRegistrationByVehicle(vehicle.vehicle_id);
     if (!activeReg || !activeReg.card) {
-      throw Object.assign(new Error("Xe chưa được liên kết với thẻ nào hoặc thẻ đã bị khóa."), { statusCode: 400 });
+      throw new AppError("Xe chưa được liên kết với thẻ nào hoặc thẻ đã bị khóa.", 400);
     }
 
     const card = activeReg.card;
     if (card.type !== 'Thẻ tháng') {
-      throw Object.assign(new Error("Thẻ liên kết của xe không phải loại Thẻ tháng."), { statusCode: 400 });
+      throw new AppError("Thẻ liên kết của xe không phải loại Thẻ tháng.", 400);
     }
 
     cardIdVal = card.card_id;
@@ -298,7 +367,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     // Kiểm tra đăng ký hợp lệ
     const preCheckResult = await preCheckEntry(cleanPlate);
     if (!preCheckResult.canOpenGate) {
-      throw Object.assign(new Error(preCheckResult.message), { statusCode: 400 });
+      throw new AppError(preCheckResult.message, 400);
     }
 
     // Tạo phiên gửi xe
@@ -342,7 +411,7 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
  */
 export const preCheckExit = async (plateNumber) => {
   if (!plateNumber || !plateNumber.trim()) {
-    throw Object.assign(new Error("Biển số xe là bắt buộc."), { statusCode: 400 });
+    throw new AppError("Biển số xe là bắt buộc.", 400);
   }
 
   const cleanPlate = plateNumber.trim().toUpperCase();
@@ -350,7 +419,7 @@ export const preCheckExit = async (plateNumber) => {
   // 1. Tìm phiên gửi xe đang hoạt động
   const activeSession = await parkingRepository.findActiveSessionByPlate(cleanPlate);
   if (!activeSession) {
-    throw Object.assign(new Error(`Không tìm thấy xe ${cleanPlate} trong bãi.`), { statusCode: 404 });
+    throw new AppError(`Không tìm thấy xe ${cleanPlate} trong bãi.`, 404);
   }
 
   // 2. Tìm thông tin xe
@@ -374,50 +443,26 @@ export const preCheckExit = async (plateNumber) => {
     }
   }
 
-  // 3. Tính toán thời gian
-  let entryTimeStr = activeSession.entry_time;
-  if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
-    entryTimeStr += "Z";
-  }
-  const entryTime = new Date(entryTimeStr);
+  // 3. Tính phí gửi xe (dùng helper chung)
+  const entryTime = parseEntryTime(activeSession.entry_time);
   const exitTime = new Date();
-  const diffMs = exitTime.getTime() - entryTime.getTime();
-  const totalHours = diffMs / (1000 * 60 * 60);
-  const billableHours = Math.max(1, Math.ceil(totalHours));
 
-  const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  const formattedEntryTime = entryTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-
-  // 4. Tính toán phí gửi xe
   let fee = 0;
+  let durationStr = "";
+  let formattedEntryTime = "";
+
   if (!isMonthly) {
-    fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Mặc định 10k/h nếu không tìm thấy biểu phí (miễn phí dưới 30 phút)
-
-    if (vehicle && vehicle.vehicle_type_id) {
-      try {
-        const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
-
-        if (priceItems && priceItems.length > 0) {
-          const matchingItem = priceItems.find(item => {
-            const min = Number(item.min_hour) || 0;
-            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
-            if (max === null) {
-              return totalHours >= min;
-            }
-            return totalHours >= min && totalHours < max;
-          });
-
-          if (matchingItem) {
-            fee = Number(matchingItem.price);
-          }
-        }
-      } catch (dbErr) {
-        console.error("Lỗi tìm kiếm bảng phí, dùng mặc định:", dbErr);
-      }
-    }
+    const feeResult = await calculateParkingFee(entryTime, exitTime, vehicle);
+    fee = feeResult.fee;
+    durationStr = feeResult.durationStr;
+    formattedEntryTime = feeResult.formattedEntryTime;
+  } else {
+    const diffMs = exitTime.getTime() - entryTime.getTime();
+    const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+    formattedEntryTime = entryTime.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   }
 
   return {
@@ -439,46 +484,8 @@ export const preCheckExit = async (plateNumber) => {
 export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPlateImage, staffId, gateId }) => {
   const exitTime = new Date();
 
-  // Lấy tòa nhà của Staff
-  if (!staffId) {
-    throw Object.assign(new Error("Yêu cầu đăng nhập để thực hiện."), { statusCode: 401 });
-  }
-  const { profile, error: profileErr } = await gateRepository.getStaffProfile(staffId);
-
-  if (profileErr || !profile) {
-    throw Object.assign(new Error("Không tìm thấy thông tin tài khoản nhân viên."), { statusCode: 404 });
-  }
-
-  const buildingId = profile.building_id;
-  if (!buildingId) {
-    throw Object.assign(new Error("Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out."), { statusCode: 403 });
-  }
-
-  // Xác định gate_id và parking_id
-  let finalGateId = gateId;
-  let finalParkingId = null;
-
-  if (finalGateId) {
-    const gateObj = await gateRepository.getGateParkingId(finalGateId);
-    if (gateObj) {
-      finalParkingId = gateObj.parking_id;
-    }
-  }
-
-  if (!finalGateId || !finalParkingId) {
-    const parking = await gateRepository.getParkingByBuilding(buildingId);
-    if (parking) {
-      finalParkingId = parking.parking_id;
-      const gate = await gateRepository.getGateByParking(finalParkingId);
-      if (gate) {
-        finalGateId = gate.gate_id;
-      }
-    }
-  }
-
-  if (!finalGateId || !finalParkingId) {
-    throw Object.assign(new Error("Không tìm thấy cấu hình bãi đỗ xe hoặc cổng tương ứng với tòa nhà này."), { statusCode: 400 });
-  }
+  // Lấy thông tin gate/parking của Staff (dùng helper chung)
+  const { buildingId, finalGateId, finalParkingId } = await resolveStaffGateParking(staffId, gateId);
 
   let session = null;
   let vehicle = null;
@@ -490,59 +497,27 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
     // --- LƯỢT XE VÃNG LAI (VISITOR CHECK-OUT) ---
     const card = await cardRepository.findByCode(cardCode);
     if (!card) {
-      throw Object.assign(new Error(`Thẻ ${cardCode} không tồn tại.`), { statusCode: 404 });
+      throw new AppError(`Thẻ ${cardCode} không tồn tại.`, 404);
     }
 
-    // Tìm liên kết đăng ký đang hoạt động của thẻ này
     const activeReg = await cardRepository.findActiveRegistrationByCard(card.card_id);
     if (!activeReg || !activeReg.vehicle) {
-      throw Object.assign(new Error("Thẻ chưa được liên kết hoạt động với xe nào."), { statusCode: 400 });
+      throw new AppError("Thẻ chưa được liên kết hoạt động với xe nào.", 400);
     }
 
     vehicle = activeReg.vehicle;
     cardIdVal = card.card_id;
     ticketType = 'Thẻ lượt';
 
-    // Tìm active session
     const activeSession = await parkingRepository.findActiveSessionByPlate(vehicle.plate_number);
     if (!activeSession) {
-      throw Object.assign(new Error(`Không tìm thấy phiên gửi xe hoạt động cho xe ${vehicle.plate_number}.`), { statusCode: 404 });
+      throw new AppError(`Không tìm thấy phiên gửi xe hoạt động cho xe ${vehicle.plate_number}.`, 404);
     }
 
-    // Tính toán phí gửi xe
-    let entryTimeStr = activeSession.entry_time;
-    if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
-      entryTimeStr += "Z";
-    }
-    const entryTime = new Date(entryTimeStr);
-    const diffMs = exitTime.getTime() - entryTime.getTime();
-    const totalHours = diffMs / (1000 * 60 * 60);
-    const billableHours = Math.max(1, Math.ceil(totalHours));
-
-    fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Giá mặc định 10k/giờ (miễn phí dưới 30 phút)
-
-    if (vehicle && vehicle.vehicle_type_id) {
-      try {
-        const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
-
-        if (priceItems && priceItems.length > 0) {
-          const matchingItem = priceItems.find(item => {
-            const min = Number(item.min_hour) || 0;
-            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
-            if (max === null) {
-              return totalHours >= min;
-            }
-            return totalHours >= min && totalHours < max;
-          });
-
-          if (matchingItem) {
-            fee = Number(matchingItem.price);
-          }
-        }
-      } catch (dbErr) {
-        console.error("Lỗi tính toán phí khi checkout:", dbErr);
-      }
-    }
+    // Tính phí gửi xe (dùng helper chung — xóa duplication)
+    const entryTime = parseEntryTime(activeSession.entry_time);
+    const feeResult = await calculateParkingFee(entryTime, exitTime, vehicle);
+    fee = feeResult.fee;
 
     // Cập nhật phiên gửi xe thành COMPLETED
     session = await parkingRepository.updateParkingSession(activeSession.session_id, {
@@ -554,16 +529,13 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       staff_out_id: staffId || null
     });
 
-    // Giải phóng liên kết thẻ và xe (đổi status của registration sang INACTIVE)
+    // Giải phóng liên kết thẻ và xe
     await cardRepository.deactivateRegistration(activeReg.registration_id);
-
-    // Trả trạng thái thẻ về AVAILABLE
     await cardRepository.updateStatus(card.card_id, 'Đang chờ');
 
-    // Chèn thông tin payment cho xe vãng lai (CASUAL)
+    // Chèn thông tin payment cho xe vãng lai
     try {
       const existingPayment = await gateRepository.checkExistingPayment(activeSession.session_id, 'Vé lượt');
-
       if (!existingPayment) {
         const paymentErr = await gateRepository.insertPayment({
           session_id: activeSession.session_id,
@@ -575,11 +547,11 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
           created_by: staffId || null
         });
         if (paymentErr) {
-          console.error("Lỗi insert payment checkout thẻ lượt:", paymentErr.message);
+          console.error("[exitTap] Lỗi insert payment:", paymentErr.message);
         }
       }
     } catch (paymentEx) {
-      console.error("Lỗi ngoại lệ khi insert payment checkout thẻ lượt:", paymentEx);
+      console.error("[exitTap] Lỗi ngoại lệ khi insert payment:", paymentEx);
     }
 
   } else if (plateNumber) {
@@ -588,24 +560,21 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 
     vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
-      throw Object.assign(new Error(`Không tìm thấy phương tiện đăng ký cho biển số ${cleanPlate}.`), { statusCode: 404 });
+      throw new AppError(`Không tìm thấy phương tiện đăng ký cho biển số ${cleanPlate}.`, 404);
     }
 
-    // Lấy liên kết thẻ tháng
     const activeReg = await cardRepository.findActiveRegistrationByVehicle(vehicle.vehicle_id);
-    if (activeReg && activeReg.card) {
+    if (activeReg?.card) {
       cardIdVal = activeReg.card.card_id;
     }
     ticketType = 'Thẻ tháng';
-    fee = 0; // Thẻ tháng miễn phí checkout theo lượt
+    fee = 0;
 
-    // Tìm active session
     const activeSession = await parkingRepository.findActiveSessionByPlate(cleanPlate);
     if (!activeSession) {
-      throw Object.assign(new Error(`Không tìm thấy phiên gửi xe hoạt động cho xe ${cleanPlate}.`), { statusCode: 404 });
+      throw new AppError(`Không tìm thấy phiên gửi xe hoạt động cho xe ${cleanPlate}.`, 404);
     }
 
-    // Cập nhật phiên gửi xe thành COMPLETED
     session = await parkingRepository.updateParkingSession(activeSession.session_id, {
       exit_time: exitTime.toISOString(),
       exit_vehicle_image: exitVehicleImage || null,
@@ -615,7 +584,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       staff_out_id: staffId || null
     });
   } else {
-    throw Object.assign(new Error("Dữ liệu check-out không hợp lệ (cần truyền cardCode hoặc plateNumber)."), { statusCode: 400 });
+    throw new AppError("Dữ liệu check-out không hợp lệ (cần truyền cardCode hoặc plateNumber).", 400);
   }
 
   // Ghi log vào entry_exit_log
@@ -637,10 +606,14 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
   });
 
   if (logErr) {
-    throw new Error("Lỗi ghi nhật ký vào/ra: " + logErr.message);
+    throw new AppError("Lỗi ghi nhật ký vào/ra: " + logErr.message, 500);
   }
 
-  return { success: true, message: cardCode ? "Check out thẻ lượt thành công. Cổng ra mở." : "Check out Monthly thành công. Cổng ra mở.", session };
+  return {
+    success: true,
+    message: cardCode ? "Check out thẻ lượt thành công. Cổng ra mở." : "Check out thẻ tháng thành công. Cổng ra mở.",
+    session
+  };
 };
 
 /**
