@@ -339,8 +339,9 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                     </div>
                 ) : (
                     <>
-                        <div style={{ width: '100%', overflow: 'hidden' }}>
-                            <table className="log-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                        {/* Bọc bảng trong container cuộn ngang tự động và thiết lập minWidth để tránh vỡ giao diện khi thu nhỏ màn hình */}
+                        <div style={{ width: '100%', overflowX: 'auto' }}>
+                            <table className="log-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '850px' }}>
                                 <colgroup>
                                     <col style={{ width: '15%' }} /> {/* THỜI GIAN */}
                                     <col style={{ width: '25%' }} /> {/* HỌ TÊN */}
