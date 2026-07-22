@@ -5,7 +5,8 @@ export default function EditUserDialog({
     onClose,
     editingUser,
     setEditingUser,
-    handleSaveEdit
+    handleSaveEdit,
+    buildings = []
 }) {
     const [errors, setErrors] = useState({});
 
@@ -112,6 +113,24 @@ export default function EditUserDialog({
                                 <option value="Admin">Admin</option>
                                 <option value="Manager">Manager</option>
                                 <option value="Staff">Staff</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Tòa nhà làm việc */}
+                    <div className="user-modal-input-group">
+                        <label>Tòa nhà làm việc (Building)</label>
+                        <div className="modal-select-styled-wrapper">
+                            <select
+                                value={editingUser.building_id || ''}
+                                onChange={(e) => setEditingUser(prev => ({ ...prev, building_id: e.target.value }))}
+                            >
+                                <option value="" disabled>-- Chọn tòa nhà --</option>
+                                {buildings.map(b => (
+                                    <option key={b.building_id} value={b.building_id}>
+                                        {b.name || b.building_name}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     </div>

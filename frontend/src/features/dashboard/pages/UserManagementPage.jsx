@@ -52,7 +52,8 @@ export default function UserManagementPage() {
                 email: u.email || '',
                 phone: u.phone || '',
                 status: u.status || 'Không hoạt động',
-                role: u.role?.role_name ? (u.role.role_name.charAt(0) + u.role.role_name.slice(1).toLowerCase()) : 'Staff'
+                role: u.role?.role_name ? (u.role.role_name.charAt(0) + u.role.role_name.slice(1).toLowerCase()) : 'Staff',
+                buildingName: 'Chưa phân công' // Fake data for frontend UI only
             }));
             setUsers(formatted);
         } catch (error) {
@@ -274,6 +275,7 @@ export default function UserManagementPage() {
                         <tr className="ump-thead-tr">
                             <th className="ump-th">NGƯỜI DÙNG</th>
                             <th className="ump-th">EMAIL</th>
+                            <th className="ump-th">TÒA NHÀ</th>
                             <th className="ump-th">TRẠNG THÁI</th>
                             <th className="ump-th">ROLE HIỆN TẠI</th>
                             <th className="ump-th--center">HÀNH ĐỘNG</th>
@@ -298,6 +300,7 @@ export default function UserManagementPage() {
                                             </div>
                                         </td>
                                         <td className="ump-td-email">{user.email}</td>
+                                        <td className="ump-td-building">{user.buildingName}</td>
                                         <td className="ump-td-status">
                                             <span className={`ump-status-badge ${isUserActive ? 'ump-status-badge--active' : 'ump-status-badge--inactive'}`}>
                                                 <span className={`material-symbols-outlined ump-status-dot ${isUserActive ? 'ump-status-dot--active' : 'ump-status-dot--inactive'}`}>circle</span>
@@ -339,7 +342,7 @@ export default function UserManagementPage() {
                             })
                         ) : (
                             <tr>
-                                <td colSpan="5" className="ump-empty-td">Không tìm thấy người dùng phù hợp</td>
+                                <td colSpan="6" className="ump-empty-td">Không tìm thấy người dùng phù hợp</td>
                             </tr>
                         )}
                     </tbody>
@@ -355,6 +358,7 @@ export default function UserManagementPage() {
                 }}
                 editingUser={editingUser}
                 setEditingUser={setEditingUser}
+                buildings={buildings}
                 handleSaveEdit={handleSaveEdit}
             />
 
