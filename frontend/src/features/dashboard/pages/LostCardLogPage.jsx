@@ -268,63 +268,57 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         }
     }, [editingCard]);
 
-    // ── Helper kiểm tra thông tin thẻ khi bấm "Kiểm tra" trong form báo mất mới (Pure Mock UI Mode) ──
+    // ── Helper kiểm tra thông tin thẻ khi bấm "Kiểm tra" trong form báo mất mới (Gọi API Backend thực tế) ──
     const handleCheckCardInfo = async () => {
-        const rawPlate = checkPlateInput.trim() || '30A-12345';
-        const cleanPlate = rawPlate.toUpperCase().replace(/[^A-Z0-9]/g, '');
-
         if (!checkPlateInput.trim()) {
-            setCheckPlateInput('30A-12345');
+            setStepError("Vui lòng nhập biển số xe.");
+            showToast("Vui lòng nhập biển số xe.", "error");
+            return;
         }
 
         setCardChecking(true);
         setCardCheckData(null);
         setStepError(null);
 
-        // Mô phỏng hoàn toàn trên Front-end, không gọi API Backend
-        setTimeout(() => {
-            const isMonth = createCardCategory === 'month' || cleanPlate.includes('THANG') || cleanPlate.includes('MONTH');
+        try {
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            const res = await axios.post(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card/check-plate`,
+                {
+                    plate_number: checkPlateInput.trim(),
+                    card_category: createCardCategory
+                },
+                { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+            );
 
-            if (isMonth) {
-                setCardCheckData({
-                    exists: true,
-                    active: true,
-                    cardType: 'Thẻ tháng',
-                    cardCode: `MONTH-${cleanPlate.slice(-4) || '9999'}`,
-                    ownerName: 'Nguyễn Văn Manager',
-                    package: 'Gói vé tháng ô tô/xe máy',
-                    expiry: '31/12/2026',
-                    inPark: true,
-                    entryTime: '08:00:00 22/07/2026',
-                    parkingFee: 0,
-                    lostFee: 50000,
-                    totalFee: 50000,
-                    feeDisplay: '0 đ (Vé tháng)'
-                });
-                setCreateCardCategory('month');
-            } else {
-                setCardCheckData({
-                    exists: true,
-                    active: true,
-                    cardType: 'Thẻ lượt',
-                    cardCode: `CASUAL-${cleanPlate.slice(-4) || '8888'}`,
-                    ownerName: 'Khách gửi xe lượt',
-                    package: 'Vé gửi theo lượt/ca',
-                    expiry: 'N/A',
-                    inPark: true,
-                    entryTime: '10:15:30 22/07/2026',
-                    parkingFee: 10000,
-                    lostFee: 50000,
-                    totalFee: 60000,
-                    feeDisplay: '10.000 đ'
-                });
-                setCreateCardCategory('casual');
-            }
+            const checkData = res.data.data;
+            setCardCheckData(checkData);
+            setCreateCardCategory(checkData.cardType === 'Thẻ tháng' ? 'month' : 'casual');
 
-            setWizardStep(2); // Chuyển sang Bước 2
+            // Khóa thẻ ngay lập tức và tạo bản ghi báo mất trong DB khi chuyển sang Bước 2
+            const createRes = await axios.post(
+                `${import.meta.env.VITE_API_URL}/cards/lost-card`,
+                {
+                    plate_number: checkPlateInput.trim(),
+                    description: 'Khởi tạo báo mất thẻ'
+                },
+                { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+            );
+
+            const rawReportId = createRes.data.data.lost_report_id;
+            setCurrentDraftId(rawReportId);
+
+            setWizardStep(2); // Chuyển sang Bước 2 khi thành công
+            showToast(`Xác minh thành công [${checkData.cardType}] & Đã khóa thẻ trên hệ thống!`, 'success');
+            await fetchLostCards();
+        } catch (err) {
+            console.error('[handleCheckCardInfo] Lỗi kiểm tra:', err);
+            const msg = err.response?.data?.message || err.message || 'Không thể kiểm tra thông tin biển số xe.';
+            setStepError(msg);
+            showToast(msg, 'error');
+        } finally {
             setCardChecking(false);
-            showToast(`Xác minh thành công [${isMonth ? 'Thẻ tháng' : 'Thẻ lượt'}] cho biển số [${rawPlate.toUpperCase()}]`, 'success');
-        }, 200);
+        }
     };
 
     const resetCreateModalState = () => {
@@ -418,7 +412,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         setCccdVerified(draft?.cccdVerified || false);
         setCccdPreviewUrl(draft?.cccdPreviewUrl || null);
         setCavetPreviewUrl(draft?.cavetPreviewUrl || null);
-        setCurrentDraftId(row.id || row.lost_report_id || draft?.id);
+        setCurrentDraftId(row.raw_report_id || row.lost_report_id || draft?.raw_report_id || draft?.lost_report_id || (row.id && row.id.length > 20 ? row.id : null));
 
         if (draft?.cardCheckData) {
             setCardCheckData(draft.cardCheckData);
@@ -489,54 +483,152 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         setShowCancelConfirmDialog(true);
     };
 
-    const executeCancelCard = () => {
-        setShowCancelConfirmDialog(false);
-        setCardCancelled(true);
-        setWizardStep(4);
-        showToast('Đã hủy thẻ vĩnh viễn! Vui lòng tiến hành thanh toán.', 'success');
-    };
+    const isUUID = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    // ── Nút thanh toán cuối cùng (Pure Mock UI Execution) ──
-    const handleFinalizePayment = async () => {
-        const plate = checkPlateInput.trim() || newLostCard.plate_number.trim() || '30A-12345';
-        const reason = createLostReason.trim() || newLostCard.description.trim() || 'Báo mất thẻ';
+    const handleAcceptAndCreateReport = async () => {
+        const plate = checkPlateInput.trim();
+        const reason = createLostReason.trim() || 'Báo mất thẻ';
+        if (!plate) {
+            showToast('Vui lòng nhập biển số xe.', 'error');
+            return;
+        }
 
         try {
             setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-            // Giả định xử lý thanh toán mô phỏng 0.3s
-            await new Promise(resolve => setTimeout(resolve, 300));
+            let reportIdToUse = currentDraftId;
 
-            const reportId = currentDraftId || `LOST-${Date.now().toString().slice(-6)}`;
-            const completedObj = {
-                id: reportId,
-                lost_report_id: reportId,
-                plate_number: plate.toUpperCase(),
-                card_code: cardCheckData?.cardCode || `CARD-${Date.now().toString().slice(-4)}`,
-                customer_name: cardCheckData?.ownerName || 'Khách hàng',
-                card_type: createCardCategory === 'month' ? 'Thẻ tháng' : 'Thẻ lượt',
-                description: reason,
-                status: 'Hoàn thành',
-                reported_at: new Date().toISOString(),
-                handler_name: currentUserName || 'Nhân viên',
-                isDraft: false
-            };
+            if (!isUUID(reportIdToUse)) {
+                const createRes = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/cards/lost-card`,
+                    { plate_number: plate, description: reason },
+                    { headers }
+                );
+                reportIdToUse = createRes.data.data.lost_report_id;
+                setCurrentDraftId(reportIdToUse);
+            } else {
+                // 1. Cập nhật thông tin lý do & hình ảnh đã nhập từ bước 2
+                await axios.put(
+                    `${import.meta.env.VITE_API_URL}/cards/lost-card/${reportIdToUse}`,
+                    {
+                        description: reason,
+                        vehicle_registration_image_url: cavetPreviewUrl || undefined,
+                        id_card_image_url: cccdPreviewUrl || undefined
+                    },
+                    { headers }
+                );
+
+                // 2. Chuyển report sang trạng thái 'Đang xử lý'
+                await axios.put(`${import.meta.env.VITE_API_URL}/cards/lost-card/${reportIdToUse}/accept`, {}, { headers });
+            }
+
+            setWizardStep(3);
+            showToast('Đã tiếp nhận báo mất thành công!', 'success');
+            await fetchLostCards();
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.message || 'Không thể tiếp nhận báo cáo mất thẻ';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const executeCancelCard = async () => {
+        setShowCancelConfirmDialog(false);
+        let reportIdToUse = currentDraftId;
+
+        // Nếu currentDraftId chưa phải là UUID hợp lệ (ví dụ: nháp "LOST-298094")
+        if (!isUUID(reportIdToUse)) {
+            const plate = checkPlateInput.trim() || newLostCard.plate_number.trim();
+            if (!plate) {
+                showToast('Không tìm thấy thông tin biển số xe để khởi tạo báo cáo.', 'error');
+                return;
+            }
+            try {
+                setActionLoading(true);
+                const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                const createRes = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/cards/lost-card`,
+                    { plate_number: plate, description: createLostReason || 'Khởi tạo báo mất thẻ' },
+                    { headers }
+                );
+                reportIdToUse = createRes.data.data.lost_report_id;
+                setCurrentDraftId(reportIdToUse);
+            } catch (err) {
+                console.error('Lỗi khi khởi tạo báo mất trong CSDL:', err);
+                const message = err.response?.data?.message || err.message || 'Không thể hủy thẻ vĩnh viễn';
+                showToast(message, 'error');
+                setActionLoading(false);
+                return;
+            }
+        }
+
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Hủy thẻ vĩnh viễn trong CSDL (status thẻ -> 'Đã xóa')
+            await axios.put(`${import.meta.env.VITE_API_URL}/cards/lost-card/${reportIdToUse}/resolve`, {}, { headers });
+
+            setCardCancelled(true);
+            setWizardStep(4);
+            showToast('Đã hủy thẻ vĩnh viễn! Vui lòng tiến hành thanh toán.', 'success');
+            await fetchLostCards();
+        } catch (err) {
+            console.error(err);
+            const message = err.response?.data?.message || err.message || 'Không thể hủy thẻ vĩnh viễn';
+            showToast(message, 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // ── Nút thanh toán cuối cùng (Gọi Backend API thực tế) ──
+    const handleFinalizePayment = async () => {
+        if (!currentDraftId) {
+            showToast('Không tìm thấy mã báo cáo hiện tại.', 'error');
+            return;
+        }
+
+        try {
+            setActionLoading(true);
+            const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            // Nếu là thẻ lượt: khởi tạo & xác nhận thanh toán
+            if (createCardCategory === 'casual') {
+                const payRes = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/cards/lost-card/lost-turn-card-payment`,
+                    { reportId: currentDraftId, paymentMethod: createPaymentMethod },
+                    { headers }
+                );
+
+                if (createPaymentMethod === 'cash' && payRes.data?.data?.order_code) {
+                    await axios.post(
+                        `${import.meta.env.VITE_API_URL}/cards/lost-card/confirm-lost-turn-card-cash/${payRes.data.data.order_code}`,
+                        {},
+                        { headers }
+                    );
+                } else if (createPaymentMethod === 'vnpay' && payRes.data?.data?.payUrl) {
+                    window.location.href = payRes.data.data.payUrl;
+                    return;
+                }
+            }
 
             // Xóa bản lưu nháp khỏi localStorage khi thanh toán hoàn tất
             const savedDrafts = JSON.parse(localStorage.getItem('lost_card_drafts') || '[]');
-            const updatedDrafts = savedDrafts.filter(d =>
-                d.id !== reportId &&
-                d.lost_report_id !== reportId &&
-                d.plate_number !== plate.toUpperCase()
-            );
+            const updatedDrafts = savedDrafts.filter(d => d.id !== currentDraftId);
             localStorage.setItem('lost_card_drafts', JSON.stringify(updatedDrafts));
 
-            // Thêm vào danh sách hiển thị bảng ngoài
-            setLostCards(prev => [completedObj, ...prev.filter(c => c.id !== reportId && c.lost_report_id !== reportId && (c.plate_number || c.plate) !== plate.toUpperCase())]);
-
             setPaymentDone(true);
-            setWizardStep(5); // Sang Bước 5: Hoàn tất & Cho xe ra / Cấp thẻ mới
-            showToast('Thanh toán thành công! Đã xử lý báo mất thẻ.', 'success');
+            setWizardStep(5);
+            showToast('Xử lý báo mất thẻ và thanh toán phí thành công!', 'success');
             await fetchLostCards();
         } catch (err) {
             console.error(err);
@@ -2175,10 +2267,11 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                     {wizardStep === 2 && (
                                         <button
                                             type="button"
-                                            onClick={() => setWizardStep(3)}
+                                            onClick={handleAcceptAndCreateReport}
+                                            disabled={actionLoading}
                                             style={{ height: '40px', padding: '0 22px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                                         >
-                                            Tiếp tục (Tiếp nhận đơn)
+                                            {actionLoading ? 'Đang tiếp nhận...' : 'Tiếp tục (Tiếp nhận đơn)'}
                                             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_forward</span>
                                         </button>
                                     )}

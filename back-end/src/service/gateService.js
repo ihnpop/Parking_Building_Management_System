@@ -1,4 +1,4 @@
-﻿import * as vehicleRepository from "../repositories/vehicleRepository.js";
+import * as vehicleRepository from "../repositories/vehicleRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
@@ -15,7 +15,7 @@ import AppError from "../utils/AppError.js";
  * @param {object|null} vehicle – Thông tin xe (cần vehicle_type_id)
  * @returns {Promise<{fee: number, totalHours: number, durationStr: string, formattedEntryTime: string}>}
  */
-const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
+export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
   const diffMs = exitTime.getTime() - entryTime.getTime();
   const totalHours = diffMs / (1000 * 60 * 60);
   const billableHours = Math.max(1, Math.ceil(totalHours));
@@ -57,7 +57,7 @@ const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
  * @param {string} entryTimeRaw
  * @returns {Date}
  */
-const parseEntryTime = (entryTimeRaw) => {
+export const parseEntryTime = (entryTimeRaw) => {
   let entryTimeStr = entryTimeRaw;
   if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
     entryTimeStr += "Z";

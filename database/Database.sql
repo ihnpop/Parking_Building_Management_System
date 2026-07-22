@@ -205,7 +205,7 @@ CREATE TABLE public.payment (
   status character varying DEFAULT 'Đã thanh toán'::character varying CHECK (status::text = ANY (ARRAY['Chờ thanh toán'::character varying, 'Đã thanh toán'::character varying, 'Thất bại'::character varying, 'Hết hạn'::character varying]::text[])),
   vehicle_package_id uuid,
   session_id uuid,
-  payment_type character varying NOT NULL CHECK (payment_type::text = ANY (ARRAY['Vé lượt'::character varying, 'Đăng ký vé tháng'::character varying, 'Gia hạn vé tháng'::character varying, 'Phí cấp lại thẻ'::character varying]::text[])),
+  payment_type character varying NOT NULL CHECK (payment_type::text = ANY (ARRAY['Vé lượt'::character varying, 'Đăng ký vé tháng'::character varying, 'Gia hạn vé tháng'::character varying, 'Phí cấp lại thẻ'::character varying, 'Phí mất thẻ lượt'::character varying]::text[])),
   note text,
   created_by uuid,
   provider character varying DEFAULT 'VNPay'::character varying,

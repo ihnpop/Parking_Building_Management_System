@@ -240,13 +240,18 @@ export const softDelete = async (cardId, currentUserId) => {
  * @param {string} cardId
  * @returns {Promise<void>}
  */
+/**
+ * Khóa thẻ (đổi status → Đã khóa) — dùng sau khi báo mất thẻ
+ * @param {string} cardId
+ * @returns {Promise<void>}
+ */
 export const lockCard = async (cardId) => {
-  const { error } = await supabase
+  const { error: cardErr } = await supabase
     .from('card')
     .update({ status: 'Đã khóa' })
     .eq('card_id', cardId);
 
-  if (error) throw new Error(error.message);
+  if (cardErr) throw new Error(cardErr.message);
 };
 
 /**
@@ -255,12 +260,12 @@ export const lockCard = async (cardId) => {
  * @returns {Promise<void>}
  */
 export const unlockCard = async (cardId) => {
-  const { error } = await supabase
+  const { error: cardErr } = await supabase
     .from('card')
     .update({ status: 'Hoạt động' })
     .eq('card_id', cardId);
 
-  if (error) throw new Error(error.message);
+  if (cardErr) throw new Error(cardErr.message);
 };
 
 /**
@@ -270,7 +275,7 @@ export const unlockCard = async (cardId) => {
  * @returns {Promise<void>}
  */
 export const cancelCard = async (cardId, performedBy) => {
-  const { error } = await supabase
+  const { error: cardErr } = await supabase
     .from('card')
     .update({
       status: 'Đã xóa',
@@ -279,7 +284,16 @@ export const cancelCard = async (cardId, performedBy) => {
     })
     .eq('card_id', cardId);
 
-  if (error) throw new Error(error.message);
+  if (cardErr) throw new Error(cardErr.message);
+
+  const { error: regErr } = await supabase
+    .from('card_registrations')
+    .update({ status: 'Đã xóa' })
+    .eq('card_id', cardId);
+
+  if (regErr) {
+    console.error('[cancelCard] Lỗi khi cập nhật card_registrations:', regErr.message);
+  }
 };
 
 /**
@@ -319,6 +333,12 @@ export const reissueCardUpdate = async (cardId, newCode) => {
     .single();
 
   if (error) throw new Error(error.message);
+
+  await supabase
+    .from('card_registrations')
+    .update({ status: 'Hoạt động' })
+    .eq('card_id', cardId);
+
   return data;
 };
 
