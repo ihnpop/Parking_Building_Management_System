@@ -36,42 +36,30 @@ const getDaysLeft = (expiryStr) => {
 // ─── Sub-component: Expired warning ───────────────────────────
 function ExpiredWarning({ cardCode, onClose }) {
     return (
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-            <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: '#fef2f2', border: '2px solid #fca5a5',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px',
-            }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#ef4444' }}>
+        <div className="rcd-expired-container">
+            <div className="rcd-expired-icon-box">
+                <span className="material-symbols-outlined">
                     event_busy
                 </span>
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>
+            <h3 className="rcd-expired-title">
                 Vé tháng đã hết hạn
             </h3>
-            <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>
+            <p className="rcd-expired-desc">
                 Thẻ <strong>{cardCode}</strong> đã quá ngày hiệu lực. Không thể gia hạn nối tiếp.
                 <br />
                 Vui lòng sử dụng chức năng <strong>"Đăng ký vé tháng"</strong> để đăng ký kỳ mới.
             </p>
-            <div style={{
-                background: '#fff7ed', border: '1px solid #fed7aa',
-                borderRadius: 8, padding: '12px 16px',
-                fontSize: '0.85rem', color: '#92400e', marginBottom: 24, textAlign: 'left'
-            }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6 }}>
+            <div className="rcd-expired-note">
+                <span className="material-symbols-outlined">
                     info
                 </span>
                 Ngày hiệu lực của vé mới sẽ tính từ ngày đăng ký mới, không cộng nối vào ngày hết hạn cũ.
             </div>
             <button
+                type="button"
                 onClick={onClose}
-                style={{
-                    padding: '10px 32px', borderRadius: 8,
-                    background: '#f1f5f9', border: '1px solid #cbd5e1',
-                    color: '#475569', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 500
-                }}
+                className="rcd-btn-close"
             >
                 Đóng
             </button>
@@ -89,51 +77,40 @@ function VNPayPendingPanel({ orderCode, amount, currentExpiry, newExpiry, cardCo
 
     return (
         <div>
-            <div style={{
-                background: '#fffbeb', border: '1px solid #fde68a',
-                borderRadius: 10, padding: 16, marginBottom: 20
-            }}>
-                <p style={{ fontWeight: 600, color: '#b45309', fontSize: '0.9rem', marginBottom: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6 }}>
+            <div className="rcd-pending-card rcd-pending-card--vnpay">
+                <p className="rcd-pending-title rcd-pending-title--vnpay">
+                    <span className="material-symbols-outlined">
                         payment
                     </span>
                     Đang chờ thanh toán qua VNPay
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.85rem' }}>
-                    <span style={{ color: '#64748b' }}>Mã giao dịch</span>
-                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{orderCode}</span>
-                    <span style={{ color: '#64748b' }}>Số tiền</span>
-                    <span style={{ fontWeight: 700, color: '#b45309' }}>{formatCurrency(amount)}</span>
-                    <span style={{ color: '#64748b' }}>Hạn hiện tại</span>
-                    <span style={{ color: '#1e293b' }}>{formatDate(currentExpiry)}</span>
-                    <span style={{ color: '#64748b' }}>Hạn mới sau gia hạn</span>
-                    <span style={{ fontWeight: 600, color: '#0284c7' }}>{formatDate(newExpiry)}</span>
+                <div className="rcd-pending-grid">
+                    <span className="rcd-pending-label">Mã giao dịch</span>
+                    <span className="rcd-pending-val rcd-pending-val--bold">{orderCode}</span>
+                    <span className="rcd-pending-label">Số tiền</span>
+                    <span className="rcd-pending-val rcd-pending-val--vnpay">{formatCurrency(amount)}</span>
+                    <span className="rcd-pending-label">Hạn hiện tại</span>
+                    <span className="rcd-pending-val">{formatDate(currentExpiry)}</span>
+                    <span className="rcd-pending-label">Hạn mới sau gia hạn</span>
+                    <span className="rcd-pending-val rcd-pending-val--new">{formatDate(newExpiry)}</span>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div className="rcd-pending-actions">
                 <button
+                    type="button"
                     onClick={onClose}
-                    style={{
-                        flex: 1, padding: '10px', borderRadius: 8,
-                        background: '#f8fafc', border: '1px solid #cbd5e1',
-                        color: '#64748b', cursor: 'pointer', fontWeight: 500
-                    }}
+                    className="rcd-btn-defer"
                 >
                     Để sau
                 </button>
                 <button
+                    type="button"
                     onClick={handleGoToPay}
                     disabled={!payUrl}
-                    style={{
-                        flex: 2, padding: '10px', borderRadius: 8,
-                        background: !payUrl ? '#cbd5e1' : '#f97316',
-                        color: '#fff', border: 'none', cursor: !payUrl ? 'default' : 'pointer',
-                        fontWeight: 600, fontSize: '0.95rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                    }}
+                    className="rcd-btn-continue"
                 >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>open_in_new</span>
+                    <span className="material-symbols-outlined">open_in_new</span>
                     Tiếp tục thanh toán VNPay
                 </button>
             </div>
@@ -145,77 +122,60 @@ function VNPayPendingPanel({ orderCode, amount, currentExpiry, newExpiry, cardCo
 function CashPendingPanel({ orderCode, amount, currentExpiry, newExpiry, cardCode, onConfirm, onClose, isConfirming, confirmError, confirmSuccess }) {
     return (
         <div>
-            <div style={{
-                background: '#f0fdf4', border: '1px solid #86efac',
-                borderRadius: 10, padding: 16, marginBottom: 20
-            }}>
-                <p style={{ fontWeight: 600, color: '#166534', fontSize: '0.9rem', marginBottom: 8 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'middle', marginRight: 6 }}>
+            <div className="rcd-pending-card rcd-pending-card--cash">
+                <p className="rcd-pending-title rcd-pending-title--cash">
+                    <span className="material-symbols-outlined">
                         payments
                     </span>
                     Đang chờ xác nhận thu tiền mặt
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '0.85rem' }}>
-                    <span style={{ color: '#64748b' }}>Mã giao dịch</span>
-                    <span style={{ fontWeight: 600, color: '#1e293b' }}>{orderCode}</span>
-                    <span style={{ color: '#64748b' }}>Số tiền</span>
-                    <span style={{ fontWeight: 700, color: '#166534' }}>{formatCurrency(amount)}</span>
-                    <span style={{ color: '#64748b' }}>Hạn hiện tại</span>
-                    <span style={{ color: '#1e293b' }}>{formatDate(currentExpiry)}</span>
-                    <span style={{ color: '#64748b' }}>Hạn mới sau gia hạn</span>
-                    <span style={{ fontWeight: 600, color: '#0284c7' }}>{formatDate(newExpiry)}</span>
+                <div className="rcd-pending-grid">
+                    <span className="rcd-pending-label">Mã giao dịch</span>
+                    <span className="rcd-pending-val rcd-pending-val--bold">{orderCode}</span>
+                    <span className="rcd-pending-label">Số tiền</span>
+                    <span className="rcd-pending-val rcd-pending-val--cash">{formatCurrency(amount)}</span>
+                    <span className="rcd-pending-label">Hạn hiện tại</span>
+                    <span className="rcd-pending-val">{formatDate(currentExpiry)}</span>
+                    <span className="rcd-pending-label">Hạn mới sau gia hạn</span>
+                    <span className="rcd-pending-val rcd-pending-val--new">{formatDate(newExpiry)}</span>
                 </div>
             </div>
 
             {confirmError && (
-                <div style={{
-                    background: '#fef2f2', border: '1px solid #fca5a5',
-                    borderRadius: 8, padding: 12, marginBottom: 16, color: '#991b1b', fontSize: '0.875rem'
-                }}>
+                <div className="rcd-error-box">
                     {confirmError}
                 </div>
             )}
 
             {confirmSuccess ? (
-                <div style={{
-                    background: '#f0fdf4', border: '1px solid #86efac',
-                    borderRadius: 8, padding: '16px', textAlign: 'center', color: '#166534', fontSize: '0.95rem', fontWeight: 600
-                }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>check_circle</span>
+                <div className="rcd-success-box">
+                    <span className="material-symbols-outlined rcd-success-icon">check_circle</span>
                     Gia hạn thành công! Thẻ {cardCode} đã được gia hạn đến {formatDate(newExpiry)}.
                 </div>
             ) : (
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="rcd-pending-actions">
                     <button
+                        type="button"
                         onClick={onClose}
                         disabled={isConfirming}
-                        style={{
-                            flex: 1, padding: '10px', borderRadius: 8,
-                            background: '#f8fafc', border: '1px solid #cbd5e1',
-                            color: '#64748b', cursor: 'pointer', fontWeight: 500
-                        }}
+                        className="rcd-btn-defer"
                     >
                         Để sau
                     </button>
                     <button
+                        type="button"
                         onClick={onConfirm}
                         disabled={isConfirming}
-                        style={{
-                            flex: 2, padding: '10px', borderRadius: 8,
-                            background: isConfirming ? '#86efac' : '#16a34a',
-                            color: '#fff', border: 'none', cursor: isConfirming ? 'default' : 'pointer',
-                            fontWeight: 600, fontSize: '0.95rem',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                        }}
+                        className="rcd-btn-confirm-cash"
                     >
                         {isConfirming ? (
                             <>
-                                <span className="material-symbols-outlined" style={{ fontSize: 18, animation: 'spin 1s linear infinite' }}>autorenew</span>
+                                <span className="material-symbols-outlined rcd-loading-icon">autorenew</span>
                                 Đang xử lý...
                             </>
                         ) : (
                             <>
-                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check</span>
+                                <span className="material-symbols-outlined">check</span>
                                 Xác nhận đã thu {formatCurrency(amount)}
                             </>
                         )}
@@ -398,7 +358,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
     // ─── Render ────────────────────────────────────────────────
     return (
         <div className="renew-modal-overlay">
-            <div className="renew-modal" style={{ maxWidth: 520 }}>
+            <div className="renew-modal rcd-modal-maxWidth">
                 {/* Header */}
                 <div className="renew-modal-header">
                     <h2>
@@ -420,11 +380,11 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                 </div>
 
                 {/* Body */}
-                <div style={{ padding: step === 'loading' ? '24px 0' : 0 }}>
+                <div className={step === 'loading' ? 'rcd-body-padding' : ''}>
                     {/* Loading */}
                     {step === 'loading' && (
-                        <div style={{ textAlign: 'center', color: '#64748b', padding: '32px 0' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 40, animation: 'spin 1s linear infinite', display: 'block', marginBottom: 12 }}>
+                        <div className="rcd-loading-box">
+                            <span className="material-symbols-outlined rcd-loading-icon">
                                 autorenew
                             </span>
                             Đang tải thông tin gia hạn...
@@ -433,9 +393,9 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
 
                     {/* Error */}
                     {step === 'error' && (
-                        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                            <p style={{ color: '#ef4444', marginBottom: 16 }}>{loadError}</p>
-                            <button onClick={loadRenewalInfo} style={{ padding: '8px 20px', borderRadius: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', cursor: 'pointer' }}>
+                        <div className="rcd-error-center">
+                            <p className="rcd-error-msg">{loadError}</p>
+                            <button type="button" onClick={loadRenewalInfo} className="rcd-btn-retry">
                                 Thử lại
                             </button>
                         </div>
@@ -497,10 +457,10 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                                 </div>
                                 <div className="renew-info-item">
                                     <span className="renew-info-label">Hạn dùng hiện tại</span>
-                                    <span className="renew-info-value" style={{ fontWeight: 700, color: daysLeft !== null && daysLeft <= 7 ? '#f59e0b' : '#1e293b' }}>
+                                    <span className={`renew-info-value ${daysLeft !== null && daysLeft <= 7 ? 'rcd-days-left--urgent' : ''}`}>
                                         {formatDate(renewalInfo.currentExpiry)}
                                         {daysLeft !== null && (
-                                            <span style={{ fontSize: '0.8rem', color: daysLeft <= 7 ? '#f59e0b' : '#64748b', marginLeft: 6 }}>
+                                            <span className={`rcd-days-left ${daysLeft <= 7 ? 'rcd-days-left--urgent' : 'rcd-days-left--normal'}`}>
                                                 (còn {daysLeft} ngày)
                                             </span>
                                         )}
@@ -512,7 +472,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                             <div className="renew-form-group">
                                 <label htmlFor="pkg-select">Gói gia hạn</label>
                                 {renewalInfo.availablePackages?.length === 0 ? (
-                                    <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
+                                    <p className="rcd-no-pkg">
                                         Không có gói nào khả dụng cho loại xe này.
                                     </p>
                                 ) : (
@@ -536,17 +496,13 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                             {selectedPkg && previewNewExpiry && (
                                 <div className="renew-form-group">
                                     <label>Ngày hết hạn mới (dự kiến)</label>
-                                    <div style={{
-                                        background: '#f0fdf4', border: '1px solid #86efac',
-                                        borderRadius: 8, padding: '10px 14px',
-                                        display: 'flex', alignItems: 'center', gap: 8
-                                    }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#16a34a' }}>event_available</span>
-                                        <span style={{ fontWeight: 700, color: '#166534', fontSize: '0.95rem' }}>
+                                    <div className="rcd-preview-box">
+                                        <span className="material-symbols-outlined rcd-preview-icon">event_available</span>
+                                        <span className="rcd-preview-old">
                                             {formatDate(renewalInfo.currentExpiry)}
                                         </span>
-                                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#64748b' }}>arrow_forward</span>
-                                        <span style={{ fontWeight: 700, color: '#0284c7', fontSize: '0.95rem' }}>
+                                        <span className="material-symbols-outlined rcd-preview-arrow">arrow_forward</span>
+                                        <span className="rcd-preview-new">
                                             {formatDate(previewNewExpiry)}
                                         </span>
                                     </div>
@@ -556,15 +512,9 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                             {/* Phương thức thanh toán */}
                             <div className="renew-form-group">
                                 <label>Phương thức thanh toán</label>
-                                <div style={{ display: 'flex', gap: 12 }}>
+                                <div className="rcd-pay-options">
                                     {/* VNPay */}
-                                    <label style={{
-                                        flex: 1, display: 'flex', alignItems: 'center', gap: 10,
-                                        padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
-                                        border: `2px solid ${paymentMethod === 'vnpay' ? '#2563eb' : '#e2e8f0'}`,
-                                        background: paymentMethod === 'vnpay' ? '#eff6ff' : '#f8fafc',
-                                        transition: 'all 0.15s'
-                                    }}>
+                                    <label className={`rcd-pay-option ${paymentMethod === 'vnpay' ? 'rcd-pay-option--vnpay' : 'rcd-pay-option--inactive'}`}>
                                         <input
                                             type="radio"
                                             name="payMethod"
@@ -573,17 +523,11 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                                             onChange={() => setPaymentMethod('vnpay')}
                                             style={{ accentColor: '#2563eb' }}
                                         />
-                                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#2563eb' }}>credit_card</span>
-                                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>VNPay</span>
+                                        <span className="material-symbols-outlined rcd-pay-option-icon--vnpay">credit_card</span>
+                                        <span className="rcd-pay-option-text">VNPay</span>
                                     </label>
                                     {/* Tiền mặt */}
-                                    <label style={{
-                                        flex: 1, display: 'flex', alignItems: 'center', gap: 10,
-                                        padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
-                                        border: `2px solid ${paymentMethod === 'cash' ? '#16a34a' : '#e2e8f0'}`,
-                                        background: paymentMethod === 'cash' ? '#f0fdf4' : '#f8fafc',
-                                        transition: 'all 0.15s'
-                                    }}>
+                                    <label className={`rcd-pay-option ${paymentMethod === 'cash' ? 'rcd-pay-option--cash' : 'rcd-pay-option--inactive'}`}>
                                         <input
                                             type="radio"
                                             name="payMethod"
@@ -592,8 +536,8 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                                             onChange={() => setPaymentMethod('cash')}
                                             style={{ accentColor: '#16a34a' }}
                                         />
-                                        <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#16a34a' }}>payments</span>
-                                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>Tiền mặt</span>
+                                        <span className="material-symbols-outlined rcd-pay-option-icon--cash">payments</span>
+                                        <span className="rcd-pay-option-text">Tiền mặt</span>
                                     </label>
                                 </div>
                             </div>
@@ -606,11 +550,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
 
                             {/* Error */}
                             {submitError && (
-                                <div style={{
-                                    background: '#fef2f2', border: '1px solid #fca5a5',
-                                    borderRadius: 8, padding: 12, marginBottom: 16,
-                                    color: '#991b1b', fontSize: '0.875rem'
-                                }}>
+                                <div className="rcd-error-box">
                                     {submitError}
                                 </div>
                             )}
@@ -643,14 +583,6 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                     )}
                 </div>
             </div>
-
-            {/* CSS animation cho spinner */}
-            <style>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to   { transform: rotate(360deg); }
-                }
-            `}</style>
         </div>
     );
 }
