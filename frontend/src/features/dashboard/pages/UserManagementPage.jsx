@@ -4,6 +4,8 @@ import { useNotification } from '../../../context/NotificationContext';
 import { getUsers, updateUserRole } from '../../../service/userApi';
 import { inviteUser } from '../../../service/cardApi';
 import supabase from '../../../config/supabaseClient';
+import EditUserDialog from '../components/EditUserDialog';
+import InviteUserDialog from '../components/InviteUserDialog';
 
 export default function UserManagementPage() {
     const { userRole } = useAuth();
@@ -183,38 +185,38 @@ export default function UserManagementPage() {
     };
 
     return (
-        <div className="user-management-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px' }}>
+        <div className="user-management-container ump-container">
 
             {/* Khối Banner thông tin */}
-            <div className="user-mgmt-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', border: '1px solid #e1e3e4', borderRadius: '8px', background: '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ background: '#dbeafe', padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
-                        <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '28px' }}>manage_accounts</span>
+            <div className="user-mgmt-banner ump-banner">
+                <div className="ump-banner-left">
+                    <div className="ump-banner-icon-box">
+                        <span className="material-symbols-outlined ump-banner-icon">manage_accounts</span>
                     </div>
                     <div>
-                        <h2 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', fontWeight: '600' }}>Quản lý Phân quyền</h2>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>Xem và thay đổi vai trò của từng người dùng trong hệ thống</p>
+                        <h2 className="ump-banner-title">Quản lý phân quyền</h2>
+                        <p className="ump-banner-sub">Xem và thay đổi vai trò của từng người dùng trong hệ thống</p>
                     </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#333', display: 'block', lineHeight: '1' }}>{users.length}</span>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#999', marginTop: '4px' }}>Tổng người dùng</p>
+                <div className="ump-banner-right">
+                    <span className="ump-banner-count">{users.length}</span>
+                    <p className="ump-banner-count-label">Tổng người dùng</p>
                 </div>
             </div>
 
             {/* THANH CÔNG CỤ: Bộ lọc xổ dọc đứng yên khi click chọn vai trò */}
-            <div className="user-mgmt-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div className="user-mgmt-toolbar ump-toolbar">
+                <div className="ump-toolbar-left">
 
                     {/* Ô Tìm Kiếm */}
-                    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e1e3e4', borderRadius: '6px', padding: '8px 12px', background: '#fff', width: '320px' }}>
-                        <span className="material-symbols-outlined" style={{ color: '#888', marginRight: '8px', fontSize: '20px' }}>search</span>
+                    <div className="ump-search-box">
+                        <span className="material-symbols-outlined ump-search-icon">search</span>
                         <input
                             type="text"
                             placeholder="Tìm kiếm tên, email, username..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem' }}
+                            className="ump-search-input"
                         />
                     </div>
 
@@ -222,17 +224,12 @@ export default function UserManagementPage() {
                     <div className="vertical-filter-dropdown-container" ref={filterMenuRef}>
                         <button
                             type="button"
-                            className={`main-filter-toggle-btn ${isFilterExpanded ? 'active' : ''}`}
+                            className={`main-filter-toggle-btn ump-filter-btn ${isFilterExpanded ? 'active ump-filter-btn--active' : ''}`}
                             onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
-                                border: '1px solid #e1e3e4', borderRadius: '6px', background: isFilterExpanded ? '#dbeafe' : '#fff',
-                                color: isFilterExpanded ? '#2563eb' : '#555', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease'
-                            }}
                         >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
-                            Lọc vai trò: <span style={{ color: '#2563eb', marginLeft: '2px' }}>{roleFilter}</span>
-                            <span className="material-symbols-outlined style-arrow-icon" style={{ fontSize: '18px', transition: 'transform 0.2s', transform: isFilterExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>keyboard_arrow_down</span>
+                            <span className="material-symbols-outlined ump-filter-icon">filter_list</span>
+                            Lọc vai trò: <span className="ump-filter-role-highlight">{roleFilter}</span>
+                            <span className={`material-symbols-outlined style-arrow-icon ump-filter-arrow ${isFilterExpanded ? 'ump-filter-arrow--open' : ''}`}>keyboard_arrow_down</span>
                         </button>
 
                         {/* Danh sách xổ dọc nổi đè lên trên nội dung */}
@@ -260,14 +257,9 @@ export default function UserManagementPage() {
                         <button
                             type="button"
                             onClick={() => setIsInviteModalOpen(true)}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px',
-                                border: 'none', borderRadius: '6px', background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-                                color: '#fff', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', transition: 'all 0.2s ease',
-                                boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)'
-                            }}
+                            className="ump-btn-add-staff"
                         >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px', padding: 0 }}>person_add</span>
+                            <span className="material-symbols-outlined ump-btn-add-icon">person_add</span>
                             Thêm nhân viên
                         </button>
                     )}
@@ -276,85 +268,78 @@ export default function UserManagementPage() {
             </div>
 
             {/* Bảng phân quyền dữ liệu người dùng */}
-            <div className="user-mgmt-table-card" style={{ border: '1px solid #e1e3e4', borderRadius: '8px', padding: '15px', background: '#fff' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="user-mgmt-table-card ump-table-card">
+                <table className="ump-table">
                     <thead>
-                        <tr style={{ backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', textAlign: 'left', color: '#666', fontSize: '0.85rem' }}>
-                            <th style={{ padding: '12px' }}>NGƯỜI DÙNG</th>
-                            <th style={{ padding: '12px' }}>EMAIL</th>
-                            <th style={{ padding: '12px' }}>TRẠNG THÁI</th>
-                            <th style={{ padding: '12px' }}>ROLE HIỆN TẠI</th>
-                            <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>HÀNH ĐỘNG</th>
+                        <tr className="ump-thead-tr">
+                            <th className="ump-th">NGƯỜI DÙNG</th>
+                            <th className="ump-th">EMAIL</th>
+                            <th className="ump-th">TRẠNG THÁI</th>
+                            <th className="ump-th">ROLE HIỆN TẠI</th>
+                            <th className="ump-th--center">HÀNH ĐỘNG</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredUsers.length > 0 ? (
-                            filteredUsers.map((user) => (
-                                <tr key={user.id} style={{ borderBottom: '1px solid #eee', fontSize: '0.95rem' }}>
-                                    <td style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{
-                                            width: '36px', height: '36px', borderRadius: '5px', backgroundColor: user.role === 'Admin' ? '#d1e7dd' : user.role === 'Manager' ? '#f8d7da' : '#eee',
-                                            color: user.role === 'Admin' ? '#0f5132' : user.role === 'Manager' ? '#842029' : '#333',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem'
-                                        }}>
-                                            {(user.name || '').split(' ').pop().substring(0, 2).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div style={{ fontWeight: '600', color: '#333' }}>{user.name}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888' }}>@{user.username}</div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '12px', color: '#555' }}>{user.email}</td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                            color: user.status === 'Hoạt động' ? '#0f5132' : '#888',
-                                            fontWeight: user.status === 'Hoạt động' ? '600' : '500', fontSize: '0.85rem'
-                                        }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '10px', color: user.status === 'Hoạt động' ? '#198754' : '#ccc' }}>circle</span>
-                                            {user.status}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{
-                                            padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: '600',
-                                            backgroundColor: user.role === 'Admin' ? '#f8d7da' : user.role === 'Manager' ? '#fff3cd' : '#e2e3e5',
-                                            color: user.role === 'Admin' ? '#842029' : user.role === 'Manager' ? '#664d03' : '#383d41'
-                                        }}>
-                                            {user.role}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'center', position: 'relative' }}>
-                                        <button
-                                            type="button"
-                                            className="user-action-dots-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveMenuId(activeMenuId === user.id ? null : user.id);
-                                            }}
-                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666', padding: '4px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>more_vert</span>
-                                        </button>
+                            filteredUsers.map((user) => {
+                                const avatarClass = user.role === 'Admin' ? 'ump-avatar--admin' : user.role === 'Manager' ? 'ump-avatar--manager' : 'ump-avatar--staff';
+                                const roleBadgeClass = user.role === 'Admin' ? 'ump-role-badge--admin' : user.role === 'Manager' ? 'ump-role-badge--manager' : 'ump-role-badge--staff';
+                                const isUserActive = user.status === 'Hoạt động';
 
-                                        {activeMenuId === user.id && (
-                                            <div className="user-action-dropdown-menu" ref={actionMenuRef}>
-                                                <button type="button" className="dropdown-action-item edit-item" onClick={() => handleOpenEdit(user)}>
-                                                    <span className="material-symbols-outlined">edit</span>
-                                                    Chỉnh sửa
-                                                </button>
-                                                <button type="button" className="dropdown-action-item delete-item" onClick={() => handleDeleteUser(user.id)}>
-                                                    <span className="material-symbols-outlined">delete</span>
-                                                    Xóa bỏ
-                                                </button>
+                                return (
+                                    <tr key={user.id} className="ump-tbody-tr">
+                                        <td className="ump-td-user">
+                                            <div className={`ump-avatar ${avatarClass}`}>
+                                                {(user.name || '').split(' ').pop().substring(0, 2).toUpperCase()}
                                             </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
+                                            <div>
+                                                <div className="ump-user-name">{user.name}</div>
+                                                <div className="ump-user-username">@{user.username}</div>
+                                            </div>
+                                        </td>
+                                        <td className="ump-td-email">{user.email}</td>
+                                        <td className="ump-td-status">
+                                            <span className={`ump-status-badge ${isUserActive ? 'ump-status-badge--active' : 'ump-status-badge--inactive'}`}>
+                                                <span className={`material-symbols-outlined ump-status-dot ${isUserActive ? 'ump-status-dot--active' : 'ump-status-dot--inactive'}`}>circle</span>
+                                                {user.status}
+                                            </span>
+                                        </td>
+                                        <td className="ump-td-role">
+                                            <span className={`ump-role-badge ${roleBadgeClass}`}>
+                                                {user.role}
+                                            </span>
+                                        </td>
+                                        <td className="ump-td-action">
+                                            <button
+                                                type="button"
+                                                className="user-action-dots-btn ump-action-dots-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveMenuId(activeMenuId === user.id ? null : user.id);
+                                                }}
+                                            >
+                                                <span className="material-symbols-outlined ump-action-dots-icon">more_vert</span>
+                                            </button>
+
+                                            {activeMenuId === user.id && (
+                                                <div className="user-action-dropdown-menu" ref={actionMenuRef}>
+                                                    <button type="button" className="dropdown-action-item edit-item" onClick={() => handleOpenEdit(user)}>
+                                                        <span className="material-symbols-outlined">edit</span>
+                                                        Chỉnh sửa
+                                                    </button>
+                                                    <button type="button" className="dropdown-action-item delete-item" onClick={() => handleDeleteUser(user.id)}>
+                                                        <span className="material-symbols-outlined">delete</span>
+                                                        Xóa bỏ
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         ) : (
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#666' }}>Không tìm thấy người dùng phù hợp</td>
+                                <td colSpan="5" className="ump-empty-td">Không tìm thấy người dùng phù hợp</td>
                             </tr>
                         )}
                     </tbody>
@@ -362,190 +347,28 @@ export default function UserManagementPage() {
             </div>
 
             {/* Hộp thoại Modal Popup chỉnh sửa thông tin thành viên */}
-            {isEditModalOpen && editingUser && (
-                <div className="user-management-modal-overlay" onClick={() => setIsEditModalOpen(false)}>
-                    <div className="user-management-modal-box" onClick={(e) => e.stopPropagation()}>
-                        <div className="user-modal-header">
-                            <h3>Cập nhật thành viên</h3>
-                            <button type="button" className="modal-close-x-btn" onClick={() => setIsEditModalOpen(false)}>
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSaveEdit} className="user-modal-form-body">
-                            <div className="user-modal-input-group">
-                                <label>Họ và tên người dùng</label>
-                                <input
-                                    type="text"
-                                    value={editingUser.name}
-                                    onChange={(e) => setEditingUser(prev => ({ ...prev, name: e.target.value }))}
-                                    required
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Địa chỉ Email</label>
-                                <input
-                                    type="email"
-                                    value={editingUser.email}
-                                    onChange={(e) => setEditingUser(prev => ({ ...prev, email: e.target.value }))}
-                                    required
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Số điện thoại</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nhập số điện thoại..."
-                                    value={editingUser.phone || ''}
-                                    onChange={(e) => setEditingUser(prev => ({ ...prev, phone: e.target.value }))}
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Phân quyền vai trò (Role)</label>
-                                <div className="modal-select-styled-wrapper">
-                                    <select
-                                        value={editingUser.role}
-                                        onChange={(e) => setEditingUser(prev => ({ ...prev, role: e.target.value }))}
-                                    >
-                                        <option value="Admin">Admin</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Staff">Staff</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Trạng thái tài khoản</label>
-                                <div className="modal-select-styled-wrapper">
-                                    <select
-                                        value={editingUser.status}
-                                        onChange={(e) => setEditingUser(prev => ({ ...prev, status: e.target.value }))}
-                                    >
-                                        <option value="Hoạt động">Hoạt động</option>
-                                        <option value="Không hoạt động">Không hoạt động</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="user-modal-footer-actions">
-                                <button type="button" className="user-modal-btn cancel" onClick={() => setIsEditModalOpen(false)}>
-                                    Hủy bỏ
-                                </button>
-                                <button type="submit" className="user-modal-btn submit">
-                                    Xác nhận lưu
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <EditUserDialog
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setEditingUser(null);
+                }}
+                editingUser={editingUser}
+                setEditingUser={setEditingUser}
+                handleSaveEdit={handleSaveEdit}
+            />
 
             {/* Hộp thoại Modal Popup thêm nhân viên mới */}
-            {isInviteModalOpen && (
-                <div className="user-management-modal-overlay" onClick={() => setIsInviteModalOpen(false)}>
-                    <div className="user-management-modal-box" onClick={(e) => e.stopPropagation()}>
-                        <div className="user-modal-header">
-                            <h3>Thêm nhân viên mới</h3>
-                            <button type="button" className="modal-close-x-btn" onClick={() => setIsInviteModalOpen(false)}>
-                                <span className="material-symbols-outlined" style={{ padding: 0 }}>close</span>
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleInviteSubmit} className="user-modal-form-body">
-                            <div className="user-modal-input-group">
-                                <label>Họ và tên</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nhập họ và tên..."
-                                    value={inviteData.full_name}
-                                    onChange={(e) => setInviteData(prev => ({ ...prev, full_name: e.target.value }))}
-                                    required
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Tên đăng nhập (Username)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nhập tên đăng nhập..."
-                                    value={inviteData.username}
-                                    onChange={(e) => setInviteData(prev => ({ ...prev, username: e.target.value }))}
-                                    required
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Địa chỉ Email</label>
-                                <input
-                                    type="email"
-                                    placeholder="Nhập email để gửi mã mời..."
-                                    value={inviteData.email}
-                                    onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
-                                    required
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Số điện thoại</label>
-                                <input
-                                    type="text"
-                                    placeholder="Nhập số điện thoại..."
-                                    value={inviteData.phone}
-                                    onChange={(e) => setInviteData(prev => ({ ...prev, phone: e.target.value }))}
-                                />
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Vai trò (Role)</label>
-                                <div className="modal-select-styled-wrapper">
-                                    <select
-                                        value={inviteData.role_id}
-                                        onChange={(e) => setInviteData(prev => ({ ...prev, role_id: e.target.value }))}
-                                        required
-                                    >
-                                        <option value="" disabled>-- Chọn vai trò --</option>
-                                        {roles.map(r => (
-                                            <option key={r.role_id} value={r.role_id}>
-                                                {r.role_name} ({r.description || ''})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="user-modal-input-group">
-                                <label>Tòa nhà trực thuộc (Building)</label>
-                                <div className="modal-select-styled-wrapper">
-                                    <select
-                                        value={inviteData.building_id}
-                                        onChange={(e) => setInviteData(prev => ({ ...prev, building_id: e.target.value }))}
-                                        required
-                                    >
-                                        <option value="" disabled>-- Chọn tòa nhà --</option>
-                                        {buildings.map(b => (
-                                            <option key={b.building_id} value={b.building_id}>
-                                                {b.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="user-modal-footer-actions">
-                                <button type="button" className="user-modal-btn cancel" onClick={() => setIsInviteModalOpen(false)} disabled={isLoading}>
-                                    Hủy bỏ
-                                </button>
-                                <button type="submit" className="user-modal-btn submit" disabled={isLoading}>
-                                    {isLoading ? 'Đang gửi lời mời...' : 'Gửi lời mời'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <InviteUserDialog
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                inviteData={inviteData}
+                setInviteData={setInviteData}
+                roles={roles}
+                buildings={buildings}
+                handleInviteSubmit={handleInviteSubmit}
+                isLoading={isLoading}
+            />
         </div>
     );
 }
