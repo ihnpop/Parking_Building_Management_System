@@ -283,29 +283,47 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
         // Mô phỏng hoàn toàn trên Front-end, không gọi API Backend
         setTimeout(() => {
-            const isMonth = cleanPlate.includes('THANG') || cleanPlate.includes('MONTH') || createCardCategory === 'month';
-            const cat = isMonth ? 'month' : 'casual';
+            const isMonth = createCardCategory === 'month' || cleanPlate.includes('THANG') || cleanPlate.includes('MONTH');
 
-            setCardCheckData({
-                exists: true,
-                active: true,
-                cardType: isMonth ? 'Thẻ tháng' : 'Thẻ lượt',
-                cardCode: `CARD-${cleanPlate.slice(-4) || '8888'}`,
-                ownerName: isMonth ? 'Nguyễn Văn A' : 'Xe lượt trong bãi',
-                package: isMonth ? 'Gói vé tháng' : 'Vé gửi theo ca',
-                expiry: '31/12/2026',
-                inPark: true,
-                entryTime: '10:15:30 22/07/2026',
-                parkingFee: 10000,
-                lostFee: 50000,
-                totalFee: 60000,
-                feeDisplay: '10.000 đ'
-            });
+            if (isMonth) {
+                setCardCheckData({
+                    exists: true,
+                    active: true,
+                    cardType: 'Thẻ tháng',
+                    cardCode: `MONTH-${cleanPlate.slice(-4) || '9999'}`,
+                    ownerName: 'Nguyễn Văn Manager',
+                    package: 'Gói vé tháng ô tô/xe máy',
+                    expiry: '31/12/2026',
+                    inPark: true,
+                    entryTime: '08:00:00 22/07/2026',
+                    parkingFee: 0,
+                    lostFee: 50000,
+                    totalFee: 50000,
+                    feeDisplay: '0 đ (Vé tháng)'
+                });
+                setCreateCardCategory('month');
+            } else {
+                setCardCheckData({
+                    exists: true,
+                    active: true,
+                    cardType: 'Thẻ lượt',
+                    cardCode: `CASUAL-${cleanPlate.slice(-4) || '8888'}`,
+                    ownerName: 'Khách gửi xe lượt',
+                    package: 'Vé gửi theo lượt/ca',
+                    expiry: 'N/A',
+                    inPark: true,
+                    entryTime: '10:15:30 22/07/2026',
+                    parkingFee: 10000,
+                    lostFee: 50000,
+                    totalFee: 60000,
+                    feeDisplay: '10.000 đ'
+                });
+                setCreateCardCategory('casual');
+            }
 
-            setCreateCardCategory(cat);
             setWizardStep(2); // Chuyển sang Bước 2
             setCardChecking(false);
-            showToast(`Xác minh thành công biển số [${rawPlate.toUpperCase()}]`, 'success');
+            showToast(`Xác minh thành công [${isMonth ? 'Thẻ tháng' : 'Thẻ lượt'}] cho biển số [${rawPlate.toUpperCase()}]`, 'success');
         }, 200);
     };
 
@@ -1774,8 +1792,59 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '18px' }}>
                                             <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>BƯỚC 1: KHỞI TẠO BÁO MẤT</span>
                                             <span style={{ fontSize: '13px', color: '#334155', fontWeight: '500' }}>
-                                                Nhập biển số xe để hệ thống tự động xác minh loại thẻ (Thẻ lượt / Thẻ tháng) và kiểm tra điều kiện hoạt động.
+                                                Chọn loại thẻ và nhập biển số xe để hệ thống xác minh thông tin báo mất.
                                             </span>
+                                        </div>
+
+                                        {/* Toggle Chọn Loại Thẻ (Thẻ lượt / Thẻ tháng) */}
+                                        <div style={{ marginBottom: '16px' }}>
+                                            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
+                                                Loại thẻ báo mất
+                                            </label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCreateCardCategory('casual')}
+                                                    style={{
+                                                        padding: '10px',
+                                                        borderRadius: '8px',
+                                                        border: `2px solid ${createCardCategory === 'casual' ? '#2563eb' : '#e2e8f0'}`,
+                                                        background: createCardCategory === 'casual' ? '#eff6ff' : '#fff',
+                                                        color: createCardCategory === 'casual' ? '#2563eb' : '#64748b',
+                                                        fontWeight: '700',
+                                                        fontSize: '13.5px',
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '6px'
+                                                    }}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>two_wheeler</span>
+                                                    Thẻ lượt (Vé ca)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCreateCardCategory('month')}
+                                                    style={{
+                                                        padding: '10px',
+                                                        borderRadius: '8px',
+                                                        border: `2px solid ${createCardCategory === 'month' ? '#2563eb' : '#e2e8f0'}`,
+                                                        background: createCardCategory === 'month' ? '#eff6ff' : '#fff',
+                                                        color: createCardCategory === 'month' ? '#2563eb' : '#64748b',
+                                                        fontWeight: '700',
+                                                        fontSize: '13.5px',
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '6px'
+                                                    }}
+                                                >
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>credit_card</span>
+                                                    Thẻ tháng (Vé tháng)
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
