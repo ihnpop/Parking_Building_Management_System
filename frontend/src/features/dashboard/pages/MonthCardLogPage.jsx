@@ -65,8 +65,6 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('Tất cả');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -245,7 +243,9 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     }, []);
 
     const handleFilter = () => {
-        let result = allLogs;
+        // Áp dụng bộ lọc thời gian từ top-level KPI time filter
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        let result = filterRowsByTime(allLogs, kpiTimeFilter, dateStr);
 
         if (search.trim()) {
             const q = search.trim().toLowerCase();
@@ -265,46 +265,74 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
             result = result.filter((log) => log.status === statusFilter);
         }
 
-        if (dateFrom) {
-            const from = new Date(dateFrom);
-            from.setHours(0, 0, 0, 0);
-            result = result.filter((log) => {
-                const logDate = new Date(log.timestamp || log.created_at);
-                return logDate >= from;
-            });
-        }
-
-        if (dateTo) {
-            const to = new Date(dateTo);
-            to.setHours(23, 59, 59, 999);
-            result = result.filter((log) => {
-                const logDate = new Date(log.timestamp || log.created_at);
-                return logDate <= to;
-            });
-        }
-
         setLogs(result);
         setCurrentPage(1);
     };
 
     useEffect(() => {
         handleFilter();
-    }, [search, typeFilter, statusFilter, dateFrom, dateTo, allLogs]);
+    }, [search, typeFilter, statusFilter, allLogs, kpiTimeFilter, kpiDate, kpiMonth]);
 
-    // Helper định dạng cột Thời gian thành 2 dòng dọc (Dòng 1: Giờ 12:40:43, Dòng 2: Ngày 21/07/2026)
-    const renderFormattedTime = (timeStr) => {
-        if (!timeStr) return <span style={{ color: '#ccc' }}>---</span>;
-        const parts = String(timeStr).trim().split(/\s+/);
-        if (parts.length >= 2) {
-            const timePart = parts[0];
-            let datePart = parts[1];
-            const datePieces = datePart.split('/');
-            if (datePieces.length === 3) {
-                const d = datePieces[0].padStart(2, '0');
-                const m = datePieces[1].padStart(2, '0');
-                const y = datePieces[2];
-                datePart = `${d}/${m}/${y}`;
+    // Helper định dạng cột Thời gian thành 2 dòng dọc (Dòng 1: Giờ 12:40:43, Dòng 2: Ngày 21/07/2026 UTC+7)
+    const renderFormattedTime = (dateInput) => {
+        if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;
+
+        if (typeof dateInput === 'string' && dateInput.includes('/')) {
+            const parts = dateInput.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                const timePart = parts[0];
+                let datePart = parts[1];
+                const datePieces = datePart.split('/');
+                if (datePieces.length === 3) {
+                    const day = datePieces[0].length === 4 ? datePieces[2] : datePieces[0];
+                    const month = datePieces[1];
+                    const year = datePieces[0].length === 4 ? datePieces[0] : datePieces[2];
+                    datePart = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+                    return (
+                        <div className="log-time-column">
+                            <span className="log-time-clock">{timePart}</span>
+                            <span className="log-time-date">{datePart}</span>
+                        </div>
+                    );
+                }
             }
+        }
+
+        let d = null;
+        if (typeof dateInput === 'string') {
+            let strT = dateInput.trim();
+            if (strT.includes(' ') && !strT.includes('T')) {
+                strT = strT.replace(' ', 'T');
+            }
+            const hasTimezone = strT.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strT);
+            if (!hasTimezone) {
+                strT = strT + 'Z';
+            }
+            const parsed = new Date(strT);
+            if (!isNaN(parsed.getTime())) {
+                d = parsed;
+            } else {
+                const parsedNormal = new Date(dateInput);
+                if (!isNaN(parsedNormal.getTime())) d = parsedNormal;
+            }
+        } else if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+            d = dateInput;
+        }
+
+        if (d) {
+            const timePart = new Intl.DateTimeFormat('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Ho_Chi_Minh',
+            }).format(d);
+            const datePart = new Intl.DateTimeFormat('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'Asia/Ho_Chi_Minh',
+            }).format(d);
             return (
                 <div className="log-time-column">
                     <span className="log-time-clock">{timePart}</span>
@@ -312,7 +340,8 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 </div>
             );
         }
-        return <span className="log-time-clock">{timeStr}</span>;
+
+        return <span className="log-time-clock">{String(dateInput)}</span>;
     };
 
     const getStatusClass = (status) => {
@@ -537,29 +566,8 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                     </div>
                 </div>
 
-                <div className="filter-block">
-                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
-                    <div className="filter-input-wrapper">
-                        <div className="filter-input date-range-wrapper">
-                            <input
-                                type="date"
-                                className="date-range-input"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
-                            />
-                            <span className="date-range-sep">đến</span>
-                            <input
-                                type="date"
-                                className="date-range-input"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </div>
-
                 {/* Nút reset filter */}
-                {(search || typeFilter !== 'Tất cả' || statusFilter !== 'Tất cả' || dateFrom || dateTo) && (
+                {(search || typeFilter !== 'Tất cả' || statusFilter !== 'Tất cả') && (
                     <div className="filter-block reset-filter-btn-container" style={{ alignSelf: 'flex-end', paddingBottom: '2px' }}>
                         <button
                             type="button"
@@ -569,8 +577,6 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                 setSearch('');
                                 setTypeFilter('Tất cả');
                                 setStatusFilter('Tất cả');
-                                setDateFrom('');
-                                setDateTo('');
                             }}
                         >
                             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>filter_alt_off</span>
@@ -588,72 +594,64 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 ) : (
                     <>
                         <div style={{ width: '100%', overflowX: 'auto' }}>
-                            <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '980px' }}>
+                            <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '920px' }}>
                                 <colgroup>
-                                    <col style={{ width: '12%' }} /> {/* THỜI GIAN */}
-                                    <col style={{ width: '15%' }} /> {/* MÃ GIAO DỊCH */}
-                                    <col style={{ width: '10%' }} /> {/* BIỂN SỐ */}
-                                    <col style={{ width: '14%' }} /> {/* CHỦ XE */}
-                                    <col style={{ width: '10%' }} /> {/* LOẠI GIAO DỊCH */}
-                                    <col style={{ width: '10%' }} /> {/* PHÍ */}
-                                    <col style={{ width: '9%' }} />  {/* THANH TOÁN */}
-                                    <col style={{ width: '10%' }} /> {/* TRẠNG THÁI */}
-                                    <col style={{ width: '10%' }} /> {/* HÓA ĐƠN */}
+                                    <col style={{ width: '10%' }} /> {/* THỜI GIAN */}
+                                    <col style={{ width: '17%' }} /> {/* MÃ GIAO DỊCH */}
+                                    <col style={{ width: '9%' }} />  {/* BIỂN SỐ */}
+                                    <col style={{ width: '17%' }} /> {/* CHỦ XE */}
+                                    <col style={{ width: '9%' }} />  {/* LOẠI GIAO DỊCH */}
+                                    <col style={{ width: '15%' }} /> {/* PHÍ */}
+                                    <col style={{ width: '15%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '8%' }} />  {/* HÓA ĐƠN */}
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                        <th style={{ textAlign: 'left' }}>THỜI GIAN</th>
-                                        <th style={{ textAlign: 'left' }}>MÃ GIAO DỊCH</th>
-                                        <th style={{ textAlign: 'left' }}>BIỂN SỐ</th>
-                                        <th style={{ textAlign: 'left' }}>CHỦ XE</th>
-                                        <th style={{ textAlign: 'left' }}>LOẠI GIAO DỊCH</th>
-                                        <th style={{ textAlign: 'right' }}>PHÍ</th>
-                                        <th style={{ textAlign: 'center' }}>THANH TOÁN</th>
-                                        <th style={{ textAlign: 'center' }}>TRẠNG THÁI</th>
-                                        <th style={{ textAlign: 'center' }}>HÓA ĐƠN</th>
+                                        <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>THỜI GIAN</th>
+                                        <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>MÃ GIAO DỊCH</th>
+                                        <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>BIỂN SỐ</th>
+                                        <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>CHỦ XE</th>
+                                        <th style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>LOẠI GIAO DỊCH</th>
+                                        <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>PHÍ</th>
+                                        <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>TRẠNG THÁI</th>
+                                        <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>HÓA ĐƠN</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {currentData.length > 0 ? (
                                         currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
-                                                <td style={{ textAlign: 'left' }}>{renderFormattedTime(log.time)}</td>
-                                                <td style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '0.78rem', color: '#475569' }}>
+                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderFormattedTime(log.time)}</td>
+                                                <td style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '0.78rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {log.orderCode
-                                                        ? <span title={log.orderCode} style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.orderCode}</span>
+                                                        ? <span title={log.orderCode}>{log.orderCode}</span>
                                                         : <span style={{ color: '#ccc' }}>---</span>
                                                     }
                                                 </td>
-                                                <td className="mc-td-bold" style={{ textAlign: 'left' }}>{log.plate}</td>
-                                                <td style={{ textAlign: 'left' }}>{log.owner}</td>
-                                                <td style={{ textAlign: 'left' }}>{log.type}</td>
-                                                <td className="log-amount log-amount-cell" style={{ textAlign: 'right' }}>{log.amount}</td>
-                                                <td style={{ textAlign: 'center' }}>
-                                                    <span className={`method-badge ${log.paymentMethod?.toLowerCase() === 'vnpay' ? 'method-vnpay' : 'method-cash'}`}>
-                                                        {log.paymentMethod || 'Tiền mặt'}
-                                                    </span>
-                                                </td>
-                                                <td style={{ textAlign: 'center' }}>
+                                                <td className="mc-td-bold" style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.plate}</td>
+                                                <td style={{ textAlign: 'left', wordBreak: 'break-word', overflowWrap: 'break-word' }}>{log.owner}</td>
+                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.type}</td>
+                                                <td className="log-amount log-amount-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.amount}</td>
+                                                <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                                                     <span className={`status-badge-log ${getStatusClass(log.status)}`}>
                                                         {log.status}
                                                     </span>
                                                 </td>
-                                                <td style={{ textAlign: 'center' }}>
+                                                <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', minHeight: '28px' }}>
                                                         {log.status === 'Chờ thanh toán' && log.orderCode ? (
                                                             <button
                                                                 type="button"
-                                                                className="btn-monthcard-pay"
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#10b981', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                                 title="Xử lý thanh toán giao dịch chờ"
                                                                 onClick={() => handleOpenPendingModal(log)}
                                                             >
-                                                                <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>payments</span>
-                                                                <span>Thanh toán</span>
+                                                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>payments</span>
                                                             </button>
-                                                        ) : log.paymentMethod?.toLowerCase() === 'vnpay' ? (
+                                                        ) : (
                                                             <button
                                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                                title="Xem bill VNPay"
+                                                                title="Xem thông tin giao dịch"
                                                                 onClick={() => {
                                                                     setSelectedBill(log);
                                                                     setShowBillModal(true);
@@ -661,8 +659,6 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                                             >
                                                                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>visibility</span>
                                                             </button>
-                                                        ) : (
-                                                            <span style={{ display: 'inline-block', width: '20px', height: '20px' }}></span>
                                                         )}
                                                     </div>
                                                 </td>
@@ -670,7 +666,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="9" className="table-status-empty">
+                                            <td colSpan="8" className="table-status-empty">
                                                 Không tìm thấy nhật ký giao dịch phù hợp
                                             </td>
                                         </tr>
@@ -712,38 +708,88 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 )}
             </section>
 
-            {/* VNPay Bill Modal */}
+            {/* Transaction Detail Modal */}
             {showBillModal && selectedBill && (
-                <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', width: '400px', maxWidth: '90%', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-                            <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>Hóa đơn VNPay</h3>
-                            <button onClick={() => setShowBillModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                                <span className="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', color: '#334155' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: '600', color: '#475569' }}>Mã giao dịch:</span>
-                                <span>{selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || '---'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: '600', color: '#475569' }}>Số tiền:</span>
-                                <span style={{ color: '#ef4444', fontWeight: '600' }}>{selectedBill.amount || '0 đ'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: '600', color: '#475569' }}>Thời gian thanh toán:</span>
-                                <span>{selectedBill.paymentInfo?.paid_at ? new Date(selectedBill.paymentInfo.paid_at).toLocaleString('vi-VN') : '---'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontWeight: '600', color: '#475569' }}>Trạng thái:</span>
-                                <span style={{ color: selectedBill.status === 'Hoàn thành' ? '#10b981' : '#f59e0b', fontWeight: '600' }}>{selectedBill.status || '---'}</span>
-                            </div>
-                        </div>
-                        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '16px', width: '420px', maxWidth: '92%', padding: '0', boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', animation: 'fadeInScale 0.2s ease-out' }}>
+                        {/* Header with status icon */}
+                        <div style={{ background: selectedBill.status === 'Hoàn thành' ? 'linear-gradient(135deg, #10b981, #059669)' : selectedBill.status === 'Thất bại' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #f59e0b, #d97706)', padding: '28px 24px 20px', textAlign: 'center', position: 'relative' }}>
                             <button
                                 onClick={() => setShowBillModal(false)}
-                                style={{ backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 24px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                                style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.35)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                            </button>
+                            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#fff' }}>
+                                    {selectedBill.status === 'Hoàn thành' ? 'check_circle' : selectedBill.status === 'Thất bại' ? 'cancel' : 'schedule'}
+                                </span>
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: '17px', color: '#fff', fontWeight: '600' }}>Thông tin giao dịch</h3>
+                            <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
+                                {selectedBill.status === 'Hoàn thành' ? 'Giao dịch thành công' : selectedBill.status === 'Thất bại' ? 'Giao dịch thất bại' : 'Giao dịch đang xử lý'}
+                            </p>
+                        </div>
+
+                        {/* Body */}
+                        <div style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                                {/* Mã giao dịch */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Mã giao dịch</span>
+                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedBill.orderCode || selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || ''}>
+                                        {selectedBill.orderCode || selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || '---'}
+                                    </span>
+                                </div>
+                                {/* Loại giao dịch */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Loại giao dịch</span>
+                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{selectedBill.type || '---'}</span>
+                                </div>
+                                {/* Số tiền */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Số tiền</span>
+                                    <span style={{ fontSize: '15px', color: '#1e293b', fontWeight: '700' }}>{selectedBill.amount || '---'}</span>
+                                </div>
+                                {/* Phương thức thanh toán */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Phương thức</span>
+                                    <span className={`method-badge ${selectedBill.paymentMethod?.toLowerCase() === 'vnpay' ? 'method-vnpay' : 'method-cash'}`} style={{ fontSize: '12px' }}>
+                                        {selectedBill.paymentMethod || 'Tiền mặt'}
+                                    </span>
+                                </div>
+                                {/* Thời gian */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
+                                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Thời gian</span>
+                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>
+                                        {selectedBill.paymentInfo?.paid_at
+                                            ? new Date(selectedBill.paymentInfo.paid_at).toLocaleString('vi-VN')
+                                            : selectedBill.time || '---'}
+                                    </span>
+                                </div>
+                                {/* Trạng thái */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0' }}>
+                                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Trạng thái</span>
+                                    <span style={{
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                        color: selectedBill.status === 'Hoàn thành' ? '#10b981' : selectedBill.status === 'Thất bại' ? '#ef4444' : '#f59e0b'
+                                    }}>
+                                        {selectedBill.status || '---'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{ padding: '0 24px 20px', textAlign: 'center' }}>
+                            <button
+                                onClick={() => setShowBillModal(false)}
+                                style={{ backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 32px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background 0.2s', width: '100%' }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
                             >
                                 Đóng
                             </button>

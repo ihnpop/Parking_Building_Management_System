@@ -5,6 +5,76 @@ import { createLostCard } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 
+const renderFormattedTime = (dateInput) => {
+    if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;
+
+    if (typeof dateInput === 'string' && dateInput.includes('/')) {
+        const parts = dateInput.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            const timePart = parts[0];
+            let datePart = parts[1];
+            const datePieces = datePart.split('/');
+            if (datePieces.length === 3) {
+                const day = datePieces[0].length === 4 ? datePieces[2] : datePieces[0];
+                const month = datePieces[1];
+                const year = datePieces[0].length === 4 ? datePieces[0] : datePieces[2];
+                datePart = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+                return (
+                    <div className="log-time-column">
+                        <span className="log-time-clock">{timePart}</span>
+                        <span className="log-time-date">{datePart}</span>
+                    </div>
+                );
+            }
+        }
+    }
+
+    let d = null;
+    if (typeof dateInput === 'string') {
+        let strT = dateInput.trim();
+        if (strT.includes(' ') && !strT.includes('T')) {
+            strT = strT.replace(' ', 'T');
+        }
+        const hasTimezone = strT.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strT);
+        if (!hasTimezone) {
+            strT = strT + 'Z';
+        }
+        const parsed = new Date(strT);
+        if (!isNaN(parsed.getTime())) {
+            d = parsed;
+        } else {
+            const parsedNormal = new Date(dateInput);
+            if (!isNaN(parsedNormal.getTime())) d = parsedNormal;
+        }
+    } else if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+        d = dateInput;
+    }
+
+    if (d) {
+        const timePart = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const datePart = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return (
+            <div className="log-time-column">
+                <span className="log-time-clock">{timePart}</span>
+                <span className="log-time-date">{datePart}</span>
+            </div>
+        );
+    }
+
+    return <span className="log-time-clock">{String(dateInput)}</span>;
+};
+
 function filterRowsByTime(rows, mode, dateStr) {
     if (!dateStr) return rows;
     return rows.filter((r) => {
@@ -97,8 +167,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     // States dùng cho bộ lọc
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
 
     // Phân trang
     const [currentPage, setCurrentPage] = useState(1);
@@ -435,7 +503,11 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     // Xử lý bộ lọc tìm kiếm và đồng bộ 3 trạng thái hiển thị
     const handleFilter = () => {
-        let filtered = lostCards.filter((row) => {
+        // Áp dụng bộ lọc thời gian từ top-level KPI time filter
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        let filtered = filterRowsByTime(lostCards, kpiTimeFilter, dateStr);
+
+        filtered = filtered.filter((row) => {
             const cardCode = (row.card_code || row.cardNo || '').toLowerCase();
             const plateNumber = (row.plate_number || row.plate || '').toLowerCase();
             const customerName = (row.customer_name || row.owner || '').toLowerCase();
@@ -452,29 +524,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             const currentStatus = row.status || 'Đang chờ';
             const matchesStatus = statusFilter === 'Tất cả' || currentStatus === statusFilter;
 
-            let matchesDate = true;
-            if (startDate || endDate) {
-                const rowDateStr = row.reported_at || row.date;
-                if (rowDateStr) {
-                    const rowDate = new Date(rowDateStr);
-                    if (!isNaN(rowDate.getTime())) {
-                        rowDate.setHours(0, 0, 0, 0);
-
-                        if (startDate) {
-                            const sDate = new Date(startDate);
-                            sDate.setHours(0, 0, 0, 0);
-                            if (rowDate < sDate) matchesDate = false;
-                        }
-                        if (endDate) {
-                            const eDate = new Date(endDate);
-                            eDate.setHours(23, 59, 59, 999);
-                            if (rowDate > eDate) matchesDate = false;
-                        }
-                    }
-                }
-            }
-
-            return matchesSearch && matchesStatus && matchesDate;
+            return matchesSearch && matchesStatus;
         });
         setFilteredCards(filtered);
         setCurrentPage(1);
@@ -482,7 +532,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     useEffect(() => {
         handleFilter();
-    }, [statusFilter, search, lostCards, startDate, endDate]);
+    }, [statusFilter, search, lostCards, kpiTimeFilter, kpiDate, kpiMonth]);
 
     const renderPlate = (plateStr) => {
         if (!plateStr || plateStr === "N/A" || plateStr === "Chưa có xe") {
@@ -784,28 +834,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                         </div>
                     </div>
 
-                    <div className="filter-block">
-                        <label className="filter-label">Khoảng ngày báo mất</label>
-                        <div className="filter-input-wrapper">
-                            <div className="filter-input date-range-wrapper">
-                                <input
-                                    type="date"
-                                    className="date-range-input"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                />
-                                <span className="date-range-sep">đến</span>
-                                <input
-                                    type="date"
-                                    className="date-range-input"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
                     {/* Nút reset filter */}
-                    {(search || statusFilter !== 'Tất cả' || startDate || endDate) && (
+                    {(search || statusFilter !== 'Tất cả') && (
                         <div className="filter-block reset-filter-btn-container" style={{ alignSelf: 'flex-end', paddingBottom: '2px' }}>
                             <button
                                 type="button"
@@ -814,8 +844,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 onClick={() => {
                                     setSearch('');
                                     setStatusFilter('Tất cả');
-                                    setStartDate('');
-                                    setEndDate('');
                                 }}
                             >
                                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>filter_alt_off</span>
@@ -878,16 +906,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                     <td>{cardCode}</td>
                                                     <td>{renderPlate(plateNumber)}</td>
                                                     <td>{cardType}</td>
-                                                    <td>
-                                                        {reportDate && !isNaN(Date.parse(reportDate))
-                                                            ? new Date(reportDate).toLocaleString('vi-VN', {
-                                                                hour: '2-digit',
-                                                                minute: '2-digit',
-                                                                day: '2-digit',
-                                                                month: '2-digit',
-                                                                year: 'numeric'
-                                                            })
-                                                            : reportDate}
+                                                    <td style={{ textAlign: 'left' }}>
+                                                        {renderFormattedTime(reportDate)}
                                                     </td>
                                                     <td className="lost-content-cell" title={content}>{content}</td>
                                                     <td>
