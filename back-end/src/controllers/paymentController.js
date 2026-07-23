@@ -68,29 +68,14 @@ export const vnpayIpn = async (req, res) => {
     res.status(200).json(result);
 };
 
-function resolveFrontendUrl(req) {
-    if (req.query.origin) {
-        return decodeURIComponent(req.query.origin);
-    }
-    if (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes("localhost")) {
-        return process.env.FRONTEND_URL;
-    }
-    const host = req.headers["x-forwarded-host"] || req.headers["host"];
-    if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) {
-        return "https://pbms.id.vn";
-    }
-    return process.env.FRONTEND_URL || "http://localhost:5173";
-}
-
 /**
  * Endpoint Return URL: Tiếp nhận trình duyệt người dùng chuyển hướng về từ cổng VNPay.
- * Để tăng trải nghiệm người dùng, hàm này cũng tự cập nhật dữ liệu database bằng `handleIpn` phòng khi 
- * đường truyền IPN của VNPAY Sandbox qua ngrok bị chậm, sau đó redirect khách hàng về trang kết quả ở Frontend.
+ * Luôn chuyển hướng người dùng về đúng domain Frontend (pbms.id.vn) hiển thị kết quả.
  */
 export const vnpayReturn = async (req, res) => {
     try {
         const orderCode = req.query.vnp_TxnRef;
-        const frontendUrl = resolveFrontendUrl(req);
+        const frontendUrl = process.env.FRONTEND_URL || "https://pbms.id.vn";
 
         // Gọi handleIpn cục bộ để cập nhật tức thì trạng thái DB (thống nhất trạng thái 'Đã thanh toán')
         const ipnResult = await paymentService.handleIpn(req.query);
@@ -103,13 +88,12 @@ export const vnpayReturn = async (req, res) => {
 
         const status = isSuccess ? "success" : "failed";
         
-        // Chuyển hướng người dùng về trang Frontend hiển thị hóa đơn kết quả
-        // Lưu ý: App dùng HashRouter nên route phải theo dạng /#/payment-result
+        // Chuyển hướng người dùng về trang kết quả ở pbms.id.vn (HashRouter dạng /#/payment-result)
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=${status}`);
     } catch (err) {
         console.error("[VNPAY Return] Lỗi khi xử lý chuyển hướng trả về:", err);
         const orderCode = req.query.vnp_TxnRef || "";
-        const frontendUrl = resolveFrontendUrl(req);
+        const frontendUrl = process.env.FRONTEND_URL || "https://pbms.id.vn";
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=failed`);
     }
 };
