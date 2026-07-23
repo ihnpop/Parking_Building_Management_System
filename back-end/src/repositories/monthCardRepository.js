@@ -917,7 +917,7 @@ export const getCardDetailsForContract = async (cardId) => {
       )
     `)
     .eq('card_id', cardId)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
   return data;
@@ -933,6 +933,8 @@ export const getCccdNumberByCustomerId = async (customerId) => {
     .from('customer_kyc')
     .select('cccd_number')
     .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -1019,10 +1021,13 @@ export const getVehiclesByIds = async (vehicleIds) => {
  */
 export const getLostReportsByIds = async (reportIds) => {
   if (!reportIds || reportIds.length === 0) return [];
+  const validReportIds = reportIds.filter(id => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+  if (validReportIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from('card_lost_log')
     .select('lost_report_id, card_id, vehicle_id')
-    .in('lost_report_id', reportIds);
+    .in('lost_report_id', validReportIds);
 
   if (error) throw new Error(error.message);
   return data || [];

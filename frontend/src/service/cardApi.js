@@ -57,13 +57,60 @@ export const deleteCard = async (cardId, deletedBy) => {
     return response.data
 }
 
-// Gửi yêu cầu tạo báo mất thẻ mới đến API Backend
 export const createLostCard = async (payload) => {
-    const response = await API.post("/cards/lost-card", payload, {
-        headers: getAuthHeaders()
-    })
-    return response.data.data || response.data
-}
+    const response = await API.post("/cards/lost-card", payload);
+    return response.data.data || response.data;
+};
+
+export const checkLostCardPlate = async (payload) => {
+    const response = await API.post("/cards/lost-card/check-plate", payload);
+    return response.data.data || response.data;
+};
+
+export const updateLostCard = async (reportId, payload) => {
+    const response = await API.put(`/cards/lost-card/${reportId}`, payload);
+    return response.data.data || response.data;
+};
+
+export const acceptLostCard = async (reportId) => {
+    const response = await API.put(`/cards/lost-card/${reportId}/accept`);
+    return response.data.data || response.data;
+};
+
+export const cancelLostCard = async (reportId, payload = {}) => {
+    const response = await API.put(`/cards/lost-card/${reportId}/cancel`, payload);
+    return response.data.data || response.data;
+};
+
+export const resolveLostCard = async (reportId, payload = {}) => {
+    const response = await API.put(`/cards/lost-card/${reportId}/resolve`, payload);
+    return response.data.data || response.data;
+};
+
+export const reissueCard = async (payload) => {
+    const response = await API.post("/cards/lost-card/reissue", payload);
+    return response.data.data || response.data;
+};
+
+export const confirmReissueCash = async (orderCode) => {
+    const response = await API.post(`/cards/lost-card/confirm-reissue-cash/${orderCode}`);
+    return response.data.data || response.data;
+};
+
+export const initiateLostTurnCardPayment = async (payload) => {
+    const response = await API.post("/cards/lost-card/lost-turn-card-payment", payload);
+    return response.data.data || response.data;
+};
+
+export const confirmLostTurnCardCash = async (orderCode) => {
+    const response = await API.post(`/cards/lost-card/confirm-lost-turn-card-cash/${orderCode}`);
+    return response.data.data || response.data;
+};
+
+export const getLostCardHistory = async () => {
+    const response = await API.get("/cards/lost-card/history");
+    return response.data.data || response.data;
+};
 
 export const updateCard = async (id, payload) => {
     const response = await API.put(
@@ -86,3 +133,4 @@ export const inviteUser = async (payload) => {
     });
     return response.data.data || response.data;
 };
+

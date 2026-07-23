@@ -1,4 +1,4 @@
-﻿import AppError from "../utils/AppError.js";
+import AppError from "../utils/AppError.js";
 /**
  * paymentService.js
  * Dịch vụ xử lý nghiệp vụ thanh toán trung gian giữa database của bãi xe và cổng thanh toán VNPay.
@@ -132,6 +132,11 @@ export async function handleIpn(query) {
         else if (payment.payment_type === "Phí cấp lại thẻ") {
             const { processReissueSuccess } = await import("./lostCardService.js");
             await processReissueSuccess(orderCode);
+        }
+        // --- TRƯỜNG HỢP 4: Phí mất thẻ lượt ---
+        else if (payment.payment_type === "Phí mất thẻ lượt") {
+            const { processLostTurnCardPaymentSuccess } = await import("./lostCardService.js");
+            await processLostTurnCardPaymentSuccess(orderCode);
         }
     }
 
