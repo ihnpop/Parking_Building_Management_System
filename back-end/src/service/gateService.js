@@ -305,8 +305,8 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     cardIdVal = card.card_id;
     ticketType = 'Thẻ lượt';
 
-    // Tìm hoặc tạo xe tạm thời cho Visitor
-    let searchTypeName = (vehicleType === 'Ô tô' || (cleanPlate && /^\d{2}[A-Z]\d{4,5}$/.test(cleanPlate))) ? 'Ô tô' : 'Xe máy';
+    // Tìm hoặc tạo xe tạm thời cho Visitor (ưu tiên vehicleType truyền lên từ frontend)
+    let searchTypeName = vehicleType || ((cleanPlate && /^\d{2}[A-Z]{2}\d{4,5}$/.test(cleanPlate)) ? 'Ô tô' : 'Xe máy');
     let vtId = await gateRepository.getVehicleTypeId(searchTypeName);
     if (!vtId) {
       vtId = await gateRepository.getFallbackVehicleTypeId();
