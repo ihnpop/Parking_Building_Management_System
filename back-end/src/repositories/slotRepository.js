@@ -127,7 +127,6 @@ export const logSlotAllocation = async ({
   suggestedSlotId,
   actualSlotId,
   vehicleTypeId,
-  algorithmName = "Auto-Assign",
   reason = "Tự động gán slot khi xe check-in"
 }) => {
   if (!sessionId || !suggestedSlotId || !vehicleTypeId) return;
@@ -137,7 +136,6 @@ export const logSlotAllocation = async ({
       suggested_slot_id: suggestedSlotId,
       actual_slot_id: actualSlotId || suggestedSlotId,
       vehicle_type_id: vehicleTypeId,
-      algorithm_name: algorithmName,
       reason
     });
   } catch (err) {
