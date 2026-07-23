@@ -720,6 +720,41 @@ export default function ExitPaymentPanel({
                                     </span>
                                 </div>
 
+                                {/* Chi tiết công thức: Ngày × giá trần + Giờ lẻ */}
+                                {preCheckResult.ticket_type === "Thẻ lượt" && preCheckResult.fee_breakdown && preCheckResult.estimated_fee > 0 && (() => {
+                                    const bd = preCheckResult.fee_breakdown;
+                                    const hasDays = (bd.fullDays ?? 0) > 0;
+                                    const hasRemainder = (bd.remainingFee ?? 0) > 0;
+                                    if (!hasDays && !hasRemainder) return null;
+                                    return (
+                                        <div style={{
+                                            background: "#f8fafc", border: "1px dashed #cbd5e1",
+                                            borderRadius: 6, padding: "4px 8px", fontSize: 11,
+                                            color: "#475569", lineHeight: 1.6
+                                        }}>
+                                            <div style={{ fontWeight: 700, color: "#334155", marginBottom: 2 }}>Chi tiết tính phí:</div>
+                                            {hasDays && (
+                                                <div>
+                                                    {bd.fullDays} ngày × {formatVND(bd.dailyCeilingPrice)}
+                                                    <span style={{ color: "#94a3b8" }}> (giá trần/ngày)</span>
+                                                    {" = "}<strong>{formatVND(bd.fullDays * bd.dailyCeilingPrice)}</strong>
+                                                </div>
+                                            )}
+                                            {hasRemainder && (
+                                                <div>
+                                                    {bd.remainingHours != null ? `${bd.remainingHours.toFixed(2)}h lẻ` : "Giờ lẻ"}
+                                                    {" = "}<strong>{formatVND(bd.remainingFee)}</strong>
+                                                </div>
+                                            )}
+                                            {hasDays && hasRemainder && (
+                                                <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 2, paddingTop: 2, fontWeight: 700, color: "#dc2626" }}>
+                                                    Tổng = {formatVND(preCheckResult.estimated_fee)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
                                 {/* Action buttons */}
                                 <div style={s.actions}>
                                     {preCheckResult.ticket_type === "Mất thẻ" ? (

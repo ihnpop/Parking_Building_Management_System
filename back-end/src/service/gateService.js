@@ -3,13 +3,13 @@ import * as cardRepository from "../repositories/cardRepository.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
 import AppError from "../utils/AppError.js";
-import { getMatchingPriceItem } from "./feeCalculationService.js";
+import { getMatchingPriceItem, calculateDailyPlusFee, getDailyCeilingPrice } from "./feeCalculationService.js";
 
 // ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
 
 /**
- * Tính phí gửi xe dựa trên thời gian vào-ra và bảng giá trong DB.
- * Hàm này được dùng chung bởi preCheckExit và exitTap để tránh duplication.
+ * Tính phí gửi xe theo công thức:
+ *   Tổng phí = (Số ngày 24h đầy đủ × Giá trần ngày) + Phí số giờ lẻ còn lại
  *
  * @param {Date} entryTime  – Thời điểm xe vào
  * @param {Date} exitTime   – Thời điểm xe ra (hoặc thời điểm hiện tại khi pre-check)
@@ -36,17 +36,15 @@ export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
 
   const vehicleTypeId = targetVehicle?.vehicle_type_id || (typeof targetVehicle?.vehicle_type === 'object' ? targetVehicle?.vehicle_type?.vehicle_type_id : null);
 
-  // Giá mặc định: 10,000/giờ, miễn phí dưới 30 phút
+  // Fallback mặc định: dưới 30 phút miễn phí, còn lại 10.000đ/giờ
   let fee = totalHours < 0.5 ? 0 : billableHours * 10000;
 
   if (vehicleTypeId) {
     try {
       const priceItems = await gateRepository.getPriceItems(vehicleTypeId);
       if (priceItems?.length > 0) {
-        const matchingItem = getMatchingPriceItem(priceItems, totalHours);
-        if (matchingItem) {
-          fee = totalHours < 0.5 ? 0 : Number(matchingItem.price);
-        }
+        const result = calculateDailyPlusFee(totalHours, priceItems);
+        fee = result.estimated_fee;
       }
     } catch (dbErr) {
       console.error("[gateService] Lỗi tra cứu bảng phí, dùng mặc định:", dbErr.message);
