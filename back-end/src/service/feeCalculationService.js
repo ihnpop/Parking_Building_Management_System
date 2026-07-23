@@ -242,12 +242,17 @@ async function calculateHourlyFee(session, vehicle) {
     const nowTime = new Date();
     const diffMs = nowTime.getTime() - entryTime.getTime();
     const totalHours = diffMs / (1000 * 60 * 60);
+    const billableHours = Math.max(1, Math.ceil(totalHours));
 
-
-    let estimated_fee = billableHours * 10000; // fallback mặc định
+    let estimated_fee = totalHours < 0.5 ? 0 : billableHours * 10000; // fallback mặc định
     let price_item_used = null;
-    let rate = 10000;
+    let rate = totalHours < 0.5 ? 0 : 10000;
 
+
+    let fullDays = 0;
+    let remainingHours = 0;
+    let dailyCeilingPrice = 0;
+    let remainingFee = 0;
 
     let targetVehicle = vehicle;
     if ((!targetVehicle || !targetVehicle.vehicle_type_id) && session.plate_number) {
@@ -280,6 +285,8 @@ async function calculateHourlyFee(session, vehicle) {
                 estimated_fee = calculated.fee;
                 price_item_used = calculated.itemUsed;
                 rate = calculated.fee;
+                fullDays = calculated.fullDays || 0;
+                remainingHours = calculated.remHours || 0;
             }
         } catch (dbErr) {
             console.error("[feeCalculation] Lỗi tra cứu bảng phí, dùng fallback:", dbErr.message);
