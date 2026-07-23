@@ -218,7 +218,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         status: (log.status === 'Thành công' || log.status === 'Đã xong' || log.status === 'Đã thanh toán') ? 'Hoàn thành' : log.status,
                         type: mappedType
                     };
-                });
+                }).filter(log => !(log.status === 'Chờ thanh toán' && log.type === 'Gia hạn'));
             }
             setAllLogs(data || []);
             setLogs(data || []);
