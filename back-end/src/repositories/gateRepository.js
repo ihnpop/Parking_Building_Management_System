@@ -120,8 +120,9 @@ export const getFallbackVehicleTypeId = async () => {
 export const getPriceItems = async (vehicleTypeId) => {
   const { data } = await supabase
     .from("price_item")
-    .select("price, min_hour, max_hour")
-    .eq("vehicle_type_id", vehicleTypeId);
+    .select("price, min_hour, max_hour, price_table!inner(status)")
+    .eq("vehicle_type_id", vehicleTypeId)
+    .eq("price_table.status", "Hoạt động");
   return data || [];
 };
 

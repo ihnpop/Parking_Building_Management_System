@@ -88,7 +88,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
   const totalHours = diffMs / (1000 * 60 * 60);
   const billableHours = Math.max(1, Math.ceil(totalHours)); // ít nhất 1 giờ
 
-  let fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Giá mặc định 10k/giờ (miễn phí dưới 30 phút)
+  let fee = billableHours * 10000; // Giá mặc định 10k/giờ
 
   // Thử tra cứu bảng giá từ Database dựa trên biển số xe
   try {

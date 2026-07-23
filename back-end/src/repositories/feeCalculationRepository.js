@@ -172,8 +172,9 @@ export async function findPriceItems(priceTableId, vehicleTypeId) {
 export async function findPriceItemsByVehicleType(vehicleTypeId) {
     const { data, error } = await supabase
         .from("price_item")
-        .select("*")
-        .eq("vehicle_type_id", vehicleTypeId);
+        .select("*, price_table!inner(status)")
+        .eq("vehicle_type_id", vehicleTypeId)
+        .eq("price_table.status", "Hoạt động");
 
     if (error) throw new Error(error.message);
     return data || [];
