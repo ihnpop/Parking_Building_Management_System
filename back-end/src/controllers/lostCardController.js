@@ -147,6 +147,7 @@ export const reissueCard = async (req, res) => {
     if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
       ipAddr = '127.0.0.1';
     }
+    const origin = req.headers['origin'] || req.headers['referer'];
 
     const result = await lostCardService.reissueCard({
       cardId,
@@ -154,7 +155,8 @@ export const reissueCard = async (req, res) => {
       reportId,
       performedBy,
       ipAddr,
-      paymentMethod
+      paymentMethod,
+      origin
     });
 
     return res.status(200).json({ success: true, data: result });
@@ -197,12 +199,14 @@ export const initiateLostTurnCardPayment = async (req, res) => {
     if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
       ipAddr = '127.0.0.1';
     }
+    const origin = req.headers['origin'] || req.headers['referer'];
 
     const result = await lostCardService.initiateLostTurnCardPayment({
       reportId,
       paymentMethod,
       ipAddr,
-      performedBy
+      performedBy,
+      origin
     });
 
     return res.status(200).json({ success: true, data: result });

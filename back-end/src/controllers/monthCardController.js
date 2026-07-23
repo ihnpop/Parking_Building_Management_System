@@ -410,6 +410,7 @@ export const initiatePayment = async (req, res) => {
   try {
     const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
     const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
+    const origin = req.headers['origin'] || req.headers['referer'];
 
     // Lấy userId từ token JWT
     let userId = null;
@@ -436,7 +437,8 @@ export const initiatePayment = async (req, res) => {
     const result = await registrationService.initiateRegistration({
       ...req.body,
       ip_addr: ipAddrClean,
-      created_by: userId
+      created_by: userId,
+      origin
     });
 
     return res.status(200).json({ success: true, data: result });
@@ -523,11 +525,13 @@ export const getPendingRegistration = async (req, res) => {
     if (methodLower === 'vnpay' && pm.status === 'Chờ thanh toán') {
       const vnpayService = await import('../service/vnpayService.js');
       const rawPlate = noteObj.vehicle_info?.plate_number || 'xe';
+      const origin = req.headers['origin'] || req.headers['referer'];
       payUrl = vnpayService.createPaymentUrl({
         orderCode: pm.order_code,
         amount: pm.amount,
         orderInfo: `Dang ky ve thang ${rawPlate}`,
-        ipAddr: ipAddrClean
+        ipAddr: ipAddrClean,
+        origin
       });
     }
 

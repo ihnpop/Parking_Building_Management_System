@@ -134,7 +134,7 @@ export async function checkRenewalEligibility(cardId) {
  * @param {string} params.userId - ID người thực hiện
  * @returns {Promise<{orderCode, payUrl, amount, newExpiry}>}
  */
-export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr, userId }) {
+export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr, userId, origin }) {
     // Kiểm tra điều kiện đầu vào
     const { card, registration, vehiclePackage, currentExpiry } = await checkRenewalEligibility(cardId);
 
@@ -190,6 +190,7 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
             amount,
             orderInfo: `Gia han ve thang ${card.code}`,
             ipAddr: ipAddr || '127.0.0.1',
+            origin,
         });
     }
 

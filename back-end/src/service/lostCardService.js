@@ -527,7 +527,7 @@ export const resolveLostCardReport = async ({ reportId, performedBy, note }) => 
 /**
  * Cấp lại thẻ RFID cho thẻ tháng bị mất (update-in-place).
  */
-export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr, paymentMethod = 'vnpay' }) => {
+export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr, paymentMethod = 'vnpay', origin }) => {
   if (!cardId) throw new Error("Thiếu card_id.");
   if (!newCode?.trim()) throw new Error("Thiếu mã RFID mới (newCode).");
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
@@ -611,7 +611,8 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
         orderCode,
         amount: REISSUE_FEE,
         orderInfo: `Phi cap lai the thang - Report ${reportId.substring(0, 8).toUpperCase()}`,
-        ipAddr: clientIp
+        ipAddr: clientIp,
+        origin
       });
     } catch (vnpayErr) {
       console.error('[reissueCard] Lỗi sinh URL VNPay:', vnpayErr.message);
@@ -726,7 +727,7 @@ export const confirmReissueCash = async (orderCode) => {
 /**
  * Khởi tạo thanh toán mất thẻ lượt (Tính tổng tiền = Phí gửi xe + 50.000đ)
  */
-export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'vnpay', ipAddr, performedBy }) => {
+export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'vnpay', ipAddr, performedBy, origin }) => {
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
 
