@@ -206,9 +206,9 @@ async function calculateHourlyFee(session, vehicle) {
                 const matchingItem = getMatchingPriceItem(priceItems, totalHours);
 
                 if (matchingItem) {
-                    estimated_fee = Number(matchingItem.price);
+                    estimated_fee = totalHours < 0.5 ? 0 : Number(matchingItem.price);
                     price_item_used = matchingItem;
-                    rate = Number(matchingItem.price);
+                    rate = estimated_fee;
                 }
             }
         } catch (dbErr) {

@@ -45,7 +45,7 @@ export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
       if (priceItems?.length > 0) {
         const matchingItem = getMatchingPriceItem(priceItems, totalHours);
         if (matchingItem) {
-          fee = Number(matchingItem.price);
+          fee = totalHours < 0.5 ? 0 : Number(matchingItem.price);
         }
       }
     } catch (dbErr) {
