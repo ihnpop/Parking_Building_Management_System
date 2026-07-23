@@ -13,7 +13,9 @@ import {
     confirmReissueCash,
     initiateLostTurnCardPayment,
     confirmLostTurnCardCash,
-    getLostCardHistory
+    getLostCardHistory,
+    getCards,
+    getMonthCards
 } from "../../../service/cardApi";
 import { getCasualCardSessions } from "../../../service/casualCardApi";
 import { useNotification } from '../../../context/NotificationContext';
@@ -234,6 +236,38 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     const [showCashPanel, setShowCashPanel] = useState(false);
     const [cashPanelData, setCashPanelData] = useState({ orderCode: '', amount: 50000 });
     const [cashConfirmSuccess, setCashConfirmSuccess] = useState(false);
+    const [availableCards, setAvailableCards] = useState([]);
+    const [loadingAvailableCards, setLoadingAvailableCards] = useState(false);
+
+    useEffect(() => {
+        if (showReissueForm || (showCreateModal && wizardStep >= 4 && createCardCategory === 'month')) {
+            const fetchAvail = async () => {
+                try {
+                    setLoadingAvailableCards(true);
+                    const cards = await getMonthCards();
+                    const blankCards = cards.filter(c => {
+                        if (!c.status) return false;
+                        const s = c.status.toLowerCase().trim();
+                        return s.includes('chờ') || s.includes('blank') || s.includes('available');
+                    });
+                    setAvailableCards(blankCards);
+                    if (blankCards.length > 0) {
+                        if (showReissueForm && !newRfidCode) {
+                            setNewRfidCode(blankCards[0].code || blankCards[0].cardNo);
+                        }
+                        if (showCreateModal && !reissueRfidInput) {
+                            setReissueRfidInput(blankCards[0].code || blankCards[0].cardNo);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching available cards:", err);
+                } finally {
+                    setLoadingAvailableCards(false);
+                }
+            };
+            fetchAvail();
+        }
+    }, [showReissueForm, showCreateModal, wizardStep, createCardCategory, newRfidCode, reissueRfidInput]);
 
     // State theo dõi Popover fixed đè trên cùng hiển thị mã báo mất đầy đủ
     const [popoverState, setPopoverState] = useState(null); // { id, fullId, x, y }
@@ -537,7 +571,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             return;
         }
 
-        if (createCardCategory === 'monthly' && !cccdPreviewUrl) {
+        if (createCardCategory === 'month' && !cccdPreviewUrl) {
             showToast('Vui lòng tải lên ảnh CCCD.', 'error');
             return;
         }
@@ -672,10 +706,17 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                     await fetchLostCards();
                     return;
                 }
-            } else if (createCardCategory === 'month' && reissueRfidInput) {
+            } else if (createCardCategory === 'month') {
+                let targetCode = reissueRfidInput;
+                if (!targetCode) {
+                    showToast('Vui lòng chọn mã thẻ mới trước khi thanh toán.', 'error');
+                    setActionLoading(false);
+                    return;
+                }
+
                 const payRes = await reissueCard({
                     cardId: cardCheckData?.cardId,
-                    newCode: reissueRfidInput.trim(),
+                    newCode: targetCode.trim(),
                     reportId: currentDraftId,
                     paymentMethod: createPaymentMethod
                 });
@@ -1692,43 +1733,34 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                         /* ── Form nhập RFID + chọn phương thức ── */
                                                         <>
                                                             <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
-                                                                Cấp lại RFID cho thẻ tháng
+                                                                Cấp lại thẻ cho thẻ tháng
                                                             </h3>
                                                             <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                                                                Mã RFID mới sẽ được ghi đè trực tiếp lên thẻ cũ. Hợp đồng và đăng ký xe giữ nguyên.
+                                                                Mã thẻ mới sẽ được gán vào hồ sơ thẻ cũ. Hợp đồng và đăng ký xe giữ nguyên.
                                                             </p>
 
                                                             <div className="lost-form-group">
-                                                                <label>Mã thẻ RFID mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                                                <label>Mã thẻ mới <span style={{ color: '#ef4444' }}>*</span></label>
                                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Nhập hoặc quét mã thẻ RFID mới..."
+                                                                    <select
                                                                         value={newRfidCode}
                                                                         onChange={(e) => setNewRfidCode(e.target.value)}
-                                                                        style={{ flex: 1 }}
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        title="Tự động sinh mã RFID ngẫu nhiên"
-                                                                        onClick={() => {
-                                                                            const rand = `MONTH${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, '0')}`;
-                                                                            setNewRfidCode(rand);
-                                                                        }}
-                                                                        style={{
-                                                                            display: 'flex', alignItems: 'center', gap: '4px',
-                                                                            padding: '8px 12px', background: '#f1f5f9',
-                                                                            border: '1px solid #cbd5e1', borderRadius: '8px',
-                                                                            cursor: 'pointer', fontSize: '13px', color: '#475569',
-                                                                            whiteSpace: 'nowrap', fontWeight: '500', transition: 'all 0.15s'
-                                                                        }}
-                                                                        onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; }}
-                                                                        onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                                                                        style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: '#fff' }}
+                                                                        disabled={loadingAvailableCards}
                                                                     >
-                                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>shuffle</span>
-                                                                        Tự động sinh
-                                                                    </button>
+                                                                        <option value="" disabled>
+                                                                            {loadingAvailableCards ? "Đang tải danh sách thẻ..." : "Chọn mã thẻ mới..."}
+                                                                        </option>
+                                                                        {availableCards.map(card => (
+                                                                            <option key={card.card_id} value={card.code || card.cardNo}>
+                                                                                {card.code || card.cardNo}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
                                                                 </div>
+                                                                {!loadingAvailableCards && availableCards.length === 0 && (
+                                                                    <p style={{ fontSize: '12px', color: '#ef4444', margin: '4px 0 0 0' }}>Không có thẻ nào đang chờ trong kho.</p>
+                                                                )}
                                                             </div>
 
                                                             {/* Chọn phương thức thanh toán */}
@@ -2035,19 +2067,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                         )}
                                                     </div>
                                                 </div>
-
-                                                <div style={{ marginBottom: '16px' }}>
-                                                    <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
-                                                        Lý do báo mất thẻ (Bắt buộc) <span style={{ color: '#ef4444' }}>*</span>
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Nhập lý do làm mất thẻ lượt..."
-                                                        value={createLostReason}
-                                                        onChange={(e) => setCreateLostReason(e.target.value)}
-                                                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
-                                                    />
-                                                </div>
                                             </div>
                                         ) : (
                                             /* --- THẺ THÁNG: Upload Ảnh CCCD + Ô nhập Số CCCD + Nút Xác thực --- */
@@ -2090,6 +2109,19 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                 </div>
                                             </div>
                                         )}
+
+                                        <div style={{ marginBottom: '16px' }}>
+                                            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
+                                                Lý do báo mất thẻ (Bắt buộc) <span style={{ color: '#ef4444' }}>*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Nhập lý do báo mất thẻ..."
+                                                value={createLostReason}
+                                                onChange={(e) => setCreateLostReason(e.target.value)}
+                                                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                                            />
+                                        </div>
                                     </div>
                                 )}
 
@@ -2169,6 +2201,55 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                             )}
                                         </div>
 
+                                        {/* Card Selection for Month Card */}
+                                        {createCardCategory === 'month' && (
+                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
+                                                <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>style</span>
+                                                    CHỌN THẺ THÁNG MỚI ĐỂ CẤP LẠI
+                                                </h4>
+                                                <div style={{ fontSize: '12.5px', color: '#475569', marginBottom: '12px', background: '#eff6ff', padding: '8px 12px', borderRadius: '8px' }}>
+                                                    Thông tin kế thừa: Chủ xe <strong>{cardCheckData?.ownerName || '---'}</strong> — Biển số <strong>{checkPlateInput.toUpperCase()}</strong> — Gói <strong>{cardCheckData?.package || 'Vé tháng'}</strong>
+                                                </div>
+                                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '4px' }}>Mã thẻ mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <select
+                                                        value={reissueRfidInput}
+                                                        onChange={(e) => setReissueRfidInput(e.target.value)}
+                                                        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none', background: '#fff' }}
+                                                        disabled={loadingAvailableCards}
+                                                    >
+                                                        <option value="" disabled>
+                                                            {loadingAvailableCards ? "Đang tải danh sách thẻ..." : "Chọn mã thẻ mới..."}
+                                                        </option>
+                                                        {availableCards.map(card => (
+                                                            <option key={card.card_id} value={card.code || card.cardNo}>
+                                                                {card.code || card.cardNo}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (availableCards.length > 0) {
+                                                                setReissueRfidInput(availableCards[0].code || availableCards[0].cardNo);
+                                                                showToast('Đã lấy thẻ tự động!', 'success');
+                                                            } else {
+                                                                showToast('Không có thẻ trống nào!', 'error');
+                                                            }
+                                                        }}
+                                                        style={{ padding: '0 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                                    >
+                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_awesome</span>
+                                                        Lấy tự động
+                                                    </button>
+                                                </div>
+                                                {!loadingAvailableCards && availableCards.length === 0 && (
+                                                    <p style={{ fontSize: '12px', color: '#ef4444', margin: '4px 0 0 0' }}>Không có thẻ nào đang chờ trong kho.</p>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {/* Payment Methods */}
                                         <div>
                                             <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
@@ -2232,30 +2313,13 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                             </div>
                                         ) : (
                                             /* --- Thẻ tháng: Quy trình cấp thẻ tháng mới --- */
-                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-                                                <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>style</span>
-                                                    QUY TRÌNH CẤP LẠI THẺ THÁNG MỚI (KẾ THỪA THÔNG TIN)
+                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                                                <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#16a34a' }}>task_alt</span>
+                                                    HOÀN TẤT CẤP LẠI THẺ THÁNG
                                                 </h4>
-                                                <div style={{ fontSize: '12.5px', color: '#475569', marginBottom: '12px', background: '#eff6ff', padding: '8px 12px', borderRadius: '8px' }}>
-                                                    Thông tin kế thừa: Chủ xe <strong>{cardCheckData?.ownerName || 'Nguyễn Văn A'}</strong> — Biển số <strong>{checkPlateInput.toUpperCase()}</strong> — Gói <strong>{cardCheckData?.package || 'Vé tháng'}</strong>
-                                                </div>
-                                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '4px' }}>Mã thẻ RFID mới</label>
-                                                <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Nhập hoặc quét mã RFID..."
-                                                        value={reissueRfidInput}
-                                                        onChange={(e) => setReissueRfidInput(e.target.value)}
-                                                        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setReissueRfidInput(`RFID-${Math.floor(100000 + Math.random() * 900000)}`)}
-                                                        style={{ padding: '8px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}
-                                                    >
-                                                        Tự động sinh
-                                                    </button>
+                                                <div style={{ fontSize: '14px', color: '#1e293b', padding: '16px 0' }}>
+                                                    Vui lòng lấy thẻ vật lý có mã <strong style={{ color: '#0284c7', fontSize: '18px' }}>{reissueRfidInput}</strong> giao cho khách hàng.
                                                 </div>
                                             </div>
                                         )}
