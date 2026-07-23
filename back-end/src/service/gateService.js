@@ -6,11 +6,12 @@ import * as slotRepository from "../repositories/slotRepository.js";
 import AppError from "../utils/AppError.js";
 import { calculateFeeFromPriceItems } from "./feeCalculationService.js";
 
+
 // ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
 
 /**
- * Tính phí gửi xe dựa trên thời gian vào-ra và bảng giá trong DB.
- * Hàm này được dùng chung bởi preCheckExit và exitTap để tránh duplication.
+ * Tính phí gửi xe theo công thức:
+ *   Tổng phí = (Số ngày 24h đầy đủ × Giá trần ngày) + Phí số giờ lẻ còn lại
  *
  * @param {Date} entryTime  – Thời điểm xe vào
  * @param {Date} exitTime   – Thời điểm xe ra (hoặc thời điểm hiện tại khi pre-check)

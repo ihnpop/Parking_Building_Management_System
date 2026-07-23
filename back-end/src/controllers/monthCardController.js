@@ -209,7 +209,9 @@ export const createMonthCard = async (req, res) => {
       email,
       status,
       vehicleTypeId,
-      note
+      note,
+      cccdNumber,
+      cccd_number
     } = req.body;
 
     if (!plate) {
@@ -258,7 +260,9 @@ export const createMonthCard = async (req, res) => {
       status,
       vehicleTypeId,
       note,
-      currentUserId
+      currentUserId,
+      cccdNumber,
+      cccd_number
     });
 
     return res.status(201).json(result);
@@ -406,6 +410,7 @@ export const initiatePayment = async (req, res) => {
   try {
     const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
     const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
+    const origin = req.headers['origin'] || req.headers['referer'];
 
     // Lấy userId từ token JWT
     let userId = null;
@@ -432,7 +437,8 @@ export const initiatePayment = async (req, res) => {
     const result = await registrationService.initiateRegistration({
       ...req.body,
       ip_addr: ipAddrClean,
-      created_by: userId
+      created_by: userId,
+      origin
     });
 
     return res.status(200).json({ success: true, data: result });
@@ -519,11 +525,13 @@ export const getPendingRegistration = async (req, res) => {
     if (methodLower === 'vnpay' && pm.status === 'Chờ thanh toán') {
       const vnpayService = await import('../service/vnpayService.js');
       const rawPlate = noteObj.vehicle_info?.plate_number || 'xe';
+      const origin = req.headers['origin'] || req.headers['referer'];
       payUrl = vnpayService.createPaymentUrl({
         orderCode: pm.order_code,
         amount: pm.amount,
         orderInfo: `Dang ky ve thang ${rawPlate}`,
-        ipAddr: ipAddrClean
+        ipAddr: ipAddrClean,
+        origin
       });
     }
 
@@ -750,7 +758,8 @@ export const getRenewalInfo = async (req, res) => {
       userId = profiles?.[0]?.id || null;
     }
 
-    const info = await renewalService.getRenewalInfo(cardId, userId);
+    const origin = req.headers['origin'] || req.headers['referer'];
+    const info = await renewalService.getRenewalInfo(cardId, userId, origin);
     return res.status(200).json({ success: true, data: info });
   } catch (err) {
     console.error('getRenewalInfo error:', err);

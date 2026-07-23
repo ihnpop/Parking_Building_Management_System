@@ -226,7 +226,8 @@ class ParkingRegistrationService {
             package_id,
             payment_method, // 'vnpay' | 'cash'
             ip_addr,
-            created_by
+            created_by,
+            origin
         } = payload;
 
         const phone = (customer_info.phone || '').trim();
@@ -287,7 +288,8 @@ class ParkingRegistrationService {
                     orderCode,
                     amount: packagePrice,
                     orderInfo: `Dang ky ve thang ${rawPlate}`,
-                    ipAddr: ipAddrClean
+                    ipAddr: ipAddrClean,
+                    origin
                 });
             }
         }

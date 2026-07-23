@@ -77,7 +77,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     uploadToStorage(plateImageFile.buffer, "exit/plate", plateImageFile.originalname),
   ]);
 
-  // 4. Tính tiền gửi xe
+  // 4. Tính tiền gửi xe theo công thức: Ngày đầy đủ × giá trần + giờ lẻ
   let entryTimeStr = activeSession.entry_time;
   if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
     entryTimeStr += "Z";
@@ -86,17 +86,16 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
   const exitTime = new Date();
   const diffMs = exitTime.getTime() - entryTime.getTime();
   const totalHours = diffMs / (1000 * 60 * 60);
-  const billableHours = Math.max(1, Math.ceil(totalHours)); // ít nhất 1 giờ
+  const billableHours = Math.max(1, Math.ceil(totalHours));
+
 
   let fee = billableHours * 10000; // Giá mặc định 10k/giờ
 
-  // Thử tra cứu bảng giá từ Database dựa trên biển số xe
+
   try {
     const vehicle = await parkingRepository.findVehicleByPlate(activeSession.plate_number);
-
     if (vehicle?.vehicle_type_id) {
       const priceItems = await parkingRepository.findPriceItemsByVehicleType(vehicle.vehicle_type_id);
-
       if (priceItems && priceItems.length > 0) {
         const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
         fee = calculated.fee;
@@ -150,20 +149,20 @@ export const openGateFree = async ({ sessionId, staffId, finalFee = 0, ticketTyp
   // Lấy ticketType nếu không có từ frontend
   let resolvedTicketType = ticketType;
   if (!resolvedTicketType && session.card_id) {
-     const activeReg = await parkingRepository.findActiveCardRegistration(session.card_id);
-     if (activeReg) {
-         // Nếu có đăng ký thẻ tháng thì là Thẻ tháng
-         resolvedTicketType = "Thẻ tháng";
-     } else {
-         resolvedTicketType = "Thẻ lượt";
-     }
+    const activeReg = await parkingRepository.findActiveCardRegistration(session.card_id);
+    if (activeReg) {
+      // Nếu có đăng ký thẻ tháng thì là Thẻ tháng
+      resolvedTicketType = "Thẻ tháng";
+    } else {
+      resolvedTicketType = "Thẻ lượt";
+    }
   } else if (!resolvedTicketType) {
-     resolvedTicketType = "Thẻ lượt";
+    resolvedTicketType = "Thẻ lượt";
   }
 
   // 2. Cập nhật parking_sessions thành Hoàn thành
   const exitTime = new Date().toISOString();
-  
+
   const updatedSession = await parkingRepository.updateSessionById(sessionId, {
     exit_time: exitTime,
     final_fee: finalFee,
