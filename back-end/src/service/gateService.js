@@ -4,6 +4,7 @@ import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
 import * as slotRepository from "../repositories/slotRepository.js";
 import AppError from "../utils/AppError.js";
+import { calculateFeeFromPriceItems } from "./feeCalculationService.js";
 
 // ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
 
@@ -34,14 +35,8 @@ const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
     try {
       const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
       if (priceItems?.length > 0) {
-        const matchingItem = priceItems.find((item) => {
-          const min = Number(item.min_hour) || 0;
-          const max = item.max_hour != null ? Number(item.max_hour) : null;
-          return max === null ? totalHours >= min : totalHours >= min && totalHours < max;
-        });
-        if (matchingItem) {
-          fee = Number(matchingItem.price);
-        }
+        const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
+        fee = calculated.fee;
       }
     } catch (dbErr) {
       console.error("[gateService] Lỗi tra cứu bảng phí, dùng mặc định:", dbErr.message);
