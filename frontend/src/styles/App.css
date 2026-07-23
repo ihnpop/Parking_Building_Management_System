@@ -30511,203 +30511,27 @@ body,
    SYSTEM OPERATIONS — MOBILE & TABLET RESPONSIVE (Task 4 / Task 5)
    ========================================================================== */
 
-/* Mobile: system-page below 1024px stacks everything vertically */
-@media (max-width: 1023px) {
-  .system-page .system-content {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 16px !important;
-    height: auto !important;
-    overflow: visible !important;
-  }
-
-  /* Camera grid mobile: 1 column, 2 cameras stacked */
+/* System Operations responsive media queries */
+@media (min-width: 768px) and (max-width: 1199.98px) {
   .system-page .camera-grid,
   .system-page .camera-grid--two-vertical {
     display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto auto !important;
+    grid-template-columns: 1fr 1fr !important;
     gap: 12px !important;
     height: auto !important;
   }
 
-  .system-page .camera-card {
-    height: auto !important;
-  }
-
   .system-page .camera-image {
-    height: 220px !important;
-    max-height: 220px !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+    min-height: 160px !important;
+    max-height: 240px !important;
   }
 
-  /* Stats grid on mobile: 3 columns compact */
   .system-page .stats-grid {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 8px !important;
-  }
-
-  /* 1. Chuẩn hóa ô Bộ Lọc Khoảng Ngày / Khoảng Thời Gian trong Nhật Ký Vận Hành */
-  .filter-input.date-range-wrapper {
-    display: inline-flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    height: 38px !important;
-    padding: 0 10px !important;
-    width: auto !important;
-    box-sizing: border-box !important;
-    background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-  }
-
-  .filter-input.date-range-wrapper:focus-within {
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
-  }
-
-  /* Ép cố định kích thước ô date input để chữ nn/mm/yyyy và cuốn lịch [📅] nằm khít nhau trên TẤT CẢ các tab */
-  .date-range-wrapper .date-range-input {
-    border: none !important;
-    background: transparent !important;
-    font-size: 13px !important;
-    color: #334155 !important;
-    padding: 0 !important;
-    height: 100% !important;
-    outline: none !important;
-    flex: 0 0 auto !important;
-    width: 118px !important;
-    min-width: 115px !important;
-    max-width: 122px !important;
-    box-shadow: none !important;
-  }
-
-  .date-range-wrapper .date-range-input::-webkit-calendar-picker-indicator {
-    cursor: pointer !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    opacity: 0.75 !important;
-  }
-
-  .date-range-wrapper .date-range-input::-webkit-calendar-picker-indicator:hover {
-    opacity: 1 !important;
-  }
-
-  .date-range-wrapper .date-range-sep {
-    font-size: 12px !important;
-    color: #64748b !important;
-    font-weight: 500 !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-    padding: 0 2px !important;
-  }
-
-  /* Đảm bảo ô filter-block chứa Khoảng ngày giữ kích thước chuẩn gọn gàng, không bị giãn quá rộng */
-  .filter-block:has(.date-range-wrapper),
-  .lost-filter-card .filter-block:has(.date-range-wrapper) {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
-  }
-
-  /* 2. Chuẩn hóa Bộ Chọn Ngày Top-Right KPI (kpi-date-picker) */
-  .kpi-date-picker {
-    height: 34px !important;
-    padding: 0 10px !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 6px !important;
-    font-size: 13px !important;
-    color: #334155 !important;
-    background: #ffffff !important;
-    outline: none !important;
-  }
-
-  /* 3. Đảm bảo nhãn Tiêu đề Filter nằm trên cùng hàng phẳng */
-  .filter-block label,
-  .lost-filter-card .filter-block label {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    color: #64748b !important;
-    letter-spacing: 0.3px !important;
-    text-transform: uppercase !important;
-    margin-bottom: 6px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 2px !important;
-  }
-
-  /* 4. Sửa lỗi màu nền Modal Phân quyền (User Management Modal Backdrop) */
-  .user-management-modal-overlay {
-    background-color: rgba(0, 0, 0, 0.45) !important;
-  }
-
-  /* 5. Chuẩn hóa tất cả các nút và khoảng cách trong bộ lọc Nhật Ký Vận Hành (Đầy đặn 100% chiều rộng, khít viền, căn bằng đáy 100%) */
-  .lost-filter-card {
-    display: flex !important;
-    align-items: flex-end !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    padding: 16px 20px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-
-  /* Cho các ô lọc tìm kiếm co giãn đều và lấp đầy không gian bên trái mà không để khoảng trống rỗng */
-  .lost-filter-card .filter-block:not(.reset-filter-btn-container):not(:has(.date-range-wrapper)) {
-    flex: 1 !important;
-    min-width: 140px !important;
-  }
-
-  /* Form and details area on mobile */
-  .system-page .active-transaction {
-    display: flex !important;
-    flex-direction: column !important;
     gap: 10px !important;
-    padding: 14px !important;
-    border-radius: 12px !important;
-    background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-  }
-
-  .system-page .transaction-details {
-    border-left: none !important;
-    border-top: 1px dashed #cbd5e1 !important;
-    padding-left: 0 !important;
-    padding-top: 12px !important;
-  }
-}
-
-/* Tablet: 768px-1023px — 2 column layout but not fixed height */
-@media (min-width: 768px) and (max-width: 1023px) {
-
-  .system-page .camera-grid,
-  .system-page .camera-grid--two-vertical {
-    grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: auto !important;
-    height: auto !important;
-  }
-
-  .system-page .camera-image {
-    height: 200px !important;
-  }
-}
-
-/* Small mobile below 480px */
-@media (max-width: 479px) {
-  .system-page .camera-image {
-    height: 180px !important;
-  }
-
-  .system-page .stats-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .system-page .transaction-plate {
-    font-size: 18px !important;
-    height: 40px !important;
   }
 }
 
@@ -36168,5 +35992,469 @@ button.mc-btn .material-symbols-outlined {
   margin: 0;
   line-height: 1.6;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STAFF SYSTEM OPERATIONS — MOBILE RESPONSIVE (< 540px)
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 539.98px) {
+  /* Layout Container */
+  .layout:has(.system-page) .content,
+  .content:has(.system-page) {
+    padding: 10px 12px 76px 12px !important;
+    overflow-x: hidden !important;
+  }
+
+  .system-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .system-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+
+  /* ── Mức 1: Thanh thống kê nhanh (Grid 3 ô nhỏ gọn) ── */
+  .stats-grid {
+    order: 1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .stat-card {
+    padding: 10px 6px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    gap: 4px !important;
+    min-height: 56px !important;
+  }
+
+  .stat-card-text {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .stat-label {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 2px !important;
+    white-space: nowrap !important;
+  }
+
+  .stat-value {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+  }
+
+  .stat-icon {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+  }
+
+  .stat-icon .material-symbols-outlined {
+    font-size: 16px !important;
+  }
+
+  /* ── Mức 2: Form thao tác chính (XE VÀO / XE RA) ── */
+  .active-transaction {
+    order: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    border-radius: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .so-mode-switcher {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .so-mode-btn {
+    flex: 1 !important;
+    min-height: 44px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+
+  .so-mode-btn .so-mode-btn-icon {
+    font-size: 20px !important;
+  }
+
+  .so-plate-input,
+  .transaction-plate {
+    min-height: 48px !important;
+    height: 48px !important;
+    font-size: 20px !important;
+    border-radius: 10px !important;
+    padding: 0 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .vehicle-type-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  .vehicle-type-buttons {
+    display: flex !important;
+    gap: 8px !important;
+  }
+
+  .vehicle-type-btn {
+    flex: 1 !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .submit-action-btn {
+    min-height: 46px !important;
+    height: 46px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+
+  /* ── Mức 3: Khung xem Camera (Camera 01 & 02 aspect 16:9) ── */
+  .camera-grid {
+    order: 3 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .camera-card {
+    width: 100% !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  .camera-image {
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    background-size: cover !important;
+    background-position: center !important;
+    object-fit: cover !important;
+  }
+
+  .camera-label {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    top: 8px !important;
+    left: 8px !important;
+    border-radius: 6px !important;
+  }
+
+  /* ── Mức 4 & 5: Thông tin quét thẻ, ca trực & Lịch sử ── */
+  .transaction-details {
+    order: 4 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+  }
+
+  /* Mức 4: Thông tin quét thẻ & Ca trực */
+  .last-session-card {
+    order: 1 !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .shift-info-card {
+    order: 2 !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Mức 5: Lịch sử giao dịch gần đây */
+  .recent-transactions-list-card {
+    order: 3 !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  /* ── Bottom Navigation Bar (Fixed bottom-0 cho F1 & F2) ── */
+  .shortcut-row {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 9999 !important;
+    background: #ffffff !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12) !important;
+    padding: 8px 12px !important;
+    display: flex !important;
+    gap: 10px !important;
+    border-top: 1px solid #e2e8f0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .shortcut-row .shortcut-button {
+    flex: 1 !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+
+  .shortcut-key {
+    min-width: 24px !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+  }
+
+  /* Header Optimization for Mobile */
+  .header {
+    padding: 10px 14px !important;
+  }
+
+  .page-title {
+    font-size: 16px !important;
+  }
+
+  .header-right-group {
+    gap: 8px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STAFF SYSTEM OPERATIONS — COMPONENT POLISH FOR ALL SCALES
+   (Fixing 3 specific UI components: Vehicle Type, Card Select, Last Session Grid)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Nút Chọn Loại Xe (Vehicle Type Buttons) */
+.system-page .vehicle-type-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin: 6px 0 !important;
+  box-sizing: border-box !important;
+}
+
+.system-page .vehicle-type-container .transaction-label {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin: 0 !important;
+}
+
+.system-page .vehicle-type-buttons {
+  display: flex !important;
+  gap: 10px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.system-page .vehicle-type-btn {
+  flex: 1 !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
+}
+
+.system-page .vehicle-type-btn:hover {
+  border-color: #3b82f6 !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+}
+
+.system-page .vehicle-type-btn.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+}
+
+.system-page .vehicle-type-btn .material-symbols-outlined {
+  font-size: 20px !important;
+  flex-shrink: 0 !important;
+}
+
+/* 2. Ô Chọn Thẻ Lượt (Visitor Card Select Dropdown) */
+.system-page .visitor-card-select-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin: 10px 0 !important;
+  box-sizing: border-box !important;
+}
+
+.system-page .visitor-card-select-container .transaction-label {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #2563eb !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin: 0 !important;
+}
+
+.system-page .visitor-card-select-container select {
+  width: 100% !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid #93c5fd !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  padding: 0 38px 0 14px !important;
+  outline: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 18px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08) !important;
+  box-sizing: border-box !important;
+}
+
+.system-page .visitor-card-select-container select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* 3. Khối Giao Dịch Vừa Thực Hiện / Thông Tin Quét Thẻ (Last Session Card) */
+.system-page .last-session-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04) !important;
+}
+
+.system-page .last-session-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 0 14px 0 !important;
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.system-page .last-session-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.system-page .last-session-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.system-page .last-session-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  white-space: nowrap !important;
+  margin-right: 2px !important;
+}
+
+.system-page .last-session-value {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.system-page .last-session-value.status-done {
+  color: #059669 !important;
+  background: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  padding: 2px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.system-page .last-session-value.price-value {
+  color: #2563eb !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+
+
 
 
