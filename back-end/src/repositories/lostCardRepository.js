@@ -167,7 +167,7 @@ export const resolveRealReportId = async (reportId) => {
     return null;
   }
 
-  const match = data?.find(r => 
+  const match = data?.find(r =>
     r.lost_report_id === reportId ||
     r.lost_report_id.toLowerCase().startsWith(cleanHex) ||
     r.lost_report_id.toLowerCase().replace(/-/g, '').startsWith(cleanHex)

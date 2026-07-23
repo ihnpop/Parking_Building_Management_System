@@ -1,5 +1,5 @@
 # back-end a
-name: Deploy PBMS to AWS EC2
+name: Deploy Backend
 
 on:
   push:
