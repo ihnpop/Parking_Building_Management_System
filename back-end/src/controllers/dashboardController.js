@@ -4,6 +4,7 @@
  */
 
 import * as dashboardService from "../service/dashboardService.js";
+import supabase from "../config/supabaseClient.js";
 
 /**
  * GET /api/dashboard/stats
@@ -11,7 +12,22 @@ import * as dashboardService from "../service/dashboardService.js";
  */
 export const getDashboardSummary = async (req, res) => {
     try {
-        const data = await dashboardService.getSummaryData();
+        let targetBuildingId = null;
+        if (req.user?.id) {
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("building_id, role:role_id(role_name)")
+                .eq("id", req.user.id)
+                .maybeSingle();
+
+            const roleName = profile?.role?.role_name ? profile.role.role_name.toUpperCase() : null;
+            // Nếu không phải ADMIN -> Lọc chỉ số theo building_id đã được ADMIN gán
+            if (roleName !== "ADMIN" && profile?.building_id) {
+                targetBuildingId = profile.building_id;
+            }
+        }
+
+        const data = await dashboardService.getSummaryData(targetBuildingId);
         return res.json(data);
     } catch (err) {
         console.error("[DashboardController] getDashboardSummary error:", err);

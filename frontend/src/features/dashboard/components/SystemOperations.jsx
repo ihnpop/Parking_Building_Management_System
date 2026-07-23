@@ -864,7 +864,6 @@ export default function SystemOperations() {
                             exitVehicleUrl={exitVehicleUrl}
                             exitPlateUrl={exitPlateUrl}
                             onPreCheckLoaded={(data) => {
-                                setEntryVehicleImageDisplay(data.session?.entry_vehicle_image || null);
                                 setEntryPlateImageDisplay(data.session?.entry_plate_image || null);
                             }}
                             onSessionCompleted={(completedSession) => {

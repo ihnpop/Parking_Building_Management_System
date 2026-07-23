@@ -35,7 +35,6 @@ export const checkIn = async (plateNumber, vehicleImageFile, plateImageFile) => 
   const session = await parkingRepository.createParkingSession({
     vehicle_id: null,
     plate_number: plateNumber.trim().toUpperCase(),
-    entry_vehicle_image: entryVehicleUrl,
     entry_plate_image: entryPlateUrl,
   });
 

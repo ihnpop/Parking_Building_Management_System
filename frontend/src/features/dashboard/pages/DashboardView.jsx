@@ -368,10 +368,12 @@ export default function DashboardView() {
                                 </span>
                             </div>
                             <div className="db-kpi-value">{stats.emptySlots} chỗ</div>
-                            <div className="db-kpi-note">Sẵn sàng cấp phát khi xe vào</div>
+                            <div className="db-kpi-note">
+                                {computedRole === 'ADMIN' ? 'Tổng chỗ trống tất cả các tòa nhà' : 'Chỗ trống thuộc tòa nhà được phân công'}
+                            </div>
                             <div className="db-kpi-status-cue" style={{ color: '#10b981' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>check_circle</span>
-                                <span>Sẵn sàng đón xe</span>
+                                <span>{computedRole === 'ADMIN' ? 'Tất cả bãi xe' : 'Bãi xe được phân công'}</span>
                             </div>
                         </div>
 

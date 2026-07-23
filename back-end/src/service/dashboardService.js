@@ -94,12 +94,12 @@ const VEHICLE_TYPE_COLOR_DEFAULT = '#FBBF24';
 // ─── Core Logic ──────────────────────────────────────────────────────────────
 
 /** 1. Tổng hợp dữ liệu KPI chính và biểu đồ hiển thị ở Dashboard chính */
-export async function getSummaryData() {
+export async function getSummaryData(buildingId = null) {
     const activeSessions = await dashboardRepository.getActiveSessionsCount();
-    const availableSlots = await dashboardRepository.getAvailableSlotsCount();
+    const availableSlots = await dashboardRepository.getAvailableSlotsCount(buildingId);
 
     // 2. Chỗ đã sử dụng
-    let occupiedSlots = await dashboardRepository.getOccupiedSlotsCountRaw();
+    let occupiedSlots = await dashboardRepository.getOccupiedSlotsCountRaw(buildingId);
     if (occupiedSlots === 0) {
         const sessData = await dashboardRepository.getActiveSessionSlots();
         const unique = new Set((sessData ?? []).map((r) => r.slot_id));
@@ -135,7 +135,7 @@ export async function getSummaryData() {
         dashboardRepository.getPaymentsInPeriod(startToday, endToday),
         dashboardRepository.getPaymentsInPeriod(startMonth, endMonth),
         fetchHourlyTraffic(startToday, endToday),
-        fetchFloorOccupancy(),
+        fetchFloorOccupancy(buildingId),
         fetchVehicleTypeDistribution(),
         fetchRecentEntries(),
         fetchRecentExits(),
@@ -208,9 +208,9 @@ async function fetchHourlyTraffic(start, end) {
 }
 
 /** 3. Tỷ lệ lấp đầy theo tầng */
-async function fetchFloorOccupancy() {
+async function fetchFloorOccupancy(buildingId = null) {
     try {
-        const data = await dashboardRepository.getSlotsWithFloors();
+        const data = await dashboardRepository.getSlotsWithFloors(buildingId);
         const floorMap = new Map();
 
         (data ?? []).forEach((slot) => {
@@ -236,7 +236,7 @@ async function fetchFloorOccupancy() {
             }
             const entry = floorMap.get(key);
             entry.totalSlots++;
-            if (slot.status === 'Đang sử dụng') entry.occupiedSlots++;
+            if (slot.status === 'Đang dùng' || slot.status === 'Đang sử dụng') entry.occupiedSlots++;
         });
 
         const hasOccupied = [...floorMap.values()].some((f) => f.occupiedSlots > 0);
