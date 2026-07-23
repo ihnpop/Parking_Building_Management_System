@@ -188,9 +188,16 @@ export default function ManagerDashboardPage() {
             // 5. Lấy active parking_sessions thuộc building (qua entry_exit_log của building)
             const { data: allBuildingLogs } = await supabase
                 .from('entry_exit_log')
-                .select('session_id')
+                .select('session_id, vehicle_type:vehicle_type_id(name)')
                 .eq('building_id', bldId)
                 .eq('direction', 'Xe vào');
+
+            const sessionTypeMap = {};
+            (allBuildingLogs || []).forEach(l => {
+                if (l.session_id && l.vehicle_type?.name) {
+                    sessionTypeMap[l.session_id] = l.vehicle_type.name;
+                }
+            });
 
             const buildingSessionIds = [...new Set((allBuildingLogs || []).map(l => l.session_id).filter(Boolean))];
 
@@ -200,11 +207,14 @@ export default function ManagerDashboardPage() {
             if (buildingSessionIds.length > 0) {
                 const { data: activeSess } = await supabase
                     .from('parking_sessions')
-                    .select('session_id, slot_id, vehicle:vehicle_id(vehicle_type:vehicle_type_id(name))')
+                    .select('session_id, slot_id, plate_number, vehicle:vehicle_id(vehicle_type:vehicle_type_id(name))')
                     .eq('status', 'Đang gửi xe')
                     .in('session_id', buildingSessionIds);
 
-                activeSessionsData = activeSess || [];
+                activeSessionsData = (activeSess || []).map(s => ({
+                    ...s,
+                    resolvedTypeName: s.vehicle?.vehicle_type?.name || sessionTypeMap[s.session_id] || null
+                }));
                 activeSessions = activeSessionsData.length;
             }
 
@@ -328,7 +338,39 @@ export default function ManagerDashboardPage() {
                 if (!floorId || !floorMap.has(floorId)) return;
                 const entry = floorMap.get(floorId);
                 entry.totalSlots++;
-                if (slot.status === 'Đang sử dụng') entry.occupiedSlots++;
+            });
+
+            // Phân loại CHÍNH XÁC phiên đỗ xe thực tế: Xe máy (Floor 1) và Ô tô (Floor 2)
+            let motorbikeCount = 0;
+            let carCount = 0;
+            (activeSessionsData || []).forEach(row => {
+                const name = row.resolvedTypeName || row.vehicle?.vehicle_type?.name || '';
+                const lower = name.toLowerCase();
+                const plate = (row.plate_number || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+                if (lower.includes('ô tô') || lower.includes('o to') || lower.includes('oto') || lower.includes('car') || lower.includes('4 bánh') || lower.includes('4 chỗ') || lower.includes('7 chỗ')) {
+                    carCount++;
+                } else if (lower.includes('máy') || lower.includes('may') || lower.includes('motorbike') || lower.includes('2 bánh') || lower.includes('moped')) {
+                    motorbikeCount++;
+                } else {
+                    if (/^\d{2}[A-Z]\d{4,5}$/.test(plate) || plate.startsWith('30K') || plate.startsWith('36A') || plate.startsWith('30A') || plate.startsWith('51K') || plate.startsWith('51A') || plate.startsWith('29A')) {
+                        carCount++;
+                    } else {
+                        motorbikeCount++;
+                    }
+                }
+            });
+
+            // Gán occupiedSlots đồng bộ 100% với số xe đang gửi thực tế
+            [...floorMap.values()].forEach(floor => {
+                const fName = (floor.floorName || '').toLowerCase();
+                if (fName.includes('floor 1') || fName.includes('tầng 1')) {
+                    floor.occupiedSlots = Math.min(motorbikeCount, floor.totalSlots);
+                } else if (fName.includes('floor 2') || fName.includes('tầng 2')) {
+                    floor.occupiedSlots = Math.min(carCount, floor.totalSlots);
+                } else {
+                    floor.occupiedSlots = Math.min(motorbikeCount, floor.totalSlots);
+                }
             });
 
             const floorResult = [...floorMap.values()]

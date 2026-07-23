@@ -70,3 +70,15 @@ export const findActiveSessionByVehicleOrPlate = async (vehicleId, plateNumber) 
   if (error) throw new Error(error.message);
   return data;
 };
+
+export const updateVehicleType = async (vehicleId, vehicleTypeId) => {
+  const { data, error } = await supabase
+    .from('vehicle')
+    .update({ vehicle_type_id: vehicleTypeId })
+    .eq('vehicle_id', vehicleId)
+    .select('*, vehicle_type(*)')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
