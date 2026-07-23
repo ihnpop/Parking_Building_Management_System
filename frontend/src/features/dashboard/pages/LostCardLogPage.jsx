@@ -255,12 +255,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         const vnpTransactionStatus = queryParams.get('vnp_TransactionStatus');
 
         if (vnpResponseCode === '00' || vnpTransactionStatus === '00') {
-            showToast('Thanh toán VNPay thành công! Đã hoàn tất quy trình báo mất.', 'success');
-            // Cập nhật trạng thái hiển thị
-            setLostCards(prev => prev.map(c => ({
-                ...c,
-                status: (c.status === 'Chờ thanh toán' || c.status === 'Đang xử lý') ? 'Hoàn thành' : c.status
-            })));
+            showToast('Thanh toán VNPay thành công! Đơn báo mất đã hoàn thành.', 'success');
+            fetchLostCards();
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (vnpResponseCode && vnpResponseCode !== '00') {
             showToast('Giao dịch VNPay không thành công hoặc đã hủy!', 'error');
@@ -376,34 +372,21 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             }
 
             if (reportIdToUse) {
-                // Cập nhật thông tin lý do và ảnh hiện có xuống Backend CSDL
-                await updateLostCard(reportIdToUse, {
-                    description: createLostReason || undefined,
-                    vehicle_registration_image_url: cavetPreviewUrl || undefined,
-                    id_card_image_url: cccdPreviewUrl || undefined
-                });
+                // Cập nhật thông tin lý do và ảnh hiện có xuống Backend CSDL nếu có
+                const updatePayload = {};
+                if (createLostReason) updatePayload.description = createLostReason;
+                if (cavetPreviewUrl) updatePayload.vehicle_registration_image_url = cavetPreviewUrl;
+                if (cccdPreviewUrl) updatePayload.id_card_image_url = cccdPreviewUrl;
+
+                if (Object.keys(updatePayload).length > 0) {
+                    await updateLostCard(reportIdToUse, updatePayload);
+                }
 
                 if (wizardStep >= 3 && !cardCancelled) {
                     try {
                         await acceptLostCard(reportIdToUse);
                     } catch (e) {
                         // Da tiep nhan truoc đó
-                    }
-                }
-
-                if (wizardStep === 4) {
-                    if (createCardCategory === 'casual') {
-                        await initiateLostTurnCardPayment({
-                            reportId: reportIdToUse,
-                            paymentMethod: createPaymentMethod
-                        });
-                    } else if (createCardCategory === 'month' && reissueRfidInput) {
-                        await reissueCard({
-                            cardId: cardCheckData?.cardId,
-                            newCode: reissueRfidInput.trim(),
-                            reportId: reportIdToUse,
-                            paymentMethod: createPaymentMethod
-                        });
                     }
                 }
             }
@@ -537,9 +520,25 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     const handleAcceptAndCreateReport = async () => {
         const plate = checkPlateInput.trim();
-        const reason = createLostReason.trim() || 'Báo mất thẻ';
+        const reason = createLostReason.trim();
+
         if (!plate) {
             showToast('Vui lòng nhập biển số xe.', 'error');
+            return;
+        }
+
+        if (!reason) {
+            showToast('Vui lòng nhập lý do báo mất thẻ.', 'error');
+            return;
+        }
+
+        if (createCardCategory === 'casual' && !cavetPreviewUrl) {
+            showToast('Vui lòng tải lên ảnh Cà vẹt xe.', 'error');
+            return;
+        }
+
+        if (createCardCategory === 'monthly' && !cccdPreviewUrl) {
+            showToast('Vui lòng tải lên ảnh CCCD.', 'error');
             return;
         }
 
@@ -657,7 +656,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         try {
             setActionLoading(true);
 
-            // Nếu là thẻ lượt: khởi tạo & xác nhận thanh toán
+            // Nếu là thẻ lượt: khởi tạo và xác nhận thu tiền mặt khi bấm nút
             if (createCardCategory === 'casual') {
                 const payRes = await initiateLostTurnCardPayment({
                     reportId: currentDraftId,
@@ -665,9 +664,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 });
 
                 if (createPaymentMethod === 'cash' && payRes?.order_code) {
-                    await confirmLostTurnCardCash(payRes.order_code);
+                    // CHỈ KHỞI TẠO PHIẾU THU, KHÔNG GỌI confirmLostTurnCardCash ĐỂ KHÔNG ĐÓNG PHIÊN GỬI XE.
+                    // Phiên gửi xe sẽ được đóng tại cổng ra (ExitPaymentPanel) khi Staff bấm Mở barie.
                 } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    // Mở tab mới thay vì redirect để không mất state React khi ấn back
                     window.open(payRes.payUrl, '_blank');
                     showToast('Đã mở trang thanh toán VNPay trong tab mới. Sau khi hoàn tất, nhấn F5 để cập nhật trạng thái.', 'info');
                     await fetchLostCards();
@@ -684,7 +683,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 if (createPaymentMethod === 'cash' && payRes?.order_code) {
                     await confirmReissueCash(payRes.order_code);
                 } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    // Mở tab mới thay vì redirect để không mất state React khi ấn back
                     window.open(payRes.payUrl, '_blank');
                     showToast('Đã mở trang thanh toán VNPay trong tab mới. Sau khi hoàn tất, nhấn F5 để cập nhật trạng thái.', 'info');
                     await fetchLostCards();
@@ -694,7 +692,11 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
             setPaymentDone(true);
             setWizardStep(5);
-            showToast('Xử lý báo mất thẻ và thanh toán phí thành công!', 'success');
+            if (createCardCategory === 'casual') {
+                showToast('Đã ghi nhận thanh toán! Phiên gửi xe vẫn mở — Staff cho xe ra tại cổng ra.', 'success');
+            } else {
+                showToast('Xử lý báo mất thẻ và thanh toán phí thành công!', 'success');
+            }
             await fetchLostCards();
         } catch (err) {
             console.error(err);
@@ -917,11 +919,21 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 if (item.handled_by && user?.id && item.handled_by === user.id) {
                     handlerName = currentUserName;
                 }
+
+                let displayStatus = item.status;
+                if (item.status === 'Đã hủy thẻ') {
+                    // Nếu là Tiền mặt (đã thu tại quầy): hiển thị Hoàn thành (Chờ xe ra bãi)
+                    // Nếu là VNPay đang chờ thanh toán HOẶC bấm Xử lý sau: hiển thị Chờ thanh toán
+                    displayStatus = (item.pendingPayment && item.pendingPayment.paymentMethod === 'cash') ? 'Hoàn thành' : 'Chờ thanh toán';
+                } else if (item.status === 'Đã xong') {
+                    displayStatus = 'Hoàn thành';
+                }
+
                 return {
                     ...item,
                     handler_name: handlerName || '---',
                     _backendStatus: item.status, // Giữ nguyên status gốc từ Backend để logic resume đúng
-                    status: item.status === 'Đã hủy thẻ' ? 'Chờ thanh toán' : item.status
+                    status: displayStatus
                 };
             }) : [];
             setLostCards(list);
@@ -1017,9 +1029,10 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     const totalLost = kpiFilteredCards.length;
     const pendingCount = kpiFilteredCards.filter(c => c.status === 'Đang chờ').length;
     const processingCount = kpiFilteredCards.filter(c => c.status === 'Đang xử lý').length;
+    const waitProcessingCount = pendingCount + processingCount;
     const awaitingPayCount = kpiFilteredCards.filter(c => c.status === 'Chờ thanh toán').length;
     const completedCount = kpiFilteredCards.filter(c => c.status === 'Hoàn thành' || c.status === 'Đã xong').length;
-    const mistakeCount = kpiFilteredCards.filter(c => c.status === 'Đã hủy (tạo nhầm)').length;
+    const totalLostFee = completedCount * 50000;
 
     // Pagination logic
     const totalPages = Math.ceil(filteredCards.length / itemsPerPage);
@@ -1106,68 +1119,43 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                         <div className="lost-kpi-card">
                             <div className="lost-kpi-header">
-                                <div className="lost-kpi-icon-box icon-red">
-                                    <span className="material-symbols-outlined">assignment_late</span>
-                                </div>
-                                <span className="lost-kpi-title">Đang chờ xử lý</span>
-                            </div>
-                            <div className="lost-kpi-body">
-                                <div className="lost-kpi-value val-red">{pendingCount}</div>
-                                <div className="lost-kpi-footer txt-orange">Chờ tiếp nhận</div>
-                            </div>
-                        </div>
-
-                        <div className="lost-kpi-card">
-                            <div className="lost-kpi-header">
                                 <div className="lost-kpi-icon-box icon-blue">
                                     <span className="material-symbols-outlined">sync</span>
                                 </div>
-                                <span className="lost-kpi-title">Đang xử lý</span>
+                                <span className="lost-kpi-title">Chờ xử lý</span>
                             </div>
                             <div className="lost-kpi-body">
-                                <div className="lost-kpi-value val-blue">{processingCount}</div>
-                                <div className="lost-kpi-footer txt-blue">Đã tiếp nhận đơn</div>
+                                <div className="lost-kpi-value val-blue">{waitProcessingCount}</div>
+                                <div className="lost-kpi-footer txt-blue">Đã tiếp nhận & Đang xử lý</div>
                             </div>
                         </div>
 
                         <div className="lost-kpi-card">
                             <div className="lost-kpi-header">
-                                <div className="lost-kpi-icon-box icon-red">
+                                <div className="lost-kpi-icon-box icon-orange">
                                     <span className="material-symbols-outlined">payments</span>
                                 </div>
                                 <span className="lost-kpi-title">Chờ thanh toán</span>
                             </div>
                             <div className="lost-kpi-body">
-                                <div className="lost-kpi-value val-red">{awaitingPayCount}</div>
-                                <div className="lost-kpi-footer txt-orange">Đã hủy thẻ vĩnh viễn</div>
+                                <div className="lost-kpi-value val-orange">{awaitingPayCount}</div>
+                                <div className="lost-kpi-footer txt-orange">Đã khóa thẻ & Chờ thu tiền</div>
                             </div>
                         </div>
 
                         <div className="lost-kpi-card">
                             <div className="lost-kpi-header">
                                 <div className="lost-kpi-icon-box icon-green">
-                                    <span className="material-symbols-outlined">check_circle</span>
+                                    <span className="material-symbols-outlined">account_balance_wallet</span>
                                 </div>
-                                <span className="lost-kpi-title">Hoàn thành</span>
+                                <span className="lost-kpi-title">Thu phí mất thẻ</span>
                             </div>
                             <div className="lost-kpi-body">
-                                <div className="lost-kpi-value val-green">{completedCount}</div>
-                                <div className="lost-kpi-footer txt-green">Đã thanh toán & xử lý</div>
+                                <div className="lost-kpi-value val-green" style={{ fontSize: '20px' }}>{totalLostFee.toLocaleString('vi-VN')} đ</div>
+                                <div className="lost-kpi-footer txt-green">Tổng số tiền phí báo mất</div>
                             </div>
                         </div>
 
-                        <div className="lost-kpi-card">
-                            <div className="lost-kpi-header">
-                                <div className="lost-kpi-icon-box icon-gray">
-                                    <span className="material-symbols-outlined">undo</span>
-                                </div>
-                                <span className="lost-kpi-title">Đã hủy (tạo nhầm)</span>
-                            </div>
-                            <div className="lost-kpi-body">
-                                <div className="lost-kpi-value">{mistakeCount}</div>
-                                <div className="lost-kpi-footer txt-gray">Đã hủy báo cáo</div>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="lost-dist-card">
@@ -1189,21 +1177,11 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                         <div className="lost-dist-item">
                             <div className="lost-dist-label-row">
-                                <span>Đang chờ</span>
-                                <span><span className="lost-dist-val">{pendingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((pendingCount / totalLost) * 100) : 0}%)</span></span>
+                                <span>Chờ xử lý</span>
+                                <span><span className="lost-dist-val">{waitProcessingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((waitProcessingCount / totalLost) * 100) : 0}%)</span></span>
                             </div>
                             <div className="lost-dist-track">
-                                <div className="lost-dist-fill bg-gray" style={{ width: `${totalLost > 0 ? (pendingCount / totalLost) * 100 : 0}%` }}></div>
-                            </div>
-                        </div>
-
-                        <div className="lost-dist-item">
-                            <div className="lost-dist-label-row">
-                                <span>Đang xử lý</span>
-                                <span><span className="lost-dist-val">{processingCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((processingCount / totalLost) * 100) : 0}%)</span></span>
-                            </div>
-                            <div className="lost-dist-track">
-                                <div className="lost-dist-fill bg-blue" style={{ width: `${totalLost > 0 ? (processingCount / totalLost) * 100 : 0}%` }}></div>
+                                <div className="lost-dist-fill bg-blue" style={{ width: `${totalLost > 0 ? (waitProcessingCount / totalLost) * 100 : 0}%` }}></div>
                             </div>
                         </div>
 
@@ -1227,15 +1205,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                             </div>
                         </div>
 
-                        <div className="lost-dist-item">
-                            <div className="lost-dist-label-row">
-                                <span>Đã hủy (tạo nhầm)</span>
-                                <span><span className="lost-dist-val">{mistakeCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((mistakeCount / totalLost) * 100) : 0}%)</span></span>
-                            </div>
-                            <div className="lost-dist-track">
-                                <div className="lost-dist-fill bg-gray" style={{ width: `${totalLost > 0 ? (mistakeCount / totalLost) * 100 : 0}%` }}></div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -2235,7 +2204,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                     <div>
                                         <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '16px', marginBottom: '18px', textAlign: 'center' }}>
                                             <span className="material-symbols-outlined" style={{ fontSize: '36px', color: '#16a34a', display: 'block', marginBottom: '4px' }}>check_circle</span>
-                                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#166534' }}>BÁO MẤT VÀ THANH TOÁN HOÀN TẤT</h3>
+                                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#166534' }}>
+                                                {createCardCategory === 'casual' ? 'ĐÃ GHI NHẬN THANH TOÁN — CHỜ XE RA' : 'BÁO MẤT VÀ THANH TOÁN HOÀN TẤT'}
+                                            </h3>
                                         </div>
 
                                         {createCardCategory === 'casual' ? (
@@ -2251,12 +2222,12 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                     <div><span style={{ color: '#64748b' }}>Phí mất thẻ:</span> <strong>{(cardCheckData?.lostFee ?? 50000).toLocaleString('vi-VN')} đ</strong></div>
                                                     <div><span style={{ color: '#64748b' }}>Tổng thanh toán:</span> <strong>{(cardCheckData?.totalFee ?? ((cardCheckData?.parkingFee ?? 0) + (cardCheckData?.lostFee ?? 50000))).toLocaleString('vi-VN')} đ</strong></div>
                                                     <div style={{ gridColumn: 'span 2', marginTop: '6px' }}>
-                                                        <span style={{ color: '#64748b' }}>Trạng thái:</span> <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: '700', padding: '3px 8px', borderRadius: '6px' }}>ĐÃ THANH TOÁN</span>
+                                                        <span style={{ color: '#64748b' }}>Trạng thái:</span> <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: '700', padding: '3px 8px', borderRadius: '6px' }}>ĐÃ THANH TOÁN (CHỜ XE RA)</span>
                                                     </div>
                                                 </div>
 
-                                                <p style={{ fontSize: '12px', color: '#475569', marginTop: '12px', marginBottom: 0, fontStyle: 'italic' }}>
-                                                    ✓ Thông tin đã chuyển sang hệ thống xe ra/vào. Staff sẵn sàng mở cổng cho xe ra bãi.
+                                                <p style={{ fontSize: '12px', color: '#0369a1', marginTop: '12px', marginBottom: 0, fontStyle: 'italic', background: '#e0f2fe', padding: '8px 12px', borderRadius: '6px' }}>
+                                                    ℹ️ Phiên gửi xe <strong>vẫn đang mở</strong>. Xe chỉ chính thức xuất bến và đóng phiên khi Staff nhập biển số <strong>{checkPlateInput.toUpperCase()}</strong> tại cổng ra và bấm <strong>"Mở barie / Cho xe ra"</strong>.
                                                 </p>
                                             </div>
                                         ) : (
@@ -2511,9 +2482,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                     <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>lock</span>
                                 </div>
                             </div>
-                            <h3 style={{ margin: '0 0 10px', fontSize: '18px', fontWeight: '700', color: '#0f172a', textAlign: 'center' }}>Xác Nhận Khóa Thẻ Bảo Mật?</h3>
+                            <h3 style={{ margin: '0 0 10px', fontSize: '18px', fontWeight: '700', color: '#0f172a', textAlign: 'center' }}>Xác Nhận Hủy Thẻ Bảo Mật?</h3>
                             <p style={{ margin: '0 0 24px', fontSize: '13.5px', color: '#475569', textAlign: 'center', lineHeight: '1.5' }}>
-                                Thẻ này sẽ được <strong>chuyển sang trạng thái Đã khóa</strong> trên hệ thống. Thông tin xe và phiên gửi xe vẫn được bảo toàn để phục vụ tính phí và cho xe xuất bến.
+                                Thẻ này sẽ được <strong>chuyển sang trạng thái Đã hủy</strong> trên hệ thống. Thông tin xe và phiên gửi xe vẫn được bảo toàn để phục vụ tính phí và cho xe xuất bến.
                             </p>
                             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                                 <button
@@ -2529,7 +2500,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                     style={{ flex: 1, height: '40px', padding: '0 16px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#ffffff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                                 >
                                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lock</span>
-                                    Xác nhận Khóa
+                                    Xác nhận Hủy
                                 </button>
                             </div>
                         </div>

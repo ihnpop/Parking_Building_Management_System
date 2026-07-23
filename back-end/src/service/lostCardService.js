@@ -109,7 +109,7 @@ export const getLostCards = async () => {
       let parking_fee = pendingPayment?.parkingFee ?? 0;
 
       if (!parking_fee && cardType !== 'Thẻ tháng' && log.vehicle_id &&
-          ['Đang xử lý', 'Đã hủy thẻ'].includes(statusVal)) {
+        ['Đang xử lý', 'Đã hủy thẻ'].includes(statusVal)) {
         try {
           let session = await lostCardRepository.findActiveParkingSession(log.vehicle_id);
           if (!session) {
@@ -125,7 +125,8 @@ export const getLostCards = async () => {
           }
           if (session?.entry_time) {
             const entryTime = parseEntryTime(session.entry_time);
-            const feeResult = await calculateParkingFee(entryTime, new Date(), null);
+            const validPlate = plateNumber === "Chưa có xe" ? null : plateNumber;
+            const feeResult = await calculateParkingFee(entryTime, new Date(), validPlate);
             parking_fee = feeResult.fee || 0;
           }
         } catch (feeErr) {
@@ -861,10 +862,9 @@ export const processLostTurnCardPaymentSuccess = async (orderCode) => {
     await cardRepository.cancelCard(cardId, performedBy);
   }
 
-  // Đóng phiên gửi xe: exit_time = now(), status = 'Hoàn thành', final_fee = parkingFee
-  if (sessionId) {
-    await lostCardRepository.closeSessionForLostCard(sessionId, parkingFee);
-  }
+  // KHÔNG đóng phiên gửi xe tại đây.
+  // Giao dịch thanh toán mất thẻ và cho xe ra là 2 nghiệp vụ độc lập.
+  // Phiên gửi xe sẽ được đóng khi xe thực sự ra khỏi bãi (Staff bấm Mở barie tại cổng ra).
 
   // Ghi audit trail
   const regForAudit = await lostCardRepository.findRegForAudit(cardId, report.vehicle_id);

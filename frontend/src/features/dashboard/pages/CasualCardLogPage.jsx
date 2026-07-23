@@ -21,6 +21,7 @@ function getStatusClass(status) {
         case 'Hoàn thành': return 'success';
         case 'Đang gửi xe': return 'info';
         case 'Chờ thanh toán': return 'pending';
+        case 'Mất thẻ': return 'failed';
         case 'Thẻ đã cấp lại': return 'failed';
         case 'Thất bại': return 'failed';
         default: return '';
@@ -376,19 +377,7 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                         </div>
                     </div>
 
-                    {/* Thẻ đã cấp lại */}
-                    <div className="lost-dist-item">
-                        <div className="lost-dist-label-row">
-                            <span>Thẻ đã cấp lại</span>
-                            <span>
-                                <span className="lost-dist-val">{distReissued}</span>{' '}
-                                <span className="lost-dist-pct">({pct(distReissued)}%)</span>
-                            </span>
-                        </div>
-                        <div className="lost-dist-track">
-                            <div className="lost-dist-fill bg-purple" style={{ width: pctWidth(distReissued) }} />
-                        </div>
-                    </div>
+
 
                     {/* Thất bại */}
                     <div className="lost-dist-item">
@@ -437,7 +426,6 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                             <option value="Đang gửi xe">Đang gửi xe</option>
                             <option value="Chờ thanh toán">Chờ thanh toán</option>
                             <option value="Hoàn thành">Hoàn thành</option>
-                            <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
                             <option value="Thất bại">Thất bại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
