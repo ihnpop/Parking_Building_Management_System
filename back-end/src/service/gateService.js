@@ -3,6 +3,7 @@ import * as cardRepository from "../repositories/cardRepository.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
 import AppError from "../utils/AppError.js";
+import { getMatchingPriceItem } from "./feeCalculationService.js";
 
 // ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
 
@@ -26,18 +27,23 @@ export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
   const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   const formattedEntryTime = entryTime.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
+  let targetVehicle = vehicle;
+  if (typeof vehicle === "string") {
+    targetVehicle = await vehicleRepository.findByPlateNumber(vehicle);
+  } else if ((!targetVehicle || !targetVehicle.vehicle_type_id) && targetVehicle?.plate_number) {
+    targetVehicle = await vehicleRepository.findByPlateNumber(targetVehicle.plate_number);
+  }
+
+  const vehicleTypeId = targetVehicle?.vehicle_type_id || (typeof targetVehicle?.vehicle_type === 'object' ? targetVehicle?.vehicle_type?.vehicle_type_id : null);
+
   // Giá mặc định: 10,000/giờ, miễn phí dưới 30 phút
   let fee = totalHours < 0.5 ? 0 : billableHours * 10000;
 
-  if (vehicle?.vehicle_type_id) {
+  if (vehicleTypeId) {
     try {
-      const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
+      const priceItems = await gateRepository.getPriceItems(vehicleTypeId);
       if (priceItems?.length > 0) {
-        const matchingItem = priceItems.find((item) => {
-          const min = Number(item.min_hour) || 0;
-          const max = item.max_hour != null ? Number(item.max_hour) : null;
-          return max === null ? totalHours >= min : totalHours >= min && totalHours < max;
-        });
+        const matchingItem = getMatchingPriceItem(priceItems, totalHours);
         if (matchingItem) {
           fee = Number(matchingItem.price);
         }
@@ -331,7 +337,6 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     session = await parkingRepository.createParkingSession({
       vehicle_id: vehicle.vehicle_id,
       plate_number: cleanPlate,
-      entry_vehicle_image: entryVehicleImage || null,
       entry_plate_image: entryPlateImage || null,
       card_id: card.card_id,
       staff_in_id: staffId || null
@@ -374,7 +379,6 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     session = await parkingRepository.createParkingSession({
       vehicle_id: vehicle.vehicle_id,
       plate_number: cleanPlate,
-      entry_vehicle_image: entryVehicleImage || null,
       entry_plate_image: entryPlateImage || null,
       card_id: card.card_id,
       staff_in_id: staffId || null

@@ -54,6 +54,7 @@ export const getLostCards = async () => {
 
       // Kiểm tra giao dịch đang chờ thanh toán (timeout 15 phút)
       let pendingPayment = null;
+      let pendingNoteObj = {}; // Lưu note obj để trích xuất parking_fee
       if (statusVal === 'Đã hủy thẻ') {
         const timeoutThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         const paymentTypeToCheck = cardType === 'Thẻ tháng' ? 'Phí cấp lại thẻ' : 'Phí mất thẻ lượt';
@@ -70,9 +71,8 @@ export const getLostCards = async () => {
           .maybeSingle();
 
         if (pm) {
-          let noteObj = {};
           try {
-            noteObj = JSON.parse(pm.note) || {};
+            pendingNoteObj = JSON.parse(pm.note) || {};
           } catch (e) {
             console.error("Lỗi parse note:", e);
           }
@@ -96,9 +96,40 @@ export const getLostCards = async () => {
             amount: pm.amount,
             paymentMethod: pm.payment_method === 'Tiền mặt' ? 'cash' : 'vnpay',
             payUrl,
-            newCode: noteObj.newCode || '',
-            paymentTime: pm.payment_time
+            newCode: pendingNoteObj.newCode || '',
+            paymentTime: pm.payment_time,
+            // Trích xuất parking_fee từ note để hiển thị đúng khi resume
+            parkingFee: pendingNoteObj.parkingFee ?? 0
           };
+        }
+      }
+
+      // ── Tính parking_fee để trả về cho frontend resume đúng ──
+      // Ưu tiên: (1) từ note của payment nếu đã khởi tạo, (2) tính lại từ phiên gửi xe
+      let parking_fee = pendingPayment?.parkingFee ?? 0;
+
+      if (!parking_fee && cardType !== 'Thẻ tháng' && log.vehicle_id &&
+          ['Đang xử lý', 'Đã hủy thẻ'].includes(statusVal)) {
+        try {
+          let session = await lostCardRepository.findActiveParkingSession(log.vehicle_id);
+          if (!session) {
+            // Fallback: lấy phiên gần nhất
+            const { data: latestSess } = await supabase
+              .from('parking_sessions')
+              .select('entry_time')
+              .eq('vehicle_id', log.vehicle_id)
+              .order('entry_time', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            session = latestSess;
+          }
+          if (session?.entry_time) {
+            const entryTime = parseEntryTime(session.entry_time);
+            const feeResult = await calculateParkingFee(entryTime, new Date(), null);
+            parking_fee = feeResult.fee || 0;
+          }
+        } catch (feeErr) {
+          console.error('[getLostCards] Lỗi tính parking_fee khi resume:', feeErr.message);
         }
       }
 
@@ -124,6 +155,9 @@ export const getLostCards = async () => {
         description,
         vehicle_registration_image_url: log.vehicle_registration_image_url || null,
         id_card_image_url: log.id_card_image_url || null,
+
+        // Phí gửi xe — để frontend hiển thị đúng khi resume report từ danh sách
+        parking_fee,
 
         status: statusText,
         pendingPayment
@@ -343,7 +377,8 @@ export const checkLostCardPlate = async ({ plate_number, card_category }) => {
   let parkingFee = 0;
   if (activeSession) {
     const entryTime = parseEntryTime(activeSession.entry_time);
-    const feeRes = await calculateParkingFee(entryTime, new Date(), fullVehicle);
+    // Dùng vWithCust thay vì fullVehicle: vWithCust có vehicle_type_id để tra bảng giá DB
+    const feeRes = await calculateParkingFee(entryTime, new Date(), vWithCust);
     parkingFee = feeRes.fee || 0;
   }
 
