@@ -515,6 +515,7 @@ export default function SystemOperations() {
             <input
                 type="file"
                 ref={vehicleInputRef}
+                className="so-hidden-input"
                 onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -531,11 +532,11 @@ export default function SystemOperations() {
                     }
                 }}
                 accept="image/*"
-                style={{ display: 'none' }}
             />
             <input
                 type="file"
                 ref={plateInputRef}
+                className="so-hidden-input"
                 onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -557,11 +558,11 @@ export default function SystemOperations() {
                     }
                 }}
                 accept="image/*"
-                style={{ display: 'none' }}
             />
             <input
                 type="file"
                 ref={exitVehicleInputRef}
+                className="so-hidden-input"
                 onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -578,11 +579,11 @@ export default function SystemOperations() {
                     }
                 }}
                 accept="image/*"
-                style={{ display: 'none' }}
             />
             <input
                 type="file"
                 ref={exitPlateInputRef}
+                className="so-hidden-input"
                 onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -604,7 +605,6 @@ export default function SystemOperations() {
                     }
                 }}
                 accept="image/*"
-                style={{ display: 'none' }}
             />
 
 
@@ -678,17 +678,12 @@ export default function SystemOperations() {
                         return (
                             <article
                                 key={camera.title}
-                                className="camera-card"
-                                style={{
-                                    opacity: isCurrentlyActiveMode ? 1 : 0.7,
-                                    transition: 'opacity 0.25s ease'
-                                }}
+                                className={`camera-card ${isCurrentlyActiveMode ? 'so-camera-card--active' : 'so-camera-card--inactive'}`}
                             >
                                 <div
                                     className="camera-image"
                                     style={{
-                                        backgroundImage: `url(${bgImage})`,
-                                        cursor: 'pointer'
+                                        backgroundImage: `url(${bgImage})`
                                     }}
                                     onClick={() => {
                                         // Camera 1 & 2 ở mode OUT khi đã có ảnh check-in: không cho upload
@@ -705,40 +700,6 @@ export default function SystemOperations() {
                                     <span className="camera-label">{camera.title}</span>
                                     {camera.badge && <span className={`camera-badge ${camera.badgeClass}`}>{camera.badge}</span>}
 
-                                    {/* Badge hiển thị "ẢNH CHECK-IN" khi camera 1&2 đang xem ảnh lịch sử */}
-                                    {(() => {
-                                        const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
-                                        const entryImgUrl = camera.id === 'vehicleImage'
-                                            ? entryVehicleImageDisplay
-                                            : entryPlateImageDisplay;
-                                        if (isEntryCamera && mode === 'OUT' && entryImgUrl) {
-                                            // return (
-                                            // <div style={{
-                                            //     position: 'absolute',
-                                            //     bottom: 8,
-                                            //     left: '50%',
-                                            //     transform: 'translateX(-50%)',
-                                            //     background: 'rgba(234, 88, 12, 0.92)',
-                                            //     color: 'white',
-                                            //     fontSize: 11,
-                                            //     fontWeight: 'bold',
-                                            //     padding: '3px 10px',
-                                            //     borderRadius: 20,
-                                            //     letterSpacing: '0.05em',
-                                            //     whiteSpace: 'nowrap',
-                                            //     zIndex: 15,
-                                            //     display: 'flex',
-                                            //     alignItems: 'center',
-                                            //     gap: 4
-                                            // }}>
-                                            //     {/* <span className="material-symbols-outlined" style={{ fontSize: 13 }}>history</span>
-                                            //     ẢNH CHECK-IN */}
-                                            // </div>
-                                            // );
-                                        }
-                                        return null;
-                                    })()}
-
                                     {/* Overlay showing upload message on hover - chỉ hiện khi được phép upload */}
                                     {(() => {
                                         const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
@@ -748,25 +709,9 @@ export default function SystemOperations() {
                                         const isReadOnly = isEntryCamera && mode === 'OUT' && entryImgUrl;
                                         if (isReadOnly) return null;
                                         return (
-                                            <div
-                                                style={{
-                                                    position: 'absolute',
-                                                    inset: 0,
-                                                    backgroundColor: hoveredCamera === camera.id ? 'rgba(15, 23, 42, 0.6)' : 'rgba(0, 0, 0, 0)',
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                    transition: 'all 0.2s ease',
-                                                    opacity: hoveredCamera === camera.id ? 1 : 0,
-                                                    pointerEvents: 'none',
-                                                    color: 'white',
-                                                    gap: '8px',
-                                                    zIndex: 10
-                                                }}
-                                            >
-                                                <span className="material-symbols-outlined" style={{ fontSize: 40 }}>add_a_photo</span>
-                                                <span style={{ fontSize: 13, fontWeight: 'bold' }}>
+                                            <div className={`so-camera-hover-overlay ${hoveredCamera === camera.id ? 'so-camera-hover-overlay--active' : ''}`}>
+                                                <span className="material-symbols-outlined so-camera-hover-icon">add_a_photo</span>
+                                                <span className="so-camera-hover-text">
                                                     {camera.id === 'vehicleImage' ? 'Click tải ảnh xe vào' :
                                                         camera.id === 'plateImage' ? 'Click tải ảnh biển số vào' :
                                                             camera.id === 'camera3' ? 'Click tải ảnh xe ra' :
@@ -783,14 +728,7 @@ export default function SystemOperations() {
 
                 <section className="active-transaction">
                     {/* Tab Switcher inside the transaction card */}
-                    <div style={{
-                        gridColumn: '1 / -1',
-                        display: 'flex',
-                        gap: '12px',
-                        borderBottom: '1px solid #e5e7eb',
-                        paddingBottom: '12px',
-                        marginBottom: '-8px'
-                    }}>
+                    <div className="so-mode-switcher">
                         <button
                             type="button"
                             onClick={() => {
@@ -803,23 +741,9 @@ export default function SystemOperations() {
                                 setEntryVehicleImageDisplay(null);
                                 setEntryPlateImageDisplay(null);
                             }}
-                            style={{
-                                flex: 1,
-                                padding: '10px 16px',
-                                borderRadius: '10px',
-                                border: 'none',
-                                background: mode === 'IN' ? '#2563eb' : '#f3f4f6',
-                                color: mode === 'IN' ? 'white' : '#4b5563',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '6px',
-                                transition: 'all 0.2s ease'
-                            }}
+                            className={`so-mode-btn ${mode === 'IN' ? 'so-mode-btn--active' : 'so-mode-btn--inactive'}`}
                         >
-                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>login</span>
+                            <span className="material-symbols-outlined so-mode-btn-icon">login</span>
                             XE VÀO
                         </button>
                         <button
@@ -835,23 +759,9 @@ export default function SystemOperations() {
                                 setEntryVehicleImageDisplay(null);
                                 setEntryPlateImageDisplay(null);
                             }}
-                            style={{
-                                flex: 1,
-                                padding: '10px 16px',
-                                borderRadius: '10px',
-                                border: 'none',
-                                background: mode === 'OUT' ? '#2563eb' : '#f3f4f6',
-                                color: mode === 'OUT' ? 'white' : '#4b5563',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '6px',
-                                transition: 'all 0.2s ease'
-                            }}
+                            className={`so-mode-btn ${mode === 'OUT' ? 'so-mode-btn--active' : 'so-mode-btn--inactive'}`}
                         >
-                            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
+                            <span className="material-symbols-outlined so-mode-btn-icon">logout</span>
                             XE RA
                         </button>
                     </div>
@@ -888,18 +798,10 @@ export default function SystemOperations() {
                             <input
                                 type="text"
                                 placeholder="NHẬP BIỂN SỐ..."
-                                className="transaction-plate"
+                                className="transaction-plate so-plate-input"
                                 value={plateNumber}
                                 onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
                                 disabled={loading}
-                                style={{
-                                    width: '100%',
-                                    border: '2px dashed #3b82f6',
-                                    outline: 'none',
-                                    textAlign: 'center',
-                                    textTransform: 'uppercase',
-                                    cursor: 'text'
-                                }}
                             />
 
                             {/* Selector Loại xe - Luôn hiện, tự động điền đúng khi là xe tháng */}
@@ -1070,9 +972,9 @@ export default function SystemOperations() {
                                             </strong>
                                         </div>
                                         {preCheckResult.vehicleType === 'MONTHLY' && (
-                                            <div className="last-session-item full-width" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '4px' }}>
+                                            <div className="last-session-item full-width so-border-dashed-top">
                                                 <span className="last-session-label">Hạn thẻ:</span>
-                                                <strong className="last-session-value" style={{ color: preCheckResult.canOpenGate ? '#16a34a' : '#dc2626' }}>
+                                                <strong className={`last-session-value ${preCheckResult.canOpenGate ? 'so-valid-until--valid' : 'so-valid-until--invalid'}`}>
                                                     {preCheckResult.validUntil ? new Date(preCheckResult.validUntil).toLocaleDateString('vi-VN') : 'Không giới hạn'}
                                                 </strong>
                                             </div>
@@ -1187,7 +1089,7 @@ export default function SystemOperations() {
 
                         {/* Shift Information Card — Moved to the right column */}
                         {/* Shift Information Card — Dynamic Building Info */}
-                        <div className="shift-info-card" style={{ marginTop: '0px', marginBottom: '8px' }}>
+                        <div className="shift-info-card so-shift-card">
                             <div className="shift-title">
                                 <span className="material-symbols-outlined">badge</span>
                                 <span>Thông tin ca trực</span>
@@ -1359,7 +1261,7 @@ export default function SystemOperations() {
                                 </div>
                             ) : (
                                 <div>
-                                    <p className="lost-action-hint" style={{ marginBottom: '16px', color: '#64748b' }}>
+                                    <p className="lost-action-hint so-visitor-hint">
                                         Biển số vào: <strong>{preCheckResult.plateNumber}</strong>. Vui lòng chọn 1 trong 3 thẻ lượt khả dụng bên dưới:
                                     </p>
 

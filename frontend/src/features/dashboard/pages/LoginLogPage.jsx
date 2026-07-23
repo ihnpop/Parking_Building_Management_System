@@ -2,6 +2,76 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLoginLogs } from '../../../service/userApi';
 
+const renderFormattedTime = (dateInput) => {
+    if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;
+
+    if (typeof dateInput === 'string' && dateInput.includes('/')) {
+        const parts = dateInput.trim().split(/\s+/);
+        if (parts.length >= 2) {
+            const timePart = parts[0];
+            let datePart = parts[1];
+            const datePieces = datePart.split('/');
+            if (datePieces.length === 3) {
+                const day = datePieces[0].length === 4 ? datePieces[2] : datePieces[0];
+                const month = datePieces[1];
+                const year = datePieces[0].length === 4 ? datePieces[0] : datePieces[2];
+                datePart = `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+                return (
+                    <div className="log-time-column">
+                        <span className="log-time-clock">{timePart}</span>
+                        <span className="log-time-date">{datePart}</span>
+                    </div>
+                );
+            }
+        }
+    }
+
+    let d = null;
+    if (typeof dateInput === 'string') {
+        let strT = dateInput.trim();
+        if (strT.includes(' ') && !strT.includes('T')) {
+            strT = strT.replace(' ', 'T');
+        }
+        const hasTimezone = strT.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strT);
+        if (!hasTimezone) {
+            strT = strT + 'Z';
+        }
+        const parsed = new Date(strT);
+        if (!isNaN(parsed.getTime())) {
+            d = parsed;
+        } else {
+            const parsedNormal = new Date(dateInput);
+            if (!isNaN(parsedNormal.getTime())) d = parsedNormal;
+        }
+    } else if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+        d = dateInput;
+    }
+
+    if (d) {
+        const timePart = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const datePart = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return (
+            <div className="log-time-column">
+                <span className="log-time-clock">{timePart}</span>
+                <span className="log-time-date">{datePart}</span>
+            </div>
+        );
+    }
+
+    return <span className="log-time-clock">{String(dateInput)}</span>;
+};
+
 function filterRowsByTime(rows, mode, dateStr) {
     if (!dateStr) return rows;
     return rows.filter((r) => {
@@ -39,8 +109,6 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
     const navigate = useNavigate();
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('Tất cả vai trò');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
     const [rawLogs, setRawLogs] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -65,35 +133,18 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
     }, []);
 
     const handleFilter = () => {
-        let filtered = rawLogs.filter((log) => {
+        // Áp dụng bộ lọc thời gian từ top-level KPI time filter
+        const dateStr = kpiTimeFilter === 'day' ? kpiDate : kpiMonth;
+        let filtered = filterRowsByTime(rawLogs, kpiTimeFilter, dateStr);
+
+        filtered = filtered.filter((log) => {
             const matchesSearch = (log.username || '').toLowerCase().includes(search.toLowerCase()) ||
                 (log.ip || '').toLowerCase().includes(search.toLowerCase()) ||
                 (log.location || '').toLowerCase().includes(search.toLowerCase());
 
             const matchesRole = roleFilter === 'Tất cả vai trò' || log.role === roleFilter;
 
-            let matchesDate = true;
-            if (startDate || endDate) {
-                const logDateStr = log.login_time || log.timestamp;
-                if (logDateStr) {
-                    const logDate = new Date(logDateStr);
-                    if (!isNaN(logDate.getTime())) {
-                        logDate.setHours(0, 0, 0, 0);
-
-                        if (startDate) {
-                            const sDate = new Date(startDate);
-                            sDate.setHours(0, 0, 0, 0);
-                            if (logDate < sDate) matchesDate = false;
-                        }
-                        if (endDate) {
-                            const eDate = new Date(endDate);
-                            eDate.setHours(23, 59, 59, 999);
-                            if (logDate > eDate) matchesDate = false;
-                        }
-                    }
-                }
-            }
-            return matchesSearch && matchesRole && matchesDate;
+            return matchesSearch && matchesRole;
         });
         setLogs(filtered);
         setCurrentPage(1);
@@ -101,7 +152,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
 
     useEffect(() => {
         handleFilter();
-    }, [search, roleFilter, startDate, endDate, rawLogs]);
+    }, [search, roleFilter, rawLogs, kpiTimeFilter, kpiDate, kpiMonth]);
 
     const getStatusClass = (status) => {
         if (status === 'Thành công') return 'success';
@@ -290,29 +341,8 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                     </div>
                 </div>
 
-                <div className="filter-block">
-                    <label className="filter-label">KHOẢNG THỜI GIAN</label>
-                    <div className="filter-input-wrapper">
-                        <div className="filter-input date-range-wrapper">
-                            <input
-                                type="date"
-                                className="date-range-input"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-                            <span className="date-range-sep">đến</span>
-                            <input
-                                type="date"
-                                className="date-range-input"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </div>
-
                 {/* Nút reset filter */}
-                {(search || startDate || endDate || roleFilter !== 'Tất cả vai trò') && (
+                {(search || roleFilter !== 'Tất cả vai trò') && (
                     <div className="filter-block reset-filter-btn-container" style={{ alignSelf: 'flex-end', paddingBottom: '2px' }}>
                         <button
                             type="button"
@@ -320,8 +350,6 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                             title="Xóa lọc"
                             onClick={() => {
                                 setSearch('');
-                                setStartDate('');
-                                setEndDate('');
                                 setRoleFilter('Tất cả vai trò');
                             }}
                         >
@@ -362,15 +390,8 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                                     {currentData.length > 0 ? (
                                         currentData.map((log, index) => (
                                             <tr key={index}>
-                                                <td className="log-timestamp" style={{ whiteSpace: 'nowrap' }}>
-                                                    {log.timestamp ? (
-                                                        log.timestamp.includes(' ') ? (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                                <span style={{ fontWeight: '500' }}>{log.timestamp.split(' ')[1]}</span>
-                                                                <span style={{ fontSize: '0.9em', color: '#666' }}>{log.timestamp.split(' ')[0]}</span>
-                                                            </div>
-                                                        ) : log.timestamp
-                                                    ) : ''}
+                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
+                                                    {renderFormattedTime(log.timestamp || log.login_time || log.created_at || log.time)}
                                                 </td>
                                                 <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     <div className="log-user-cell" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>

@@ -85,14 +85,14 @@ export default function RevenueMonthModal({ isOpen, onClose }) {
                 {/* Body */}
                 <div className="revenue-modal-body">
                     {loading ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                            <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite', fontSize: '32px' }}>refresh</span>
-                            <p style={{ marginTop: '8px', fontSize: '14px' }}>Đang tổng hợp dữ liệu doanh thu...</p>
+                        <div className="rmm-loading-container">
+                            <span className="material-symbols-outlined rmm-loading-spin">refresh</span>
+                            <p className="rmm-loading-text">Đang tổng hợp dữ liệu doanh thu...</p>
                         </div>
                     ) : !monthData || totalMonthRevenue === 0 ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1' }}>receipt_long</span>
-                            <p style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: '#64748b' }}>
+                        <div className="rmm-empty-container">
+                            <span className="material-symbols-outlined rmm-empty-icon">receipt_long</span>
+                            <p className="rmm-empty-text">
                                 Chưa phát sinh doanh thu tháng này
                             </p>
                         </div>
@@ -121,7 +121,7 @@ export default function RevenueMonthModal({ isOpen, onClose }) {
                             </div>
 
                             {/* Accordion List by Week */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="rmm-weeks-list">
                                 {Object.values(weeks).map((w) => {
                                     const isExpanded = expandedWeek === w.id;
                                     const casualEntries = Object.entries(w.casual || {});
@@ -139,7 +139,7 @@ export default function RevenueMonthModal({ isOpen, onClose }) {
                                                 onClick={() => setExpandedWeek(isExpanded ? null : w.id)}
                                             >
                                                 <div className="revenue-accordion-title">
-                                                    <span className="material-symbols-outlined" style={{ color: isExpanded ? '#2563eb' : '#64748b', fontSize: '20px' }}>
+                                                    <span className={`material-symbols-outlined rmm-accordion-icon ${isExpanded ? 'rmm-accordion-icon--active' : 'rmm-accordion-icon--inactive'}`}>
                                                         {isExpanded ? 'expand_more' : 'chevron_right'}
                                                     </span>
                                                     <span>{w.label}</span>
@@ -154,19 +154,19 @@ export default function RevenueMonthModal({ isOpen, onClose }) {
                                                 <div className="revenue-accordion-content">
                                                     
                                                     {/* 1. Thẻ lượt */}
-                                                    <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                                        <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>confirmation_number</span>
+                                                    <div className="rmm-category-block">
+                                                        <div className="rmm-category-header">
+                                                            <span className="material-symbols-outlined rmm-category-icon rmm-category-icon--casual">confirmation_number</span>
                                                             Thẻ lượt
                                                         </div>
                                                         {casualEntries.length === 0 ? (
                                                             <div className="revenue-empty-text">Chưa phát sinh</div>
                                                         ) : (
-                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px' }}>
+                                                            <div className="rmm-casual-list">
                                                                 {casualEntries.map(([vType, rev], idx) => (
-                                                                    <div key={idx} style={{ backgroundColor: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                                        <span style={{ color: '#64748b' }}>{vType}: </span>
-                                                                        <strong style={{ color: '#0f172a' }}>{formatVND(rev)}</strong>
+                                                                    <div key={idx} className="rmm-casual-chip">
+                                                                        <span className="rmm-casual-label">{vType}: </span>
+                                                                        <strong className="rmm-casual-val">{formatVND(rev)}</strong>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -174,22 +174,22 @@ export default function RevenueMonthModal({ isOpen, onClose }) {
                                                     </div>
 
                                                     {/* 2. Đăng ký thẻ tháng */}
-                                                    <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                                        <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#16a34a' }}>card_membership</span>
+                                                    <div className="rmm-category-block">
+                                                        <div className="rmm-category-header">
+                                                            <span className="material-symbols-outlined rmm-category-icon rmm-category-icon--monthly">card_membership</span>
                                                             Đăng ký thẻ tháng
                                                         </div>
                                                         {monthlyNewItems.length === 0 ? (
                                                             <div className="revenue-empty-text">Chưa phát sinh</div>
                                                         ) : (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                            <div className="rmm-items-column">
                                                                 {monthlyNewItems.map((item, idx) => (
-                                                                    <div key={idx} className="revenue-row-item" style={{ padding: '8px 12px' }}>
-                                                                        <span style={{ fontSize: '13px' }}>
-                                                                            <strong style={{ color: '#0f172a' }}>{item.packageName}</strong> 
-                                                                            <span style={{ color: '#64748b', marginLeft: '6px' }}>({item.vehicleType} • Số lượt: {item.count})</span>
+                                                                    <div key={idx} className="revenue-row-item rmm-row-item">
+                                                                        <span className="rmm-item-text">
+                                                                            <strong className="rmm-item-pkg--monthly">{item.packageName}</strong> 
+                                                                            <span className="rmm-item-sub--monthly">({item.vehicleType} • Số lượt: {item.count})</span>
                                                                         </span>
-                                                                        <span style={{ fontWeight: 700, color: '#16a34a', fontSize: '14px' }}>{formatVND(item.revenue)}</span>
+                                                                        <span className="rmm-item-rev--monthly">{formatVND(item.revenue)}</span>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -197,22 +197,22 @@ export default function RevenueMonthModal({ isOpen, onClose }) {
                                                     </div>
 
                                                     {/* 3. Gia hạn thẻ tháng */}
-                                                    <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                                        <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#d97706' }}>autorenew</span>
+                                                    <div className="rmm-category-block">
+                                                        <div className="rmm-category-header">
+                                                            <span className="material-symbols-outlined rmm-category-icon rmm-category-icon--renewal">autorenew</span>
                                                             Gia hạn thẻ tháng
                                                         </div>
                                                         {renewalItems.length === 0 ? (
                                                             <div className="revenue-empty-text">Chưa phát sinh</div>
                                                         ) : (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                            <div className="rmm-items-column">
                                                                 {renewalItems.map((item, idx) => (
-                                                                    <div key={idx} className="revenue-row-item" style={{ padding: '8px 12px', backgroundColor: '#fffbe6', borderColor: '#fef08a' }}>
-                                                                        <span style={{ fontSize: '13px' }}>
-                                                                            <strong style={{ color: '#92400e' }}>{item.packageName}</strong> 
-                                                                            <span style={{ color: '#b45309', marginLeft: '6px' }}>({item.vehicleType} • Số lượt: {item.count})</span>
+                                                                    <div key={idx} className="revenue-row-item rmm-row-item--renewal">
+                                                                        <span className="rmm-item-text">
+                                                                            <strong className="rmm-item-pkg--renewal">{item.packageName}</strong> 
+                                                                            <span className="rmm-item-sub--renewal">({item.vehicleType} • Số lượt: {item.count})</span>
                                                                         </span>
-                                                                        <span style={{ fontWeight: 700, color: '#b45309', fontSize: '14px' }}>{formatVND(item.revenue)}</span>
+                                                                        <span className="rmm-item-rev--renewal">{formatVND(item.revenue)}</span>
                                                                     </div>
                                                                 ))}
                                                             </div>

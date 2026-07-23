@@ -92,40 +92,20 @@ export function EditSessionPriceModal({ item, saving = false, onClose, onSave })
     };
 
 
-    const cellLabelStyle = {
-        padding: '0 8px',
-        fontSize: '11px',
-        fontWeight: 700,
-        color: '#94a3b8',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-    };
-
-    const hourInputStyle = {
-        width: '100%',
-        padding: '7px 8px',
-        border: '1px solid #e2e8f0',
-        borderRadius: '7px',
-        fontSize: '14px',
-        fontFamily: 'inherit',
-        outline: 'none',
-        color: '#334155',
-        boxSizing: 'border-box',
-        textAlign: 'center',
-        transition: 'border-color 0.15s',
-    };
-
-    const getRowBg = (idx) => {
-        if (overlapIndices.has(idx) || invalidRangeIndices.has(idx)) return '#fff5f5';
-        return idx % 2 === 0 ? '#fff' : '#fafbfc';
-    };
-
     return (
         <div className="ap-modal-overlay" onClick={onClose}>
-            <div className="ap-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div
+                className="ap-modal"
+                onClick={e => e.stopPropagation()}
+                style={{
+                    '--theme-color': item.color,
+                    '--theme-color-light': `${item.color}20`,
+                    '--theme-color-hover': `${item.color}08`
+                }}
+            >
                 {/* ── Header ── */}
                 <div className="ap-modal-header">
-                    <div className="ap-modal-icon" style={{ background: `${item.color}20`, color: item.color }}>
+                    <div className="ap-modal-icon">
                         <span className="material-symbols-outlined">{item.icon}</span>
                     </div>
                     <div>
@@ -139,108 +119,69 @@ export function EditSessionPriceModal({ item, saving = false, onClose, onSave })
 
                 <div className="ap-modal-body">
                     {/* ── Time Range Box ── */}
-                    <div style={{
-                        border: '1.5px solid #e2e8f0',
-                        borderRadius: '10px',
-                        background: '#fff',
-                    }}>
+                    <div className="ap-time-range-box">
                         {/* Column headers */}
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr 1.2fr 32px',
-                            padding: '9px 14px 8px',
-                            borderBottom: '1px solid #e2e8f0',
-                            background: '#f8fafc',
-                            borderRadius: '10px 10px 0 0',
-                            gap: '8px',
-                        }}>
-                            <span style={cellLabelStyle}>Min (giờ)</span>
-                            <span style={cellLabelStyle}>Max (giờ)</span>
-                            <span style={cellLabelStyle}>Price</span>
+                        <div className="ap-slot-headers">
+                            <span className="ap-cell-label">Min (giờ)</span>
+                            <span className="ap-cell-label">Max (giờ)</span>
+                            <span className="ap-cell-label">Price</span>
                             <span />
                         </div>
 
                         {/* Slot rows — scrollable */}
-                        <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                            {timeSlots.map((slot, idx) => (
-                                <div key={idx} style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr 1.2fr 32px',
-                                    alignItems: 'center',
-                                    background: getRowBg(idx),
-                                    padding: '10px 14px',
-                                    borderBottom: idx < timeSlots.length - 1 ? '1px solid #f1f5f9' : 'none',
-                                    gap: '8px',
-                                }}>
-                                    {/* Min hour */}
-                                    <input
-                                        type="number"
-                                        value={slot.min}
-                                        min="0"
-                                        max="24"
-                                        step="any"
-                                        onChange={e => updateSlot(idx, 'min', e.target.value)}
-                                        style={{
-                                            ...hourInputStyle,
-                                            borderColor: invalidRangeIndices.has(idx) || overlapIndices.has(idx) ? '#f87171' : '#e2e8f0',
-                                        }}
-                                    />
-                                    {/* Max hour */}
-                                    <input
-                                        type="number"
-                                        value={slot.max}
-                                        min="0"
-                                        max="24"
-                                        step="any"
-                                        onChange={e => updateSlot(idx, 'max', e.target.value)}
-                                        style={{
-                                            ...hourInputStyle,
-                                            borderColor: invalidRangeIndices.has(idx) || overlapIndices.has(idx) ? '#f87171' : '#e2e8f0',
-                                        }}
-                                    />
-
-                                    {/* Price */}
-                                    <div style={{ position: 'relative' }}>
+                        <div className="ap-slots-container">
+                            {timeSlots.map((slot, idx) => {
+                                const isErrorRow = overlapIndices.has(idx) || invalidRangeIndices.has(idx);
+                                const rowBgClass = isErrorRow ? 'ap-slot-row--error' : (idx % 2 === 0 ? 'ap-slot-row--even' : 'ap-slot-row--odd');
+                                return (
+                                    <div key={idx} className={`ap-slot-row ${rowBgClass}`}>
+                                        {/* Min hour */}
                                         <input
                                             type="number"
-                                            value={slot.price}
+                                            value={slot.min}
                                             min="0"
-                                            step="1000"
-                                            placeholder="0"
-                                            onChange={e => updateSlot(idx, 'price', e.target.value * 1)}
-                                            style={{
-                                                ...hourInputStyle,
-                                                padding: '7px 26px 7px 8px',
-                                                textAlign: 'left',
-                                                borderColor: slot.price < 0 || slot.price % 1000 !== 0 ? '#f87171' : '#e2e8f0',
-                                            }}
+                                            max="24"
+                                            step="any"
+                                            onChange={e => updateSlot(idx, 'min', e.target.value)}
+                                            className={`ap-hour-input ${isErrorRow ? 'ap-hour-input--error' : ''}`}
                                         />
-                                        <span style={{
-                                            position: 'absolute', right: '8px', top: '50%',
-                                            transform: 'translateY(-50%)', fontSize: '12px',
-                                            color: '#94a3b8', pointerEvents: 'none',
-                                        }}>đ</span>
+                                        {/* Max hour */}
+                                        <input
+                                            type="number"
+                                            value={slot.max}
+                                            min="0"
+                                            max="24"
+                                            step="any"
+                                            onChange={e => updateSlot(idx, 'max', e.target.value)}
+                                            className={`ap-hour-input ${isErrorRow ? 'ap-hour-input--error' : ''}`}
+                                        />
+
+                                        {/* Price */}
+                                        <div className="ap-price-input-wrapper">
+                                            <input
+                                                type="number"
+                                                value={slot.price}
+                                                min="0"
+                                                step="1000"
+                                                placeholder="0"
+                                                onChange={e => updateSlot(idx, 'price', e.target.value * 1)}
+                                                className={`ap-hour-input ap-hour-input--price ${slot.price < 0 || slot.price % 1000 !== 0 ? 'ap-hour-input--error' : ''}`}
+                                            />
+                                            <span className="ap-price-suffix">đ</span>
+                                        </div>
+                                        {/* Delete button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeSlot(idx)}
+                                            disabled={timeSlots.length <= 1}
+                                            title="Xóa khung giờ"
+                                            className="ap-btn-delete-slot"
+                                        >
+                                            <span className="material-symbols-outlined">close</span>
+                                        </button>
                                     </div>
-                                    {/* Delete button */}
-                                    <button
-                                        type="button"
-                                        onClick={() => removeSlot(idx)}
-                                        disabled={timeSlots.length <= 1}
-                                        title="Xóa khung giờ"
-                                        style={{
-                                            width: '28px', height: '28px', border: 'none',
-                                            borderRadius: '6px',
-                                            background: timeSlots.length <= 1 ? '#f1f5f9' : '#fef2f2',
-                                            color: timeSlots.length <= 1 ? '#cbd5e1' : '#ef4444',
-                                            cursor: timeSlots.length <= 1 ? 'not-allowed' : 'pointer',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            padding: 0, flexShrink: 0, transition: 'all 0.15s',
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -248,16 +189,7 @@ export function EditSessionPriceModal({ item, saving = false, onClose, onSave })
                     <button
                         type="button"
                         onClick={addSlot}
-                        style={{
-                            width: '100%', padding: '9px 14px',
-                            border: '1.5px dashed #cbd5e1',
-                            borderRadius: '8px', background: '#f8fafc', color: '#475569',
-                            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                            fontFamily: 'inherit', transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = item.color; e.currentTarget.style.color = item.color; e.currentTarget.style.background = `${item.color}08`; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#475569'; e.currentTarget.style.background = '#f8fafc'; }}
+                        className="ap-btn-add-slot"
                     >
                         <span className="material-symbols-outlined">add</span>
                         Thêm khung giờ
@@ -266,34 +198,34 @@ export function EditSessionPriceModal({ item, saving = false, onClose, onSave })
                     {/* ── Preview ── */}
                     <div className="ap-price-preview">
                         <div className="ap-preview-label">XEM TRƯỚC</div>
-                        <div style={{ maxHeight: '90px', overflowY: 'auto', paddingRight: '4px' }}>
+                        <div className="ap-preview-rows-scroll">
                             {timeSlots.map((slot, idx) => (
                                 <div className="ap-preview-row" key={idx}>
                                     <span>Khung {idx + 1} ({slot.min}h – {slot.max}h):</span>
-                                    <strong style={{ color: item.color }}>{formatVND(slot.price)}</strong>
+                                    <strong className="ap-preview-value">{formatVND(slot.price)}</strong>
                                 </div>
                             ))}
                         </div>
-                        <div className="ap-preview-row" style={{ borderTop: '1.5px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+                        <div className="ap-preview-row ap-preview-row--total">
                             <span>Tổng tối đa/ngày:</span>
-                            <strong style={{ color: item.color }}>{formatVND(timeSlots.reduce((sum, s) => sum + s.price, 0))}</strong>
+                            <strong className="ap-preview-value">{formatVND(timeSlots.reduce((sum, s) => sum + s.price, 0))}</strong>
                         </div>
                         {hasPriceErrors && (
-                            <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+                            <p className="ap-preview-error">
+                                <span className="material-symbols-outlined">error</span>
                                 Tất cả mức giá phải lớn hơn hoặc bằng 0 đ và là bội số của 1.000 đ.
                             </p>
                         )}
 
                         {hasInvalidRange && (
-                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+                            <p className="ap-preview-error ap-preview-error--spacing">
+                                <span className="material-symbols-outlined">error</span>
                                 Min phải nhỏ hơn Max.
                             </p>
                         )}
                         {hasOverlap && (
-                            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f97316', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>schedule</span>
+                            <p className="ap-preview-warning">
+                                <span className="material-symbols-outlined">schedule</span>
                                 Các khung giờ bị trùng nhau. Vui lòng điều chỉnh lại.
                             </p>
                         )}
@@ -306,7 +238,6 @@ export function EditSessionPriceModal({ item, saving = false, onClose, onSave })
                     <button
                         className="ap-btn-save"
                         onClick={handleSave}
-                        style={{ background: (hasErrors || saving) ? '#cbd5e1' : item.color, cursor: (hasErrors || saving) ? 'not-allowed' : 'pointer' }}
                         disabled={hasErrors || saving}
                     >
                         <span className="material-symbols-outlined">{saving ? 'progress_activity' : 'save'}</span>
@@ -394,9 +325,16 @@ export function EditMonthlyPriceModal({ item, saving = false, onClose, onSave })
 
     return (
         <div className="ap-modal-overlay" onClick={onClose}>
-            <div className="ap-modal ap-modal--wide" onClick={e => e.stopPropagation()}>
+            <div
+                className="ap-modal ap-modal--wide"
+                onClick={e => e.stopPropagation()}
+                style={{
+                    '--theme-color': item.color,
+                    '--theme-color-light': `${item.color}20`
+                }}
+            >
                 <div className="ap-modal-header">
-                    <div className="ap-modal-icon" style={{ background: `${item.color}20`, color: item.color }}>
+                    <div className="ap-modal-icon">
                         <span className="material-symbols-outlined">{item.icon}</span>
                     </div>
                     <div>
@@ -421,23 +359,23 @@ export function EditMonthlyPriceModal({ item, saving = false, onClose, onSave })
                         <div className="ap-preview-grid-4">
                             <div className="ap-preview-pkg">
                                 <span className="ap-pkg-duration">1 tháng</span>
-                                <span className="ap-pkg-price" style={{ color: item.color }}>{formatVND(price1)}</span>
+                                <span className="ap-pkg-price">{formatVND(price1)}</span>
                                 <span className="ap-pkg-monthly">{formatVND(Math.round(price1 / 1))} / tháng</span>
                             </div>
                             <div className="ap-preview-pkg">
                                 <span className="ap-pkg-duration">3 tháng</span>
-                                <span className="ap-pkg-price" style={{ color: item.color }}>{formatVND(price3)}</span>
+                                <span className="ap-pkg-price">{formatVND(price3)}</span>
                                 <span className="ap-pkg-monthly">{formatVND(Math.round(price3 / 3))} / tháng</span>
                             </div>
                             <div className="ap-preview-pkg">
                                 <span className="ap-pkg-duration">6 tháng</span>
-                                <span className="ap-pkg-price" style={{ color: item.color }}>{formatVND(price6)}</span>
+                                <span className="ap-pkg-price">{formatVND(price6)}</span>
                                 <span className="ap-pkg-monthly">{formatVND(Math.round(price6 / 6))} / tháng</span>
                             </div>
                             <div className="ap-preview-pkg ap-preview-pkg--best">
                                 <span className="ap-pkg-best-badge">Tốt nhất</span>
                                 <span className="ap-pkg-duration">12 tháng</span>
-                                <span className="ap-pkg-price" style={{ color: item.color }}>{formatVND(price12)}</span>
+                                <span className="ap-pkg-price">{formatVND(price12)}</span>
                                 <span className="ap-pkg-monthly">{formatVND(Math.round(price12 / 12))} / tháng</span>
                             </div>
                         </div>
@@ -449,7 +387,6 @@ export function EditMonthlyPriceModal({ item, saving = false, onClose, onSave })
                     <button
                         className="ap-btn-save"
                         onClick={handleSave}
-                        style={{ background: (hasErrors || saving) ? '#cbd5e1' : item.color, cursor: (hasErrors || saving) ? 'not-allowed' : 'pointer' }}
                         disabled={hasErrors || saving}
                     >
                         <span className="material-symbols-outlined">{saving ? 'progress_activity' : 'save'}</span>
