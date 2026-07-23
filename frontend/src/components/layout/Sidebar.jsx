@@ -107,7 +107,19 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                {/* 3. Quản lý Thẻ (Chỉ Manager) */}
+                {/* 3. Bảng điều khiển (Chỉ Manager) */}
+                {computedRole === 'MANAGER' && (
+                    <button
+                        type="button"
+                        className={`menu-item ${activeTab === 'manager-dashboard' ? 'active' : ''}`}
+                        onClick={() => onTabChange('manager-dashboard')}
+                    >
+                        <span className="material-symbols-outlined">dashboard</span>
+                        {!isCollapsed && <span>Bảng điều khiển</span>}
+                    </button>
+                )}
+
+                {/* 4. Quản lý Thẻ (Chỉ Manager) */}
                 {computedRole === 'MANAGER' && (
                     <button
                         type="button"
