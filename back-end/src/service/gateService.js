@@ -305,31 +305,20 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     ticketType = 'Thẻ lượt';
 
     // Tìm hoặc tạo xe tạm thời cho Visitor
+    let searchTypeName = (vehicleType === 'Ô tô' || (cleanPlate && /^\d{2}[A-Z]\d{4,5}$/.test(cleanPlate))) ? 'Ô tô' : 'Xe máy';
+    let vtId = await gateRepository.getVehicleTypeId(searchTypeName);
+    if (!vtId) {
+      vtId = await gateRepository.getFallbackVehicleTypeId();
+    }
+
     vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
-      let vtId = null;
-      let searchTypeName = 'Xe máy';
-      if (vehicleType === 'Ô tô') {
-        searchTypeName = 'Ô tô';
-      } else if (vehicleType === 'Xe máy') {
-        searchTypeName = 'Xe máy';
-      }
-
-      vtId = await gateRepository.getVehicleTypeId(searchTypeName);
-
-      if (!vtId) {
-        // Fallback lấy loại xe đầu tiên
-        vtId = await gateRepository.getFallbackVehicleTypeId();
-      }
-
-      if (!vtId) {
-        throw new Error("Không cấu hình được loại xe mặc định.");
-      }
-
       vehicle = await vehicleRepository.createVehicle({
         plate_number: cleanPlate,
         vehicle_type_id: vtId
       });
+    } else if (vtId && vehicle.vehicle_type_id !== vtId) {
+      vehicle = await vehicleRepository.updateVehicleType(vehicle.vehicle_id, vtId);
     }
 
     // Tự động tìm và gán slot còn trống cho xe

@@ -94,10 +94,12 @@ export const getGateByParking = async (parkingId) => {
  * @param {string} typeName
  */
 export const getVehicleTypeId = async (typeName) => {
+  if (!typeName) return null;
+  const cleanName = typeName.trim();
   const { data } = await supabase
     .from('vehicle_type')
     .select('vehicle_type_id')
-    .or(`name.eq."${typeName}",name.eq."${typeName}"`)
+    .ilike('name', `%${cleanName}%`)
     .limit(1);
   return data && data.length > 0 ? data[0].vehicle_type_id : null;
 };
