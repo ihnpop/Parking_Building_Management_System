@@ -109,7 +109,7 @@ export const getLostCards = async () => {
       let parking_fee = pendingPayment?.parkingFee ?? 0;
 
       if (!parking_fee && cardType !== 'Thẻ tháng' && log.vehicle_id &&
-          ['Đang xử lý', 'Đã hủy thẻ'].includes(statusVal)) {
+        ['Đang xử lý', 'Đã hủy thẻ'].includes(statusVal)) {
         try {
           let session = await lostCardRepository.findActiveParkingSession(log.vehicle_id);
           if (!session) {

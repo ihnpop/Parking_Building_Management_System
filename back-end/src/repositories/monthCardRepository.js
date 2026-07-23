@@ -903,7 +903,7 @@ export const getCardDetailsForContract = async (cardId) => {
       )
     `)
     .eq('card_id', cardId)
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
   return data;
@@ -919,6 +919,8 @@ export const getCccdNumberByCustomerId = async (customerId) => {
     .from('customer_kyc')
     .select('cccd_number')
     .eq('customer_id', customerId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
