@@ -27,9 +27,10 @@ export const packagePayment = async (req, res) => {
     try {
         const { vehiclePackageId, amount, isRenewal } = req.body;
         const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        const origin = req.headers["origin"] || req.headers["referer"];
         
         // Tạo hóa đơn tạm ở database và lấy URL chuyển tiếp VNPay tương ứng
-        const result = await paymentService.createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr);
+        const result = await paymentService.createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr, origin);
         res.json(result);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -43,6 +44,7 @@ export const checkout = async (req, res) => {
     try {
         const { sessionId, amount } = req.body;
         let ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+        const origin = req.headers["origin"] || req.headers["referer"];
         
         // Chuẩn hóa địa chỉ IP cục bộ
         if (ipAddr === "::1" || ipAddr.includes("::ffff:")) {
@@ -50,7 +52,7 @@ export const checkout = async (req, res) => {
         }
         
         // Tạo hóa đơn tạm ở database và lấy URL chuyển tiếp VNPay tương ứng
-        const result = await paymentService.createCheckoutPayment(sessionId, amount, ipAddr);
+        const result = await paymentService.createCheckoutPayment(sessionId, amount, ipAddr, origin);
         res.json(result);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -74,7 +76,10 @@ export const vnpayIpn = async (req, res) => {
 export const vnpayReturn = async (req, res) => {
     try {
         const orderCode = req.query.vnp_TxnRef;
-        const frontendUrl = process.env.FRONTEND_URL;
+        // Ưu tiên lấy frontendUrl động từ query.origin, nếu không có mới fallback về process.env.FRONTEND_URL hoặc localhost
+        const frontendUrl = req.query.origin 
+            ? decodeURIComponent(req.query.origin) 
+            : (process.env.FRONTEND_URL || "http://localhost:5173");
 
         // Gọi handleIpn cục bộ để cập nhật tức thì trạng thái DB (thống nhất trạng thái 'Đã thanh toán')
         const ipnResult = await paymentService.handleIpn(req.query);
@@ -93,7 +98,9 @@ export const vnpayReturn = async (req, res) => {
     } catch (err) {
         console.error("[VNPAY Return] Lỗi khi xử lý chuyển hướng trả về:", err);
         const orderCode = req.query.vnp_TxnRef || "";
-        const frontendUrl = process.env.FRONTEND_URL;
+        const frontendUrl = req.query.origin 
+            ? decodeURIComponent(req.query.origin) 
+            : (process.env.FRONTEND_URL || "http://localhost:5173");
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=failed`);
     }
 };
@@ -131,12 +138,13 @@ export const createVnpayCheckout = async (req, res) => {
         const { sessionId } = req.body;
         const staffId = req.user?.id;
         const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        const origin = req.headers["origin"] || req.headers["referer"];
 
         if (!sessionId) {
             return res.status(400).json({ message: "Thiếu sessionId" });
         }
 
-        const result = await paymentService.createVnpayPayment(sessionId, staffId, ipAddr);
+        const result = await paymentService.createVnpayPayment(sessionId, staffId, ipAddr, origin);
         return res.json({ data: result });
     } catch (err) {
         console.error("[createVnpayCheckout] Lỗi tạo giao dịch VNPay:", err);

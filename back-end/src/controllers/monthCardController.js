@@ -209,7 +209,9 @@ export const createMonthCard = async (req, res) => {
       email,
       status,
       vehicleTypeId,
-      note
+      note,
+      cccdNumber,
+      cccd_number
     } = req.body;
 
     if (!plate) {
@@ -258,7 +260,9 @@ export const createMonthCard = async (req, res) => {
       status,
       vehicleTypeId,
       note,
-      currentUserId
+      currentUserId,
+      cccdNumber,
+      cccd_number
     });
 
     return res.status(201).json(result);

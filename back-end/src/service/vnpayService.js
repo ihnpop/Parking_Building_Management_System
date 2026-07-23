@@ -32,8 +32,18 @@ function getVNPay() {
  * @param {string} ipAddr - Địa chỉ IP của thiết bị khách hàng thực hiện yêu cầu thanh toán
  * @returns {string} URL chuyển hướng thanh toán VNPAY hoàn chỉnh có kèm mã chữ ký vnp_SecureHash
  */
-export function createPaymentUrl({ orderCode, amount, orderInfo, ipAddr }) {
-    const returnUrl = process.env.VNP_RETURN_URL; // URL nhận kết quả thanh toán trả về trình duyệt
+export function createPaymentUrl({ orderCode, amount, orderInfo, ipAddr, origin }) {
+    let returnUrl = process.env.VNP_RETURN_URL; // URL nhận kết quả thanh toán trả về trình duyệt
+
+    if (origin) {
+        try {
+            const parsed = new URL(origin);
+            const cleanOrigin = `${parsed.protocol}//${parsed.host}`;
+            returnUrl = `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}origin=${encodeURIComponent(cleanOrigin)}`;
+        } catch (e) {
+            returnUrl = `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}origin=${encodeURIComponent(origin)}`;
+        }
+    }
 
     const paymentUrl = getVNPay().buildPaymentUrl({
         vnp_Amount: Math.round(amount), // Số tiền cần thanh toán
