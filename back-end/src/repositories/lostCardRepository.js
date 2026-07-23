@@ -26,10 +26,8 @@ export const getLostCardLogs = async (buildingId = null) => {
     `)
     .order('reported_at', { ascending: false });
 
-  if (buildingId) {
-    query = query.eq('building_id', buildingId);
-  }
-
+  // Lưu ý: bảng card_lost_log không có cột building_id,
+  // nên không thể filter trực tiếp. Trả về toàn bộ nhật ký.
   const { data, error } = await query;
 
   if (error) {
