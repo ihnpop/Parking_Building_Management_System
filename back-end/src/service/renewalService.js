@@ -337,7 +337,7 @@ export async function processRenewalSuccess(orderCode) {
  * @param {string} cardId
  * @param {string} [userId]
  */
-export async function getRenewalInfo(cardId, userId) {
+export async function getRenewalInfo(cardId, userId, origin) {
     // Lấy thẻ + registration + vehicle + package
     const card = await renewalRepository.findCardWithDetails(cardId);
     if (!card) throw new Error('Không tìm thấy thẻ tháng.');
@@ -386,6 +386,7 @@ export async function getRenewalInfo(cardId, userId) {
                     amount: pm.amount,
                     orderInfo: `Gia han ve thang ${cCode}`,
                     ipAddr: '127.0.0.1',
+                    origin,
                 });
             }
 

@@ -758,7 +758,8 @@ export const getRenewalInfo = async (req, res) => {
       userId = profiles?.[0]?.id || null;
     }
 
-    const info = await renewalService.getRenewalInfo(cardId, userId);
+    const origin = req.headers['origin'] || req.headers['referer'];
+    const info = await renewalService.getRenewalInfo(cardId, userId, origin);
     return res.status(200).json({ success: true, data: info });
   } catch (err) {
     console.error('getRenewalInfo error:', err);
