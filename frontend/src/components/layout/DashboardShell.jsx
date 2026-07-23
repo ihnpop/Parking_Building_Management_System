@@ -15,12 +15,12 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
     else if (email === 'staff@gmail.com') role = 'STAFF';
 
     // Danh sách tab được phép truy cập theo từng vai trò
-    const MANAGER_ALLOWED_VIEWS = ['card-management', 'adjust-prices', 'log-management', 'system-settings'];
+    const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management', 'system-settings'];
     const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
 
     const getDefaultTab = (currentRole) => {
         if (currentRole === 'ADMIN') return 'user-management'; // Tab đầu tiên của Admin
-        if (currentRole === 'MANAGER') return 'card-management'; // Tab đầu tiên của Manager
+        if (currentRole === 'MANAGER') return 'manager-dashboard'; // Tab đầu tiên của Manager
         return 'system';
     };
 
@@ -33,8 +33,8 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             if (role === 'STAFF') {
                 setActiveTab('system');
             } else if (role === 'MANAGER' && !MANAGER_ALLOWED_VIEWS.includes(currentTab)) {
-                // Manager không có quyền xem tab này, đặt lại về 'card-management' (tab đầu tiên của Manager)
-                setActiveTab('card-management');
+                // Manager không có quyền xem tab này, đặt lại về 'manager-dashboard' (tab đầu tiên của Manager)
+                setActiveTab('manager-dashboard');
             } else if (role === 'ADMIN' && !ADMIN_ALLOWED_VIEWS.includes(currentTab)) {
                 // Admin không có quyền truy cập tab riêng của Manager, đặt lại về 'user-management' (tab đầu tiên của Admin)
                 setActiveTab('user-management');
@@ -64,6 +64,7 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             case 'log-management': return 'Nhật ký vận hành';
             case 'system-settings': return 'Cài đặt hệ thống';
             case 'dashboard': return 'Bảng điều khiển';
+            case 'manager-dashboard': return 'Tổng quan Bãi xe';
             default: return 'Bảng điều khiển';
         }
     };

@@ -22,6 +22,7 @@ import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
 import SystemSettingsPage from './SystemSettingsPage';
 import AdjustPricesPage from './AdjustPricesPage';
+import ManagerDashboardPage from './ManagerDashboardPage';
 
 // Import Modal chi tiết doanh thu
 import RevenueTodayModal from '../components/RevenueTodayModal';
@@ -56,13 +57,13 @@ export default function DashboardView() {
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
     // Danh sách các tab được phép truy cập theo từng vai trò người dùng
-    const MANAGER_ALLOWED_VIEWS = ['card-management', 'adjust-prices', 'log-management', 'system-settings'];
+    const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management', 'system-settings'];
     const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
 
     // Trả về tab đầu tiên trên Sidebar của từng vai trò
     const getDefaultViewForRole = (r) => {
         if (r === 'ADMIN') return 'user-management'; // Tab 1 của Admin: Phân quyền
-        if (r === 'MANAGER') return 'card-management'; // Tab 1 của Manager: Quản lý Thẻ
+        if (r === 'MANAGER') return 'manager-dashboard'; // Tab 1 của Manager: Bảng điều khiển Manager
         return 'system'; // Tab 1 của Staff
     };
 
@@ -93,9 +94,9 @@ export default function DashboardView() {
             // Staff chỉ được truy cập giao diện hệ thống
             setCurrentView('system');
         } else if (computedRole === 'MANAGER' && !MANAGER_ALLOWED_VIEWS.includes(currentView)) {
-            // Manager KHÔNG có quyền xem Bảng điều khiển (dashboard) hoặc Phân quyền (user-management)
-            // Tự động chuyển về tab mặc định của Manager là Quản lý Thẻ (card-management)
-            setCurrentView('card-management');
+            // Manager KHÔNG có quyền xem Bảng điều khiển Admin (dashboard) hoặc Phân quyền (user-management)
+            // Tự động chuyển về tab mặc định của Manager là Bảng điều khiển Manager (manager-dashboard)
+            setCurrentView('manager-dashboard');
         } else if (computedRole === 'ADMIN' && !ADMIN_ALLOWED_VIEWS.includes(currentView)) {
             // Admin không truy cập tab công việc riêng của Manager, chuyển về Bảng điều khiển (dashboard)
             setCurrentView('dashboard');
@@ -212,6 +213,13 @@ export default function DashboardView() {
 
     return (
         <DashboardShell currentTab={currentView} onTabSelect={(tab) => setCurrentView(tab)}>
+
+            {/* 0. VIEW BẢNG ĐIỀU KHIỂN MANAGER */}
+            {currentView === 'manager-dashboard' && (
+                <div style={{ padding: '0 24px 24px 24px' }}>
+                    <ManagerDashboardPage />
+                </div>
+            )}
 
             {/* 1. VIEW QUẢN LÝ THẺ */}
             {currentView === 'card-management' && (

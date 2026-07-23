@@ -575,6 +575,18 @@ export default function ExitPaymentPanel({
                                 </div>
 
                                 <div className="epp-info-grid">
+                                    <div className="epp-info-item">
+                                        <span className="epp-info-label">Mã thẻ:</span>
+                                        <span className="epp-info-value" style={{ color: "#2563eb", fontWeight: 700 }}>
+                                            {preCheckResult.card?.code || preCheckResult.card?.card_code || preCheckResult.cardCode || "---"}
+                                        </span>
+                                    </div>
+                                    <div className="epp-info-item">
+                                        <span className="epp-info-label">Biển số:</span>
+                                        <span className="epp-info-value">
+                                            {preCheckResult.vehicle?.plate_number || preCheckResult.session?.plate_number || plateNumber}
+                                        </span>
+                                    </div>
                                     {preCheckResult.session?.entry_time && (
                                         <div className="epp-info-item">
                                             <span className="epp-info-label">Giờ vào:</span>
