@@ -20,7 +20,6 @@ import CasualCardLogPage from './CasualCardLogPage';
 import LoginLogPage from './LoginLogPage';
 import UserManagementPage from './UserManagementPage';
 import RevenueTrafficPage from './RevenueTrafficPage';
-import SystemSettingsPage from './SystemSettingsPage';
 import AdjustPricesPage from './AdjustPricesPage';
 import ManagerDashboardPage from './ManagerDashboardPage';
 
@@ -56,9 +55,8 @@ export default function DashboardView() {
     // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
-    // Danh sách các tab được phép truy cập theo từng vai trò người dùng
-    const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management', 'system-settings'];
-    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
+    const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic'];
 
     // Trả về tab đầu tiên trên Sidebar của từng vai trò
     const getDefaultViewForRole = (r) => {
@@ -300,13 +298,6 @@ export default function DashboardView() {
                 </div>
             )}
 
-            {/* 4. VIEW CÀI ĐẶT HỆ THỐNG */}
-            {currentView === 'system-settings' && (
-                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
-                    <SystemSettingsPage />
-                </div>
-            )}
-
             {/* 5. VIEW CHI TIẾT DOANH THU & LƯU LƯỢNG */}
             {currentView === 'revenue-traffic' && (
                 <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
@@ -318,13 +309,6 @@ export default function DashboardView() {
             {currentView === 'adjust-prices' && (
                 <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
                     <AdjustPricesPage />
-                </div>
-            )}
-
-            {/* VIEW CÀI ĐẶT HỆ THỐNG */}
-            {currentView === 'system-settings' && (
-                <div style={{ marginTop: '0', padding: '0 24px 24px 24px' }}>
-                    <SystemSettingsPage />
                 </div>
             )}
 

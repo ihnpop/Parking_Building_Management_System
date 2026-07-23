@@ -6,7 +6,6 @@ import MonthCardPage from './features/dashboard/pages/MonthCardPage';
 import LostCardLogPage from './features/dashboard/pages/LostCardLogPage';
 import LoginLogPage from './features/dashboard/pages/LoginLogPage';
 import MonthCardLogPage from './features/dashboard/pages/MonthCardLogPage';
-import SystemSettingsPage from './features/dashboard/pages/SystemSettingsPage';
 import UserManagementPage from './features/dashboard/pages/UserManagementPage';
 import AdjustPricesPage from './features/dashboard/pages/AdjustPricesPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -77,13 +76,7 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      <Route path="/login/dashboard/settings" element={
-        <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
-            <SystemSettingsPage />
-          </RoleProtectedRoute>
-        </ProtectedRoute>
-      } />
+
 
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>

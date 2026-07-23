@@ -15,8 +15,8 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
     else if (email === 'staff@gmail.com') role = 'STAFF';
 
     // Danh sách tab được phép truy cập theo từng vai trò
-    const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management', 'system-settings'];
-    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'system-settings', 'revenue-traffic'];
+    const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic'];
 
     const getDefaultTab = (currentRole) => {
         if (currentRole === 'ADMIN') return 'user-management'; // Tab đầu tiên của Admin
@@ -62,7 +62,6 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
             case 'card-management': return 'Quản lý Thẻ';
             case 'adjust-prices': return 'Điều chỉnh giá';
             case 'log-management': return 'Nhật ký vận hành';
-            case 'system-settings': return 'Cài đặt hệ thống';
             case 'dashboard': return 'Bảng điều khiển';
             case 'manager-dashboard': return 'Tổng quan Bãi xe';
             default: return 'Bảng điều khiển';

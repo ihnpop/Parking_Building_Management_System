@@ -155,17 +155,7 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                {/* 5. Cài đặt hệ thống (Cả Admin và Manager) */}
-                {(computedRole === 'ADMIN' || computedRole === 'MANAGER') && (
-                    <button
-                        type="button"
-                        className={`menu-item ${activeTab === 'system-settings' ? 'active' : ''}`}
-                        onClick={() => onTabChange('system-settings')}
-                    >
-                        <span className="material-symbols-outlined">settings</span>
-                        {!isCollapsed && <span>Cài đặt hệ thống</span>}
-                    </button>
-                )}
+
             </nav>
 
             <div className="sidebar-footer">
