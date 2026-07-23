@@ -586,8 +586,8 @@ export const deleteMonthCard = async (cardId, performedBy) => {
   return result;
 };
 
-export const getMonthCards = async () => {
-  const data = await monthCardRepository.getMonthCards();
+export const getMonthCards = async (buildingId = null) => {
+  const data = await monthCardRepository.getMonthCards(buildingId);
 
   return await Promise.all(
     data.map(async (card, i) => {
@@ -688,8 +688,8 @@ export const getMonthCards = async () => {
   );
 };
 
-export const getMonthCardLogs = async () => {
-  const data = await monthCardRepository.getMonthCardLogs();
+export const getMonthCardLogs = async (buildingId = null) => {
+  const data = await monthCardRepository.getMonthCardLogs(buildingId);
 
   // ─── Kết quả từ card_activity_logs (giao dịch đã hoàn thành) ───────────
   if (!data) return [];

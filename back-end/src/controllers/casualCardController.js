@@ -4,6 +4,7 @@
  */
 
 import * as casualCardService from "../service/casualCardService.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 /**
  * GET /api/casual-card/sessions
@@ -11,7 +12,8 @@ import * as casualCardService from "../service/casualCardService.js";
  */
 export const getCasualCardLog = async (req, res) => {
     try {
-        const data = await casualCardService.getCasualCardLog();
+        const buildingId = await resolveBuildingIdFromReq(req);
+        const data = await casualCardService.getCasualCardLog(buildingId);
         return res.json(data);
     } catch (err) {
         console.error("[CasualCardController] getCasualCardLog error:", err);
@@ -27,7 +29,8 @@ export const getCasualCardLog = async (req, res) => {
  */
 export const getCasualTotalRevenue = async (req, res) => {
     try {
-        const total = await casualCardService.getCasualTotalRevenue();
+        const buildingId = await resolveBuildingIdFromReq(req);
+        const total = await casualCardService.getCasualTotalRevenue(buildingId);
         return res.json({ total });
     } catch (err) {
         console.error("[CasualCardController] getCasualTotalRevenue error:", err);

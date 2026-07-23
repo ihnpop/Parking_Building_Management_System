@@ -26,8 +26,6 @@ CREATE TABLE public.vehicle (
   customer_id uuid,
   vehicle_type_id uuid NOT NULL,
   plate_number character varying NOT NULL UNIQUE,
-  brand character varying,
-  color character varying,
   status character varying DEFAULT 'Hoạt động'::character varying,
   CONSTRAINT vehicle_pkey PRIMARY KEY (vehicle_id),
   CONSTRAINT vehicle_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customer(customer_id),
@@ -91,19 +89,8 @@ CREATE TABLE public.slot (
   area_id uuid NOT NULL,
   slot_code character varying NOT NULL,
   status character varying DEFAULT 'Sẵn sàng'::character varying,
-  distance_to_gate integer,
-  priority_score numeric DEFAULT 0,
   CONSTRAINT slot_pkey PRIMARY KEY (slot_id),
   CONSTRAINT slot_area_id_fkey FOREIGN KEY (area_id) REFERENCES public.area(area_id)
-);
-CREATE TABLE public.gate (
-  gate_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  parking_id uuid NOT NULL,
-  name character varying NOT NULL,
-  gate_type character varying NOT NULL,
-  status character varying DEFAULT 'Hoạt động'::character varying,
-  CONSTRAINT gate_pkey PRIMARY KEY (gate_id),
-  CONSTRAINT gate_parking_id_fkey FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id)
 );
 CREATE TABLE public.price_table (
   price_table_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -126,38 +113,17 @@ CREATE TABLE public.price_item (
   CONSTRAINT price_item_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
 );
 CREATE TABLE public.package (
-    package_id UUID NOT NULL DEFAULT gen_random_uuid(),
-
-    price_table_id UUID NOT NULL,
-
-    vehicle_type_id UUID NOT NULL,
-
-    name VARCHAR(255) NOT NULL,
-
-    duration_month INTEGER NOT NULL,
-
-    price NUMERIC(18,2) NOT NULL,
-
-    status VARCHAR(50) NOT NULL DEFAULT 'Hoạt động',
-
-    CONSTRAINT monthly_package_pkey
-        PRIMARY KEY (package_id),
-
-    CONSTRAINT monthly_package_price_table_id_fkey
-        FOREIGN KEY (price_table_id)
-        REFERENCES public.price_table(price_table_id),
-
-    CONSTRAINT monthly_package_vehicle_type_id_fkey
-        FOREIGN KEY (vehicle_type_id)
-        REFERENCES public.vehicle_type(vehicle_type_id),
-
-    CONSTRAINT monthly_package_unique
-        UNIQUE (
-            price_table_id,
-            vehicle_type_id,
-            duration_month
-        )
-
+  package_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  vehicle_type_id uuid NOT NULL,
+  name character varying NOT NULL,
+  duration_month integer NOT NULL,
+  price numeric NOT NULL,
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  price_table_id uuid,
+  CONSTRAINT package_pkey PRIMARY KEY (package_id),
+  CONSTRAINT package_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id),
+  CONSTRAINT monthly_package_price_table_id_fkey FOREIGN KEY (price_table_id) REFERENCES public.price_table(price_table_id)
+);
 CREATE TABLE public.vehicle_package (
   vehicle_package_id uuid NOT NULL DEFAULT gen_random_uuid(),
   vehicle_id uuid NOT NULL,
@@ -179,9 +145,7 @@ CREATE TABLE public.parking_sessions (
   plate_number character varying NOT NULL,
   entry_time timestamp with time zone NOT NULL DEFAULT now(),
   exit_time timestamp with time zone,
-  entry_vehicle_image text,
   entry_plate_image text,
-  exit_vehicle_image text,
   exit_plate_image text,
   entry_gate_id uuid,
   exit_gate_id uuid,
@@ -205,7 +169,7 @@ CREATE TABLE public.payment (
   status character varying DEFAULT 'Đã thanh toán'::character varying CHECK (status::text = ANY (ARRAY['Chờ thanh toán'::character varying, 'Đã thanh toán'::character varying, 'Thất bại'::character varying, 'Hết hạn'::character varying]::text[])),
   vehicle_package_id uuid,
   session_id uuid,
-  payment_type character varying NOT NULL CHECK (payment_type::text = ANY (ARRAY['Vé lượt'::character varying, 'Đăng ký vé tháng'::character varying, 'Gia hạn vé tháng'::character varying, 'Phí cấp lại thẻ'::character varying]::text[])),
+  payment_type character varying NOT NULL CHECK (payment_type::text = ANY (ARRAY['Vé lượt'::character varying, 'Đăng ký vé tháng'::character varying, 'Gia hạn vé tháng'::character varying, 'Phí cấp lại thẻ'::character varying, 'Phí mất thẻ lượt'::character varying]::text[])),
   note text,
   created_by uuid,
   provider character varying DEFAULT 'VNPay'::character varying,
@@ -218,20 +182,6 @@ CREATE TABLE public.payment (
   CONSTRAINT payment_vehicle_package_id_fkey FOREIGN KEY (vehicle_package_id) REFERENCES public.vehicle_package(vehicle_package_id),
   CONSTRAINT payment_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id),
   CONSTRAINT payment_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id)
-);
-CREATE TABLE public.incident_report (
-  incident_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  incident_type character varying NOT NULL,
-  description text,
-  penalty_fee numeric DEFAULT 0,
-  handled_by uuid,
-  status character varying DEFAULT 'Đang xử lý'::character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  resolved_at timestamp with time zone,
-  session_id uuid NOT NULL,
-  CONSTRAINT incident_report_pkey PRIMARY KEY (incident_id),
-  CONSTRAINT incident_report_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(id),
-  CONSTRAINT incident_report_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id)
 );
 CREATE TABLE public.slot_allocation_log (
   allocation_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -251,23 +201,14 @@ CREATE TABLE public.slot_allocation_log (
   CONSTRAINT slot_allocation_log_vehicle_type_id_fkey FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id),
   CONSTRAINT slot_allocation_log_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id)
 );
-CREATE TABLE public.feedback (
-  feedback_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  customer_id uuid,
-  content text,
-  rating integer,
-  status character varying DEFAULT 'Mới'::character varying,
-  created_at timestamp with time zone DEFAULT now(),
-  session_id uuid,
-  CONSTRAINT feedback_pkey PRIMARY KEY (feedback_id),
-  CONSTRAINT feedback_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customer(customer_id),
-  CONSTRAINT feedback_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.parking_sessions(session_id)
-);
 CREATE TABLE public.customer_kyc (
   kyc_id uuid NOT NULL DEFAULT gen_random_uuid(),
   customer_id uuid NOT NULL,
   cccd_number character varying,
+  face_match_score numeric,
   ekyc_status character varying NOT NULL DEFAULT 'Chờ xử lý'::character varying CHECK (ekyc_status::text = ANY (ARRAY['Chờ xử lý'::character varying, 'Đã xác thực'::character varying, 'Từ chối'::character varying]::text[])),
+  front_cccd_url text,
+  back_cccd_url text,
   selfie_url text,
   verified_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -295,6 +236,8 @@ CREATE TABLE public.card_lost_log (
   status character varying DEFAULT 'Đang chờ'::character varying,
   handled_by uuid,
   description text,
+  vehicle_registration_image_url text,
+  id_card_image_url text,
   CONSTRAINT card_lost_log_pkey PRIMARY KEY (lost_report_id),
   CONSTRAINT card_lost_log_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.card(card_id),
   CONSTRAINT card_lost_log_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(id),
@@ -333,7 +276,6 @@ CREATE TABLE public.entry_exit_log (
   CONSTRAINT fk_log_card FOREIGN KEY (card_id) REFERENCES public.card(card_id),
   CONSTRAINT fk_log_building FOREIGN KEY (building_id) REFERENCES public.building(building_id),
   CONSTRAINT fk_log_parking FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id),
-  CONSTRAINT fk_log_gate FOREIGN KEY (gate_id) REFERENCES public.gate(gate_id),
   CONSTRAINT fk_log_staff FOREIGN KEY (staff_id) REFERENCES public.profiles(id),
   CONSTRAINT fk_log_vehicle_type FOREIGN KEY (vehicle_type_id) REFERENCES public.vehicle_type(vehicle_type_id)
 );
@@ -383,4 +325,13 @@ CREATE TABLE public.contract (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT contract_pkey PRIMARY KEY (contract_id),
   CONSTRAINT contract_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.card_registrations(registration_id)
+);
+CREATE TABLE public.gate (
+  gate_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  parking_id uuid NOT NULL,
+  name character varying NOT NULL,
+  gate_type character varying NOT NULL,
+  status character varying DEFAULT 'Hoạt động'::character varying,
+  CONSTRAINT gate_pkey PRIMARY KEY (gate_id),
+  CONSTRAINT gate_parking_id_fkey FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id)
 );

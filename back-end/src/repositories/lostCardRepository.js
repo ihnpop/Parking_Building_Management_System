@@ -4,8 +4,8 @@ import supabase from "../config/supabaseClient.js";
  * Lấy toàn bộ nhật ký mất thẻ (kèm thông tin thẻ, xe, khách, nhân viên)
  * @returns {Promise<object[]>}
  */
-export const getLostCardLogs = async () => {
-  const { data, error } = await supabase
+export const getLostCardLogs = async (buildingId = null) => {
+  let query = supabase
     .from('card_lost_log')
     .select(`
       lost_report_id,
@@ -22,6 +22,12 @@ export const getLostCardLogs = async () => {
       profiles ( full_name )
     `)
     .order('reported_at', { ascending: false });
+
+  if (buildingId) {
+    query = query.eq('building_id', buildingId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Lỗi khi truy vấn nhật ký mất thẻ:', error);

@@ -1,4 +1,4 @@
-﻿import AppError from "../utils/AppError.js";
+import AppError from "../utils/AppError.js";
 import supabase from "../config/supabaseClient.js";
 import crypto from "crypto";
 
@@ -8,8 +8,7 @@ import crypto from "crypto";
  * Tạo một phiên gửi xe mới (check-in).
  * @param {object} payload
  * @param {string} payload.vehicle_id
- * @param {string} payload.plate_number
- * @param {string} payload.entry_vehicle_image  - public URL
+ * @param {string} payload.plate_number - public URL
  * @param {string} payload.entry_plate_image    - public URL
  * @param {string} [payload.staff_in_id]        - ID nhân viên check-in
  * @returns {Promise<object>}
@@ -17,10 +16,10 @@ import crypto from "crypto";
 export const createParkingSession = async ({
   vehicle_id,
   plate_number,
-  entry_vehicle_image,
   entry_plate_image,
   card_id,
   staff_in_id,
+  slot_id
 }) => {
   const { data, error } = await supabase
     .from("parking_sessions")
@@ -28,12 +27,12 @@ export const createParkingSession = async ({
       session_id: crypto.randomUUID(),
       vehicle_id,
       plate_number,
-      entry_vehicle_image,
       entry_plate_image,
       entry_time: new Date().toISOString(),
       status: "Đang gửi xe",
       card_id,
       staff_in_id: staff_in_id || null,
+      slot_id: slot_id || null
     })
     .select()
     .single();

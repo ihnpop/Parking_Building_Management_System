@@ -28713,3 +28713,385 @@ body,
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   SYSTEM OPERATIONS — MOBILE & TABLET RESPONSIVE (< 1024px)
+   Stack tất cả section thành 1 cột, scroll dọc thay vì side-by-side
+   ========================================================================== */
+
+@media (max-width: 1023px) {
+
+  /* Bỏ fixed-height viewport để nội dung có thể scroll */
+  .layout:has(.system-page),
+  .layout:has(.system-page) .main {
+    height: auto !important;
+    max-height: none !important;
+    overflow: auto !important;
+  }
+
+  .layout:has(.system-page) .content {
+    padding: 12px 16px !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  .system-page {
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* System content: 1 cột dọc */
+  .system-page .system-content,
+  .system-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Stats grid: 3 cột nhỏ gọn trên tablet, 1 cột trên phone nhỏ */
+  .system-page .stats-grid,
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .stat-card {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+    gap: 10px !important;
+  }
+
+  .stat-label {
+    font-size: 11px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .stat-value {
+    font-size: 22px !important;
+  }
+
+  .stat-icon {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .stat-icon .material-symbols-outlined {
+    font-size: 18px !important;
+  }
+
+  /* Camera grid: 2 cột nhỏ hơn, chiều cao giảm */
+  .system-page .camera-grid,
+  .camera-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    height: auto !important;
+  }
+
+  .camera-card {
+    border-radius: 14px !important;
+  }
+
+  .camera-image {
+    min-height: 160px !important;
+    height: 160px !important;
+    max-height: 160px !important;
+  }
+
+  .camera-label {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+    top: 8px !important;
+    left: 8px !important;
+    border-radius: 8px !important;
+  }
+
+  .camera-badge {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+    bottom: 8px !important;
+    right: 8px !important;
+  }
+
+  /* Active transaction: 1 cột dọc, bỏ 2 cột bên nhau */
+  .active-transaction {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 16px !important;
+    border-radius: 16px !important;
+    overflow: visible !important;
+  }
+
+  /* Tab switcher XE VÀO / XE RA */
+  .so-mode-switcher {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .so-mode-btn {
+    flex: 1 !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
+  }
+
+  .so-mode-btn .so-mode-btn-icon {
+    font-size: 18px !important;
+  }
+
+  /* Transaction form */
+  .transaction-highlight {
+    padding-left: 0 !important;
+    gap: 12px !important;
+  }
+
+  .transaction-label {
+    font-size: 12px !important;
+  }
+
+  .transaction-plate,
+  .so-plate-input {
+    min-height: 54px !important;
+    font-size: 22px !important;
+    border-radius: 12px !important;
+    padding: 0 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Vehicle type buttons */
+  .vehicle-type-container {
+    gap: 8px !important;
+  }
+
+  .vehicle-type-buttons {
+    gap: 10px !important;
+  }
+
+  .vehicle-type-btn {
+    height: 40px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Submit button */
+  .submit-action-btn {
+    height: 46px !important;
+    font-size: 14px !important;
+    border-radius: 10px !important;
+    margin-top: 4px !important;
+  }
+
+  /* Operator guide box */
+  .operator-guide-box {
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .operator-guide-box .guide-title {
+    font-size: 12px !important;
+  }
+
+  .operator-guide-box .guide-steps {
+    font-size: 12px !important;
+    gap: 4px !important;
+  }
+
+  /* Transaction details: bỏ border-left, full width */
+  .transaction-details {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px dashed #cbd5e1 !important;
+    padding-top: 14px !important;
+    gap: 10px !important;
+    overflow-y: visible !important;
+  }
+
+  /* Last session card */
+  .last-session-card {
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .last-session-title {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .last-session-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .last-session-item {
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .last-session-item.full-width {
+    grid-column: 1 / -1 !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+  }
+
+  .last-session-label {
+    font-size: 11px !important;
+  }
+
+  .last-session-value {
+    font-size: 12px !important;
+  }
+
+  /* Shift info card */
+  .shift-info-card {
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .shift-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .shift-label {
+    font-size: 10px !important;
+  }
+
+  .shift-value {
+    font-size: 12px !important;
+    word-break: break-all !important;
+  }
+
+  /* Recent transactions */
+  .recent-transactions-list-card {
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .recent-title {
+    font-size: 12px !important;
+  }
+
+  .recent-item {
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .recent-plate {
+    font-size: 13px !important;
+  }
+
+  .recent-time,
+  .recent-fee {
+    font-size: 11px !important;
+  }
+
+  .recent-badge {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+
+  /* Shortcut row */
+  .shortcut-row {
+    display: flex !important;
+    gap: 10px !important;
+    margin-top: 4px !important;
+  }
+
+  .shortcut-row .shortcut-button {
+    flex: 1 !important;
+    height: 44px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
+    gap: 6px !important;
+  }
+
+  .shortcut-key {
+    min-width: 26px !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+  }
+
+  /* Visitor card select */
+  .visitor-card-select-container select {
+    height: 40px !important;
+    font-size: 13px !important;
+  }
+
+  /* Vehicle mismatch banner */
+  .vehicle-mismatch-banner {
+    padding: 10px 12px !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .vehicle-mismatch-banner .mismatch-icon {
+    font-size: 18px !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Extra small: phone < 480px — camera 1 cột, stats 1 cột */
+@media (max-width: 479px) {
+
+  .layout:has(.system-page) .content {
+    padding: 10px 12px !important;
+  }
+
+  .system-page .stats-grid,
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .stat-card {
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .stat-value {
+    font-size: 28px !important;
+  }
+
+  .system-page .camera-grid,
+  .camera-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .camera-image {
+    min-height: 180px !important;
+    height: 180px !important;
+    max-height: 180px !important;
+  }
+
+  .transaction-plate,
+  .so-plate-input {
+    font-size: 20px !important;
+  }
+
+  .so-mode-btn {
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+  }
+}
