@@ -67,10 +67,10 @@ export const checkOut = async (req, res) => {
  */
 export const openGateFree = async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const { sessionId, finalFee, ticketType, vehicleTypeId } = req.body;
     const staffId = req.user?.id;
 
-    const result = await parkingService.openGateFree({ sessionId, staffId });
+    const result = await parkingService.openGateFree({ sessionId, staffId, finalFee, ticketType, vehicleTypeId });
     return res.status(200).json(result);
   } catch (err) {
     const status = err.statusCode || 500;
