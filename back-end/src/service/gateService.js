@@ -37,8 +37,8 @@ export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
 
   const vehicleTypeId = targetVehicle?.vehicle_type_id || (typeof targetVehicle?.vehicle_type === 'object' ? targetVehicle?.vehicle_type?.vehicle_type_id : null);
 
-  // Giá mặc định: 10,000/giờ, miễn phí dưới 30 phút
-  let fee = totalHours < 0.5 ? 0 : billableHours * 10000;
+  // Giá mặc định: 10,000/giờ
+  let fee = billableHours * 10000;
 
   if (vehicleTypeId) {
     try {

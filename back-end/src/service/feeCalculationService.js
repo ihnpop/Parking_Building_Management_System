@@ -153,10 +153,6 @@ export const getMatchingPriceItem = (priceItems, totalHours) => {
  *   Ví dụ: Gửi 26h (xe máy) -> 1 ngày (20k) + 2h lẻ (5k) = 25k.
  */
 export function calculateFeeFromPriceItems(totalHours, priceItems) {
-    if (totalHours < 0.5) {
-        return { fee: 0, itemUsed: null };
-    }
-
     if (!priceItems || priceItems.length === 0) {
         const billableHours = Math.max(1, Math.ceil(totalHours));
         return { fee: billableHours * 10000, itemUsed: null };
@@ -168,16 +164,32 @@ export function calculateFeeFromPriceItems(totalHours, priceItems) {
     const dayMaxPrice = Number(maxTierItem.price);
 
     const getItemForHours = (h) => {
-        if (h <= 0) return null;
+        if (h < 0) return null;
         const billable = Math.ceil(h);
-        return priceItems.find((item) => {
+
+        // 1. Thử khớp trực tiếp với số giờ thực tế h (hỗ trợ các khung giờ lẻ như 0.5h)
+        let found = priceItems.find((item) => {
             const min = Number(item.min_hour) || 0;
             const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
             if (max === null) {
-                return billable >= min;
+                return h >= min;
             }
-            return billable >= min && billable <= max;
-        }) || maxTierItem;
+            return h >= min && h <= max;
+        });
+
+        // 2. Nếu không có khung giờ trùng khớp trực tiếp, làm tròn lên theo giờ billable
+        if (!found) {
+            found = priceItems.find((item) => {
+                const min = Number(item.min_hour) || 0;
+                const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+                if (max === null) {
+                    return billable >= min;
+                }
+                return billable >= min && billable <= max;
+            });
+        }
+
+        return found || maxTierItem;
     };
 
     if (totalHours <= 24) {
@@ -191,7 +203,7 @@ export function calculateFeeFromPriceItems(totalHours, priceItems) {
         let remFee = 0;
         let remItemUsed = null;
 
-        if (remHours >= 0.5) {
+        if (remHours > 0) {
             remItemUsed = getItemForHours(remHours);
             remFee = remItemUsed ? Number(remItemUsed.price) : 0;
         }
@@ -227,9 +239,9 @@ async function calculateHourlyFee(session, vehicle) {
     const totalHours = diffMs / (1000 * 60 * 60);
     const billableHours = Math.max(1, Math.ceil(totalHours));
 
-    let estimated_fee = totalHours < 0.5 ? 0 : billableHours * 10000; // fallback mặc định
+    let estimated_fee = billableHours * 10000; // fallback mặc định
     let price_item_used = null;
-    let rate = totalHours < 0.5 ? 0 : 10000;
+    let rate = 10000;
 
     let targetVehicle = vehicle;
     if ((!targetVehicle || !targetVehicle.vehicle_type_id) && session.plate_number) {

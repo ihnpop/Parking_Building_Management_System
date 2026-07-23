@@ -43,6 +43,21 @@ export function AuthProvider({ children }) {
     };
 
     useEffect(() => {
+        // Tự động duy trì & làm mới phiên đăng nhập định kỳ (Keep-alive every 5 mins)
+        const refreshInterval = setInterval(async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    setUser(session.user);
+                    localStorage.setItem("token", session.access_token);
+                    localStorage.setItem("accessToken", session.access_token);
+                    localStorage.setItem("access_token", session.access_token);
+                }
+            } catch (err) {
+                console.warn("[AuthContext] Refresh session warning:", err?.message);
+            }
+        }, 5 * 60 * 1000);
+
         // 1. getSession là nguồn duy nhất kiểm soát trạng thái loading ban đầu
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session) {
@@ -84,7 +99,7 @@ export function AuthProvider({ children }) {
                 return;
             }
 
-            if (event === 'SIGNED_IN' && session) {
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
                 localStorage.setItem("accessToken", session.access_token);
@@ -108,6 +123,7 @@ export function AuthProvider({ children }) {
         });
 
         return () => {
+            clearInterval(refreshInterval);
             subscription.unsubscribe();
         };
     }, []);

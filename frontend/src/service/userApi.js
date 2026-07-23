@@ -24,10 +24,7 @@ API.interceptors.request.use(async (config) => {
     return config;
 });
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
+const getAuthHeaders = () => ({});
 
 /**
  * Lấy danh sách tất cả người dùng kèm thông tin role

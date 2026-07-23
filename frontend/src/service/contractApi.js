@@ -24,11 +24,8 @@ API.interceptors.request.use(async (config) => {
 });
 
 
-// Helper để lấy token xác thực từ localStorage
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+// Helper để lấy token xác thực (đã được interceptor tự động xử lý)
+const getAuthHeaders = () => ({});
 
 /**
  * Gửi email yêu cầu ký hợp đồng cho khách hàng
