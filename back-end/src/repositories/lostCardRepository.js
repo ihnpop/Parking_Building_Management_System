@@ -23,9 +23,6 @@ export const getLostCardLogs = async (buildingId = null) => {
     `)
     .order('reported_at', { ascending: false });
 
-  if (buildingId) {
-    query = query.eq('building_id', buildingId);
-  }
 
   const { data, error } = await query;
 

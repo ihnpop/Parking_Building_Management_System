@@ -432,10 +432,6 @@ export async function getRecentLostCards(buildingId = null, limit = 5) {
         .order('reported_at', { ascending: false })
         .limit(limit);
 
-    if (buildingId) {
-        query = query.eq('building_id', buildingId);
-    }
-
     const { data, error } = await query;
     if (error) throw error;
     return data;
