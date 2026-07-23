@@ -1,7 +1,7 @@
-﻿import AppError from "../utils/AppError.js";
+import AppError from "../utils/AppError.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import { uploadToStorage } from "../helpers/storageHelper.js";
-import { calculateExitFee } from "./feeCalculationService.js";
+import { calculateExitFee, calculateFeeFromPriceItems } from "./feeCalculationService.js";
 
 // ─── Check-in service ─────────────────────────────────────────────────────────
 
@@ -35,7 +35,6 @@ export const checkIn = async (plateNumber, vehicleImageFile, plateImageFile) => 
   const session = await parkingRepository.createParkingSession({
     vehicle_id: null,
     plate_number: plateNumber.trim().toUpperCase(),
-    entry_vehicle_image: entryVehicleUrl,
     entry_plate_image: entryPlateUrl,
   });
 
@@ -99,18 +98,8 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
       const priceItems = await parkingRepository.findPriceItemsByVehicleType(vehicle.vehicle_type_id);
 
       if (priceItems && priceItems.length > 0) {
-        const matchingItem = priceItems.find(item => {
-          const min = Number(item.min_hour) || 0;
-          const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
-          if (max === null) {
-            return totalHours >= min;
-          }
-          return totalHours >= min && totalHours < max;
-        });
-
-        if (matchingItem) {
-          fee = Number(matchingItem.price);
-        }
+        const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
+        fee = calculated.fee;
       }
     }
   } catch (dbErr) {

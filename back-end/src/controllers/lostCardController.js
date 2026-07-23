@@ -1,8 +1,10 @@
 import * as lostCardService from "../service/lostCardService.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 export const getLostCards = async (req, res) => {
   try {
-    const lostCards = await lostCardService.getLostCards();
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const lostCards = await lostCardService.getLostCards(buildingId);
     res.status(200).json(lostCards);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -11,7 +13,8 @@ export const getLostCards = async (req, res) => {
 
 export const getLostLogs = async (req, res) => {
   try {
-    const logs = await lostCardService.getLostCardLogs();
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const logs = await lostCardService.getLostCardLogs(buildingId);
 
     return res.status(200).json({
       success: true,

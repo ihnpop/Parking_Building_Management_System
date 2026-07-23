@@ -2,8 +2,9 @@ import * as vehicleRepository from "../repositories/vehicleRepository.js";
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
+import * as slotRepository from "../repositories/slotRepository.js";
 import AppError from "../utils/AppError.js";
-import { getMatchingPriceItem } from "./feeCalculationService.js";
+import { calculateFeeFromPriceItems } from "./feeCalculationService.js";
 
 // ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
 
@@ -43,10 +44,8 @@ export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
     try {
       const priceItems = await gateRepository.getPriceItems(vehicleTypeId);
       if (priceItems?.length > 0) {
-        const matchingItem = getMatchingPriceItem(priceItems, totalHours);
-        if (matchingItem) {
-          fee = totalHours < 0.5 ? 0 : Number(matchingItem.price);
-        }
+        const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
+        fee = calculated.fee;
       }
     } catch (dbErr) {
       console.error("[gateService] Lỗi tra cứu bảng phí, dùng mặc định:", dbErr.message);
@@ -333,14 +332,30 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       });
     }
 
+    // Tự động tìm và gán slot còn trống cho xe
+    const allocatedSlot = await slotRepository.findAndOccupyAvailableSlot({
+      vehicleTypeId: vehicle.vehicle_type_id,
+      parkingId: finalParkingId
+    });
+
     // Tạo phiên gửi xe mới
     session = await parkingRepository.createParkingSession({
       vehicle_id: vehicle.vehicle_id,
       plate_number: cleanPlate,
       entry_plate_image: entryPlateImage || null,
       card_id: card.card_id,
-      staff_in_id: staffId || null
+      staff_in_id: staffId || null,
+      slot_id: allocatedSlot ? allocatedSlot.slot_id : null
     });
+
+    if (allocatedSlot) {
+      await slotRepository.logSlotAllocation({
+        sessionId: session.session_id,
+        suggestedSlotId: allocatedSlot.slot_id,
+        actualSlotId: allocatedSlot.slot_id,
+        vehicleTypeId: vehicle.vehicle_type_id
+      });
+    }
 
     // Tạo liên kết tạm thời giữa thẻ lượt và xe
     await cardRepository.createRegistration(card.card_id, vehicle.vehicle_id, 'Hoạt động');
@@ -375,14 +390,30 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
       throw new AppError(preCheckResult.message, 400);
     }
 
+    // Tự động tìm và gán slot còn trống cho xe
+    const allocatedSlot = await slotRepository.findAndOccupyAvailableSlot({
+      vehicleTypeId: vehicle.vehicle_type_id,
+      parkingId: finalParkingId
+    });
+
     // Tạo phiên gửi xe
     session = await parkingRepository.createParkingSession({
       vehicle_id: vehicle.vehicle_id,
       plate_number: cleanPlate,
       entry_plate_image: entryPlateImage || null,
       card_id: card.card_id,
-      staff_in_id: staffId || null
+      staff_in_id: staffId || null,
+      slot_id: allocatedSlot ? allocatedSlot.slot_id : null
     });
+
+    if (allocatedSlot) {
+      await slotRepository.logSlotAllocation({
+        sessionId: session.session_id,
+        suggestedSlotId: allocatedSlot.slot_id,
+        actualSlotId: allocatedSlot.slot_id,
+        vehicleTypeId: vehicle.vehicle_type_id
+      });
+    }
   }
 
   // Ghi log vào entry_exit_log
@@ -476,7 +507,6 @@ export const preCheckExit = async (plateNumber) => {
     duration: durationStr,
     fee,
     sessionId: activeSession.session_id,
-    entryVehicleImage: activeSession.entry_vehicle_image,
     entryPlateImage: activeSession.entry_plate_image,
     plateNumber: activeSession.plate_number
   };
@@ -533,6 +563,11 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       staff_out_id: staffId || null
     });
 
+    // Giải phóng slot đỗ xe
+    if (activeSession.slot_id) {
+      await slotRepository.releaseSlot(activeSession.slot_id);
+    }
+
     // Giải phóng liên kết thẻ và xe
     await cardRepository.deactivateRegistration(activeReg.registration_id);
     await cardRepository.updateStatus(card.card_id, 'Đang chờ');
@@ -587,6 +622,11 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       final_fee: 0,
       staff_out_id: staffId || null
     });
+
+    // Giải phóng slot đỗ xe
+    if (activeSession.slot_id) {
+      await slotRepository.releaseSlot(activeSession.slot_id);
+    }
   } else {
     throw new AppError("Dữ liệu check-out không hợp lệ (cần truyền cardCode hoặc plateNumber).", 400);
   }
@@ -645,8 +685,9 @@ const getDayRange = (dateStr = null) => {
 /**
  * Lấy thống kê bãi xe theo ngày (mặc định hôm nay, GMT+7)
  * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì dùng hôm nay.
+ * @param {string|null} buildingId - UUID của tòa nhà (nếu cần lọc theo tòa)
  */
-export const getStats = async (dateStr = null) => {
+export const getStats = async (dateStr = null, buildingId = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
   const isToday = !dateStr || dateStr === todayStr;
@@ -654,17 +695,17 @@ export const getStats = async (dateStr = null) => {
   // 1. Số lượng xe trong bãi (status = 'Đang gửi xe') — chỉ có nghĩa khi xem hôm nay
   let insideCount = 0;
   if (isToday) {
-    insideCount = await gateRepository.countInsideVehicles();
+    insideCount = await gateRepository.countInsideVehicles(buildingId);
   } else {
     // Với ngày trong quá khứ: đếm xe đang ở trong bãi tại thời điểm cuối ngày đó
-    insideCount = await gateRepository.countInsideVehiclesAtEnd(endOfDay);
+    insideCount = await gateRepository.countInsideVehiclesAtEnd(endOfDay, buildingId);
   }
 
   // 2. Xe đã vào trong ngày
-  const inCount = await gateRepository.countVehiclesIn(startOfDay, endOfDay);
+  const inCount = await gateRepository.countVehiclesIn(startOfDay, endOfDay, buildingId);
 
   // 3. Xe đã ra trong ngày
-  const outCount = await gateRepository.countVehiclesOut(startOfDay, endOfDay);
+  const outCount = await gateRepository.countVehiclesOut(startOfDay, endOfDay, buildingId);
 
   return {
     success: true,
@@ -677,11 +718,12 @@ export const getStats = async (dateStr = null) => {
 /**
  * Lấy danh sách phiên gửi xe theo ngày (mặc định hôm nay, GMT+7), kèm thông tin card
  * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì dùng hôm nay.
+ * @param {string|null} buildingId - UUID tòa nhà
  */
-export const getSessions = async (dateStr = null) => {
+export const getSessions = async (dateStr = null, buildingId = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
 
-  const sessions = await gateRepository.getSessionsByDateRange(startOfDay, endOfDay);
+  const sessions = await gateRepository.getSessionsByDateRange(startOfDay, endOfDay, buildingId);
 
   if (!sessions || sessions.length === 0) {
     return { success: true, sessions: [] };

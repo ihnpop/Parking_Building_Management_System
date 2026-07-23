@@ -1,5 +1,6 @@
 import * as monthCardService from "../service/monthCardService.js";
 import supabase from "../config/supabaseClient.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 import { generateNextMonthCode } from "../repositories/monthCardRepository.js";
 import { uploadImageToVNPT, checkDocumentLiveness, ocrIdentityCard } from "../service/ekycService.js";
 import registrationService from '../service/parkingRegistrationService.js';
@@ -305,7 +306,8 @@ export const deleteMonthCard = async (req, res) => {
  */
 export const getMonthCards = async (req, res) => {
   try {
-    const monthCards = await monthCardService.getMonthCards();
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const monthCards = await monthCardService.getMonthCards(buildingId);
     return res.status(200).json(monthCards);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -317,7 +319,8 @@ export const getMonthCards = async (req, res) => {
  */
 export const getMonthCardLogs = async (req, res) => {
   try {
-    const logs = await monthCardService.getMonthCardLogs();
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const logs = await monthCardService.getMonthCardLogs(buildingId);
     return res.status(200).json(logs);
   } catch (err) {
     return res.status(500).json({ error: err.message });

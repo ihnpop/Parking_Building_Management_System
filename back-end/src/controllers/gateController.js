@@ -2,6 +2,7 @@ import * as gateService from "../service/gateService.js";
 import * as ocrService from "../service/ocr.service.js";
 import supabase from "../config/supabaseClient.js";
 import { calculateExitFee } from "../service/feeCalculationService.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 const BUCKET = "parking-images";
 
@@ -178,12 +179,13 @@ export const exitTap = async (req, res) => {
 };
 
 /**
- * GET /api/gate/stats?date=YYYY-MM-DD
+ * GET /api/gate/stats?date=YYYY-MM-DD&building_id=xxx
  */
 export const getStats = async (req, res) => {
   try {
     const dateStr = req.query.date || null; // 'YYYY-MM-DD' hoặc null (hôm nay)
-    const stats = await gateService.getStats(dateStr);
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const stats = await gateService.getStats(dateStr, buildingId);
     return res.status(200).json(stats);
   } catch (err) {
     console.error("gateController.getStats error:", err);
@@ -195,12 +197,13 @@ export const getStats = async (req, res) => {
 };
 
 /**
- * GET /api/gate/sessions?date=YYYY-MM-DD
+ * GET /api/gate/sessions?date=YYYY-MM-DD&building_id=xxx
  */
 export const getSessions = async (req, res) => {
   try {
     const dateStr = req.query.date || null; // 'YYYY-MM-DD' hoặc null (hôm nay)
-    const sessions = await gateService.getSessions(dateStr);
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const sessions = await gateService.getSessions(dateStr, buildingId);
     return res.status(200).json(sessions);
   } catch (err) {
     console.error("gateController.getSessions error:", err);

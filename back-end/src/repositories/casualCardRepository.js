@@ -10,12 +10,29 @@ import supabase from "../config/supabaseClient.js";
  * Lấy danh sách phiên gửi xe (parking_sessions) kèm thông tin card, vehicle, staff, gate.
  * Lọc client-side: chỉ lấy phiên có card type = 'Thẻ lượt'.
  */
-export async function getCasualCardSessions(limit = 1000) {
-    const { data: sessions, error: sessionsErr } = await supabase
+export async function getCasualCardSessions(limit = 1000, buildingId = null) {
+    let sessionIds = null;
+    if (buildingId) {
+        const { data: logs } = await supabase
+            .from('entry_exit_log')
+            .select('session_id')
+            .eq('building_id', buildingId);
+
+        sessionIds = [...new Set((logs || []).map(l => l.session_id).filter(Boolean))];
+        if (sessionIds.length === 0) return [];
+    }
+
+    let query = supabase
         .from('parking_sessions')
         .select('session_id, plate_number, entry_time, exit_time, final_fee, estimated_fee, status, card_id, vehicle_id, staff_in_id, entry_gate_id, exit_gate_id, payment(*)')
         .order('entry_time', { ascending: false })
         .limit(limit);
+
+    if (sessionIds) {
+        query = query.in('session_id', sessionIds);
+    }
+
+    const { data: sessions, error: sessionsErr } = await query;
 
     if (sessionsErr) throw sessionsErr;
     if (!sessions || sessions.length === 0) return [];
@@ -63,12 +80,32 @@ export async function getCasualCardSessions(limit = 1000) {
  * Lấy tổng doanh thu thẻ lượt
  * Nguồn: payment WHERE payment_type = 'Vé lượt' AND status = 'Đã thanh toán'
  */
-export async function getCasualTotalRevenue() {
+export async function getCasualTotalRevenue(buildingId = null) {
+    if (!buildingId) {
+        const { data, error } = await supabase
+            .from('payment')
+            .select('amount')
+            .eq('status', 'Đã thanh toán')
+            .eq('payment_type', 'Vé lượt');
+
+        if (error) throw error;
+        return (data || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    }
+
+    const { data: logs } = await supabase
+        .from('entry_exit_log')
+        .select('session_id')
+        .eq('building_id', buildingId);
+
+    const sessionIds = [...new Set((logs || []).map(l => l.session_id).filter(Boolean))];
+    if (sessionIds.length === 0) return 0;
+
     const { data, error } = await supabase
         .from('payment')
         .select('amount')
         .eq('status', 'Đã thanh toán')
-        .eq('payment_type', 'Vé lượt');
+        .eq('payment_type', 'Vé lượt')
+        .in('session_id', sessionIds);
 
     if (error) throw error;
     return (data || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);

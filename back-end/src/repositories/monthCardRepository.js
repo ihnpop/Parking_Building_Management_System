@@ -687,7 +687,7 @@ export const updateParkingSession = async (sessionId, payload) => {
  * Lấy danh sách thẻ tháng cùng thông tin đăng ký xe và khách hàng
  * @returns {Promise<object[]>}
  */
-export const getMonthCards = async () => {
+export const getMonthCards = async (buildingId = null) => {
   const { data, error } = await supabase
     .from('card')
     .select(`
@@ -749,8 +749,8 @@ export const getLatestParkingSessionDetail = async (vehicleId) => {
  * Lấy lịch sử log hoạt động của thẻ tháng
  * @returns {Promise<object[]>}
  */
-export const getMonthCardLogs = async () => {
-  const { data, error } = await supabase
+export const getMonthCardLogs = async (buildingId = null) => {
+  let query = supabase
     .from('card_activity_logs')
     .select(`
       log_id,
@@ -762,12 +762,26 @@ export const getMonthCardLogs = async () => {
       duration_months,
       performed_at,
       note,
-      new_data
+      new_data,
+      performed_by
     `)
     .in('action', ['Cấp mới', 'Gia hạn', 'Gia hạn nối tiếp', 'Tạo thẻ tháng mới', 'Đã gia hạn', 'Thẻ đã cấp lại'])
     .order('performed_at', { ascending: false })
     .limit(100);
 
+  if (buildingId) {
+    const { data: staffProfiles } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('building_id', buildingId);
+
+    const staffIds = (staffProfiles || []).map(p => p.id);
+    if (staffIds.length > 0) {
+      query = query.in('performed_by', staffIds);
+    }
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data || [];
 };

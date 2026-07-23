@@ -125,14 +125,14 @@ function mapSessionToRow(session) {
 /**
  * Lấy danh sách nhật ký thẻ lượt (đã map sang row bảng).
  */
-export async function getCasualCardLog() {
-    const sessions = await casualCardRepository.getCasualCardSessions();
+export async function getCasualCardLog(buildingId = null) {
+    const sessions = await casualCardRepository.getCasualCardSessions(1000, buildingId);
     return sessions.map(mapSessionToRow);
 }
 
 /**
  * Lấy tổng doanh thu thẻ lượt.
  */
-export async function getCasualTotalRevenue() {
-    return casualCardRepository.getCasualTotalRevenue();
+export async function getCasualTotalRevenue(buildingId = null) {
+    return casualCardRepository.getCasualTotalRevenue(buildingId);
 }

@@ -66,14 +66,14 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                 {/* Body */}
                 <div className="revenue-modal-body">
                     {loading ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                            <span className="material-symbols-outlined" style={{ animation: 'spin 1s linear infinite', fontSize: '32px' }}>refresh</span>
-                            <p style={{ marginTop: '8px', fontSize: '14px' }}>Đang tải dữ liệu doanh thu...</p>
+                        <div className="rtm-loading-container">
+                            <span className="material-symbols-outlined rtm-loading-spin">refresh</span>
+                            <p className="rtm-loading-text">Đang tải dữ liệu doanh thu...</p>
                         </div>
                     ) : !data || data.total === 0 ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1' }}>receipt_long</span>
-                            <p style={{ marginTop: '12px', fontSize: '14px', fontWeight: 500, color: '#64748b' }}>
+                        <div className="rtm-empty-container">
+                            <span className="material-symbols-outlined rtm-empty-icon">receipt_long</span>
+                            <p className="rtm-empty-text">
                                 Chưa phát sinh doanh thu hôm nay
                             </p>
                         </div>
@@ -105,10 +105,10 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                             <div className="revenue-section">
                                 <div className="revenue-section-header">
                                     <span className="revenue-section-title">
-                                        <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>confirmation_number</span>
+                                        <span className="material-symbols-outlined rtm-color-casual">confirmation_number</span>
                                         Thẻ lượt
                                     </span>
-                                    <span className="revenue-section-amount" style={{ color: '#0284c7' }}>
+                                    <span className="revenue-section-amount rtm-color-casual">
                                         {formatVND(data.casual?.total || 0)}
                                     </span>
                                 </div>
@@ -119,9 +119,9 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                                     <div className="revenue-grid-2">
                                         {data.casual.items.map((item, idx) => (
                                             <div key={idx} className="revenue-box-item">
-                                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{item.vehicleType}</div>
-                                                <div style={{ fontWeight: 700, fontSize: '16px', color: '#0f172a', marginTop: '2px' }}>{formatVND(item.revenue)}</div>
-                                                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Số lượt: {item.count}</div>
+                                                <div className="rtm-box-vtype">{item.vehicleType}</div>
+                                                <div className="rtm-box-rev">{formatVND(item.revenue)}</div>
+                                                <div className="rtm-box-count">Số lượt: {item.count}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -132,10 +132,10 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                             <div className="revenue-section">
                                 <div className="revenue-section-header">
                                     <span className="revenue-section-title">
-                                        <span className="material-symbols-outlined" style={{ color: '#16a34a' }}>card_membership</span>
+                                        <span className="material-symbols-outlined rtm-color-monthly">card_membership</span>
                                         Đăng ký thẻ tháng
                                     </span>
-                                    <span className="revenue-section-amount" style={{ color: '#16a34a' }}>
+                                    <span className="revenue-section-amount rtm-color-monthly">
                                         {formatVND(data.monthlyNew?.total || 0)}
                                     </span>
                                 </div>
@@ -143,14 +143,14 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                                 {(!data.monthlyNew?.items || data.monthlyNew.items.length === 0) ? (
                                     <div className="revenue-empty-text">Chưa phát sinh</div>
                                 ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div className="rtm-items-column">
                                         {data.monthlyNew.items.map((item, idx) => (
                                             <div key={idx} className="revenue-row-item">
                                                 <div>
-                                                    <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px' }}>{item.packageName}</span>
-                                                    <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '8px' }}>({item.vehicleType} • Số lượt: {item.count})</span>
+                                                    <span className="rtm-pkg--monthly">{item.packageName}</span>
+                                                    <span className="rtm-sub--monthly">({item.vehicleType} • Số lượt: {item.count})</span>
                                                 </div>
-                                                <span style={{ fontWeight: 700, color: '#16a34a', fontSize: '15px' }}>{formatVND(item.revenue)}</span>
+                                                <span className="rtm-rev--monthly">{formatVND(item.revenue)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -161,10 +161,10 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                             <div className="revenue-section">
                                 <div className="revenue-section-header">
                                     <span className="revenue-section-title">
-                                        <span className="material-symbols-outlined" style={{ color: '#d97706' }}>autorenew</span>
+                                        <span className="material-symbols-outlined rtm-color-renewal">autorenew</span>
                                         Gia hạn thẻ tháng
                                     </span>
-                                    <span className="revenue-section-amount" style={{ color: '#d97706' }}>
+                                    <span className="revenue-section-amount rtm-color-renewal">
                                         {formatVND(data.renewals?.total || 0)}
                                     </span>
                                 </div>
@@ -172,14 +172,14 @@ export default function RevenueTodayModal({ isOpen, onClose }) {
                                 {(!data.renewals?.items || data.renewals.items.length === 0) ? (
                                     <div className="revenue-empty-text">Chưa phát sinh</div>
                                 ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div className="rtm-items-column">
                                         {data.renewals.items.map((item, idx) => (
-                                            <div key={idx} className="revenue-row-item" style={{ backgroundColor: '#fffbe6', borderColor: '#fef08a' }}>
+                                            <div key={idx} className="revenue-row-item rtm-row-item--renewal">
                                                 <div>
-                                                    <span style={{ fontWeight: 600, color: '#92400e', fontSize: '14px' }}>{item.packageName}</span>
-                                                    <span style={{ fontSize: '12px', color: '#b45309', marginLeft: '8px' }}>({item.vehicleType} • Số lượt: {item.count})</span>
+                                                    <span className="rtm-pkg--renewal">{item.packageName}</span>
+                                                    <span className="rtm-sub--renewal">({item.vehicleType} • Số lượt: {item.count})</span>
                                                 </div>
-                                                <span style={{ fontWeight: 700, color: '#b45309', fontSize: '15px' }}>{formatVND(item.revenue)}</span>
+                                                <span className="rtm-rev--renewal">{formatVND(item.revenue)}</span>
                                             </div>
                                         ))}
                                     </div>

@@ -4,6 +4,7 @@
  */
 
 import * as dashboardService from "../service/dashboardService.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 /**
  * GET /api/dashboard/stats
@@ -11,7 +12,8 @@ import * as dashboardService from "../service/dashboardService.js";
  */
 export const getDashboardSummary = async (req, res) => {
     try {
-        const data = await dashboardService.getSummaryData();
+        const targetBuildingId = await resolveBuildingIdFromReq(req);
+        const data = await dashboardService.getSummaryData(targetBuildingId);
         return res.json(data);
     } catch (err) {
         console.error("[DashboardController] getDashboardSummary error:", err);
@@ -27,7 +29,8 @@ export const getDashboardSummary = async (req, res) => {
  */
 export const getTodayRevenueDetails = async (req, res) => {
     try {
-        const data = await dashboardService.getTodayRevenueBreakdown();
+        const targetBuildingId = await resolveBuildingIdFromReq(req);
+        const data = await dashboardService.getTodayRevenueBreakdown(targetBuildingId);
         return res.json(data);
     } catch (err) {
         console.error("[DashboardController] getTodayRevenueDetails error:", err);
@@ -43,7 +46,8 @@ export const getTodayRevenueDetails = async (req, res) => {
  */
 export const getMonthlyRevenueDetails = async (req, res) => {
     try {
-        const data = await dashboardService.getMonthlyRevenueBreakdown();
+        const targetBuildingId = await resolveBuildingIdFromReq(req);
+        const data = await dashboardService.getMonthlyRevenueBreakdown(targetBuildingId);
         return res.json(data);
     } catch (err) {
         console.error("[DashboardController] getMonthlyRevenueDetails error:", err);
