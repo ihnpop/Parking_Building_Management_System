@@ -681,8 +681,9 @@ const getDayRange = (dateStr = null) => {
 /**
  * Lấy thống kê bãi xe theo ngày (mặc định hôm nay, GMT+7)
  * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì dùng hôm nay.
+ * @param {string|null} buildingId - UUID của tòa nhà (nếu cần lọc theo tòa)
  */
-export const getStats = async (dateStr = null) => {
+export const getStats = async (dateStr = null, buildingId = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
   const isToday = !dateStr || dateStr === todayStr;
@@ -690,17 +691,17 @@ export const getStats = async (dateStr = null) => {
   // 1. Số lượng xe trong bãi (status = 'Đang gửi xe') — chỉ có nghĩa khi xem hôm nay
   let insideCount = 0;
   if (isToday) {
-    insideCount = await gateRepository.countInsideVehicles();
+    insideCount = await gateRepository.countInsideVehicles(buildingId);
   } else {
     // Với ngày trong quá khứ: đếm xe đang ở trong bãi tại thời điểm cuối ngày đó
-    insideCount = await gateRepository.countInsideVehiclesAtEnd(endOfDay);
+    insideCount = await gateRepository.countInsideVehiclesAtEnd(endOfDay, buildingId);
   }
 
   // 2. Xe đã vào trong ngày
-  const inCount = await gateRepository.countVehiclesIn(startOfDay, endOfDay);
+  const inCount = await gateRepository.countVehiclesIn(startOfDay, endOfDay, buildingId);
 
   // 3. Xe đã ra trong ngày
-  const outCount = await gateRepository.countVehiclesOut(startOfDay, endOfDay);
+  const outCount = await gateRepository.countVehiclesOut(startOfDay, endOfDay, buildingId);
 
   return {
     success: true,
@@ -713,11 +714,12 @@ export const getStats = async (dateStr = null) => {
 /**
  * Lấy danh sách phiên gửi xe theo ngày (mặc định hôm nay, GMT+7), kèm thông tin card
  * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì dùng hôm nay.
+ * @param {string|null} buildingId - UUID tòa nhà
  */
-export const getSessions = async (dateStr = null) => {
+export const getSessions = async (dateStr = null, buildingId = null) => {
   const { startOfDay, endOfDay } = getDayRange(dateStr);
 
-  const sessions = await gateRepository.getSessionsByDateRange(startOfDay, endOfDay);
+  const sessions = await gateRepository.getSessionsByDateRange(startOfDay, endOfDay, buildingId);
 
   if (!sessions || sessions.length === 0) {
     return { success: true, sessions: [] };

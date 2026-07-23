@@ -151,9 +151,12 @@ export const exitGate = async (payload) => {
 /**
  * Lấy thống kê bãi xe thực tế
  * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì lấy hôm nay.
+ * @param {string|null} buildingId - ID tòa nhà của nhân viên
  */
-export const getParkingStats = async (dateStr = null) => {
-  const params = dateStr ? { date: dateStr } : {};
+export const getParkingStats = async (dateStr = null, buildingId = null) => {
+  const params = {};
+  if (dateStr) params.date = dateStr;
+  if (buildingId) params.building_id = buildingId;
   const response = await API.get("/gate/stats", { params });
   return response.data;
 };
@@ -161,9 +164,12 @@ export const getParkingStats = async (dateStr = null) => {
 /**
  * Lấy danh sách tất cả phiên gửi xe
  * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì lấy hôm nay.
+ * @param {string|null} buildingId - ID tòa nhà
  */
-export const getParkingSessions = async (dateStr = null) => {
-  const params = dateStr ? { date: dateStr } : {};
+export const getParkingSessions = async (dateStr = null, buildingId = null) => {
+  const params = {};
+  if (dateStr) params.date = dateStr;
+  if (buildingId) params.building_id = buildingId;
   const response = await API.get("/gate/sessions", { params });
   return response.data;
 };

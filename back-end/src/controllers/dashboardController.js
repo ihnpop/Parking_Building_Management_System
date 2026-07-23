@@ -4,7 +4,7 @@
  */
 
 import * as dashboardService from "../service/dashboardService.js";
-import supabase from "../config/supabaseClient.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 /**
  * GET /api/dashboard/stats
@@ -12,21 +12,7 @@ import supabase from "../config/supabaseClient.js";
  */
 export const getDashboardSummary = async (req, res) => {
     try {
-        let targetBuildingId = null;
-        if (req.user?.id) {
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("building_id, role:role_id(role_name)")
-                .eq("id", req.user.id)
-                .maybeSingle();
-
-            const roleName = profile?.role?.role_name ? profile.role.role_name.toUpperCase() : null;
-            // Nếu không phải ADMIN -> Lọc chỉ số theo building_id đã được ADMIN gán
-            if (roleName !== "ADMIN" && profile?.building_id) {
-                targetBuildingId = profile.building_id;
-            }
-        }
-
+        const targetBuildingId = await resolveBuildingIdFromReq(req);
         const data = await dashboardService.getSummaryData(targetBuildingId);
         return res.json(data);
     } catch (err) {
@@ -43,7 +29,8 @@ export const getDashboardSummary = async (req, res) => {
  */
 export const getTodayRevenueDetails = async (req, res) => {
     try {
-        const data = await dashboardService.getTodayRevenueBreakdown();
+        const targetBuildingId = await resolveBuildingIdFromReq(req);
+        const data = await dashboardService.getTodayRevenueBreakdown(targetBuildingId);
         return res.json(data);
     } catch (err) {
         console.error("[DashboardController] getTodayRevenueDetails error:", err);
@@ -59,7 +46,8 @@ export const getTodayRevenueDetails = async (req, res) => {
  */
 export const getMonthlyRevenueDetails = async (req, res) => {
     try {
-        const data = await dashboardService.getMonthlyRevenueBreakdown();
+        const targetBuildingId = await resolveBuildingIdFromReq(req);
+        const data = await dashboardService.getMonthlyRevenueBreakdown(targetBuildingId);
         return res.json(data);
     } catch (err) {
         console.error("[DashboardController] getMonthlyRevenueDetails error:", err);

@@ -3,9 +3,9 @@ import * as lostCardRepository from "../repositories/lostCardRepository.js";
 import * as vnpayService from "./vnpayService.js";
 import supabase from "../config/supabaseClient.js";
 
-export const getLostCards = async () => {
+export const getLostCards = async (buildingId = null) => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log thông qua Repository
-  const data = await lostCardRepository.getLostCardLogs();
+  const data = await lostCardRepository.getLostCardLogs(buildingId);
 
   // 2. Chuẩn hóa và làm phẳng cấu trúc dữ liệu JSON trả về
   // Dùng Promise.all để lấy snapshot mã thẻ lúc báo mất song song

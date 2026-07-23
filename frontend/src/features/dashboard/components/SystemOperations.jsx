@@ -79,9 +79,9 @@ export default function SystemOperations() {
     const [recentSessions, setRecentSessions] = useState([]);
     const [currentTime, setCurrentTime] = useState(new Date());
 
-    const fetchRecentSessions = async () => {
+    const fetchRecentSessions = async (bId = buildingId) => {
         try {
-            const data = await getParkingSessions();
+            const data = await getParkingSessions(null, bId);
             if (data.success) {
                 const sorted = (data.sessions || []).sort((a, b) => {
                     const timeA = new Date(a.exit_time || a.entry_time).getTime();
@@ -102,9 +102,12 @@ export default function SystemOperations() {
         return () => clearInterval(timer);
     }, []);
 
-    const fetchStats = async () => {
+    const [buildingId, setBuildingId] = useState(null);
+    const [buildingName, setBuildingName] = useState('');
+
+    const fetchStats = async (bId = buildingId) => {
         try {
-            const data = await getParkingStats();
+            const data = await getParkingStats(null, bId);
             if (data.success) {
                 setStats({
                     insideCount: data.insideCount,
@@ -127,8 +130,6 @@ export default function SystemOperations() {
 
     const navigate = useNavigate();
     const { user } = useAuth();
-    // Trạng thái lưu tên tòa nhà làm việc của nhân viên
-    const [buildingName, setBuildingName] = useState('');
 
     useEffect(() => {
         const checkBuildingAssignment = async () => {
@@ -143,7 +144,11 @@ export default function SystemOperations() {
 
                 if (data && !data.building_id) {
                     showToast('Tài khoản của bạn chưa được phân công tòa nhà. Không thể thực hiện Check-in/Check-out.', 'error');
+                    fetchStats(null);
                 } else if (data?.building_id) {
+                    setBuildingId(data.building_id);
+                    fetchStats(data.building_id);
+                    fetchRecentSessions(data.building_id);
                     // Truy vấn động tên tòa nhà từ bảng building dựa theo building_id
                     const { data: bData } = await supabase
                         .from('building')
@@ -446,9 +451,11 @@ export default function SystemOperations() {
         await handlePreCheck(plateNumber);
     };
     useEffect(() => {
-        fetchStats();
-        fetchRecentSessions();
-    }, []);
+        if (buildingId) {
+            fetchStats(buildingId);
+            fetchRecentSessions(buildingId);
+        }
+    }, [buildingId]);
     const latestHandlersRef = useRef({
         handleCheckInSubmit,
         handleCheckOutSubmit,

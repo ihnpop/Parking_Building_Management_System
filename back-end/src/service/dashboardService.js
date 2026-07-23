@@ -131,15 +131,15 @@ export async function getSummaryData(buildingId = null) {
         recentExits,
         recentIncidents,
     ] = await Promise.all([
-        dashboardRepository.getTodayIncidentsCounts(startToday, endToday),
-        dashboardRepository.getPaymentsInPeriod(startToday, endToday),
-        dashboardRepository.getPaymentsInPeriod(startMonth, endMonth),
-        fetchHourlyTraffic(startToday, endToday),
+        dashboardRepository.getTodayIncidentsCounts(startToday, endToday, buildingId),
+        dashboardRepository.getPaymentsInPeriod(startToday, endToday, buildingId),
+        dashboardRepository.getPaymentsInPeriod(startMonth, endMonth, buildingId),
+        fetchHourlyTraffic(startToday, endToday, buildingId),
         fetchFloorOccupancy(buildingId),
-        fetchVehicleTypeDistribution(),
-        fetchRecentEntries(),
-        fetchRecentExits(),
-        fetchRecentIncidents(),
+        fetchVehicleTypeDistribution(buildingId),
+        fetchRecentEntries(buildingId),
+        fetchRecentExits(buildingId),
+        fetchRecentIncidents(buildingId),
     ]);
 
     // Tính doanh thu tổng
@@ -163,7 +163,7 @@ export async function getSummaryData(buildingId = null) {
 }
 
 /** 2. Phân bố lưu lượng xe vào theo giờ */
-async function fetchHourlyTraffic(start, end) {
+async function fetchHourlyTraffic(start, end, buildingId = null) {
     const result = Array(24).fill(0);
     try {
         const getHourVN = (dateStr) => {
@@ -186,7 +186,7 @@ async function fetchHourlyTraffic(start, end) {
             return h === 24 ? 0 : h;
         };
 
-        const logs = await dashboardRepository.getHourlyTrafficLogs(start, end);
+        const logs = await dashboardRepository.getHourlyTrafficLogs(start, end, buildingId);
         if (logs && logs.length > 0) {
             logs.forEach((row) => {
                 const h = getHourVN(row.event_time);
@@ -195,7 +195,7 @@ async function fetchHourlyTraffic(start, end) {
             return result;
         }
 
-        const sessions = await dashboardRepository.getHourlyTrafficSessions(start, end);
+        const sessions = await dashboardRepository.getHourlyTrafficSessions(start, end, buildingId);
         (sessions ?? []).forEach((row) => {
             const h = getHourVN(row.entry_time);
             if (h >= 0 && h <= 23) result[h]++;
@@ -241,7 +241,7 @@ async function fetchFloorOccupancy(buildingId = null) {
 
         const hasOccupied = [...floorMap.values()].some((f) => f.occupiedSlots > 0);
         if (!hasOccupied) {
-            const sessData = await dashboardRepository.getActiveSessionSlots();
+            const sessData = await dashboardRepository.getActiveSessionSlots(buildingId);
             if ((sessData ?? []).length > 0) {
                 const activeSlotIds = new Set(sessData.map((r) => r.slot_id));
                 (data ?? []).forEach((slot) => {
@@ -268,9 +268,9 @@ async function fetchFloorOccupancy(buildingId = null) {
 }
 
 /** 4. Phân phối loại phương tiện */
-async function fetchVehicleTypeDistribution() {
+async function fetchVehicleTypeDistribution(buildingId = null) {
     try {
-        const sourceData = await dashboardRepository.getActiveSessionsVehicles();
+        const sourceData = await dashboardRepository.getActiveSessionsVehicles(buildingId);
         const typeCount = {};
         (sourceData ?? []).forEach((row) => {
             const name = row.vehicle?.vehicle_type?.name;
@@ -292,9 +292,9 @@ async function fetchVehicleTypeDistribution() {
 }
 
 /** 5. Xe vào gần đây */
-async function fetchRecentEntries() {
+async function fetchRecentEntries(buildingId = null) {
     try {
-        const logData = await dashboardRepository.getRecentEntryLogs();
+        const logData = await dashboardRepository.getRecentEntryLogs(buildingId);
         if (logData && logData.length > 0) {
             const seen = new Set();
             const unique = logData.filter((r) => {
@@ -311,7 +311,7 @@ async function fetchRecentEntries() {
             }));
         }
 
-        const sessData = await dashboardRepository.getRecentEntrySessions();
+        const sessData = await dashboardRepository.getRecentEntrySessions(buildingId);
         const seenSess = new Set();
         return (sessData ?? []).filter((r) => {
             if (seenSess.has(r.session_id)) return false;
@@ -330,9 +330,9 @@ async function fetchRecentEntries() {
 }
 
 /** 6. Xe ra gần đây */
-async function fetchRecentExits() {
+async function fetchRecentExits(buildingId = null) {
     try {
-        const logData = await dashboardRepository.getRecentExitLogs();
+        const logData = await dashboardRepository.getRecentExitLogs(buildingId);
         if (logData && logData.length > 0) {
             const seen = new Set();
             return logData.filter((r) => {
@@ -347,7 +347,7 @@ async function fetchRecentExits() {
             }));
         }
 
-        const sessData = await dashboardRepository.getRecentExitSessions();
+        const sessData = await dashboardRepository.getRecentExitSessions(buildingId);
         const seenSess = new Set();
         return (sessData ?? []).filter((r) => {
             if (seenSess.has(r.session_id)) return false;
@@ -366,12 +366,12 @@ async function fetchRecentExits() {
 }
 
 /** 7. Sự cố gần đây */
-async function fetchRecentIncidents() {
+async function fetchRecentIncidents(buildingId = null) {
     try {
         const results = [];
 
         try {
-            const lostData = await dashboardRepository.getRecentLostCards();
+            const lostData = await dashboardRepository.getRecentLostCards(buildingId);
             (lostData ?? []).forEach((row) => {
                 results.push({
                     id: row.lost_report_id,
@@ -387,7 +387,7 @@ async function fetchRecentIncidents() {
         }
 
         try {
-            const incData = await dashboardRepository.getRecentIncidentReports();
+            const incData = await dashboardRepository.getRecentIncidentReports(buildingId);
             (incData ?? []).forEach((row) => {
                 const plate = row.session?.plate_number;
                 const cardCode = row.session?.card_code;
@@ -419,12 +419,12 @@ async function fetchRecentIncidents() {
 }
 
 /** 8. Chi tiết doanh thu hôm nay (Breakdown Modal) */
-export async function getTodayRevenueBreakdown() {
+export async function getTodayRevenueBreakdown(buildingId = null) {
     try {
         const start = startOfToday();
         const end = endOfToday();
 
-        const payments = await dashboardRepository.getPaymentsInPeriod(start, end);
+        const payments = await dashboardRepository.getPaymentsInPeriod(start, end, buildingId);
         const totalCardRevenue = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
         const result = {
@@ -535,7 +535,7 @@ export async function getTodayRevenueBreakdown() {
 }
 
 /** 9. Chi tiết doanh thu tháng này theo tuần (Breakdown Modal) */
-export async function getMonthlyRevenueBreakdown() {
+export async function getMonthlyRevenueBreakdown(buildingId = null) {
     try {
         const now = new Date();
         const year = now.getFullYear();
@@ -564,7 +564,7 @@ export async function getMonthlyRevenueBreakdown() {
         const monthStartIso = startOfCurrentMonth();
         const monthEndIso = endOfCurrentMonth();
 
-        const payments = await dashboardRepository.getPaymentsInPeriod(monthStartIso, monthEndIso);
+        const payments = await dashboardRepository.getPaymentsInPeriod(monthStartIso, monthEndIso, buildingId);
         const monthTotal = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
         const sessionIds = [...new Set((payments || []).map(p => p.session_id).filter(Boolean))];

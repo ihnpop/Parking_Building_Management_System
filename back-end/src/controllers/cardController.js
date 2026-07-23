@@ -1,4 +1,5 @@
 import * as cardService from "../service/cardService.js";
+import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 export const getCards = async (req, res) => {
   try {
@@ -20,7 +21,8 @@ export const getMonthCards = async (req, res) => {
 
 export const getLostCards = async (req, res) => {
   try {
-    const lostCards = await cardService.getLostCards();
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const lostCards = await cardService.getLostCards(buildingId);
     res.status(200).json(lostCards);
   } catch (err) {
     res.status(500).json({ error: err.message });
