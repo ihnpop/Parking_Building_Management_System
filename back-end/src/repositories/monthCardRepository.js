@@ -708,7 +708,11 @@ export const getMonthCards = async () => {
             customer_id,
             full_name,
             phone,
-            email
+            email,
+            customer_kyc (
+              cccd_number,
+              created_at
+            )
           ),
           vehicle_type (
             name
@@ -919,6 +923,8 @@ export const getCccdNumberByCustomerId = async (customerId) => {
     .from('customer_kyc')
     .select('cccd_number')
     .eq('customer_id', customerId)
+    .not('cccd_number', 'is', null)
+    .neq('cccd_number', '')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();

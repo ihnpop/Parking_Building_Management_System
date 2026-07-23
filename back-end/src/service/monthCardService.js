@@ -214,7 +214,9 @@ export const createMonthCard = async ({
   status,
   vehicleTypeId,
   note,
-  currentUserId
+  currentUserId,
+  cccdNumber,
+  cccd_number
 }) => {
   // 1. Validate dữ liệu đầu vào
   if (!plate || !plate.trim()) {
@@ -260,6 +262,18 @@ export const createMonthCard = async ({
       email: email ? email.trim() : null
     });
     customerId = newCustomer.customer_id;
+  }
+
+  const cleanCccd = (cccdNumber || cccd_number || '').trim();
+  if (customerId && cleanCccd) {
+    await supabase
+      .from('customer_kyc')
+      .insert({
+        customer_id: customerId,
+        cccd_number: cleanCccd,
+        ekyc_status: 'Đã xác thực',
+        verified_at: new Date().toISOString()
+      });
   }
 
   // 4. Tìm hoặc tạo xe
@@ -430,7 +444,9 @@ export const updateMonthCard = async (cardId, payload) => {
     email,
     status,
     checkInTime,
-    checkOutTime
+    checkOutTime,
+    cccd_number,
+    cccdNumber
   } = payload;
 
   const currentCard = await monthCardRepository.findCardStatus(cardId);
@@ -531,6 +547,18 @@ export const updateMonthCard = async (cardId, payload) => {
         phone: cleanPhone || null,
         email: cleanEmail || null
       });
+
+      const cleanCccd = (cccd_number || cccdNumber || '').trim();
+      if (cleanCccd) {
+        await supabase
+          .from('customer_kyc')
+          .insert({
+            customer_id: customerId,
+            cccd_number: cleanCccd,
+            ekyc_status: 'Đã xác thực',
+            verified_at: new Date().toISOString()
+          });
+      }
     }
 
     // 6. Cập nhật session đỗ xe mới nhất của xe này (nếu có)
@@ -631,6 +659,23 @@ export const getMonthCards = async () => {
         );
       }
 
+      let cccdNumber = "";
+      const kycList = activeReg?.vehicle?.customer?.customer_kyc;
+      if (Array.isArray(kycList) && kycList.length > 0) {
+        const validKyc = kycList
+          .filter(k => k.cccd_number)
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        if (validKyc.length > 0) {
+          cccdNumber = validKyc[0].cccd_number;
+        }
+      }
+      if (!cccdNumber && activeReg?.vehicle?.customer?.customer_id) {
+        const kycData = await monthCardRepository.getCccdNumberByCustomerId(activeReg.vehicle.customer.customer_id);
+        if (kycData?.cccd_number) {
+          cccdNumber = kycData.cccd_number;
+        }
+      }
+
       return {
         id: String(i + 1).padStart(2, "0"),
 
@@ -656,6 +701,8 @@ export const getMonthCards = async () => {
         email:
           activeReg?.vehicle?.customer?.email ||
           "",
+
+        cccd_number: cccdNumber,
 
         type:
           activeReg?.vehicle?.vehicle_type?.name ||

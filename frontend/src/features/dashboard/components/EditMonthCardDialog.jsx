@@ -39,6 +39,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                 fullName: cardData.customer !== 'Khách vãng lai' ? cardData.customer || '' : '',
                 phone: cardData.phone || '',
                 email: cardData.email || '',
+                cccd_number: cardData.cccd_number || '',
                 status: uiToDbStatus(cardData.status || 'Hoạt động'),
                 checkInTime: cardData.check_in_time
                     ? new Date(cardData.check_in_time).toISOString().slice(0, 16)
@@ -103,6 +104,7 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                 fullName: formData.fullName,
                 phone: formData.phone,
                 email: formData.email,
+                cccd_number: formData.cccd_number,
                 status: formData.status,
                 checkInTime: hasPlate ? formData.checkInTime : null,
                 checkOutTime: hasPlate ? formData.checkOutTime : null
@@ -273,6 +275,21 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                                 </span>
                             )}
                         </div>
+                    </div>
+
+                    <div className="renew-form-group emc-form-group-0">
+                        <label htmlFor="cccd_number">Số CCCD/CMND <span style={{ fontSize: 12, color: '#888', fontWeight: 400 }}>(dùng cho hợp đồng)</span></label>
+                        <input
+                            id="cccd_number"
+                            name="cccd_number"
+                            type="text"
+                            className="renew-select"
+                            value={formData.cccd_number || ''}
+                            onChange={handleFormChange}
+                            maxLength={12}
+                            placeholder="079xxxxxxxxxxxxx"
+                            disabled={isSubmitting}
+                        />
                     </div>
 
                     {!hasPlate && (
