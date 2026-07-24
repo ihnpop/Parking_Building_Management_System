@@ -1,13 +1,110 @@
 import { useState, useEffect, useCallback } from 'react';
+import supabase from '../../../config/supabaseClient';
 
 /** Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam */
 function todayVN() {
-    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+    const vnTime = new Date().getTime() + 7 * 60 * 60 * 1000;
+    const vnDate = new Date(vnTime);
+    const y = vnDate.getUTCFullYear();
+    const m = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(vnDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
 }
 /** Trả về chuỗi yyyy-MM theo timezone Việt Nam */
 function thisMonthVN() {
     return todayVN().slice(0, 7);
 }
+
+// Shift input date by +7 hours so that UTC methods return the Vietnam time components directly
+function getVNDateParts(dateInput) {
+    if (!dateInput) return null;
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return null;
+    const vnTime = d.getTime() + 7 * 60 * 60 * 1000;
+    const vnDate = new Date(vnTime);
+    return {
+        year: vnDate.getUTCFullYear(),
+        month: vnDate.getUTCMonth() + 1,
+        date: vnDate.getUTCDate(),
+        hour: vnDate.getUTCHours(),
+        minute: vnDate.getUTCMinutes(),
+        second: vnDate.getUTCSeconds(),
+        dayOfWeek: vnDate.getUTCDay()
+    };
+}
+
+function getLocalDateVN(dateInput) {
+    const parts = getVNDateParts(dateInput);
+    if (!parts) return '';
+    const y = parts.year;
+    const m = String(parts.month).padStart(2, '0');
+    const d = String(parts.date).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function formatLabel(dateStr) {
+    const parts = dateStr.split('-');
+    return `${parts[2]}/${parts[1]}`;
+}
+
+function getHourVN(dateInput) {
+    const parts = getVNDateParts(dateInput);
+    return parts ? parts.hour : -1;
+}
+
+function formatVNDCompact(val) {
+    if (val === null || val === undefined || isNaN(Number(val))) return '0 ₫';
+    const num = Number(val);
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M ₫';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(0) + 'K ₫';
+    }
+    return num + ' ₫';
+}
+
+function getVNPeriodRange(period, customDate, customMonth) {
+    let startVN, endVN;
+
+    if (period === 'day' && customDate) {
+        const [y, m, d] = customDate.split('-').map(Number);
+        startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+        endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+    } else if (period === 'week' && customDate) {
+        const [y, m, d] = customDate.split('-').map(Number);
+        // Find VN day of week (0 = Sunday, 1 = Monday...)
+        const targetTime = Date.UTC(y, m - 1, d, 12, 0, 0, 0) - 7 * 60 * 60 * 1000;
+        const parts = getVNDateParts(targetTime);
+        const currentDay = parts.dayOfWeek;
+        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+
+        const mondayTime = targetTime + diffToMonday * 24 * 60 * 60 * 1000;
+        const mondayParts = getVNDateParts(mondayTime);
+
+        startVN = Date.UTC(mondayParts.year, mondayParts.month - 1, mondayParts.date, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+        endVN = startVN + 7 * 24 * 60 * 60 * 1000 - 1;
+    } else if (period === 'month' && customMonth) {
+        const [y, m] = customMonth.split('-').map(Number);
+        startVN = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+        endVN = Date.UTC(y, m, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+    } else {
+        const vnTime = new Date().getTime() + 7 * 60 * 60 * 1000;
+        const vnDate = new Date(vnTime);
+        const y = vnDate.getUTCFullYear();
+        const m = vnDate.getUTCMonth();
+        const d = vnDate.getUTCDate();
+
+        startVN = Date.UTC(y, m, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+        endVN = Date.UTC(y, m, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+    }
+
+    return {
+        startDate: new Date(startVN).toISOString(),
+        endDate: new Date(endVN).toISOString()
+    };
+}
+
 import DashboardShell from '../../../components/layout/DashboardShell';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -34,10 +131,7 @@ import {
     dashboardFallbackData,
 } from '../../../service/dashboardApi';
 
-// ─── Fallback mock – chỉ dùng cho chart "Xu hướng doanh thu" khi payment chưa có seed ──
-// TODO: replace with real database field when available (payment chưa có dữ liệu seed)
-const WEEK_BARS = dashboardFallbackData.revenueTrendBars;
-const MAX_BAR = dashboardFallbackData.revenueTrendMaxBar;
+
 
 export default function DashboardView() {
     const { userRole, user } = useAuth();
@@ -108,10 +202,14 @@ export default function DashboardView() {
     const [kpiTimeFilter, setKpiTimeFilter] = useState('day');
     const [kpiDate, setKpiDate] = useState(todayVN);
     const [kpiMonth, setKpiMonth] = useState(thisMonthVN);
-    const [selectedPeriod, setSelectedPeriod] = useState('30 ngày qua');
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [dashboardPeriod, setDashboardPeriod] = useState('day');
+    const [selectedCustomDate, setSelectedCustomDate] = useState(todayVN());
+    const [selectedCustomMonth, setSelectedCustomMonth] = useState(thisMonthVN());
+    const [trafficChartData, setTrafficChartData] = useState([]);
+    const [revenueChartData, setRevenueChartData] = useState([]);
 
     // Modal state
     const [isTodayModalOpen, setIsTodayModalOpen] = useState(false);
@@ -129,7 +227,6 @@ export default function DashboardView() {
     });
 
     // ─── Chart / table state ──────────────────────────────────────────────────
-    const [hourlyData, setHourlyData] = useState(Array(24).fill(0));
     const [floorData, setFloorData] = useState([]);
     const [vehicleTypes, setVehicleTypes] = useState([]);
     const [recentIn, setRecentIn] = useState([]);
@@ -140,36 +237,190 @@ export default function DashboardView() {
     const loadData = useCallback(async () => {
         setIsLoading(true);
         try {
+            // 1. Fetch real-time stats from backend
             const data = await fetchAllDashboardData();
 
-            // Tính tổng lượt xe ra/vào hôm nay dựa trên biểu đồ lưu lượng theo giờ (hourlyTraffic)
-            const totalTodayTraffic = Array.isArray(data.hourlyTraffic)
-                ? data.hourlyTraffic.reduce((sum, val) => sum + Number(val || 0), 0)
-                : 0;
+            // 2. Resolve building ID for current user
+            let targetBuildingId = null;
+            if (computedRole !== 'ADMIN' && user?.id) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('building_id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                if (profile?.building_id) {
+                    targetBuildingId = profile.building_id;
+                }
+            }
+
+            // 3. Define date ranges in VN timezone
+            const { startDate, endDate } = getVNPeriodRange(dashboardPeriod, selectedCustomDate, selectedCustomMonth);
+
+            // 4. Query parking sessions in the period
+            let sessionsQuery = supabase
+                .from('parking_sessions')
+                .select('entry_time, exit_time, vehicle:vehicle_id(vehicle_type:vehicle_type_id(name))')
+                .gte('entry_time', startDate)
+                .lte('entry_time', endDate);
+
+            if (targetBuildingId) {
+                const { data: logs } = await supabase
+                    .from('entry_exit_log')
+                    .select('session_id')
+                    .eq('building_id', targetBuildingId);
+                const sessionIds = [...new Set((logs || []).map(l => l.session_id).filter(Boolean))];
+                if (sessionIds.length > 0) {
+                    sessionsQuery = sessionsQuery.in('session_id', sessionIds);
+                } else {
+                    sessionsQuery = sessionsQuery.in('session_id', ['none']);
+                }
+            }
+            const { data: sessions } = await sessionsQuery;
+
+            // 5. Query lost cards in the period
+            let lostQuery = supabase
+                .from('card_lost_log')
+                .select('*', { count: 'exact', head: true })
+                .gte('reported_at', startDate)
+                .lte('reported_at', endDate);
+            if (targetBuildingId) {
+                lostQuery = lostQuery.eq('building_id', targetBuildingId);
+            }
+            const { count: lostCount } = await lostQuery;
+
+            // 6. Query payments in the period
+            let paymentsQuery = supabase
+                .from('payment')
+                .select('amount, payment_time, payment_type')
+                .eq('status', 'Đã thanh toán')
+                .gte('payment_time', startDate)
+                .lte('payment_time', endDate);
+
+            if (targetBuildingId) {
+                const { data: logs } = await supabase
+                    .from('entry_exit_log')
+                    .select('session_id')
+                    .eq('building_id', targetBuildingId);
+                const sessionIds = [...new Set((logs || []).map(l => l.session_id).filter(Boolean))];
+                if (sessionIds.length > 0) {
+                    paymentsQuery = paymentsQuery.in('session_id', sessionIds);
+                } else {
+                    paymentsQuery = paymentsQuery.in('session_id', ['none']);
+                }
+            }
+            const { data: payments } = await paymentsQuery;
+
+            // 7. Calculate overall stats
+            const periodTraffic = (sessions || []).length;
+            const periodIncidents = lostCount || 0;
+            const periodRevenue = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+            // Compute second revenue metric (doanh thu tháng or average)
+            let periodRevenue2 = data.monthRevenue; // fallback
+            if (dashboardPeriod === 'day') {
+                periodRevenue2 = data.monthRevenue;
+            } else if (dashboardPeriod === 'week') {
+                periodRevenue2 = Math.round(periodRevenue / 7);
+            } else if (dashboardPeriod === 'month') {
+                const [y, m] = selectedCustomMonth.split('-').map(Number);
+                const daysInMonth = new Date(y, m, 0).getDate();
+                periodRevenue2 = Math.round(periodRevenue / daysInMonth);
+            }
 
             setStats({
-                todayTraffic: totalTodayTraffic,
+                todayTraffic: periodTraffic,
                 activeSessions: data.activeSessions,
                 emptySlots: data.availableSlots,
                 usedSlots: data.occupiedSlots,
-                incidents: data.todayIncidents,
-                revenueToday: data.todayRevenue,
-                revenueMonth: data.monthRevenue,
+                incidents: periodIncidents,
+                revenueToday: periodRevenue,
+                revenueMonth: periodRevenue2,
             });
-            setHourlyData(data.hourlyTraffic);
+
+            // 8. Generate traffic and revenue charts
+            if (dashboardPeriod === 'day') {
+                // Hourly traffic
+                const hourlyTraffic = Array(24).fill(0);
+                (sessions || []).forEach(s => {
+                    const h = getHourVN(s.entry_time);
+                    if (h >= 0 && h <= 23) hourlyTraffic[h]++;
+                });
+                setTrafficChartData(hourlyTraffic.map((val, idx) => ({
+                    label: `${String(idx).padStart(2, '0')}h`,
+                    val
+                })));
+
+                // Hourly revenue
+                const hourlyRevenue = Array(24).fill(0);
+                (payments || []).forEach(p => {
+                    const h = getHourVN(p.payment_time);
+                    if (h >= 0 && h <= 23) hourlyRevenue[h] += (Number(p.amount) || 0);
+                });
+                const maxRev = Math.max(...hourlyRevenue, 1);
+                setRevenueChartData(hourlyRevenue.map((val, idx) => ({
+                    label: `${String(idx).padStart(2, '0')}h`,
+                    val,
+                    peak: val === maxRev && val > 0
+                })));
+            } else {
+                // Daily traffic & revenue
+                const datesList = [];
+                const startMs = new Date(startDate).getTime() + 7 * 60 * 60 * 1000;
+                const endMs = new Date(endDate).getTime() + 7 * 60 * 60 * 1000;
+
+                let walkMs = startMs;
+                while (walkMs <= endMs) {
+                    const walkDate = new Date(walkMs);
+                    const y = walkDate.getUTCFullYear();
+                    const m = String(walkDate.getUTCMonth() + 1).padStart(2, '0');
+                    const d = String(walkDate.getUTCDate()).padStart(2, '0');
+                    datesList.push(`${y}-${m}-${d}`);
+                    walkMs += 24 * 60 * 60 * 1000;
+                }
+
+                // Daily traffic
+                const dailyTraffic = {};
+                datesList.forEach(d => { dailyTraffic[d] = 0; });
+                (sessions || []).forEach(s => {
+                    const dateStr = getLocalDateVN(s.entry_time);
+                    if (dailyTraffic[dateStr] !== undefined) dailyTraffic[dateStr]++;
+                });
+                setTrafficChartData(datesList.map(d => ({
+                    label: formatLabel(d),
+                    labelFull: d,
+                    val: dailyTraffic[d]
+                })));
+
+                // Daily revenue
+                const dailyRevenue = {};
+                datesList.forEach(d => { dailyRevenue[d] = 0; });
+                (payments || []).forEach(p => {
+                    const dateStr = getLocalDateVN(p.payment_time);
+                    if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += (Number(p.amount) || 0);
+                });
+                const maxRev = Math.max(...Object.values(dailyRevenue), 1);
+                setRevenueChartData(datesList.map(d => ({
+                    label: formatLabel(d),
+                    labelFull: d,
+                    val: dailyRevenue[d],
+                    peak: dailyRevenue[d] === maxRev && dailyRevenue[d] > 0
+                })));
+            }
+
+            // 9. Vehicle distribution
+            setVehicleTypes(data.vehicleTypeDistribution || []);
+
             setFloorData(data.floorOccupancy);
-            setVehicleTypes(data.vehicleTypeDistribution);
             setRecentIn(data.recentEntries);
             setRecentOut(data.recentExits);
             setIncidents(data.recentIncidents);
         } catch (err) {
-            // Không crash Dashboard dù lỗi bất ngờ
             console.error('[DashboardView] loadData error:', err);
         } finally {
             setIsLoading(false);
             setIsRefreshing(false);
         }
-    }, []);
+    }, [dashboardPeriod, selectedCustomDate, selectedCustomMonth]);
 
     // Load khi mở tab dashboard
     useEffect(() => {
@@ -207,7 +458,33 @@ export default function DashboardView() {
         );
     };
 
-    const maxHourly = Math.max(...hourlyData, 1);
+    const maxTrafficVal = Math.max(...trafficChartData.map(d => d.val), 1);
+    const maxRevenueVal = Math.max(...revenueChartData.map(d => d.val), 1);
+
+    // Compute date ranges labels for cards & descriptions
+    const dateFormatted = selectedCustomDate.split('-').reverse().join('/');
+    
+    // For week label, calculate the Monday and Sunday dates
+    let weekLabel = '';
+    if (selectedCustomDate) {
+        const [y, m, d] = selectedCustomDate.split('-').map(Number);
+        const selectedDateObj = new Date(y, m - 1, d);
+        const currentDay = selectedDateObj.getDay();
+        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(selectedDateObj);
+        monday.setDate(selectedDateObj.getDate() + diffToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const formatShort = (dateObj) => {
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            return `${dd}/${mm}`;
+        };
+        weekLabel = `${formatShort(monday)} - ${formatShort(sunday)}`;
+    }
+
+    const monthFormatted = selectedCustomMonth.split('-').reverse().join('/');
 
     return (
         <DashboardShell currentTab={currentView} onTabSelect={(tab) => setCurrentView(tab)}>
@@ -317,34 +594,219 @@ export default function DashboardView() {
                 <div className="db-page">
 
                     {/* ── Title row ── */}
-                    <div className="db-title-row">
+                    <div className="db-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                         <div>
                             <h1 className="db-h1">Thống Kê Tổng Quan</h1>
                             <p className="db-sub">Số liệu vận hành trực tiếp, tình trạng lấp đầy và báo cáo hàng ngày</p>
                         </div>
-                        <button
-                            type="button"
-                            className={`db-refresh-btn${isRefreshing ? ' db-refresh-btn--spinning' : ''}`}
-                            onClick={handleRefresh}
-                            disabled={isRefreshing || isLoading}
-                        >
-                            <span className="material-symbols-outlined">refresh</span>
-                            {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                backgroundColor: '#f1f5f9',
+                                padding: '4px',
+                                borderRadius: '10px',
+                                border: '1px solid #e2e8f0',
+                                marginRight: '4px',
+                                height: '42px',
+                                boxSizing: 'border-box'
+                            }}>
+                                {/* Theo ngày */}
+                                <button
+                                    type="button"
+                                    onClick={() => setDashboardPeriod('day')}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '0 16px',
+                                        height: '100%',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        backgroundColor: dashboardPeriod === 'day' ? '#ffffff' : 'transparent',
+                                        color: dashboardPeriod === 'day' ? '#2563eb' : '#64748b',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        boxShadow: dashboardPeriod === 'day' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                        transition: 'all 0.2s ease',
+                                        boxSizing: 'border-box'
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
+                                    Theo ngày
+                                </button>
+
+                                {/* Theo tuần */}
+                                <button
+                                    type="button"
+                                    onClick={() => setDashboardPeriod('week')}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '0 16px',
+                                        height: '100%',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        backgroundColor: dashboardPeriod === 'week' ? '#ffffff' : 'transparent',
+                                        color: dashboardPeriod === 'week' ? '#2563eb' : '#64748b',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        boxShadow: dashboardPeriod === 'week' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                        transition: 'all 0.2s ease',
+                                        boxSizing: 'border-box'
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>date_range</span>
+                                    Theo tuần
+                                </button>
+
+                                {/* Theo tháng */}
+                                <button
+                                    type="button"
+                                    onClick={() => setDashboardPeriod('month')}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '0 16px',
+                                        height: '100%',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        backgroundColor: dashboardPeriod === 'month' ? '#ffffff' : 'transparent',
+                                        color: dashboardPeriod === 'month' ? '#2563eb' : '#64748b',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        boxShadow: dashboardPeriod === 'month' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                        transition: 'all 0.2s ease',
+                                        boxSizing: 'border-box'
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span>
+                                    Theo tháng
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {dashboardPeriod === 'day' && (
+                                    <input
+                                        type="date"
+                                        value={selectedCustomDate}
+                                        onChange={(e) => setSelectedCustomDate(e.target.value)}
+                                        style={{
+                                            padding: '0 16px',
+                                            borderRadius: '10px',
+                                            border: '1.5px solid #cbd5e1',
+                                            backgroundColor: '#ffffff',
+                                            color: '#1f2937',
+                                            fontWeight: '600',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                            cursor: 'pointer',
+                                            height: '42px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                )}
+
+                                {dashboardPeriod === 'week' && (
+                                    <input
+                                        type="date"
+                                        value={selectedCustomDate}
+                                        onChange={(e) => setSelectedCustomDate(e.target.value)}
+                                        style={{
+                                            padding: '0 16px',
+                                            borderRadius: '10px',
+                                            border: '1.5px solid #cbd5e1',
+                                            backgroundColor: '#ffffff',
+                                            color: '#1f2937',
+                                            fontWeight: '600',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                            cursor: 'pointer',
+                                            height: '42px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                )}
+
+                                {dashboardPeriod === 'month' && (
+                                    <input
+                                        type="month"
+                                        value={selectedCustomMonth}
+                                        onChange={(e) => setSelectedCustomMonth(e.target.value)}
+                                        style={{
+                                            padding: '0 16px',
+                                            borderRadius: '10px',
+                                            border: '1.5px solid #cbd5e1',
+                                            backgroundColor: '#ffffff',
+                                            color: '#1f2937',
+                                            fontWeight: '600',
+                                            fontSize: '14px',
+                                            outline: 'none',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                            cursor: 'pointer',
+                                            height: '42px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                )}
+
+                                <button
+                                    type="button"
+                                    className={`db-refresh-btn${isRefreshing ? ' db-refresh-btn--spinning' : ''}`}
+                                    onClick={handleRefresh}
+                                    disabled={isRefreshing || isLoading}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '0 16px',
+                                        height: '42px',
+                                        borderRadius: '10px',
+                                        border: '1.5px solid #cbd5e1',
+                                        backgroundColor: '#ffffff',
+                                        color: '#475569',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        boxSizing: 'border-box',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined">refresh</span>
+                                    {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* ── KPI Cards ── */}
                     <div className="db-kpis">
-                        {/* Lượt xe ra/vào hôm nay – Móc từ dữ liệu tổng hợp lưu lượng theo giờ */}
+                        {/* Lượt xe ra/vào – Móc từ dữ liệu tổng hợp theo khoảng thời gian */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
-                                <span>LƯỢT XE RA/VÀO HÔM NAY</span>
+                                <span>
+                                    {dashboardPeriod === 'day' ? `LƯỢT XE RA/VÀO NGÀY ${dateFormatted}` : 
+                                     dashboardPeriod === 'week' ? `LƯỢT XE VÀO TUẦN ${weekLabel}` : 
+                                     `LƯỢT XE VÀO THÁNG ${monthFormatted}`}
+                                </span>
                                 <span className="db-kpi-icon" style={{ color: '#3B82F6' }}>
                                     <span className="material-symbols-outlined">swap_vert</span>
                                 </span>
                             </div>
                             <div className="db-kpi-value">{stats.todayTraffic} lượt</div>
-                            <div className="db-kpi-note">Tổng lượt xe ra/vào trong ngày</div>
+                            <div className="db-kpi-note">
+                                {dashboardPeriod === 'day' ? 'Tổng lượt xe ra/vào trong ngày' : 
+                                 dashboardPeriod === 'week' ? `Tổng lượt xe vào trong tuần ${weekLabel}` : 
+                                 `Tổng lượt xe vào trong tháng ${monthFormatted}`}
+                            </div>
                             <div className="db-kpi-status-cue" style={{ color: '#3b82f6' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>sync</span>
                                 <span>Cập nhật tự động</span>
@@ -385,48 +847,66 @@ export default function DashboardView() {
                             </div>
                         </div>
 
-                        {/* Sự cố hôm nay – từ card_lost_log + incident_report */}
+                        {/* Sự cố – từ card_lost_log + incident_report */}
                         <div className="db-kpi">
                             <div className="db-kpi-head">
-                                <span>SỰ CỐ HÔM NAY</span>
+                                <span>
+                                    {dashboardPeriod === 'day' ? `SỰ CỐ NGÀY ${dateFormatted}` : 
+                                     dashboardPeriod === 'week' ? `SỰ CỐ TUẦN ${weekLabel}` : 
+                                     `SỰ CỐ THÁNG ${monthFormatted}`}
+                                </span>
                                 <span className="db-kpi-icon" style={{ color: '#ef4444' }}>
                                     <span className="material-symbols-outlined">warning</span>
                                 </span>
                             </div>
                             <div className="db-kpi-value">{stats.incidents} sự cố</div>
-                            <div className="db-kpi-note">Các trường hợp ngoại lệ đã ghi nhận</div>
+                            <div className="db-kpi-note">
+                                {dashboardPeriod === 'day' ? `Các sự cố ghi nhận ngày ${dateFormatted}` : 
+                                 dashboardPeriod === 'week' ? `Các sự cố ghi nhận trong tuần ${weekLabel}` : 
+                                 `Các sự cố ghi nhận trong tháng ${monthFormatted}`}
+                            </div>
                             <div className="db-kpi-status-cue" style={{ color: stats.incidents > 0 ? '#ef4444' : '#10b981' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>{stats.incidents > 0 ? 'warning' : 'verified'}</span>
                                 <span>{stats.incidents > 0 ? 'Cần kiểm tra ngay' : 'Hoạt động an toàn'}</span>
                             </div>
                         </div>
 
-                        {/* Doanh thu hôm nay – từ payment.status = 'Đã trả' */}
+                        {/* Doanh thu 1 – từ payment.status = 'Đã trả' */}
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsTodayModalOpen(true)}>
                             <div className="db-kpi-head">
-                                <span>DOANH THU HÔM NAY</span>
+                                <span>
+                                    {dashboardPeriod === 'day' ? `DOANH THU NGÀY ${dateFormatted}` : 
+                                     dashboardPeriod === 'week' ? `DOANH THU TUẦN ${weekLabel}` : 
+                                     `DOANH THU THÁNG ${monthFormatted}`}
+                                </span>
                                 <span className="db-kpi-icon" style={{ color: '#059669' }}>
                                     <span className="material-symbols-outlined">payments</span>
                                 </span>
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueToday)}</div>
-                            <div className="db-kpi-note">Tiền mặt &amp; QR ngân hàng đã thu</div>
+                            <div className="db-kpi-note">
+                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' : 'Doanh thu trong khoảng thời gian'}
+                            </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
                                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
                             </div>
                         </div>
 
-                        {/* Doanh thu tháng – từ payment.status = 'Đã trả' tháng này */}
+                        {/* Doanh thu 2 – từ payment.status = 'Đã trả' */}
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsMonthModalOpen(true)}>
                             <div className="db-kpi-head">
-                                <span>DOANH THU THÁNG</span>
+                                <span>
+                                    {dashboardPeriod === 'day' ? 'DOANH THU THÁNG' : 'DOANH THU TB NGÀY'}
+                                </span>
                                 <span className="db-kpi-icon" style={{ color: '#1D4ED8' }}>
                                     <span className="material-symbols-outlined">trending_up</span>
                                 </span>
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueMonth)}</div>
-                            <div className="db-kpi-note">Tổng doanh thu 30 ngày gần nhất</div>
+                            <div className="db-kpi-note">
+                                {dashboardPeriod === 'day' ? 'Tổng doanh thu 30 ngày gần nhất' : 'Doanh thu trung bình mỗi ngày'}
+                            </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
                                 <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_forward</span>
@@ -440,22 +920,55 @@ export default function DashboardView() {
                         {/* Lượt xe theo giờ – từ entry_exit_log / parking_sessions */}
                         <div className="db-card db-chart-card">
                             <div className="db-card-head">
-                                <p className="db-card-title">Lượt xe theo giờ</p>
-                                <p className="db-card-desc">Phân bố lượt xe vào trung bình theo giờ (08:00 – 22:00)</p>
+                                <div className="db-card-head-row">
+                                    <div>
+                                        <p className="db-card-title">
+                                            {dashboardPeriod === 'day' ? 'Lượt xe theo giờ' : 'Lượt xe vào theo ngày'}
+                                        </p>
+                                        <p className="db-card-desc">
+                                            {dashboardPeriod === 'day' ? `Phân bố lượt xe vào theo giờ ngày ${dateFormatted}` : `Phân bố lượt xe vào các ngày trong khoảng thời gian chọn`}
+                                        </p>
+                                    </div>
+                                    <span className="db-chart-badge">
+                                        {dashboardPeriod === 'day' ? 'Hôm nay' : dashboardPeriod === 'week' ? 'Tuần này' : 'Tháng này'}
+                                    </span>
+                                </div>
                             </div>
                             <div className="db-card-body">
-                                <div className="db-bar-chart">
-                                    {hourlyData.map((val, idx) => (
-                                        <div className="db-bar-wrap" key={idx}>
-                                            <div
-                                                className="db-bar"
-                                                style={{ height: `${Math.max(5, (val / maxHourly) * 90)}%` }}
-                                            />
-                                            <span className="db-x">
-                                                {String(idx).padStart(2, '0')}h
-                                            </span>
+                                <div className="db-traffic-chart">
+                                    <div className="db-traffic-y-axis">
+                                        <span>{Math.round(maxTrafficVal)}</span>
+                                        <span>{Math.round(maxTrafficVal * 0.75)}</span>
+                                        <span>{Math.round(maxTrafficVal * 0.5)}</span>
+                                        <span>{Math.round(maxTrafficVal * 0.25)}</span>
+                                        <span>0</span>
+                                    </div>
+                                    <div className="db-chart-container">
+                                        <div className="db-chart-gridlines">
+                                            <div className="db-gridline" />
+                                            <div className="db-gridline" />
+                                            <div className="db-gridline" />
+                                            <div className="db-gridline" />
                                         </div>
-                                    ))}
+                                        <div className="db-bar-chart">
+                                            {trafficChartData.map((item, idx) => (
+                                                <div className="db-bar-wrap" key={idx}>
+                                                    <div
+                                                        className="db-bar"
+                                                        style={{ height: `${Math.max(5, (item.val / maxTrafficVal) * 100)}%` }}
+                                                    >
+                                                        <div className="db-tooltip">
+                                                            <div className="db-tooltip-label">{item.labelFull || item.label}</div>
+                                                            <div className="db-tooltip-val">{item.val} lượt</div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="db-x">
+                                                        {trafficChartData.length <= 7 || idx % 5 === 0 || idx === trafficChartData.length - 1 ? item.label : ''}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -493,39 +1006,50 @@ export default function DashboardView() {
                                 <div className="db-card-head-row">
                                     <div>
                                         <p className="db-card-title">Xu hướng doanh thu</p>
-                                        <p className="db-card-desc">Tổng thu tài chính trong 30 ngày qua</p>
+                                        <p className="db-card-desc">
+                                            {dashboardPeriod === 'day' ? `Tổng thu tài chính theo giờ ngày ${dateFormatted}` : `Tổng thu tài chính theo các ngày trong khoảng thời gian chọn`}
+                                        </p>
                                     </div>
-                                    <select
-                                        className="db-period-select"
-                                        value={selectedPeriod}
-                                        onChange={(e) => setSelectedPeriod(e.target.value)}
-                                    >
-                                        <option value="30 ngày qua">30 ngày qua</option>
-                                        <option value="7 ngày qua">7 ngày qua</option>
-                                    </select>
+                                    <span className="db-chart-badge badge-revenue">
+                                        {dashboardPeriod === 'day' ? 'Hôm nay' : dashboardPeriod === 'week' ? 'Tuần này' : 'Tháng này'}
+                                    </span>
                                 </div>
                             </div>
                             <div className="db-card-body">
                                 <div className="db-revenue-chart">
                                     <div className="db-rev-y-axis">
-                                        <span>100%</span>
-                                        <span>75%</span>
-                                        <span>50%</span>
-                                        <span>25%</span>
+                                        <span>{formatVNDCompact(maxRevenueVal)}</span>
+                                        <span>{formatVNDCompact(maxRevenueVal * 0.75)}</span>
+                                        <span>{formatVNDCompact(maxRevenueVal * 0.5)}</span>
+                                        <span>{formatVNDCompact(maxRevenueVal * 0.25)}</span>
+                                        <span>0 ₫</span>
                                     </div>
-                                    <div className="db-rev-bars">
-                                        {/* TODO: replace with real database field when available */}
-                                        {WEEK_BARS.map((b) => (
-                                            <div className="db-rev-bar-group" key={b.label}>
-                                                <div
-                                                    className={`db-rev-bar${b.peak ? ' db-rev-bar--peak' : ''}`}
-                                                    style={{ height: `${(b.h / MAX_BAR) * 100}%` }}
-                                                >
-                                                    {b.peak && <div className="db-peak-dot" />}
+                                    <div className="db-chart-container">
+                                        <div className="db-chart-gridlines">
+                                            <div className="db-gridline" />
+                                            <div className="db-gridline" />
+                                            <div className="db-gridline" />
+                                            <div className="db-gridline" />
+                                        </div>
+                                        <div className="db-rev-bars">
+                                            {revenueChartData.map((b, idx) => (
+                                                <div className="db-rev-bar-group" key={idx}>
+                                                    <div
+                                                        className={`db-rev-bar${b.peak ? ' db-rev-bar--peak' : ''}`}
+                                                        style={{ height: `${Math.max(5, (b.val / maxRevenueVal) * 100)}%` }}
+                                                    >
+                                                        {b.peak && <div className="db-peak-dot" />}
+                                                        <div className="db-tooltip">
+                                                            <div className="db-tooltip-label">{b.labelFull || b.label}</div>
+                                                            <div className="db-tooltip-val">{formatVND(b.val)}</div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="db-rev-label">
+                                                        {revenueChartData.length <= 7 || idx % 5 === 0 || idx === revenueChartData.length - 1 ? b.label : ''}
+                                                    </span>
                                                 </div>
-                                                <span className="db-rev-label">{b.label}</span>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
