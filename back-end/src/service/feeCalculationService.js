@@ -52,6 +52,14 @@ async function getVehicleAndCard(session) {
         }
     }
 
+    // Nếu có thẻ mà card.vehicle_package chưa có, tìm vehicle_package qua vehicle_id
+    if (card && !card.vehicle_package && vehicle?.vehicle_id) {
+        const vp = await feeCalculationRepository.findActiveVehiclePackageByVehicleId(vehicle.vehicle_id);
+        if (vp) {
+            card.vehicle_package = vp;
+        }
+    }
+
     return { vehicle, card };
 }
 
@@ -81,18 +89,53 @@ async function checkLostCard(card, vehicle) {
  */
 function checkMonthlyValidity(card) {
     const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+    const isMonthCard =
+        card?.type === "Thẻ tháng" ||
+        (typeof card?.code === "string" && card.code.toUpperCase().startsWith("MONTH")) ||
+        card?.vehicle_package != null;
+
+    if (!isMonthCard) {
+        return { isMonthlyValid: false, isMonthlyExpired: false };
+    }
+
+    // 1. Nếu có thông tin gói vehicle_package
     const vehiclePackage = card?.vehicle_package ?? null;
+    if (vehiclePackage) {
+        const endDateStr = typeof vehiclePackage.end_date === "string"
+            ? vehiclePackage.end_date.split("T")[0]
+            : null;
 
-    const isMonthlyValid =
-        vehiclePackage !== null &&
-        vehiclePackage.status === "Hoạt động" &&
-        vehiclePackage.end_date >= today;
+        if (endDateStr) {
+            const isValid = vehiclePackage.status === "Hoạt động" && endDateStr >= today;
+            return {
+                isMonthlyValid: isValid,
+                isMonthlyExpired: !isValid,
+            };
+        }
+    }
 
-    const isMonthlyExpired =
-        vehiclePackage !== null &&
-        (vehiclePackage.end_date < today || vehiclePackage.status !== "Hoạt động");
+    // 2. Nếu có expired_date trực tiếp trên thẻ (table card)
+    if (card?.expired_date) {
+        const expDateStr = typeof card.expired_date === "string"
+            ? card.expired_date.split("T")[0]
+            : new Date(card.expired_date).toISOString().split("T")[0];
 
-    return { isMonthlyValid, isMonthlyExpired };
+        const cardStatus = card.status || "Hoạt động";
+        const isValid = (cardStatus === "Hoạt động" || cardStatus === "Đang sử dụng") && expDateStr >= today;
+        return {
+            isMonthlyValid: isValid,
+            isMonthlyExpired: !isValid,
+        };
+    }
+
+    // Fallback: Nếu là Thẻ tháng và có trạng thái hoạt động
+    const activeStatus = card?.status || "Hoạt động";
+    if (activeStatus === "Hoạt động" || activeStatus === "Đang sử dụng") {
+        return { isMonthlyValid: true, isMonthlyExpired: false };
+    }
+
+    return { isMonthlyValid: false, isMonthlyExpired: true };
 }
 
 /**
@@ -350,6 +393,11 @@ export async function calculateExitFee({ plate_number }) {
         };
     }
 
+    const isMonthCard =
+        card?.type === "Thẻ tháng" ||
+        (typeof card?.code === "string" && card.code.toUpperCase().startsWith("MONTH")) ||
+        card?.vehicle_package != null;
+
     // ─── 5. Kiểm tra vehicle_package còn hạn ─────────────────────────────────
     const { isMonthlyValid, isMonthlyExpired } = checkMonthlyValidity(card);
 
@@ -393,7 +441,7 @@ export async function calculateExitFee({ plate_number }) {
             dailyCeilingPrice: dailyCeilingPrice ?? 0,
             remainingFee: remainingFee ?? 0,
         },
-        ticket_type: "Thẻ lượt",
+        ticket_type: isMonthCard ? "Thẻ tháng" : "Thẻ lượt",
         warning,
     };
 }

@@ -95,6 +95,26 @@ export async function findActiveRegistrationByVehicleId(vehicleId) {
 }
 
 /**
+ * Tìm gói xe (vehicle_package) đang hoạt động mới nhất theo vehicle_id
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export async function findActiveVehiclePackageByVehicleId(vehicleId) {
+    if (!vehicleId) return null;
+    const { data, error } = await supabase
+        .from("vehicle_package")
+        .select("*")
+        .eq("vehicle_id", vehicleId)
+        .eq("status", "Hoạt động")
+        .order("end_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) return null;
+    return data;
+}
+
+/**
  * Kiểm tra xem xe có log báo mất thẻ nào chưa được xử lý không
  * @param {string} vehicleId
  * @returns {Promise<object|null>}
