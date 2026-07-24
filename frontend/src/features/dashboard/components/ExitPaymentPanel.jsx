@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { LogOut, Wallet, CreditCard, Clock, AlertTriangle, RefreshCw } from "lucide-react";
-import { checkExitFee, payCash, createVnpayCheckout } from "../../../service/paymentApi";
+import { checkExitFee, payCash, createVnpayCheckout, getPaymentStatus } from "../../../service/paymentApi";
 import { openGateFree } from "../../../service/parkingApi";
 import { getMonthCards } from "../../../service/monthCardApi";
 import { getLostCards, confirmLostTurnCardCash } from "../../../service/cardApi";
@@ -94,6 +94,24 @@ function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt
     const ss = String(remaining % 60).padStart(2, "0");
     const isUrgent = remaining <= 60;
 
+    // ── Polling: kiểm tra trạng thái thanh toán mỗi 4 giây ──
+    useEffect(() => {
+        if (!orderCode || !onPaymentSuccess) return;
+        const interval = setInterval(async () => {
+            try {
+                const res = await getPaymentStatus(orderCode);
+                const statusData = res.data?.data ?? res.data;
+                if (statusData?.status === "Đã thanh toán") {
+                    clearInterval(interval);
+                    onPaymentSuccess(statusData);
+                }
+            } catch (e) {
+                // Bỏ qua lỗi polling, thử lại ở lần tiếp theo
+            }
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [orderCode, onPaymentSuccess]);
+
     return (
         <div className="epp-vnpay-pending">
             {/* Header trạng thái */}
@@ -159,6 +177,8 @@ function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt
         </div>
     );
 }
+
+// ── Mô tả prop mới: onPaymentSuccess(statusData) — được gọi khi polling phát hiện "Đã thanh toán" ──
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function ExitPaymentPanel({
@@ -423,6 +443,23 @@ export default function ExitPaymentPanel({
         }
     };
 
+    // ── VNPay polling phát hiện thanh toán thành công ──
+    const handleVNPaySuccess = useCallback(async (statusData) => {
+        clearPendingVNPay();
+        clearPrecheckState();
+        setVnpayPending(null);
+        setPreCheckResult(null);
+        showToast("Thanh toán VNPay thành công! Mở barie cho xe ra.", "success");
+        if (onSessionCompleted) {
+            onSessionCompleted({
+                plate_number: statusData?.plate_number || plateNumber.trim().toUpperCase(),
+                fee: statusData?.amount,
+                type: "OUT",
+            });
+        }
+        if (resetForm) resetForm();
+    }, [onSessionCompleted, plateNumber, resetForm, showToast]);
+
     // ── Tiếp tục thanh toán VNPay ──
     const handleContinueVNPay = () => {
         if (vnpayPending?.paymentUrl) {
@@ -549,6 +586,7 @@ export default function ExitPaymentPanel({
                         onDefer={handleDeferVNPay}
                         onExpired={handleVNPayExpired}
                         onCancel={handleReset}
+                        onPaymentSuccess={handleVNPaySuccess}
                     />
                 </div>
             ) : (
