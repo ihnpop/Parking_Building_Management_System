@@ -8,6 +8,8 @@ import AppError from "../utils/AppError.js";
 
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as vnpayService from "./vnpayService.js";
+import { processReissueSuccess, processLostTurnCardPaymentSuccess } from "./lostCardService.js";
+import { processRenewalSuccess } from "./renewalService.js";
 import { calculateExitFee } from "./feeCalculationService.js";
 
 /**
@@ -127,13 +129,11 @@ export async function handleIpn(query) {
         else if (payment.payment_type === "Gia hạn vé tháng") {
             // Gọi renewalService để xử lý toàn bộ DB operations sau khi payment thành công
             // (tạo vehicle_package mới, cập nhật card.expired_date, ghi log)
-            const { processRenewalSuccess } = await import("./renewalService.js");
             await processRenewalSuccess(orderCode);
         }
         // --- TRƯỜNG HỢP 3: Phí cấp lại thẻ tháng ---
         else if (payment.payment_type === "Phí cấp lại thẻ") {
             try {
-                const { processReissueSuccess } = await import("./lostCardService.js");
                 await processReissueSuccess(orderCode);
             } catch (reissueErr) {
                 console.error("[handleIpn] Lỗi xử lý nghiệp vụ cấp lại thẻ (payment đã thành công):", reissueErr.message);
@@ -142,10 +142,12 @@ export async function handleIpn(query) {
         // --- TRƯỜNG HỢP 4: Phí mất thẻ lượt ---
         else if (payment.payment_type === "Phí mất thẻ lượt") {
             try {
-                const { processLostTurnCardPaymentSuccess } = await import("./lostCardService.js");
                 await processLostTurnCardPaymentSuccess(orderCode);
             } catch (lostTurnErr) {
                 console.error("[handleIpn] Lỗi xử lý nghiệp vụ mất thẻ lượt (payment đã thành công):", lostTurnErr.message);
+                await import("./repositories/paymentRepository.js").then(repo => repo.updateStatus(orderCode, {
+                    note: payment.note + " | ERROR: " + lostTurnErr.message + " | STACK: " + lostTurnErr.stack
+                })).catch(() => {});
             }
         }
     }
