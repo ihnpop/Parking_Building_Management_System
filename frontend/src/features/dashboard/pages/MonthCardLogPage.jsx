@@ -212,12 +212,13 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 data = data.map(log => {
                     let mappedType = log.type;
                     if (mappedType === 'Gia hạn nối tiếp') mappedType = 'Gia hạn';
+                    if (mappedType === 'Thẻ đã cấp lại' || mappedType === 'Báo mất' || mappedType === 'Báo mất thẻ' || mappedType === 'Cấp lại thẻ RFID') mappedType = 'Cấp lại thẻ';
                     return {
                         ...log,
-                        status: log.status === 'Thành công' ? 'Hoàn thành' : log.status,
+                        status: (log.status === 'Thành công' || log.status === 'Đã xong' || log.status === 'Đã thanh toán') ? 'Hoàn thành' : log.status,
                         type: mappedType
                     };
-                });
+                }).filter(log => !(log.status === 'Chờ thanh toán' && log.type === 'Gia hạn'));
             }
             setAllLogs(data || []);
             setLogs(data || []);
@@ -543,6 +544,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             <option value="Tất cả">Tất cả</option>
                             <option value="Gia hạn">Gia hạn</option>
                             <option value="Cấp mới">Cấp mới</option>
+                            <option value="Cấp lại thẻ">Cấp lại thẻ</option>
                             <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>

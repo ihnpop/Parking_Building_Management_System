@@ -4,19 +4,21 @@ import * as parkingRepository from "../repositories/parkingRepository.js";
 import * as gateRepository from "../repositories/gateRepository.js";
 import * as slotRepository from "../repositories/slotRepository.js";
 import AppError from "../utils/AppError.js";
+import { calculateFeeFromPriceItems } from "./feeCalculationService.js";
+
 
 // ─── HÀM DÙNG CHUNG ────────────────────────────────────────────────────────
 
 /**
- * Tính phí gửi xe dựa trên thời gian vào-ra và bảng giá trong DB.
- * Hàm này được dùng chung bởi preCheckExit và exitTap để tránh duplication.
+ * Tính phí gửi xe theo công thức:
+ *   Tổng phí = (Số ngày 24h đầy đủ × Giá trần ngày) + Phí số giờ lẻ còn lại
  *
  * @param {Date} entryTime  – Thời điểm xe vào
  * @param {Date} exitTime   – Thời điểm xe ra (hoặc thời điểm hiện tại khi pre-check)
  * @param {object|null} vehicle – Thông tin xe (cần vehicle_type_id)
  * @returns {Promise<{fee: number, totalHours: number, durationStr: string, formattedEntryTime: string}>}
  */
-const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
+export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
   const diffMs = exitTime.getTime() - entryTime.getTime();
   const totalHours = diffMs / (1000 * 60 * 60);
   const billableHours = Math.max(1, Math.ceil(totalHours));
@@ -27,21 +29,24 @@ const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
   const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   const formattedEntryTime = entryTime.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 
-  // Giá mặc định: 10,000/giờ, miễn phí dưới 30 phút
-  let fee = totalHours < 0.5 ? 0 : billableHours * 10000;
+  let targetVehicle = vehicle;
+  if (typeof vehicle === "string") {
+    targetVehicle = await vehicleRepository.findByPlateNumber(vehicle);
+  } else if ((!targetVehicle || !targetVehicle.vehicle_type_id) && targetVehicle?.plate_number) {
+    targetVehicle = await vehicleRepository.findByPlateNumber(targetVehicle.plate_number);
+  }
 
-  if (vehicle?.vehicle_type_id) {
+  const vehicleTypeId = targetVehicle?.vehicle_type_id || (typeof targetVehicle?.vehicle_type === 'object' ? targetVehicle?.vehicle_type?.vehicle_type_id : null);
+
+  // Giá mặc định: 10,000/giờ
+  let fee = billableHours * 10000;
+
+  if (vehicleTypeId) {
     try {
-      const priceItems = await gateRepository.getPriceItems(vehicle.vehicle_type_id);
+      const priceItems = await gateRepository.getPriceItems(vehicleTypeId);
       if (priceItems?.length > 0) {
-        const matchingItem = priceItems.find((item) => {
-          const min = Number(item.min_hour) || 0;
-          const max = item.max_hour != null ? Number(item.max_hour) : null;
-          return max === null ? totalHours >= min : totalHours >= min && totalHours < max;
-        });
-        if (matchingItem) {
-          fee = Number(matchingItem.price);
-        }
+        const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
+        fee = calculated.fee;
       }
     } catch (dbErr) {
       console.error("[gateService] Lỗi tra cứu bảng phí, dùng mặc định:", dbErr.message);
@@ -58,7 +63,7 @@ const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
  * @param {string} entryTimeRaw
  * @returns {Date}
  */
-const parseEntryTime = (entryTimeRaw) => {
+export const parseEntryTime = (entryTimeRaw) => {
   let entryTimeStr = entryTimeRaw;
   if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
     entryTimeStr += "Z";
@@ -300,32 +305,21 @@ export const entryTap = async ({ cardCode, plateNumber, entryVehicleImage, entry
     cardIdVal = card.card_id;
     ticketType = 'Thẻ lượt';
 
-    // Tìm hoặc tạo xe tạm thời cho Visitor
+    // Tìm hoặc tạo xe tạm thời cho Visitor (ưu tiên vehicleType truyền lên từ frontend)
+    let searchTypeName = vehicleType || ((cleanPlate && /^\d{2}[A-Z]{2}\d{4,5}$/.test(cleanPlate)) ? 'Ô tô' : 'Xe máy');
+    let vtId = await gateRepository.getVehicleTypeId(searchTypeName);
+    if (!vtId) {
+      vtId = await gateRepository.getFallbackVehicleTypeId();
+    }
+
     vehicle = await vehicleRepository.findByPlateNumber(cleanPlate);
     if (!vehicle) {
-      let vtId = null;
-      let searchTypeName = 'Xe máy';
-      if (vehicleType === 'Ô tô') {
-        searchTypeName = 'Ô tô';
-      } else if (vehicleType === 'Xe máy') {
-        searchTypeName = 'Xe máy';
-      }
-
-      vtId = await gateRepository.getVehicleTypeId(searchTypeName);
-
-      if (!vtId) {
-        // Fallback lấy loại xe đầu tiên
-        vtId = await gateRepository.getFallbackVehicleTypeId();
-      }
-
-      if (!vtId) {
-        throw new Error("Không cấu hình được loại xe mặc định.");
-      }
-
       vehicle = await vehicleRepository.createVehicle({
         plate_number: cleanPlate,
         vehicle_type_id: vtId
       });
+    } else if (vtId && vehicle.vehicle_type_id !== vtId) {
+      vehicle = await vehicleRepository.updateVehicleType(vehicle.vehicle_id, vtId);
     }
 
     // Tự động tìm và gán slot còn trống cho xe

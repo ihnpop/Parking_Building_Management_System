@@ -27,9 +27,10 @@ export const packagePayment = async (req, res) => {
     try {
         const { vehiclePackageId, amount, isRenewal } = req.body;
         const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        const origin = req.headers["origin"] || req.headers["referer"];
         
         // Tạo hóa đơn tạm ở database và lấy URL chuyển tiếp VNPay tương ứng
-        const result = await paymentService.createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr);
+        const result = await paymentService.createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr, origin);
         res.json(result);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -43,6 +44,7 @@ export const checkout = async (req, res) => {
     try {
         const { sessionId, amount } = req.body;
         let ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+        const origin = req.headers["origin"] || req.headers["referer"];
         
         // Chuẩn hóa địa chỉ IP cục bộ
         if (ipAddr === "::1" || ipAddr.includes("::ffff:")) {
@@ -50,7 +52,7 @@ export const checkout = async (req, res) => {
         }
         
         // Tạo hóa đơn tạm ở database và lấy URL chuyển tiếp VNPay tương ứng
-        const result = await paymentService.createCheckoutPayment(sessionId, amount, ipAddr);
+        const result = await paymentService.createCheckoutPayment(sessionId, amount, ipAddr, origin);
         res.json(result);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -68,13 +70,12 @@ export const vnpayIpn = async (req, res) => {
 
 /**
  * Endpoint Return URL: Tiếp nhận trình duyệt người dùng chuyển hướng về từ cổng VNPay.
- * Để tăng trải nghiệm người dùng, hàm này cũng tự cập nhật dữ liệu database bằng `handleIpn` phòng khi 
- * đường truyền IPN của VNPAY Sandbox qua ngrok bị chậm, sau đó redirect khách hàng về trang kết quả ở Frontend.
+ * Luôn chuyển hướng người dùng về đúng domain Frontend (pbms.id.vn) hiển thị kết quả.
  */
 export const vnpayReturn = async (req, res) => {
     try {
         const orderCode = req.query.vnp_TxnRef;
-        const frontendUrl = process.env.FRONTEND_URL;
+        const frontendUrl = process.env.FRONTEND_URL || "https://pbms.id.vn";
 
         // Gọi handleIpn cục bộ để cập nhật tức thì trạng thái DB (thống nhất trạng thái 'Đã thanh toán')
         const ipnResult = await paymentService.handleIpn(req.query);
@@ -87,13 +88,12 @@ export const vnpayReturn = async (req, res) => {
 
         const status = isSuccess ? "success" : "failed";
         
-        // Chuyển hướng người dùng về trang Frontend hiển thị hóa đơn kết quả
-        // Lưu ý: App dùng HashRouter nên route phải theo dạng /#/payment-result
+        // Chuyển hướng người dùng về trang kết quả ở pbms.id.vn (HashRouter dạng /#/payment-result)
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=${status}`);
     } catch (err) {
         console.error("[VNPAY Return] Lỗi khi xử lý chuyển hướng trả về:", err);
         const orderCode = req.query.vnp_TxnRef || "";
-        const frontendUrl = process.env.FRONTEND_URL;
+        const frontendUrl = process.env.FRONTEND_URL || "https://pbms.id.vn";
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=failed`);
     }
 };
@@ -131,12 +131,13 @@ export const createVnpayCheckout = async (req, res) => {
         const { sessionId } = req.body;
         const staffId = req.user?.id;
         const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        const origin = req.headers["origin"] || req.headers["referer"];
 
         if (!sessionId) {
             return res.status(400).json({ message: "Thiếu sessionId" });
         }
 
-        const result = await paymentService.createVnpayPayment(sessionId, staffId, ipAddr);
+        const result = await paymentService.createVnpayPayment(sessionId, staffId, ipAddr, origin);
         return res.json({ data: result });
     } catch (err) {
         console.error("[createVnpayCheckout] Lỗi tạo giao dịch VNPay:", err);

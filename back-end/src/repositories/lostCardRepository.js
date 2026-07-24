@@ -10,10 +10,13 @@ export const getLostCardLogs = async (buildingId = null) => {
     .select(`
       lost_report_id,
       card_id,
+      vehicle_id,
       reported_at,
       status,
       description,
       handled_by,
+      vehicle_registration_image_url,
+      id_card_image_url,
       card ( code, type ),
       vehicle (
         plate_number,
@@ -23,10 +26,8 @@ export const getLostCardLogs = async (buildingId = null) => {
     `)
     .order('reported_at', { ascending: false });
 
-  if (buildingId) {
-    query = query.eq('building_id', buildingId);
-  }
-
+  // Lưu ý: bảng card_lost_log không có cột building_id,
+  // nên không thể filter trực tiếp. Trả về toàn bộ nhật ký.
   const { data, error } = await query;
 
   if (error) {
@@ -52,6 +53,25 @@ export const findOpenLostReports = async (cardId, closedStatuses) => {
 
   if (error) throw new Error(error.message);
   return data || [];
+};
+
+/**
+ * Tìm báo cáo mất thẻ chưa hoàn tất (trạng thái khác 'Đã xong' và khác 'Đã hủy (tạo nhầm)') của một xe
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const findUnfinishedLostReportByVehicle = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id, status, reported_at')
+    .eq('vehicle_id', vehicleId)
+    .not('status', 'in', '("Đã xong","Đã xử lý xong","Đã hủy (tạo nhầm)")')
+    .order('reported_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
 };
 
 /**
@@ -125,16 +145,50 @@ export const insertLostCardLog = async (payload) => {
   return data;
 };
 
+const isUUID = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+/**
+ * Tìm `lost_report_id` thực sự (UUID) từ string `reportId` (có thể là UUID đầy đủ hoặc short code 8 ký tự hoặc prefix)
+ */
+export const resolveRealReportId = async (reportId) => {
+  if (!reportId) return null;
+  if (isUUID(reportId)) return reportId;
+
+  const cleanHex = reportId.replace(/^LOST-/i, '').toLowerCase();
+
+  const { data, error } = await supabase
+    .from('card_lost_log')
+    .select('lost_report_id')
+    .order('reported_at', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error('Lỗi khi resolveRealReportId:', error.message);
+    return null;
+  }
+
+  const match = data?.find(r =>
+    r.lost_report_id === reportId ||
+    r.lost_report_id.toLowerCase().startsWith(cleanHex) ||
+    r.lost_report_id.toLowerCase().replace(/-/g, '').startsWith(cleanHex)
+  );
+
+  return match?.lost_report_id || null;
+};
+
 /**
  * Tìm một báo cáo mất thẻ theo ID
  * @param {string} reportId
  * @returns {Promise<object|null>}
  */
 export const findLostReport = async (reportId) => {
+  const realId = await resolveRealReportId(reportId);
+  if (!realId) return null;
+
   const { data, error } = await supabase
     .from('card_lost_log')
     .select('lost_report_id, card_id, vehicle_id, status, handled_by')
-    .eq('lost_report_id', reportId)
+    .eq('lost_report_id', realId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -147,10 +201,13 @@ export const findLostReport = async (reportId) => {
  * @returns {Promise<object|null>}
  */
 export const findLostReportStatus = async (reportId) => {
+  const realId = await resolveRealReportId(reportId);
+  if (!realId) return null;
+
   const { data, error } = await supabase
     .from('card_lost_log')
     .select('lost_report_id, status, handled_by')
-    .eq('lost_report_id', reportId)
+    .eq('lost_report_id', realId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -164,10 +221,13 @@ export const findLostReportStatus = async (reportId) => {
  * @returns {Promise<object>}
  */
 export const updateLostReport = async (reportId, payload) => {
+  const realId = await resolveRealReportId(reportId);
+  if (!realId) throw new Error(`Không tìm thấy báo cáo mất thẻ tương ứng với mã: ${reportId}`);
+
   const { data, error } = await supabase
     .from('card_lost_log')
     .update(payload)
-    .eq('lost_report_id', reportId)
+    .eq('lost_report_id', realId)
     .select()
     .single();
 
@@ -241,10 +301,13 @@ export const getAllActivityLogs = async () => {
  * @returns {Promise<object|null>} { lost_report_id, status, vehicle_id, vehicle: { plate_number } }
  */
 export const findLostReportByIdWithVehicle = async (reportId) => {
+  const realId = await resolveRealReportId(reportId);
+  if (!realId) return null;
+
   const { data, error } = await supabase
     .from('card_lost_log')
     .select('lost_report_id, status, vehicle_id, card_id, vehicle ( plate_number )')
-    .eq('lost_report_id', reportId)
+    .eq('lost_report_id', realId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -260,15 +323,76 @@ export const findLostReportByIdWithVehicle = async (reportId) => {
  * @returns {Promise<string|null>} mã RFID lúc báo mất
  */
 export const getCodeSnapshotByReportId = async (cardId, reportId) => {
+  const realId = (await resolveRealReportId(reportId)) || reportId;
+
   const { data } = await supabase
     .from('card_activity_logs')
     .select('old_data')
     .eq('card_id', cardId)
     .eq('action', 'Thẻ đã khóa')
-    .ilike('note', `%${reportId}%`)
+    .ilike('note', `%${realId}%`)
     .order('performed_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   return data?.old_data?.code ?? null;
 };
+
+/**
+ * Tìm phiên gửi xe đang hoạt động (xe đang trong bãi) theo vehicle_id
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export const findActiveParkingSession = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('parking_sessions')
+    .select('session_id, entry_time, card_id, vehicle_id, plate_number, status')
+    .eq('vehicle_id', vehicleId)
+    .eq('status', 'Đang gửi xe')
+    .is('exit_time', null)
+    .order('entry_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Đóng phiên gửi xe khi hoàn tất thanh toán mất thẻ lượt
+ * @param {string} sessionId
+ * @param {number} finalFee - Phí gửi xe thực tế
+ * @returns {Promise<object>}
+ */
+export const closeSessionForLostCard = async (sessionId, finalFee) => {
+  const { data, error } = await supabase
+    .from('parking_sessions')
+    .update({
+      exit_time: new Date().toISOString(),
+      status: 'Hoàn thành',
+      final_fee: finalFee
+    })
+    .eq('session_id', sessionId)
+    .select()
+    .single();
+
+  if (error) throw new Error("Lỗi khi đóng phiên gửi xe: " + error.message);
+  return data;
+};
+
+/**
+ * Tìm phiên gửi xe theo ID
+ * @param {string} sessionId
+ * @returns {Promise<object|null>}
+ */
+export const findSessionById = async (sessionId) => {
+  const { data, error } = await supabase
+    .from('parking_sessions')
+    .select('*')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+

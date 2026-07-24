@@ -31,7 +31,15 @@ export const createContract = async (contractData) => {
 export const findByToken = async (token) => {
   const { data, error } = await supabase
     .from('contract')
-    .select('*, card_registrations(*)')
+    .select(`
+      *,
+      card_registrations (
+        registration_id,
+        card_id,
+        vehicle_id,
+        status
+      )
+    `)
     .eq('sign_token', token)
     .maybeSingle();
 
@@ -69,8 +77,9 @@ export const updateContract = async (contractId, updates) => {
     .update(updates)
     .eq('contract_id', contractId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
+  if (!data) throw new Error(`Không tìm thấy hợp đồng với ID: ${contractId}`);
   return data;
 };

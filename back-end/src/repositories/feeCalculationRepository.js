@@ -31,6 +31,7 @@ export async function findActiveSession(cleanPlate) {
  * @returns {Promise<object|null>}
  */
 export async function findVehicleById(vehicleId) {
+    if (!vehicleId) return null;
     const { data, error } = await supabase
         .from("vehicle")
         .select("*, vehicle_type:vehicle_type_id(vehicle_type_id, name)")
@@ -40,6 +41,25 @@ export async function findVehicleById(vehicleId) {
     if (error) throw new Error(error.message);
     return data;
 }
+
+/**
+ * Tìm xe và loại xe theo biển số (plate_number)
+ * @param {string} plateNumber
+ * @returns {Promise<object|null>}
+ */
+export async function findVehicleByPlate(plateNumber) {
+    if (!plateNumber) return null;
+    const cleanPlate = plateNumber.trim().toUpperCase();
+    const { data, error } = await supabase
+        .from("vehicle")
+        .select("*, vehicle_type:vehicle_type_id(vehicle_type_id, name)")
+        .eq("plate_number", cleanPlate)
+        .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data;
+}
+
 
 /**
  * Tìm thẻ và gói vehicle_package hoạt động kèm theo card_id
@@ -152,8 +172,9 @@ export async function findPriceItems(priceTableId, vehicleTypeId) {
 export async function findPriceItemsByVehicleType(vehicleTypeId) {
     const { data, error } = await supabase
         .from("price_item")
-        .select("*")
-        .eq("vehicle_type_id", vehicleTypeId);
+        .select("*, price_table!inner(status)")
+        .eq("vehicle_type_id", vehicleTypeId)
+        .eq("price_table.status", "Hoạt động");
 
     if (error) throw new Error(error.message);
     return data || [];

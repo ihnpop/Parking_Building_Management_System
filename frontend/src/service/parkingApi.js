@@ -122,9 +122,7 @@ export const preCheckEntryGate = async (plateNumber) => {
  * @param {object} payload - { cardCode, plateNumber, entryVehicleImage, entryPlateImage }
  */
 export const entryGate = async (payload) => {
-  const response = await API.post("/gate/entry", payload, {
-    headers: getAuthHeaders(),
-  });
+  const response = await API.post("/gate/entry", payload);
   return response.data;
 };
 
@@ -142,9 +140,7 @@ export const preCheckExitGate = async (plateNumber) => {
  * @param {object} payload - { cardCode, plateNumber, exitVehicleImage, exitPlateImage }
  */
 export const exitGate = async (payload) => {
-  const response = await API.post("/gate/exit", payload, {
-    headers: getAuthHeaders(),
-  });
+  const response = await API.post("/gate/exit", payload);
   return response.data;
 };
 
@@ -179,9 +175,7 @@ export const getParkingSessions = async (dateStr = null, buildingId = null) => {
  * @param {object} payload - { sessionId }
  */
 export const openGateFree = async (payload) => {
-  const response = await API.post("/parking/open-gate-free", payload, {
-    headers: getAuthHeaders(),
-  });
+  const response = await API.post("/parking/open-gate-free", payload);
   return response.data;
 };
 

@@ -3,6 +3,7 @@ import { LogOut, Wallet, CreditCard, Clock, AlertTriangle, RefreshCw } from "luc
 import { checkExitFee, payCash, createVnpayCheckout } from "../../../service/paymentApi";
 import { openGateFree } from "../../../service/parkingApi";
 import { getMonthCards } from "../../../service/monthCardApi";
+import { getLostCards, confirmLostTurnCardCash } from "../../../service/cardApi";
 import { useNotification } from "../../../context/NotificationContext";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -168,6 +169,8 @@ export default function ExitPaymentPanel({
 
     // VNPay pending state
     const [vnpayPending, setVnpayPending] = useState(null); // { orderCode, amount, plateNumber, paymentUrl, savedAt }
+    // Lost Card Report state for handling lost card exit confirmation
+    const [lostCardReport, setLostCardReport] = useState(null);
 
     // ── Khôi phục trạng thái khi component mount ──
     // Lưu ý: KHÔNG tự động hiện lại VNPay pending khi mount để tránh hiển thị
@@ -227,13 +230,27 @@ export default function ExitPaymentPanel({
         try {
             setAllLoading(true);
             setPreCheckResult(null);
+            setLostCardReport(null);
             const res = await checkExitFee(trimmedPlate);
             const data = res.data?.data ?? res.data;
             if (data) {
                 setPreCheckResult(data);
-                // Lưu INLINE — trimmedPlate luôn đúng, không bị race với parent state
                 savePrecheckState(data, trimmedPlate);
                 if (onPreCheckLoaded) onPreCheckLoaded(data);
+
+                // 🔴 Nếu xe thuộc luồng báo mất thẻ → Tìm báo cáo mất thẻ tương ứng
+                if (data.ticket_type === "Mất thẻ") {
+                    try {
+                        const lostCardsList = await getLostCards();
+                        const foundReport = Array.isArray(lostCardsList)
+                            ? lostCardsList.find(r => (r.plate_number || '').trim().toUpperCase() === trimmedPlate && r.status !== 'Đã hủy (tạo nhầm)')
+                            : null;
+                        setLostCardReport(foundReport || null);
+                    } catch (errReport) {
+                        console.warn("[ExitPaymentPanel] Lỗi tra cứu báo cáo mất thẻ:", errReport);
+                    }
+                }
+
                 showToast("Kiểm tra thông tin xe ra thành công.", "success");
             } else {
                 throw new Error("Không nhận được dữ liệu phản hồi.");
@@ -243,6 +260,61 @@ export default function ExitPaymentPanel({
             const msg = err.response?.data?.message || err.message || "Lỗi kiểm tra thông tin xe ra.";
             showToast(msg, "error");
             setPreCheckResult(null);
+            setLostCardReport(null);
+        } finally {
+            setAllLoading(false);
+        }
+    };
+
+    // ── Cho xe mất thẻ xuất bến (Mở barie & báo giao dịch vừa thực hiện) ──
+    const handleConfirmLostCardExit = async () => {
+        if (!preCheckResult?.session?.session_id) return;
+        try {
+            setAllLoading(true);
+
+            const pendingPayment = lostCardReport?.pendingPayment;
+            const orderCode = pendingPayment?.orderCode || lostCardReport?.payment_order_code;
+
+            // Nếu report status trên backend chưa 'Đã xong' (tức là Staff chỉ mới tạo pendingPayment ở trang Báo mất)
+            // thì TẠI ĐÂY (khi bấm Mở barie) ta gọi confirmLostTurnCardCash để CHÍNH THỨC đóng phiên gửi xe và cập nhật xe đã ra.
+            const finalFee = lostCardReport?.parking_fee || 0;
+
+            let sessionResult = preCheckResult.session;
+
+            const openGatePayload = {
+                sessionId: preCheckResult.session.session_id,
+                finalFee,
+                ticketType: preCheckResult.ticket_type,
+                vehicleTypeId: preCheckResult.vehicle?.vehicle_type_id || preCheckResult.session?.vehicle_type_id
+            };
+
+            if (orderCode && lostCardReport?._backendStatus !== 'Đã xong') {
+                await confirmLostTurnCardCash(orderCode);
+                const res = await openGateFree(openGatePayload);
+                if (res?.session) sessionResult = res.session;
+                showToast("Đã đóng phiên gửi xe và mở barie cho xe xuất bến thành công!", "success");
+            } else {
+                // Đơn báo mất đã thanh toán hoàn tất (VNPay) -> Gọi mở barie cho xe ra
+                const res = await openGateFree(openGatePayload);
+                if (res?.session) sessionResult = res.session;
+                showToast(res.message || "Đã mở barie cho xe ra bãi thành công.", "success");
+            }
+
+            // 🟢 Số tiền trong giao dịch vừa thực hiện trên màn hình Staff CHỈ hiển thị phí giữ xe
+            const parkingFeeOnly = sessionResult?.final_fee ?? preCheckResult.estimated_fee ?? 0;
+
+            if (onSessionCompleted) {
+                onSessionCompleted({
+                    ...sessionResult,
+                    fee: parkingFeeOnly,
+                    type: "OUT",
+                    plate_number: plateNumber.trim().toUpperCase()
+                });
+            }
+            handleReset();
+        } catch (err) {
+            console.error("[handleConfirmLostCardExit] Lỗi:", err);
+            showToast(err.response?.data?.message || err.message || "Lỗi khi xử lý cho xe ra.", "error");
         } finally {
             setAllLoading(false);
         }
@@ -251,23 +323,25 @@ export default function ExitPaymentPanel({
     // ── Mở barie miễn phí ──
     const handleOpenGateFree = async () => {
         if (!preCheckResult?.session?.session_id) return;
+
         try {
             setAllLoading(true);
-            const res = await openGateFree({ sessionId: preCheckResult.session.session_id });
-            if (res.success) {
-                showToast(res.message || "Đã mở barie cho xe ra miễn phí.", "success");
-                if (onSessionCompleted) {
-                    onSessionCompleted({
-                        ...res.session,
-                        fee: 0,
-                        type: "OUT",
-                        plate_number: plateNumber.trim().toUpperCase()
-                    });
-                }
-                handleReset();
-            } else {
-                showToast(res.message || "Không thể mở barie trực tiếp.", "error");
+            const res = await openGateFree({
+                sessionId: preCheckResult.session.session_id,
+                ticketType: preCheckResult.ticket_type,
+                vehicleTypeId: preCheckResult.vehicle?.vehicle_type_id || preCheckResult.session?.vehicle_type_id
+            });
+            showToast(res.message || "Đã mở barie cho xe ra bãi thành công.", "success");
+
+            if (onSessionCompleted) {
+                onSessionCompleted({
+                    ...res.session,
+                    fee: 0,
+                    type: "OUT",
+                    plate_number: plateNumber.trim().toUpperCase()
+                });
             }
+            handleReset();
         } catch (err) {
             showToast(err.response?.data?.message || err.message || "Lỗi mở barie miễn phí.", "error");
         } finally {
@@ -373,6 +447,7 @@ export default function ExitPaymentPanel({
         clearPrecheckState();
         setVnpayPending(null);
         setPreCheckResult(null);
+        setLostCardReport(null);
         if (resetForm) resetForm();
     };
 
@@ -615,9 +690,82 @@ export default function ExitPaymentPanel({
                                     </span>
                                 </div>
 
+                                {/* Chi tiết công thức: Ngày × giá trần + Giờ lẻ */}
+                                {preCheckResult.ticket_type === "Thẻ lượt" && preCheckResult.fee_breakdown && preCheckResult.estimated_fee > 0 && (() => {
+                                    const bd = preCheckResult.fee_breakdown;
+                                    const hasDays = (bd.fullDays ?? 0) > 0;
+                                    const hasRemainder = (bd.remainingFee ?? 0) > 0;
+                                    if (!hasDays && !hasRemainder) return null;
+                                    return (
+                                        <div style={{
+                                            background: "#f8fafc", border: "1px dashed #cbd5e1",
+                                            borderRadius: 6, padding: "4px 8px", fontSize: 11,
+                                            color: "#475569", lineHeight: 1.6
+                                        }}>
+                                            <div style={{ fontWeight: 700, color: "#334155", marginBottom: 2 }}>Chi tiết tính phí:</div>
+                                            {hasDays && (
+                                                <div>
+                                                    {bd.fullDays} ngày × {formatVND(bd.dailyCeilingPrice)}
+                                                    <span style={{ color: "#94a3b8" }}> (giá trần/ngày)</span>
+                                                    {" = "}<strong>{formatVND(bd.fullDays * bd.dailyCeilingPrice)}</strong>
+                                                </div>
+                                            )}
+                                            {hasRemainder && (
+                                                <div>
+                                                    {bd.remainingHours != null ? `${bd.remainingHours.toFixed(2)}h lẻ` : "Giờ lẻ"}
+                                                    {" = "}<strong>{formatVND(bd.remainingFee)}</strong>
+                                                </div>
+                                            )}
+                                            {hasDays && hasRemainder && (
+                                                <div style={{ borderTop: "1px solid #e2e8f0", marginTop: 2, paddingTop: 2, fontWeight: 700, color: "#dc2626" }}>
+                                                    Tổng = {formatVND(preCheckResult.estimated_fee)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
                                 {/* Action buttons */}
                                 <div className="epp-actions">
-                                    {preCheckResult.estimated_fee === 0 ? (
+                                    {preCheckResult.ticket_type === "Mất thẻ" ? (
+                                        (lostCardReport && ((lostCardReport.pendingPayment && lostCardReport.pendingPayment.paymentMethod === 'cash') || lostCardReport.status === 'Đã xong' || lostCardReport.status === 'Hoàn thành' || lostCardReport._backendStatus === 'Đã xong')) ? (
+                                            <>
+                                                <div style={{
+                                                    background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8,
+                                                    padding: "8px 10px", fontSize: 12, color: "#166534", marginBottom: 4
+                                                }}>
+                                                    <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#16a34a" }}>check_circle</span>
+                                                        ĐÃ GHI NHẬN THANH TOÁN BÁO MẤT THẺ
+                                                    </div>
+                                                    <div style={{ marginTop: 4, color: "#15803d" }}>
+                                                        Mã báo mất: <strong>{lostCardReport.display_report_id || lostCardReport.id || '---'}</strong>
+                                                    </div>
+                                                </div>
+                                                <button type="button" onClick={handleConfirmLostCardExit} disabled={isDisableActions} className="epp-btn-primary epp-btn-primary--free">
+                                                    <LogOut size={13} /><span>Mở barie / Cho xe ra</span>
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div style={{
+                                                    background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
+                                                    padding: "8px 10px", fontSize: 12, color: "#b45309", marginBottom: 4
+                                                }}>
+                                                    <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                                        <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#d97706" }}>warning</span>
+                                                        XE BÁO MẤT CHƯA THỰC HIỆN THANH TOÁN
+                                                    </div>
+                                                    <div style={{ marginTop: 2, color: "#92400e" }}>
+                                                        Vui lòng khởi tạo thanh toán tại màn hình <strong>Nhật ký báo mất thẻ</strong> trước khi cho xe ra bãi.
+                                                    </div>
+                                                </div>
+                                                <button type="button" disabled className="epp-btn-primary" style={{ background: "#94a3b8", cursor: "not-allowed" }}>
+                                                    <LogOut size={13} /><span>Chưa thanh toán — Không thể xuất bến</span>
+                                                </button>
+                                            </>
+                                        )
+                                    ) : preCheckResult.estimated_fee === 0 ? (
                                         <button type="button" onClick={handleOpenGateFree} disabled={isDisableActions} className="epp-btn-primary epp-btn-primary--free">
                                             <LogOut size={13} /><span>Mở barie / Cho xe ra</span>
                                         </button>

@@ -29,15 +29,23 @@ async function findActiveSession(cleanPlate) {
  * @returns {Promise<{vehicle: object|null, card: object|null}>}
  */
 async function getVehicleAndCard(session) {
-    const vehicle = await feeCalculationRepository.findVehicleById(session.vehicle_id);
+    let vehicle = null;
+    if (session?.vehicle_id) {
+        vehicle = await feeCalculationRepository.findVehicleById(session.vehicle_id);
+    }
+
+    // Fallback: tra cứu xe theo biển số nếu session không có vehicle_id hoặc thiếu vehicle_type_id
+    if ((!vehicle || !vehicle.vehicle_type_id) && session?.plate_number) {
+        vehicle = await feeCalculationRepository.findVehicleByPlate(session.plate_number);
+    }
 
     let card = null;
-    if (session.card_id) {
+    if (session?.card_id) {
         card = await feeCalculationRepository.findCardById(session.card_id);
     }
 
     // Fallback: tìm qua card_registrations nếu không có card_id trong session
-    if (!card && vehicle) {
+    if (!card && vehicle?.vehicle_id) {
         const reg = await feeCalculationRepository.findActiveRegistrationByVehicleId(vehicle.vehicle_id);
         if (reg?.card) {
             card = reg.card;
@@ -88,14 +96,137 @@ function checkMonthlyValidity(card) {
 }
 
 /**
+ * Tra cứu dòng định mức giá phù hợp dựa trên số giờ gửi thực tế (totalHours).
+ * Chỉ dùng để tra cứu giờ lẻ (< 24h) theo bảng giá khoảng:
+ *  - 0 <= t < 0.5  → Miễn phí
+ *  - 0.5 <= t < 2  → Mức 1
+ *  - 2 <= t < 8    → Mức 2
+ *  - 8 <= t        → Mức trần (giá trần ngày)
+ *
+ * @param {Array} priceItems
+ * @param {number} totalHours
+ * @returns {object|null}
+ */
+export const getMatchingPriceItem = (priceItems, totalHours) => {
+    if (!priceItems || priceItems.length === 0) return null;
+
+    const sorted = [...priceItems].sort((a, b) => (Number(a.min_hour) || 0) - (Number(b.min_hour) || 0));
+
+    // 1. Tìm item khớp chuẩn khoảng [min_hour, max_hour)
+    let matched = sorted.find((item) => {
+        const min = Number(item.min_hour) || 0;
+        const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+        if (max === null) {
+            return totalHours >= min;
+        }
+        return totalHours >= min && totalHours < max;
+    });
+
+    // 2. Fallback khoảng giá nếu t vượt quá max_hour cao nhất hoặc nằm giữa khoảng hở
+    if (!matched) {
+        const highestItem = sorted[sorted.length - 1];
+        const lowestItem = sorted[0];
+
+        if (totalHours >= (Number(highestItem.min_hour) || 0)) {
+            matched = highestItem;
+        } else if (totalHours < (Number(lowestItem.min_hour) || 0)) {
+            matched = lowestItem;
+        } else {
+            for (let i = sorted.length - 1; i >= 0; i--) {
+                if (totalHours >= (Number(sorted[i].min_hour) || 0)) {
+                    matched = sorted[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    return matched;
+};
+
+/**
+ * Helper tính phí dựa trên số giờ gửi và các mốc price_item.
+ * Quy tắc:
+ * - Dưới 0.5h: Miễn phí (0đ).
+ * - Dưới hoặc bằng 24h: Tìm mốc tương ứng trong bảng giá.
+ * - Quá 24h: Cộng dồn lũy tiến = (Số ngày đầy đủ 24h x Giá mốc tối đa/ngày) + Phí của số giờ lẻ còn lại.
+ *   Ví dụ: Gửi 26h (xe máy) -> 1 ngày (20k) + 2h lẻ (5k) = 25k.
+ */
+export function calculateFeeFromPriceItems(totalHours, priceItems) {
+    if (!priceItems || priceItems.length === 0) {
+        const billableHours = Math.max(1, Math.ceil(totalHours));
+        return { fee: billableHours * 10000, itemUsed: null };
+    }
+
+    // Sắp xếp các mốc giá theo min_hour tăng dần
+    const sortedItems = [...priceItems].sort((a, b) => Number(a.min_hour) - Number(b.min_hour));
+    const maxTierItem = sortedItems.find(i => i.max_hour === null || i.max_hour === undefined) || sortedItems[sortedItems.length - 1];
+    const dayMaxPrice = Number(maxTierItem.price);
+
+    const getItemForHours = (h) => {
+        if (h < 0) return null;
+        const billable = Math.ceil(h);
+
+        // 1. Thử khớp trực tiếp với số giờ thực tế h (hỗ trợ các khung giờ lẻ như 0.5h)
+        let found = priceItems.find((item) => {
+            const min = Number(item.min_hour) || 0;
+            const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+            if (max === null) {
+                return h >= min;
+            }
+            return h >= min && h <= max;
+        });
+
+        // 2. Nếu không có khung giờ trùng khớp trực tiếp, làm tròn lên theo giờ billable
+        if (!found) {
+            found = priceItems.find((item) => {
+                const min = Number(item.min_hour) || 0;
+                const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
+                if (max === null) {
+                    return billable >= min;
+                }
+                return billable >= min && billable <= max;
+            });
+        }
+
+        return found || maxTierItem;
+    };
+
+    if (totalHours <= 24) {
+        const matchingItem = getItemForHours(totalHours);
+        const fee = matchingItem ? Number(matchingItem.price) : 0;
+        return { fee, itemUsed: matchingItem };
+    } else {
+        const fullDays = Math.floor(totalHours / 24);
+        const remHours = totalHours - (fullDays * 24);
+
+        let remFee = 0;
+        let remItemUsed = null;
+
+        if (remHours > 0) {
+            remItemUsed = getItemForHours(remHours);
+            remFee = remItemUsed ? Number(remItemUsed.price) : 0;
+        }
+
+        const totalFee = (fullDays * dayMaxPrice) + remFee;
+        return { fee: totalFee, itemUsed: maxTierItem, remItemUsed, fullDays, remHours };
+    }
+}
+
+/**
  * Tính phí theo số giờ thực tế và cấu hình bảng giá trong DB
+
  * @param {object} session
  * @param {object|null} vehicle
  * @returns {Promise<{
  *   estimated_fee: number,
  *   price_item_used: object|null,
  *   rate: number,
- *   totalHours: number
+ *   totalHours: number,
+ *   fullDays: number,
+ *   remainingHours: number,
+ *   dailyCeilingPrice: number,
+ *   remainingFee: number
  * }>}
  */
 async function calculateHourlyFee(session, vehicle) {
@@ -117,7 +248,20 @@ async function calculateHourlyFee(session, vehicle) {
     let price_item_used = null;
     let rate = totalHours < 0.5 ? 0 : 10000;
 
-    if (vehicle?.vehicle_type_id) {
+
+    let fullDays = 0;
+    let remainingHours = 0;
+    let dailyCeilingPrice = 0;
+    let remainingFee = 0;
+
+    let targetVehicle = vehicle;
+    if ((!targetVehicle || !targetVehicle.vehicle_type_id) && session.plate_number) {
+        targetVehicle = await feeCalculationRepository.findVehicleByPlate(session.plate_number);
+    }
+
+    const vehicleTypeId = targetVehicle?.vehicle_type_id || (typeof targetVehicle?.vehicle_type === 'object' ? targetVehicle?.vehicle_type?.vehicle_type_id : null);
+
+    if (vehicleTypeId) {
         try {
             // Tìm parking_id từ entry_exit_log (xe vào)
             const parkingId = await feeCalculationRepository.findEntryParkingId(session.session_id);
@@ -125,34 +269,24 @@ async function calculateHourlyFee(session, vehicle) {
             let priceItems = [];
 
             if (parkingId) {
-                // Lấy price_table active của parking đó
                 const priceTableId = await feeCalculationRepository.findActivePriceTableId(parkingId);
-
                 if (priceTableId) {
-                    priceItems = await feeCalculationRepository.findPriceItems(priceTableId, vehicle.vehicle_type_id);
+                    priceItems = await feeCalculationRepository.findPriceItems(priceTableId, vehicleTypeId);
                 }
             }
 
-            // Fallback: lấy price_item thẳng theo vehicle_type nếu không tìm được qua price_table
-            if (priceItems.length === 0) {
-                priceItems = await feeCalculationRepository.findPriceItemsByVehicleType(vehicle.vehicle_type_id);
+            // Fallback theo vehicle_type
+            if (!priceItems || priceItems.length === 0) {
+                priceItems = await feeCalculationRepository.findPriceItemsByVehicleType(vehicleTypeId);
             }
 
             if (priceItems.length > 0) {
-                const matchingItem = priceItems.find((item) => {
-                    const min = Number(item.min_hour) || 0;
-                    const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
-                    if (max === null) {
-                        return totalHours >= min;
-                    }
-                    return totalHours >= min && totalHours < max;
-                });
-
-                if (matchingItem) {
-                    estimated_fee = Number(matchingItem.price);
-                    price_item_used = matchingItem;
-                    rate = Number(matchingItem.price);
-                }
+                const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
+                estimated_fee = calculated.fee;
+                price_item_used = calculated.itemUsed;
+                rate = calculated.fee;
+                fullDays = calculated.fullDays || 0;
+                remainingHours = calculated.remHours || 0;
             }
         } catch (dbErr) {
             console.error("[feeCalculation] Lỗi tra cứu bảng phí, dùng fallback:", dbErr.message);
@@ -163,7 +297,11 @@ async function calculateHourlyFee(session, vehicle) {
         estimated_fee,
         price_item_used,
         rate,
-        totalHours
+        totalHours,
+        fullDays,
+        remainingHours,
+        dailyCeilingPrice,
+        remainingFee
     };
 }
 
@@ -229,8 +367,11 @@ export async function calculateExitFee({ plate_number }) {
         };
     }
 
-    // ─── 7. Tính phí theo price_item ─────────────────────────────────────────
-    const { estimated_fee, price_item_used, rate, totalHours } = await calculateHourlyFee(session, vehicle);
+    // ─── 7. Tính phí theo công thức ngày + giờ lẻ ─────────────────────────────
+    const {
+        estimated_fee, price_item_used, rate, totalHours,
+        fullDays, remainingHours, dailyCeilingPrice, remainingFee
+    } = await calculateHourlyFee(session, vehicle);
 
     const warning = isMonthlyExpired
         ? "Vé tháng đã hết hạn — vui lòng nhắc khách gia hạn"
@@ -246,6 +387,11 @@ export async function calculateExitFee({ plate_number }) {
             hours: Number(totalHours.toFixed(2)),
             price_item_used,
             rate,
+            // Thông tin chi tiết công thức mới
+            fullDays,
+            remainingHours: Number((remainingHours ?? 0).toFixed(2)),
+            dailyCeilingPrice: dailyCeilingPrice ?? 0,
+            remainingFee: remainingFee ?? 0,
         },
         ticket_type: "Thẻ lượt",
         warning,

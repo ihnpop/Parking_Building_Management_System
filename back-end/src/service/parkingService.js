@@ -1,7 +1,7 @@
-﻿import AppError from "../utils/AppError.js";
+import AppError from "../utils/AppError.js";
 import * as parkingRepository from "../repositories/parkingRepository.js";
 import { uploadToStorage } from "../helpers/storageHelper.js";
-import { calculateExitFee } from "./feeCalculationService.js";
+import { calculateExitFee, calculateFeeFromPriceItems } from "./feeCalculationService.js";
 
 // ─── Check-in service ─────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     uploadToStorage(plateImageFile.buffer, "exit/plate", plateImageFile.originalname),
   ]);
 
-  // 4. Tính tiền gửi xe
+  // 4. Tính tiền gửi xe theo công thức: Ngày đầy đủ × giá trần + giờ lẻ
   let entryTimeStr = activeSession.entry_time;
   if (typeof entryTimeStr === "string" && !entryTimeStr.endsWith("Z") && !entryTimeStr.match(/[+-]\d{2}(:\d{2})?$/)) {
     entryTimeStr += "Z";
@@ -86,30 +86,19 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
   const exitTime = new Date();
   const diffMs = exitTime.getTime() - entryTime.getTime();
   const totalHours = diffMs / (1000 * 60 * 60);
-  const billableHours = Math.max(1, Math.ceil(totalHours)); // ít nhất 1 giờ
+  const billableHours = Math.max(1, Math.ceil(totalHours));
 
-  let fee = totalHours < 0.5 ? 0 : billableHours * 10000; // Giá mặc định 10k/giờ (miễn phí dưới 30 phút)
 
-  // Thử tra cứu bảng giá từ Database dựa trên biển số xe
+  let fee = billableHours * 10000; // Giá mặc định 10k/giờ
+
+
   try {
     const vehicle = await parkingRepository.findVehicleByPlate(activeSession.plate_number);
-
     if (vehicle?.vehicle_type_id) {
       const priceItems = await parkingRepository.findPriceItemsByVehicleType(vehicle.vehicle_type_id);
-
       if (priceItems && priceItems.length > 0) {
-        const matchingItem = priceItems.find(item => {
-          const min = Number(item.min_hour) || 0;
-          const max = item.max_hour !== null && item.max_hour !== undefined ? Number(item.max_hour) : null;
-          if (max === null) {
-            return totalHours >= min;
-          }
-          return totalHours >= min && totalHours < max;
-        });
-
-        if (matchingItem) {
-          fee = Number(matchingItem.price);
-        }
+        const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
+        fee = calculated.fee;
       }
     }
   } catch (dbErr) {
@@ -142,7 +131,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
  * @param {string} staffId
  * @returns {Promise<{ success: boolean, message: string, session: object }>}
  */
-export const openGateFree = async ({ sessionId, staffId }) => {
+export const openGateFree = async ({ sessionId, staffId, finalFee = 0, ticketType, vehicleTypeId }) => {
   if (!sessionId) {
     throw new AppError("Thiếu session_id", 400);
   }
@@ -157,21 +146,26 @@ export const openGateFree = async ({ sessionId, staffId }) => {
     );
   }
 
-  // 2. Tính lại phí để đảm bảo an toàn (fee = 0)
-  const feeResult = await calculateExitFee({ plate_number: session.plate_number });
-  if (feeResult.estimated_fee > 0) {
-    throw Object.assign(
-      new Error(`Phiên gửi xe này yêu cầu thanh toán ${feeResult.estimated_fee} VNĐ. Không thể cho ra miễn phí.`),
-      { statusCode: 400 }
-    );
+  // Lấy ticketType nếu không có từ frontend
+  let resolvedTicketType = ticketType;
+  if (!resolvedTicketType && session.card_id) {
+    const activeReg = await parkingRepository.findActiveCardRegistration(session.card_id);
+    if (activeReg) {
+      // Nếu có đăng ký thẻ tháng thì là Thẻ tháng
+      resolvedTicketType = "Thẻ tháng";
+    } else {
+      resolvedTicketType = "Thẻ lượt";
+    }
+  } else if (!resolvedTicketType) {
+    resolvedTicketType = "Thẻ lượt";
   }
 
+  // 2. Cập nhật parking_sessions thành Hoàn thành
   const exitTime = new Date().toISOString();
 
-  // 3. Cập nhật parking_sessions thành Hoàn thành
   const updatedSession = await parkingRepository.updateSessionById(sessionId, {
     exit_time: exitTime,
-    final_fee: 0,
+    final_fee: finalFee,
     status: "Hoàn thành",
     staff_out_id: staffId || null,
   });
@@ -180,7 +174,7 @@ export const openGateFree = async ({ sessionId, staffId }) => {
   if (session.card_id) {
     const activeReg = await parkingRepository.findActiveCardRegistration(session.card_id);
 
-    if (activeReg && feeResult.ticket_type === "Thẻ lượt") {
+    if (activeReg && resolvedTicketType === "Thẻ lượt") {
       await parkingRepository.deactivateCardRegistration(activeReg.registration_id);
       await parkingRepository.resetCardStatus(session.card_id);
     }
@@ -205,14 +199,14 @@ export const openGateFree = async ({ sessionId, staffId }) => {
       staff_id: staffId || null,
       direction: "Xe ra",
       event_time: exitTime,
-      vehicle_type_id: feeResult.vehicle?.vehicle_type_id || null,
+      vehicle_type_id: vehicleTypeId || session.vehicle_type_id || null,
       plate_number: session.plate_number,
-      ticket_type: feeResult.ticket_type,
-      applied_price: 0,
+      ticket_type: resolvedTicketType,
+      applied_price: finalFee,
       note:
-        feeResult.ticket_type === "Thẻ tháng"
+        resolvedTicketType === "Thẻ tháng"
           ? "Xe tháng ra cổng (Miễn phí)"
-          : "Xe lượt ra cổng dưới thời gian tính phí",
+          : "Xe lượt ra cổng dưới thời gian tính phí (Hoặc báo mất thẻ)",
     });
   }
 

@@ -30,11 +30,8 @@ API.interceptors.request.use(async (config) => {
     return config;
 });
 
-// Hàm hỗ trợ đính kèm mã định danh JWT Token tự động vào header để xác thực quyền truy cập
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-};
+// Hàm hỗ trợ đính kèm JWT (đã được interceptor xử lý tự động lấy token mới nhất)
+const getAuthHeaders = () => ({});
 
 /**
  * API: Khởi tạo thanh toán Vé lượt (cho xe chuẩn bị xuất bến)

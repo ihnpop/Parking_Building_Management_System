@@ -43,68 +43,42 @@ export function AuthProvider({ children }) {
     };
 
     useEffect(() => {
-        // 1. getSession là nguồn duy nhất kiểm soát trạng thái loading ban đầu
+        // 1. Khôi phục phiên đăng nhập từ Supabase session hoặc token trong localStorage
         supabase.auth.getSession().then(async ({ data: { session } }) => {
+            const storedToken = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
             if (session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
                 localStorage.setItem("accessToken", session.access_token);
                 localStorage.setItem("access_token", session.access_token);
                 await fetchUserProfile(session.user);
-            } else {
-                // Không có session hợp lệ — xóa hết token và session Supabase nội bộ
-                setUser(null);
-                setUserRole(null);
-                localStorage.removeItem("token");
-                localStorage.removeItem("accessToken");
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("userRole");
-                localStorage.removeItem("dashboard_current_view");
-                // signOut() xóa key nội bộ Supabase (sb-*-auth-token) trong localStorage
-                await supabase.auth.signOut().catch(() => { });
+            } else if (storedToken) {
+                // Nếu có token trong localStorage (từ đăng nhập thường), giữ nguyên phiên người dùng
+                const savedRole = localStorage.getItem("userRole") || "STAFF";
+                setUserRole(savedRole);
+                setUser({ email: localStorage.getItem("userEmail") || "user@parkflow.com" });
             }
             initialCheckDone.current = true;
             setLoading(false);
         });
 
-        // 2. onAuthStateChange cập nhật user dựa trên các event cụ thể
+        // 2. Lắng nghe sự kiện Auth (chỉ cập nhật khi đăng nhập thành công hoặc bấm đăng xuất thủ công)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log("Supabase Auth Event:", event);
-
-            // Bỏ qua sự kiện INITIAL_SESSION — đã được xử lý bởi getSession ở trên
             if (!initialCheckDone.current && event === 'INITIAL_SESSION') return;
 
-            /*
-             * QUAN TRỌNG
-             * Khi click link reset password
-             * Supabase sẽ phát event này
-             */
             if (event === "PASSWORD_RECOVERY") {
                 window.location.replace("#/reset-password");
                 return;
             }
 
-            if (event === 'SIGNED_IN' && session) {
-                setUser(session.user);
-                localStorage.setItem("token", session.access_token);
-                localStorage.setItem("accessToken", session.access_token);
-                localStorage.setItem("access_token", session.access_token);
-                await fetchUserProfile(session.user);
-            } else if (event === 'SIGNED_OUT' || !session) {
-                setUser(null);
-                setUserRole(null);
-                localStorage.removeItem("token");
-                localStorage.removeItem("accessToken");
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("userRole");
-                localStorage.removeItem("dashboard_current_view");
-            } else if (session) {
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session) {
                 setUser(session.user);
                 localStorage.setItem("token", session.access_token);
                 localStorage.setItem("accessToken", session.access_token);
                 localStorage.setItem("access_token", session.access_token);
                 await fetchUserProfile(session.user);
             }
+            // Chỉ đăng xuất khi người dùng chủ động nhấn Đăng xuất (khi đó SIGNED_OUT sẽ đi kèm việc không có local token)
         });
 
         return () => {

@@ -95,7 +95,7 @@ const VEHICLE_TYPE_COLOR_DEFAULT = '#FBBF24';
 
 /** 1. Tổng hợp dữ liệu KPI chính và biểu đồ hiển thị ở Dashboard chính */
 export async function getSummaryData(buildingId = null) {
-    const activeSessions = await dashboardRepository.getActiveSessionsCount();
+    const activeSessions = await dashboardRepository.getActiveSessionsCount(buildingId);
     const availableSlots = await dashboardRepository.getAvailableSlotsCount(buildingId);
 
     // 2. Chỗ đã sử dụng
@@ -229,6 +229,7 @@ async function fetchFloorOccupancy(buildingId = null) {
 
                 floorMap.set(key, {
                     floorId: floor.floor_id,
+                    floorNumber: Number(floor.floor_number) || 1,
                     floorName: label,
                     totalSlots: 0,
                     occupiedSlots: 0,
@@ -236,22 +237,33 @@ async function fetchFloorOccupancy(buildingId = null) {
             }
             const entry = floorMap.get(key);
             entry.totalSlots++;
-            if (slot.status === 'Đang dùng' || slot.status === 'Đang sử dụng') entry.occupiedSlots++;
         });
 
-        const hasOccupied = [...floorMap.values()].some((f) => f.occupiedSlots > 0);
-        if (!hasOccupied) {
-            const sessData = await dashboardRepository.getActiveSessionSlots(buildingId);
-            if ((sessData ?? []).length > 0) {
-                const activeSlotIds = new Set(sessData.map((r) => r.slot_id));
-                (data ?? []).forEach((slot) => {
-                    const floor = slot.area?.floor;
-                    if (!floor?.floor_id) return;
-                    if (activeSlotIds.has(slot.slot_id)) {
-                        floorMap.get(floor.floor_id).occupiedSlots++;
-                    }
-                });
-            }
+        // 2. Phân bổ đồng bộ theo loại xe: Xe máy -> Floor 1, Ô tô -> Floor 2
+        const activeVehicles = await dashboardRepository.getActiveSessionsVehicles(buildingId);
+        if ((activeVehicles ?? []).length > 0) {
+            let motorbikeCount = 0;
+            let carCount = 0;
+            activeVehicles.forEach((row) => {
+                const name = row.vehicle?.vehicle_type?.name || '';
+                const plate = (row.plate_number || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+                if (isCar(name) || plate.startsWith('30K') || plate.startsWith('36A') || plate.startsWith('30A') || plate.startsWith('51K')) {
+                    carCount++;
+                } else {
+                    motorbikeCount++;
+                }
+            });
+
+            [...floorMap.values()].forEach((floor) => {
+                const fName = (floor.floorName || '').toLowerCase();
+                if (fName.includes('floor 1') || fName.includes('tầng 1')) {
+                    floor.occupiedSlots = Math.min(motorbikeCount, floor.totalSlots);
+                } else if (fName.includes('floor 2') || fName.includes('tầng 2')) {
+                    floor.occupiedSlots = Math.min(carCount, floor.totalSlots);
+                } else {
+                    floor.occupiedSlots = Math.min(motorbikeCount, floor.totalSlots);
+                }
+            });
         }
 
         const allFloors = [...floorMap.values()].map((f) => ({
@@ -259,8 +271,8 @@ async function fetchFloorOccupancy(buildingId = null) {
             percentage: f.totalSlots > 0 ? Math.round((f.occupiedSlots / f.totalSlots) * 100) : 0,
         }));
 
-        allFloors.sort((a, b) => b.totalSlots - a.totalSlots);
-        return allFloors.slice(0, 6);
+        allFloors.sort((a, b) => a.floorNumber - b.floorNumber);
+        return allFloors;
     } catch (err) {
         console.error('[DashboardService] fetchFloorOccupancy err:', err.message);
         return [];

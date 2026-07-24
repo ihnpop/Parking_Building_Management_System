@@ -7,11 +7,37 @@
 import supabase from "../config/supabaseClient.js";
 
 /** Lấy số lượng phiên đang đỗ xe (active sessions) */
-export async function getActiveSessionsCount() {
+export async function getActiveSessionsCount(buildingId = null) {
+    if (!buildingId) {
+        const { count, error } = await supabase
+            .from('parking_sessions')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'Đang gửi xe');
+        if (error) throw error;
+        return count ?? 0;
+    }
+
+    const { data: logs } = await supabase
+        .from('entry_exit_log')
+        .select('session_id')
+        .eq('building_id', buildingId)
+        .eq('direction', 'Xe vào');
+
+    if (logs && logs.length > 0) {
+        const sessionIds = [...new Set(logs.map(l => l.session_id).filter(Boolean))];
+        const { count, error } = await supabase
+            .from('parking_sessions')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'Đang gửi xe')
+            .in('session_id', sessionIds);
+        if (!error) return count ?? 0;
+    }
+
     const { count, error } = await supabase
         .from('parking_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'Đang gửi xe');
+
     if (error) throw error;
     return count ?? 0;
 }
@@ -69,12 +95,37 @@ export async function getActiveSessionSlots() {
     return data;
 }
 
-/** Lấy danh sách session_id từ parking_sessions có status 'Đang gửi xe' */
-export async function getActiveSessionsCountRaw() {
+export async function getActiveSessionsCountRaw(buildingId = null) {
+    if (!buildingId) {
+        const { data, error } = await supabase
+            .from('parking_sessions')
+            .select('session_id')
+            .eq('status', 'Đang gửi xe');
+        if (error) throw error;
+        return data;
+    }
+
+    const { data: logs } = await supabase
+        .from('entry_exit_log')
+        .select('session_id')
+        .eq('building_id', buildingId)
+        .eq('direction', 'Xe vào');
+
+    if (logs && logs.length > 0) {
+        const sessionIds = [...new Set(logs.map(l => l.session_id).filter(Boolean))];
+        const { data, error } = await supabase
+            .from('parking_sessions')
+            .select('session_id')
+            .eq('status', 'Đang gửi xe')
+            .in('session_id', sessionIds);
+        if (!error) return data;
+    }
+
     const { data, error } = await supabase
         .from('parking_sessions')
         .select('session_id')
         .eq('status', 'Đang gửi xe');
+
     if (error) throw error;
     return data;
 }
@@ -207,13 +258,13 @@ export async function getSlotsWithFloors(buildingId = null) {
         .select(`
             slot_id,
             status,
-            area:area_id (
+            area!inner (
                 area_id,
-                floor:floor_id (
+                floor!inner (
                     floor_id,
                     floor_number,
                     name,
-                    parking:parking_id (
+                    parking!inner (
                         building_id,
                         name
                     )
@@ -431,10 +482,6 @@ export async function getRecentLostCards(buildingId = null, limit = 5) {
         `)
         .order('reported_at', { ascending: false })
         .limit(limit);
-
-    if (buildingId) {
-        query = query.eq('building_id', buildingId);
-    }
 
     const { data, error } = await query;
     if (error) throw error;

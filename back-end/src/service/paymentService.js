@@ -1,4 +1,4 @@
-﻿import AppError from "../utils/AppError.js";
+import AppError from "../utils/AppError.js";
 /**
  * paymentService.js
  * Dịch vụ xử lý nghiệp vụ thanh toán trung gian giữa database của bãi xe và cổng thanh toán VNPay.
@@ -15,7 +15,7 @@ import { calculateExitFee } from "./feeCalculationService.js";
  * 1. Tạo bản ghi hóa đơn tạm trong DB với trạng thái 'Chờ thanh toán'
  * 2. Tạo đường link thanh toán chuyển tiếp VNPAY
  */
-export async function createCheckoutPayment(sessionId, amount, ipAddr) {
+export async function createCheckoutPayment(sessionId, amount, ipAddr, origin) {
     const session = await paymentRepository.findSessionById(sessionId);
     if (!session) throw new Error("Không tìm thấy phiên gửi xe");
 
@@ -35,6 +35,7 @@ export async function createCheckoutPayment(sessionId, amount, ipAddr) {
         amount,
         orderInfo: `Thanh toan gui xe ${session.plate_number || ""}`,
         ipAddr,
+        origin,
     });
 
     return { payment, payUrl };
@@ -45,7 +46,7 @@ export async function createCheckoutPayment(sessionId, amount, ipAddr) {
  * 1. Tạo bản ghi hóa đơn tạm trong DB với trạng thái 'Chờ thanh toán'
  * 2. Tạo đường link thanh toán chuyển tiếp VNPAY
  */
-export async function createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr) {
+export async function createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr, origin) {
     // Tạo mã đơn hàng duy nhất bắt đầu bằng PK (Package) kèm mốc thời gian
     const orderCode = `PK${Date.now()}`;
     const payment = await paymentRepository.create({
@@ -62,6 +63,7 @@ export async function createPackagePayment(vehiclePackageId, amount, isRenewal, 
         amount,
         orderInfo: `Thanh toan ve thang ${orderCode}`,
         ipAddr,
+        origin,
     });
 
     return { payment, payUrl };
@@ -132,6 +134,11 @@ export async function handleIpn(query) {
         else if (payment.payment_type === "Phí cấp lại thẻ") {
             const { processReissueSuccess } = await import("./lostCardService.js");
             await processReissueSuccess(orderCode);
+        }
+        // --- TRƯỜNG HỢP 4: Phí mất thẻ lượt ---
+        else if (payment.payment_type === "Phí mất thẻ lượt") {
+            const { processLostTurnCardPaymentSuccess } = await import("./lostCardService.js");
+            await processLostTurnCardPaymentSuccess(orderCode);
         }
     }
 
@@ -262,7 +269,7 @@ export async function cashPayment(sessionId, staffId) {
  * @param {string} staffId
  * @param {string} ipAddr
  */
-export async function createVnpayPayment(sessionId, staffId, ipAddr) {
+export async function createVnpayPayment(sessionId, staffId, ipAddr, origin) {
     // 1. Lấy + validate session
     const session = await paymentRepository.findSessionById(sessionId);
     if (!session) throw new AppError("Không tìm thấy phiên gửi xe", 404);
@@ -324,6 +331,7 @@ export async function createVnpayPayment(sessionId, staffId, ipAddr) {
         amount,
         orderInfo: `Thanh toan gui xe ${session.plate_number || ""}`,
         ipAddr: normalizedIp,
+        origin,
     });
 
     return {
