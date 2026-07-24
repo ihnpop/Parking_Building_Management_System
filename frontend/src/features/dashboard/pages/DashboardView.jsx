@@ -680,7 +680,7 @@ export default function DashboardView() {
                             <h1 className="db-h1">Thống Kê Tổng Quan</h1>
                             <p className="db-sub">Số liệu vận hành trực tiếp, tình trạng lấp đầy và báo cáo hàng ngày</p>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -688,7 +688,6 @@ export default function DashboardView() {
                                 padding: '4px',
                                 borderRadius: '10px',
                                 border: '1px solid #e2e8f0',
-                                marginRight: '4px',
                                 height: '42px',
                                 boxSizing: 'border-box'
                             }}>
@@ -771,127 +770,124 @@ export default function DashboardView() {
                                 </button>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {dashboardPeriod === 'day' && (
-                                    <input
-                                        type="date"
-                                        value={selectedCustomDate}
-                                        onChange={(e) => setSelectedCustomDate(e.target.value)}
-                                        style={{
-                                            padding: '0 16px',
-                                            borderRadius: '10px',
-                                            border: '1.5px solid #cbd5e1',
-                                            backgroundColor: '#ffffff',
-                                            color: '#1f2937',
-                                            fontWeight: '600',
-                                            fontSize: '14px',
-                                            outline: 'none',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                            cursor: 'pointer',
-                                            height: '42px',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    />
-                                )}
-
-                                {dashboardPeriod === 'week' && (
-                                    <input
-                                        type="date"
-                                        value={selectedCustomDate}
-                                        onChange={(e) => setSelectedCustomDate(e.target.value)}
-                                        style={{
-                                            padding: '0 16px',
-                                            borderRadius: '10px',
-                                            border: '1.5px solid #cbd5e1',
-                                            backgroundColor: '#ffffff',
-                                            color: '#1f2937',
-                                            fontWeight: '600',
-                                            fontSize: '14px',
-                                            outline: 'none',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                            cursor: 'pointer',
-                                            height: '42px',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    />
-                                )}
-
-                                {dashboardPeriod === 'month' && (
-                                    <input
-                                        type="month"
-                                        value={selectedCustomMonth}
-                                        onChange={(e) => setSelectedCustomMonth(e.target.value)}
-                                        style={{
-                                            padding: '0 16px',
-                                            borderRadius: '10px',
-                                            border: '1.5px solid #cbd5e1',
-                                            backgroundColor: '#ffffff',
-                                            color: '#1f2937',
-                                            fontWeight: '600',
-                                            fontSize: '14px',
-                                            outline: 'none',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                            cursor: 'pointer',
-                                            height: '42px',
-                                            boxSizing: 'border-box'
-                                        }}
-                                    />
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleExportExcel}
+                            {dashboardPeriod === 'day' && (
+                                <input
+                                    type="date"
+                                    value={selectedCustomDate}
+                                    onChange={(e) => setSelectedCustomDate(e.target.value)}
                                     style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
                                         padding: '0 16px',
-                                        height: '42px',
-                                        borderRadius: '10px',
-                                        border: '1.5px solid #10b981',
-                                        backgroundColor: '#10b981',
-                                        color: '#ffffff',
-                                        fontWeight: '600',
-                                        fontSize: '14px',
-                                        cursor: 'pointer',
-                                        boxSizing: 'border-box',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                        transition: 'all 0.2s ease',
-                                        marginRight: '8px'
-                                    }}
-                                    className="db-export-excel-btn"
-                                >
-                                    <span className="material-symbols-outlined">download_for_offline</span>
-                                    Xuất Excel
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={`db-refresh-btn${isRefreshing ? ' db-refresh-btn--spinning' : ''}`}
-                                    onClick={handleRefresh}
-                                    disabled={isRefreshing || isLoading}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        padding: '0 16px',
-                                        height: '42px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
-                                        color: '#475569',
+                                        color: '#1f2937',
                                         fontWeight: '600',
                                         fontSize: '14px',
-                                        cursor: 'pointer',
-                                        boxSizing: 'border-box',
+                                        outline: 'none',
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                        transition: 'all 0.2s ease'
+                                        cursor: 'pointer',
+                                        height: '42px',
+                                        boxSizing: 'border-box'
                                     }}
-                                >
-                                    <span className="material-symbols-outlined">refresh</span>
-                                    {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
-                                </button>
-                            </div>
+                                />
+                            )}
+
+                            {dashboardPeriod === 'week' && (
+                                <input
+                                    type="date"
+                                    value={selectedCustomDate}
+                                    onChange={(e) => setSelectedCustomDate(e.target.value)}
+                                    style={{
+                                        padding: '0 16px',
+                                        borderRadius: '10px',
+                                        border: '1.5px solid #cbd5e1',
+                                        backgroundColor: '#ffffff',
+                                        color: '#1f2937',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                        cursor: 'pointer',
+                                        height: '42px',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            )}
+
+                            {dashboardPeriod === 'month' && (
+                                <input
+                                    type="month"
+                                    value={selectedCustomMonth}
+                                    onChange={(e) => setSelectedCustomMonth(e.target.value)}
+                                    style={{
+                                        padding: '0 16px',
+                                        borderRadius: '10px',
+                                        border: '1.5px solid #cbd5e1',
+                                        backgroundColor: '#ffffff',
+                                        color: '#1f2937',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        outline: 'none',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                        cursor: 'pointer',
+                                        height: '42px',
+                                        boxSizing: 'border-box'
+                                    }}
+                                />
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={handleExportExcel}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '0 16px',
+                                    height: '42px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #10b981',
+                                    backgroundColor: '#10b981',
+                                    color: '#ffffff',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    cursor: 'pointer',
+                                    boxSizing: 'border-box',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                className="db-export-excel-btn"
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>download_for_offline</span>
+                                Xuất Excel
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`custom-dashboard-refresh-btn ${isRefreshing ? 'db-refresh-btn--spinning' : ''}`}
+                                onClick={handleRefresh}
+                                disabled={isRefreshing || isLoading}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '0 16px',
+                                    height: '42px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #cbd5e1',
+                                    backgroundColor: '#ffffff',
+                                    color: '#475569',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    cursor: 'pointer',
+                                    boxSizing: 'border-box',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>refresh</span>
+                                {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
+                            </button>
                         </div>
                     </div>
 

@@ -1,38 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import supabase from '../../../config/supabaseClient';
 import { formatVND } from '../../../service/dashboardApi';
+import {
+    todayVN,
+    thisMonthVN,
+    getVNDateParts,
+    getLocalDateVN,
+    formatLabel,
+    getHourVN,
+    getVNPeriodRange,
+    handleExportExcel as handleExportExcelUtil
+} from '../../../utils/dashboardUtils';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Đầu ngày hôm nay (ISO) theo giờ máy chủ */
-function startOfToday() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-}
-
-/** Cuối ngày hôm nay (ISO) */
-function endOfToday() {
-    const d = new Date();
-    d.setHours(23, 59, 59, 999);
-    return d.toISOString();
-}
-
-/** Đầu tháng hiện tại (ISO) */
-function startOfCurrentMonth() {
-    const d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-}
-
-/** Cuối tháng hiện tại (ISO) */
-function endOfCurrentMonth() {
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1, 0);
-    d.setHours(23, 59, 59, 999);
-    return d.toISOString();
-}
+const formatSlotLocation = (slotData) => {
+    if (!slotData) return '—';
+    const parkingName = slotData.area?.floor?.parking?.name || '';
+    const shortParking = parkingName.includes(' - ')
+        ? parkingName.split(' - ').pop()
+        : parkingName;
+    const floorName = (slotData.area?.floor?.name || `Tầng ${slotData.area?.floor?.floor_number || 1}`).replace(/Floor/g, 'Tầng');
+    
+    if (shortParking) {
+        return `${shortParking} / ${floorName}`;
+    }
+    return `${floorName}`;
+};
 
 /** Format thời gian HH:mm theo VN timezone */
 function formatTimeVN(dateStr) {
@@ -51,25 +45,6 @@ function formatTimeVN(dateStr) {
         }).format(d);
     } catch {
         return '—';
-    }
-}
-
-/** Lấy giờ VN (0–23) từ date string */
-function getHourVN(dateStr) {
-    if (!dateStr) return -1;
-    try {
-        let val = dateStr.trim();
-        if (val.includes(' ') && !val.includes('T')) val = val.replace(' ', 'T');
-        if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) val = val + 'Z';
-        const d = new Date(val);
-        if (isNaN(d.getTime())) return -1;
-        const h = parseInt(
-            new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' }).format(d),
-            10
-        );
-        return h === 24 ? 0 : h;
-    } catch {
-        return -1;
     }
 }
 
@@ -99,12 +74,42 @@ export default function ManagerDashboardPage() {
         revenueMonth: 0,
     });
 
-    const [hourlyData, setHourlyData] = useState(Array(24).fill(0));
+    const [dashboardPeriod, setDashboardPeriod] = useState('day');
+    const [selectedCustomDate, setSelectedCustomDate] = useState(todayVN());
+    const [selectedCustomMonth, setSelectedCustomMonth] = useState(thisMonthVN());
+
+    const [trafficChartData, setTrafficChartData] = useState([]);
+    const [revenueChartData, setRevenueChartData] = useState([]);
+    const [incidents, setIncidents] = useState([]);
     const [floorData, setFloorData] = useState([]);
     const [vehicleTypes, setVehicleTypes] = useState([]);
     const [warningFloors, setWarningFloors] = useState([]);
     const [recentEntries, setRecentEntries] = useState([]);
     const [recentExits, setRecentExits] = useState([]);
+
+    // Compute formatted labels for Excel export and titles
+    const dateFormatted = selectedCustomDate.split('-').reverse().join('/');
+    
+    let weekLabel = '';
+    if (selectedCustomDate) {
+        const [y, m, d] = selectedCustomDate.split('-').map(Number);
+        const selectedDateObj = new Date(y, m - 1, d);
+        const currentDay = selectedDateObj.getDay();
+        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(selectedDateObj);
+        monday.setDate(selectedDateObj.getDate() + diffToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const formatShort = (dateObj) => {
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            return `${dd}/${mm}`;
+        };
+        weekLabel = `${formatShort(monday)} - ${formatShort(sunday)}`;
+    }
+
+    const monthFormatted = selectedCustomMonth.split('-').reverse().join('/');
 
     // ── Step 1: Lấy building_id của Manager đang đăng nhập từ profiles ──
     const fetchBuildingId = useCallback(async () => {
@@ -139,10 +144,14 @@ export default function ManagerDashboardPage() {
         if (!bldId) return;
         setIsLoading(true);
         try {
-            const startToday = startOfToday();
-            const endToday = endOfToday();
-            const startMonth = startOfCurrentMonth();
-            const endMonth = endOfCurrentMonth();
+            // Define date ranges in VN timezone
+            const { startDate, endDate } = getVNPeriodRange(dashboardPeriod, selectedCustomDate, selectedCustomMonth);
+
+            // Fetch current month boundaries for daily/monthly fallback
+            const vnNow = new Date().getTime() + 7 * 60 * 60 * 1000;
+            const vnDateNow = new Date(vnNow);
+            const startMonth = new Date(Date.UTC(vnDateNow.getUTCFullYear(), vnDateNow.getUTCMonth(), 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000).toISOString();
+            const endMonth = new Date(Date.UTC(vnDateNow.getUTCFullYear(), vnDateNow.getUTCMonth() + 1, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000).toISOString();
 
             // 1. Lấy tất cả parking_id thuộc building này
             const { data: parkings } = await supabase
@@ -218,82 +227,143 @@ export default function ManagerDashboardPage() {
                 activeSessions = activeSessionsData.length;
             }
 
-            // Fallback nếu slot.status trong DB chưa cập nhật 'Đang sử dụng':
             if (occupiedSlots === 0) {
                 occupiedSlots = activeSessions;
             }
 
-            // 6. Lưu lượng theo giờ hôm nay (qua entry_exit_log.building_id)
-            const { data: hourlyLogs } = await supabase
+            // 6. Query entry logs in the period
+            const { data: periodLogs } = await supabase
                 .from('entry_exit_log')
-                .select('event_time')
+                .select('event_time, session_id')
                 .eq('building_id', bldId)
                 .eq('direction', 'Xe vào')
-                .gte('event_time', startToday)
-                .lte('event_time', endToday);
+                .gte('event_time', startDate)
+                .lte('event_time', endDate);
 
-            const hourlyArr = Array(24).fill(0);
-            (hourlyLogs || []).forEach(row => {
-                const h = getHourVN(row.event_time);
-                if (h >= 0 && h <= 23) hourlyArr[h]++;
-            });
-            const todayTraffic = hourlyArr.reduce((s, v) => s + v, 0);
+            const periodTraffic = (periodLogs || []).length;
 
-            // 7. Doanh thu hôm nay theo building (qua entry_exit_log.building_id → session_id → payment)
-            const { data: todayLogs } = await supabase
-                .from('entry_exit_log')
-                .select('session_id')
-                .eq('building_id', bldId)
-                .gte('event_time', startToday)
-                .lte('event_time', endToday);
+            // 7. Query payments in the period
+            let periodPayments = [];
+            const periodSessionIds = [...new Set((periodLogs || []).map(l => l.session_id).filter(Boolean))];
+            if (periodSessionIds.length > 0) {
+                const { data: payments } = await supabase
+                    .from('payment')
+                    .select('amount, payment_time, session_id')
+                    .eq('status', 'Đã thanh toán')
+                    .gte('payment_time', startDate)
+                    .lte('payment_time', endDate)
+                    .in('session_id', periodSessionIds);
+                periodPayments = payments || [];
+            }
 
-            const todaySessionIds = [...new Set((todayLogs || []).map(l => l.session_id).filter(Boolean))];
+            const periodRevenue = periodPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-            const { data: todayPayments } = await supabase
-                .from('payment')
-                .select('amount, session_id, payment_time')
-                .eq('status', 'Đã thanh toán')
-                .gte('payment_time', startToday)
-                .lte('payment_time', endToday);
-
-            const todayRevenue = (todayPayments || [])
-                .filter(p => !p.session_id || todaySessionIds.includes(p.session_id))
-                .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-            // 8. Doanh thu tháng theo building
+            // Fetch monthly revenue for building (as default/fallback)
+            let monthRevenue = 0;
             const { data: monthLogs } = await supabase
                 .from('entry_exit_log')
                 .select('session_id')
                 .eq('building_id', bldId)
                 .gte('event_time', startMonth)
                 .lte('event_time', endMonth);
-
             const monthSessionIds = [...new Set((monthLogs || []).map(l => l.session_id).filter(Boolean))];
+            if (monthSessionIds.length > 0) {
+                const { data: mPayments } = await supabase
+                    .from('payment')
+                    .select('amount')
+                    .eq('status', 'Đã thanh toán')
+                    .gte('payment_time', startMonth)
+                    .lte('payment_time', endMonth)
+                    .in('session_id', monthSessionIds);
+                monthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            }
 
-            const { data: monthPayments } = await supabase
-                .from('payment')
-                .select('amount, session_id')
-                .eq('status', 'Đã thanh toán')
-                .gte('payment_time', startMonth)
-                .lte('payment_time', endMonth);
-
-            const revenueMonth = (monthPayments || [])
-                .filter(p => !p.session_id || monthSessionIds.includes(p.session_id))
-                .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+            // Compute second revenue metric (monthly or average)
+            let periodRevenue2 = monthRevenue;
+            if (dashboardPeriod === 'day') {
+                periodRevenue2 = monthRevenue;
+            } else if (dashboardPeriod === 'week') {
+                periodRevenue2 = Math.round(periodRevenue / 7);
+            } else if (dashboardPeriod === 'month') {
+                const [y, m] = selectedCustomMonth.split('-').map(Number);
+                const daysInMonth = new Date(y, m, 0).getDate();
+                periodRevenue2 = Math.round(periodRevenue / daysInMonth);
+            }
 
             setStats({
                 availableSlots,
                 occupiedSlots,
                 totalSlots,
                 activeSessions,
-                todayTraffic,
-                revenueToday: todayRevenue,
-                revenueMonth,
+                todayTraffic: periodTraffic,
+                revenueToday: periodRevenue,
+                revenueMonth: periodRevenue2,
             });
 
-            setHourlyData(hourlyArr);
+            // 8. Generate traffic and revenue charts
+            if (dashboardPeriod === 'day') {
+                const hourlyTraffic = Array(24).fill(0);
+                (periodLogs || []).forEach(row => {
+                    const h = getHourVN(row.event_time);
+                    if (h >= 0 && h <= 23) hourlyTraffic[h]++;
+                });
+                setTrafficChartData(hourlyTraffic.map((val, idx) => ({
+                    label: `${String(idx).padStart(2, '0')}h`,
+                    val
+                })));
 
-            // 9. Tỷ lệ lấp đầy theo tầng (chỉ các tầng thuộc building này)
+                const hourlyRevenue = Array(24).fill(0);
+                periodPayments.forEach(p => {
+                    const h = getHourVN(p.payment_time);
+                    if (h >= 0 && h <= 23) hourlyRevenue[h] += (Number(p.amount) || 0);
+                });
+                setRevenueChartData(hourlyRevenue.map((val, idx) => ({
+                    label: `${String(idx).padStart(2, '0')}h`,
+                    val
+                })));
+            } else {
+                const datesList = [];
+                const startMs = new Date(startDate).getTime() + 7 * 60 * 60 * 1000;
+                const endMs = new Date(endDate).getTime() + 7 * 60 * 60 * 1000;
+
+                let walkMs = startMs;
+                while (walkMs <= endMs) {
+                    const walkDate = new Date(walkMs);
+                    const y = walkDate.getUTCFullYear();
+                    const m = String(walkDate.getUTCMonth() + 1).padStart(2, '0');
+                    const d = String(walkDate.getUTCDate()).padStart(2, '0');
+                    datesList.push(`${y}-${m}-${d}`);
+                    walkMs += 24 * 60 * 60 * 1000;
+                }
+
+                // Daily traffic
+                const dailyTraffic = {};
+                datesList.forEach(d => { dailyTraffic[d] = 0; });
+                (periodLogs || []).forEach(s => {
+                    const dateStr = getLocalDateVN(s.event_time);
+                    if (dailyTraffic[dateStr] !== undefined) dailyTraffic[dateStr]++;
+                });
+                setTrafficChartData(datesList.map(d => ({
+                    label: formatLabel(d),
+                    labelFull: d,
+                    val: dailyTraffic[d]
+                })));
+
+                // Daily revenue
+                const dailyRevenue = {};
+                datesList.forEach(d => { dailyRevenue[d] = 0; });
+                periodPayments.forEach(p => {
+                    const dateStr = getLocalDateVN(p.payment_time);
+                    if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += (Number(p.amount) || 0);
+                });
+                setRevenueChartData(datesList.map(d => ({
+                    label: formatLabel(d),
+                    labelFull: d,
+                    val: dailyRevenue[d]
+                })));
+            }
+
+            // 9. Tỷ lệ lấp đầy theo tầng
             const { data: floorDetail } = floorIds.length > 0
                 ? await supabase
                     .from('floor')
@@ -340,7 +410,6 @@ export default function ManagerDashboardPage() {
                 entry.totalSlots++;
             });
 
-            // Phân loại CHÍNH XÁC phiên đỗ xe thực tế: Xe máy (Floor 1) và Ô tô (Floor 2)
             let motorbikeCount = 0;
             let carCount = 0;
             (activeSessionsData || []).forEach(row => {
@@ -361,7 +430,6 @@ export default function ManagerDashboardPage() {
                 }
             });
 
-            // Gán occupiedSlots đồng bộ 100% với số xe đang gửi thực tế
             [...floorMap.values()].forEach(floor => {
                 const fName = (floor.floorName || '').toLowerCase();
                 if (fName.includes('floor 1') || fName.includes('tầng 1')) {
@@ -384,7 +452,7 @@ export default function ManagerDashboardPage() {
             setFloorData(floorResult);
             setWarningFloors(floorResult.filter(f => f.percentage >= 80));
 
-            // 10. Phân loại phương tiện đang trong bãi (thuộc building)
+            // 10. Phân loại phương tiện đang trong bãi
             const typeCount = {};
             (activeSessionsData || []).forEach(row => {
                 const name = row.vehicle?.vehicle_type?.name;
@@ -409,13 +477,6 @@ export default function ManagerDashboardPage() {
                 .order('event_time', { ascending: false })
                 .limit(5);
 
-            setRecentEntries((recentIn || []).map(r => ({
-                id: r.log_id,
-                plate: r.plate_number || '—',
-                slot: '—',
-                time: formatTimeVN(r.event_time),
-            })));
-
             // 12. Xe ra gần đây thuộc building
             const { data: recentOut } = await supabase
                 .from('entry_exit_log')
@@ -425,12 +486,173 @@ export default function ManagerDashboardPage() {
                 .order('event_time', { ascending: false })
                 .limit(5);
 
+            // Fetch and resolve slot_code for recent entries/exits
+            const entryLogIds = (recentIn || []).map(item => item.log_id).filter(Boolean);
+            const exitLogIds = (recentOut || []).map(item => item.log_id).filter(Boolean);
+
+            let entrySlotsMap = {};
+            let exitSlotsMap = {};
+
+            if (entryLogIds.length > 0) {
+                try {
+                    const { data: entryLogs } = await supabase
+                        .from('entry_exit_log')
+                        .select(`
+                            log_id,
+                            session:session_id (
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        `)
+                        .in('log_id', entryLogIds);
+                    
+                    (entryLogs || []).forEach(log => {
+                        const slotObj = log.session?.slot;
+                        if (slotObj) {
+                            entrySlotsMap[log.log_id] = formatSlotLocation(slotObj);
+                        }
+                    });
+
+                    const missingEntryIds = entryLogIds.filter(id => !entrySlotsMap[id]);
+                    if (missingEntryIds.length > 0) {
+                        const { data: entrySessions } = await supabase
+                            .from('parking_sessions')
+                            .select(`
+                                session_id,
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            `)
+                            .in('session_id', missingEntryIds);
+                        (entrySessions || []).forEach(sess => {
+                            const slotObj = sess.slot;
+                            if (slotObj) {
+                                entrySlotsMap[sess.session_id] = formatSlotLocation(slotObj);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('[ManagerDashboard] Error resolving entry slot codes:', e);
+                }
+            }
+
+            if (exitLogIds.length > 0) {
+                try {
+                    const { data: exitLogs } = await supabase
+                        .from('entry_exit_log')
+                        .select(`
+                            log_id,
+                            session:session_id (
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        `)
+                        .in('log_id', exitLogIds);
+                    
+                    (exitLogs || []).forEach(log => {
+                        const slotObj = log.session?.slot;
+                        if (slotObj) {
+                            exitSlotsMap[log.log_id] = formatSlotLocation(slotObj);
+                        }
+                    });
+
+                    const missingExitIds = exitLogIds.filter(id => !exitSlotsMap[id]);
+                    if (missingExitIds.length > 0) {
+                        const { data: exitSessions } = await supabase
+                            .from('parking_sessions')
+                            .select(`
+                                session_id,
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            `)
+                            .in('session_id', missingExitIds);
+                        (exitSessions || []).forEach(sess => {
+                            const slotObj = sess.slot;
+                            if (slotObj) {
+                                exitSlotsMap[sess.session_id] = formatSlotLocation(slotObj);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('[ManagerDashboard] Error resolving exit slot codes:', e);
+                }
+            }
+
+            setRecentEntries((recentIn || []).map(r => ({
+                id: r.log_id,
+                plate: r.plate_number || '—',
+                slot: entrySlotsMap[r.log_id] || '—',
+                time: formatTimeVN(r.event_time),
+            })));
+
             setRecentExits((recentOut || []).map(r => ({
                 id: r.log_id,
                 plate: r.plate_number || '—',
-                slot: '—',
+                slot: exitSlotsMap[r.log_id] || '—',
                 time: formatTimeVN(r.event_time),
             })));
+
+            // Query building's recent incidents log (lost cards)
+            try {
+                const { data: lostLogs } = await supabase
+                    .from('card_lost_log')
+                    .select('lost_report_id, reported_at, status, vehicle:vehicle_id(plate_number)')
+                    .eq('building_id', bldId)
+                    .gte('reported_at', startDate)
+                    .lte('reported_at', endDate)
+                    .order('reported_at', { ascending: false })
+                    .limit(5);
+
+                const recentIncidents = (lostLogs || []).map(row => ({
+                    id: row.lost_report_id,
+                    identifier: row.vehicle?.plate_number || `LOST-${row.lost_report_id.slice(0, 8)}`,
+                    type: 'MẤT THẺ',
+                    status: (row.status || 'Đang chờ').toUpperCase(),
+                    statusClass: row.status === 'Đã giải quyết' ? 'db-badge--done' : 'db-badge--pending',
+                }));
+                setIncidents(recentIncidents);
+            } catch (e) {
+                console.error('[ManagerDashboard] Error fetching building incidents:', e);
+            }
 
             setLastUpdated(new Date());
         } catch (err) {
@@ -439,19 +661,21 @@ export default function ManagerDashboardPage() {
             setIsLoading(false);
             setIsRefreshing(false);
         }
-    }, []);
+    }, [dashboardPeriod, selectedCustomDate, selectedCustomMonth]);
 
     // ── Init ──
     useEffect(() => {
-        let mounted = true;
         (async () => {
-            const bldId = await fetchBuildingId();
-            if (mounted && bldId) {
-                await loadData(bldId);
-            }
+            await fetchBuildingId();
         })();
-        return () => { mounted = false; };
-    }, [fetchBuildingId, loadData]);
+    }, [fetchBuildingId]);
+
+    // Load / re-load when building or date filters change
+    useEffect(() => {
+        if (buildingId) {
+            loadData(buildingId);
+        }
+    }, [buildingId, dashboardPeriod, selectedCustomDate, selectedCustomMonth, loadData]);
 
     const handleRefresh = () => {
         if (!buildingId) return;
@@ -459,11 +683,29 @@ export default function ManagerDashboardPage() {
         loadData(buildingId);
     };
 
+    const handleExportExcel = () => {
+        handleExportExcelUtil({
+            dashboardPeriod,
+            dateFormatted,
+            weekLabel,
+            monthFormatted,
+            stats,
+            floorData,
+            vehicleTypes,
+            trafficChartData,
+            revenueChartData,
+            recentIn: recentEntries,
+            recentOut: recentExits,
+            incidents,
+            formatVND
+        });
+    };
+
     const fillRate = stats.totalSlots > 0
         ? Math.round((stats.occupiedSlots / stats.totalSlots) * 100)
         : 0;
 
-    const maxHourly = Math.max(...hourlyData, 1);
+    const maxTrafficVal = Math.max(...trafficChartData.map(t => t.val), 1);
 
     const formatTime = (date) => {
         if (!date) return '';
@@ -490,10 +732,9 @@ export default function ManagerDashboardPage() {
         <div className="mgr-page">
 
             {/* ── Header ── */}
-            <div className="mgr-header">
+            <div className="mgr-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
                 <div className="mgr-header-left">
-                    <h1 className="mgr-h1">
-
+                    <h1 className="mgr-h1" style={{ margin: 0 }}>
                         {buildingName && (
                             <span className="mgr-building-tag">
                                 <span className="material-symbols-outlined">apartment</span>
@@ -501,17 +742,203 @@ export default function ManagerDashboardPage() {
                             </span>
                         )}
                     </h1>
-
                 </div>
-                <button
-                    type="button"
-                    className={`mgr-refresh-btn${isRefreshing ? ' mgr-refresh-btn--spinning' : ''}`}
-                    onClick={handleRefresh}
-                    disabled={isRefreshing || isLoading}
-                >
-                    <span className="material-symbols-outlined">refresh</span>
-                    {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
-                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    {/* Bộ lọc thời gian giống Admin */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: '#f1f5f9',
+                        padding: '4px',
+                        borderRadius: '10px',
+                        border: '1px solid #e2e8f0',
+                        height: '42px',
+                        boxSizing: 'border-box'
+                    }}>
+                        {/* Theo ngày */}
+                        <button
+                            type="button"
+                            onClick={() => setDashboardPeriod('day')}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '0 16px',
+                                height: '100%',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor: dashboardPeriod === 'day' ? '#ffffff' : 'transparent',
+                                color: dashboardPeriod === 'day' ? '#2563eb' : '#64748b',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                boxShadow: dashboardPeriod === 'day' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.2s ease',
+                                boxSizing: 'border-box'
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_today</span>
+                            Theo ngày
+                        </button>
+
+                        {/* Theo tuần */}
+                        <button
+                            type="button"
+                            onClick={() => setDashboardPeriod('week')}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '0 16px',
+                                height: '100%',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor: dashboardPeriod === 'week' ? '#ffffff' : 'transparent',
+                                color: dashboardPeriod === 'week' ? '#2563eb' : '#64748b',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                boxShadow: dashboardPeriod === 'week' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.2s ease',
+                                boxSizing: 'border-box'
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>date_range</span>
+                            Theo tuần
+                        </button>
+
+                        {/* Theo tháng */}
+                        <button
+                            type="button"
+                            onClick={() => setDashboardPeriod('month')}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '0 16px',
+                                height: '100%',
+                                borderRadius: '8px',
+                                border: 'none',
+                                backgroundColor: dashboardPeriod === 'month' ? '#ffffff' : 'transparent',
+                                color: dashboardPeriod === 'month' ? '#2563eb' : '#64748b',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                boxShadow: dashboardPeriod === 'month' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.2s ease',
+                                boxSizing: 'border-box'
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span>
+                            Theo tháng
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {dashboardPeriod === 'day' && (
+                            <input
+                                type="date"
+                                value={selectedCustomDate}
+                                onChange={(e) => setSelectedCustomDate(e.target.value)}
+                                style={{
+                                    padding: '0 16px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #cbd5e1',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    cursor: 'pointer',
+                                    height: '42px',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        )}
+
+                        {dashboardPeriod === 'week' && (
+                            <input
+                                type="date"
+                                value={selectedCustomDate}
+                                onChange={(e) => setSelectedCustomDate(e.target.value)}
+                                style={{
+                                    padding: '0 16px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #cbd5e1',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    cursor: 'pointer',
+                                    height: '42px',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        )}
+
+                        {dashboardPeriod === 'month' && (
+                            <input
+                                type="month"
+                                value={selectedCustomMonth}
+                                onChange={(e) => setSelectedCustomMonth(e.target.value)}
+                                style={{
+                                    padding: '0 16px',
+                                    borderRadius: '10px',
+                                    border: '1.5px solid #cbd5e1',
+                                    backgroundColor: '#ffffff',
+                                    color: '#1f2937',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    outline: 'none',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    cursor: 'pointer',
+                                    height: '42px',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={handleExportExcel}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '0 16px',
+                                height: '42px',
+                                borderRadius: '10px',
+                                border: '1.5px solid #10b981',
+                                backgroundColor: '#10b981',
+                                color: '#ffffff',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                cursor: 'pointer',
+                                boxSizing: 'border-box',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>download</span>
+                            Xuất Excel
+                        </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        className={`custom-dashboard-refresh-btn ${isRefreshing ? 'mgr-refresh-btn--spinning' : ''}`}
+                        onClick={handleRefresh}
+                        disabled={isRefreshing || isLoading}
+                        style={{ height: '42px', display: 'flex', alignItems: 'center', gap: '8px', boxSizing: 'border-box' }}
+                    >
+                        <span className="material-symbols-outlined">refresh</span>
+                        {isRefreshing ? 'Đang cập nhật…' : 'Làm mới'}
+                    </button>
+                </div>
             </div>
 
             {/* ── Cảnh báo khu vực gần đầy ── */}
@@ -595,9 +1022,11 @@ export default function ManagerDashboardPage() {
                         <span className="material-symbols-outlined">swap_vert</span>
                     </div>
                     <div className="mgr-kpi-body">
-                        <div className="mgr-kpi-label">LƯỢT XE HÔM NAY</div>
+                        <div className="mgr-kpi-label">
+                            {dashboardPeriod === 'day' ? 'LƯỢT XE HÔM NAY' : dashboardPeriod === 'week' ? 'LƯỢT XE TUẦN NÀY' : 'LƯỢT XE THÁNG NÀY'}
+                        </div>
                         <div className="mgr-kpi-value">{stats.todayTraffic.toLocaleString('vi-VN')}</div>
-                        <div className="mgr-kpi-unit">lượt ra/vào trong ngày</div>
+                        <div className="mgr-kpi-unit">lượt ra/vào trong khoảng thời gian</div>
                     </div>
                 </div>
 
@@ -606,7 +1035,9 @@ export default function ManagerDashboardPage() {
                         <span className="material-symbols-outlined">payments</span>
                     </div>
                     <div className="mgr-kpi-body">
-                        <div className="mgr-kpi-label">DOANH THU HÔM NAY</div>
+                        <div className="mgr-kpi-label">
+                            {dashboardPeriod === 'day' ? 'DOANH THU HÔM NAY' : 'DOANH THU KHOẢNG THỜI GIAN'}
+                        </div>
                         <div className="mgr-kpi-value mgr-kpi-value--sm">{formatVND(stats.revenueToday)}</div>
                         <div className="mgr-kpi-unit">tiền mặt &amp; QR đã thu</div>
                     </div>
@@ -617,9 +1048,13 @@ export default function ManagerDashboardPage() {
                         <span className="material-symbols-outlined">trending_up</span>
                     </div>
                     <div className="mgr-kpi-body">
-                        <div className="mgr-kpi-label">DOANH THU THÁNG</div>
+                        <div className="mgr-kpi-label">
+                            {dashboardPeriod === 'day' ? 'DOANH THU THÁNG' : 'DOANH THU TRUNG BÌNH HÀNG NGÀY'}
+                        </div>
                         <div className="mgr-kpi-value mgr-kpi-value--sm">{formatVND(stats.revenueMonth)}</div>
-                        <div className="mgr-kpi-unit">tổng thu tháng hiện tại</div>
+                        <div className="mgr-kpi-unit">
+                            {dashboardPeriod === 'day' ? 'tổng thu tháng hiện tại' : 'trung bình thực tế mỗi ngày'}
+                        </div>
                     </div>
                 </div>
 
@@ -628,14 +1063,22 @@ export default function ManagerDashboardPage() {
             {/* ── Charts Grid ── */}
             <div className="mgr-grid2">
 
-                {/* Biểu đồ lượt xe theo giờ */}
+                {/* Biểu đồ lượt xe */}
                 <div className="mgr-card">
                     <div className="mgr-card-head">
                         <div className="mgr-card-title-row">
                             <span className="material-symbols-outlined mgr-card-icon">bar_chart</span>
                             <div>
-                                <p className="mgr-card-title">Lượt xe theo giờ</p>
-                                <p className="mgr-card-desc">Phân bố lưu lượng xe ra/vào hôm nay tại tòa nhà</p>
+                                <p className="mgr-card-title">
+                                    {dashboardPeriod === 'day' ? 'Lượt xe theo giờ' : 'Lượt xe theo ngày'}
+                                </p>
+                                <p className="mgr-card-desc">
+                                    {dashboardPeriod === 'day' 
+                                        ? `Phân bố lưu lượng xe ra/vào ngày ${dateFormatted}` 
+                                        : dashboardPeriod === 'week'
+                                            ? `Phân bố lưu lượng xe ra/vào tuần ${weekLabel}`
+                                            : `Phân bố lưu lượng xe ra/vào tháng ${monthFormatted}`}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -643,17 +1086,31 @@ export default function ManagerDashboardPage() {
                         {isLoading ? (
                             <div className="mgr-loading">Đang tải...</div>
                         ) : (
-                            <div className="mgr-bar-chart">
-                                {hourlyData.map((val, idx) => (
-                                    <div className="mgr-bar-wrap" key={idx}>
-                                        <div
-                                            className={`mgr-bar${val > 0 && val === Math.max(...hourlyData) ? ' mgr-bar--peak' : ''}`}
-                                            style={{ height: `${Math.max(4, (val / maxHourly) * 100)}%` }}
-                                            title={`${String(idx).padStart(2, '0')}:00 — ${val} lượt`}
-                                        />
-                                        <span className="mgr-bar-x">{String(idx).padStart(2, '0')}h</span>
-                                    </div>
-                                ))}
+                            <div className="db-chart-container" style={{ height: '140px', marginTop: '16px' }}>
+                                <div className="db-chart-gridlines">
+                                    <div className="db-gridline" />
+                                    <div className="db-gridline" />
+                                    <div className="db-gridline" />
+                                    <div className="db-gridline" />
+                                </div>
+                                <div className="db-bar-chart">
+                                    {trafficChartData.map((item, idx) => (
+                                        <div className="db-bar-wrap" key={idx}>
+                                            <div
+                                                className="db-bar"
+                                                style={{ height: `${Math.max(5, (item.val / maxTrafficVal) * 100)}%` }}
+                                            >
+                                                <div className="db-tooltip">
+                                                    <div className="db-tooltip-label">{item.labelFull || item.label}</div>
+                                                    <div className="db-tooltip-val">{item.val} lượt</div>
+                                                </div>
+                                            </div>
+                                            <span className="db-x">
+                                                {trafficChartData.length <= 7 || idx % 5 === 0 || idx === trafficChartData.length - 1 ? item.label : ''}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

@@ -22,7 +22,14 @@ export function thisMonthVN() {
  */
 export function getVNDateParts(dateInput) {
     if (!dateInput) return null;
-    const d = new Date(dateInput);
+    let val = String(dateInput).trim();
+    if (val.includes(' ') && !val.includes('T')) {
+        val = val.replace(' ', 'T');
+    }
+    if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+        val = val + 'Z';
+    }
+    const d = new Date(val);
     if (isNaN(d.getTime())) return null;
     const vnTime = d.getTime() + 7 * 60 * 60 * 1000;
     const vnDate = new Date(vnTime);
