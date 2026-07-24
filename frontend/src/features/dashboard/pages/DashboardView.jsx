@@ -16,6 +16,20 @@ import {
 import DashboardShell from '../../../components/layout/DashboardShell';
 import { useAuth } from '../../../context/AuthContext';
 
+const formatSlotLocation = (slotData) => {
+    if (!slotData) return '—';
+    const parkingName = slotData.area?.floor?.parking?.name || '';
+    const shortParking = parkingName.includes(' - ')
+        ? parkingName.split(' - ').pop()
+        : parkingName;
+    const floorName = (slotData.area?.floor?.name || `Tầng ${slotData.area?.floor?.floor_number || 1}`).replace(/Floor/g, 'Tầng');
+    
+    if (shortParking) {
+        return `${shortParking} / ${floorName}`;
+    }
+    return `${floorName}`;
+};
+
 // Import các phân hệ chức năng con của bạn
 import CardPage from './CardPage';
 import MonthCardPage from './MonthCardPage';
@@ -319,8 +333,149 @@ export default function DashboardView() {
             setVehicleTypes(data.vehicleTypeDistribution || []);
 
             setFloorData(data.floorOccupancy);
-            setRecentIn(data.recentEntries);
-            setRecentOut(data.recentExits);
+            // Fetch and resolve slot_code for recent check-ins and check-outs in the frontend
+            const entryLogIds = (data.recentEntries || []).map(item => item.id).filter(Boolean);
+            const exitLogIds = (data.recentExits || []).map(item => item.id).filter(Boolean);
+
+            let entrySlotsMap = {};
+            let exitSlotsMap = {};
+
+            if (entryLogIds.length > 0) {
+                try {
+                    const { data: entryLogs } = await supabase
+                        .from('entry_exit_log')
+                        .select(`
+                            log_id,
+                            session:session_id (
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        `)
+                        .in('log_id', entryLogIds);
+                    
+                    (entryLogs || []).forEach(log => {
+                        const slotObj = log.session?.slot;
+                        if (slotObj) {
+                            entrySlotsMap[log.log_id] = formatSlotLocation(slotObj);
+                        }
+                    });
+
+                    const missingEntryIds = entryLogIds.filter(id => !entrySlotsMap[id]);
+                    if (missingEntryIds.length > 0) {
+                        const { data: entrySessions } = await supabase
+                            .from('parking_sessions')
+                            .select(`
+                                session_id,
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            `)
+                            .in('session_id', missingEntryIds);
+                        (entrySessions || []).forEach(sess => {
+                            const slotObj = sess.slot;
+                            if (slotObj) {
+                                entrySlotsMap[sess.session_id] = formatSlotLocation(slotObj);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('[DashboardView] Error resolving entry slot codes:', e);
+                }
+            }
+
+            if (exitLogIds.length > 0) {
+                try {
+                    const { data: exitLogs } = await supabase
+                        .from('entry_exit_log')
+                        .select(`
+                            log_id,
+                            session:session_id (
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        `)
+                        .in('log_id', exitLogIds);
+                    
+                    (exitLogs || []).forEach(log => {
+                        const slotObj = log.session?.slot;
+                        if (slotObj) {
+                            exitSlotsMap[log.log_id] = formatSlotLocation(slotObj);
+                        }
+                    });
+
+                    const missingExitIds = exitLogIds.filter(id => !exitSlotsMap[id]);
+                    if (missingExitIds.length > 0) {
+                        const { data: exitSessions } = await supabase
+                            .from('parking_sessions')
+                            .select(`
+                                session_id,
+                                slot:slot_id (
+                                    slot_code,
+                                    area:area_id (
+                                        floor:floor_id (
+                                            floor_number,
+                                            name,
+                                            parking:parking_id (
+                                                name
+                                            )
+                                        )
+                                    )
+                                )
+                            `)
+                            .in('session_id', missingExitIds);
+                        (exitSessions || []).forEach(sess => {
+                            const slotObj = sess.slot;
+                            if (slotObj) {
+                                exitSlotsMap[sess.session_id] = formatSlotLocation(slotObj);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('[DashboardView] Error resolving exit slot codes:', e);
+                }
+            }
+
+            const resolvedRecentIn = (data.recentEntries || []).map(item => ({
+                ...item,
+                slot: entrySlotsMap[item.id] || '—'
+            }));
+
+            const resolvedRecentOut = (data.recentExits || []).map(item => ({
+                ...item,
+                slot: exitSlotsMap[item.id] || '—'
+            }));
+
+            setRecentIn(resolvedRecentIn);
+            setRecentOut(resolvedRecentOut);
             setIncidents(data.recentIncidents);
         } catch (err) {
             console.error('[DashboardView] loadData error:', err);
