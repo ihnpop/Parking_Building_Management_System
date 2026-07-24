@@ -717,7 +717,7 @@ export const processReissueSuccess = async (orderCode) => {
     performed_by: performedBy
   });
 
-  await lostCardRepository.updateLostReport(reportId, { status: 'Hoàn thành' });
+  await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
 
   return { success: true, updatedCard };
 };
@@ -912,8 +912,8 @@ export const processLostTurnCardPaymentSuccess = async (orderCode) => {
     performed_by: performedBy
   });
 
-  // Cập nhật trạng thái report → 'Hoàn thành'
-  await lostCardRepository.updateLostReport(reportId, { status: 'Hoàn thành' });
+  // Cập nhật trạng thái report → 'Đã xong'
+  await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
 
   return { success: true };
 };
