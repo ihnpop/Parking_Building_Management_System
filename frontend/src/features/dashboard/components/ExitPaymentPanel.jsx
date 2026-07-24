@@ -544,6 +544,7 @@ export default function ExitPaymentPanel({
                         onClick={handleReset}
                         className="epp-btn-cancel-vnpay"
                     >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel</span>
                         Hủy giao dịch VNPay & Kiểm tra xe mới
                     </button>
                 </div>
