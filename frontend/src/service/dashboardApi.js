@@ -5,15 +5,20 @@ const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL
 });
 
-// Tự động lấy token Supabase mới nhất trước mỗi request
+// Tự động lấy token Supabase mới nhất hoặc fallback từ localStorage trước mỗi request
 API.interceptors.request.use(async (config) => {
     try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
             config.headers.Authorization = `Bearer ${session.access_token}`;
+            return config;
         }
     } catch (err) {
-        console.warn('[dashboardApi] Could not get Supabase session:', err.message);
+        // ignore
+    }
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
@@ -21,8 +26,10 @@ API.interceptors.request.use(async (config) => {
 /**
  * Gọi API lấy dữ liệu thống kê tổng quan và các biểu đồ
  */
-export const fetchAllDashboardData = async () => {
-    const response = await API.get("/dashboard/stats");
+export const fetchAllDashboardData = async (filterType = 'day', date = '', month = '') => {
+    const response = await API.get("/dashboard/stats", {
+        params: { filterType, date, month }
+    });
     return response.data;
 };
 
