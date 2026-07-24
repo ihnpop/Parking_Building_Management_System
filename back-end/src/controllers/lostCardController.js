@@ -193,7 +193,7 @@ export const initiateLostTurnCardPayment = async (req, res) => {
       });
     }
 
-    const { reportId, paymentMethod } = req.body;
+    const { reportId, cardId, sessionId, parkingFee, lostFee, paymentMethod } = req.body;
 
     let ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
     if (ipAddr === '::1' || ipAddr.includes('::ffff:')) {
@@ -203,6 +203,10 @@ export const initiateLostTurnCardPayment = async (req, res) => {
 
     const result = await lostCardService.initiateLostTurnCardPayment({
       reportId,
+      cardId,
+      sessionId,
+      parkingFee,
+      lostFee,
       paymentMethod,
       ipAddr,
       performedBy,

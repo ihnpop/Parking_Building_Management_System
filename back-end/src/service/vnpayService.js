@@ -68,7 +68,13 @@ export function createPaymentUrl({ orderCode, amount, orderInfo, ipAddr, origin 
  */
 export function verifySignature(query) {
     try {
-        const result = getVNPay().verifyReturnUrl(query);
+        const vnpQuery = {};
+        for (const key in query) {
+            if (key.startsWith('vnp_')) {
+                vnpQuery[key] = query[key];
+            }
+        }
+        const result = getVNPay().verifyReturnUrl(vnpQuery);
         return result.isVerified; // Trả về trạng thái xác thực từ SDK
     } catch (err) {
         console.error("[VNPAY] Lỗi trong quá trình xác thực chữ ký:", err.message);

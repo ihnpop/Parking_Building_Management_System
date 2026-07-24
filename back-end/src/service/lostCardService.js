@@ -40,8 +40,8 @@ export const getLostCards = async (buildingId = null) => {
       // PHÂN LOẠI TRẠNG THÁI HIỂN THỊ TIẾNG VIỆT
       const statusVal = log.status || '';
       let statusText;
-      if (statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại') {
-        statusText = 'Đã xong';
+      if (statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại' || statusVal === 'Hoàn thành') {
+        statusText = 'Hoàn thành';
       } else if (statusVal === 'Đã hủy thẻ') {
         statusText = 'Đã hủy thẻ';
       } else if (statusVal === 'Đã hủy (tạo nhầm)') {
@@ -717,7 +717,7 @@ export const processReissueSuccess = async (orderCode) => {
     performed_by: performedBy
   });
 
-  await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
+  await lostCardRepository.updateLostReport(reportId, { status: 'Hoàn thành' });
 
   return { success: true, updatedCard };
 };
@@ -912,8 +912,8 @@ export const processLostTurnCardPaymentSuccess = async (orderCode) => {
     performed_by: performedBy
   });
 
-  // Cập nhật trạng thái report → 'Đã xong'
-  await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
+  // Cập nhật trạng thái report → 'Hoàn thành'
+  await lostCardRepository.updateLostReport(reportId, { status: 'Hoàn thành' });
 
   return { success: true };
 };
