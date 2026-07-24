@@ -1086,30 +1086,39 @@ export default function ManagerDashboardPage() {
                         {isLoading ? (
                             <div className="mgr-loading">Đang tải...</div>
                         ) : (
-                            <div className="db-chart-container" style={{ height: '140px', marginTop: '16px' }}>
-                                <div className="db-chart-gridlines">
-                                    <div className="db-gridline" />
-                                    <div className="db-gridline" />
-                                    <div className="db-gridline" />
-                                    <div className="db-gridline" />
+                            <div className="db-traffic-chart">
+                                <div className="db-traffic-y-axis">
+                                    <span>{Math.round(maxTrafficVal)}</span>
+                                    <span>{Math.round(maxTrafficVal * 0.75)}</span>
+                                    <span>{Math.round(maxTrafficVal * 0.5)}</span>
+                                    <span>{Math.round(maxTrafficVal * 0.25)}</span>
+                                    <span>0</span>
                                 </div>
-                                <div className="db-bar-chart">
-                                    {trafficChartData.map((item, idx) => (
-                                        <div className="db-bar-wrap" key={idx}>
-                                            <div
-                                                className="db-bar"
-                                                style={{ height: `${Math.max(5, (item.val / maxTrafficVal) * 100)}%` }}
-                                            >
-                                                <div className="db-tooltip">
-                                                    <div className="db-tooltip-label">{item.labelFull || item.label}</div>
-                                                    <div className="db-tooltip-val">{item.val} lượt</div>
+                                <div className="db-chart-container">
+                                    <div className="db-chart-gridlines">
+                                        <div className="db-gridline" />
+                                        <div className="db-gridline" />
+                                        <div className="db-gridline" />
+                                        <div className="db-gridline" />
+                                    </div>
+                                    <div className="db-bar-chart">
+                                        {trafficChartData.map((item, idx) => (
+                                            <div className="db-bar-wrap" key={idx}>
+                                                <div
+                                                    className="db-bar"
+                                                    style={{ height: `${Math.max(5, (item.val / maxTrafficVal) * 100)}%` }}
+                                                >
+                                                    <div className="db-tooltip">
+                                                        <div className="db-tooltip-label">{item.labelFull || item.label}</div>
+                                                        <div className="db-tooltip-val">{item.val} lượt</div>
+                                                    </div>
                                                 </div>
+                                                <span className="db-x">
+                                                    {trafficChartData.length <= 7 || idx % 5 === 0 || idx === trafficChartData.length - 1 ? item.label : ''}
+                                                </span>
                                             </div>
-                                            <span className="db-x">
-                                                {trafficChartData.length <= 7 || idx % 5 === 0 || idx === trafficChartData.length - 1 ? item.label : ''}
-                                            </span>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
