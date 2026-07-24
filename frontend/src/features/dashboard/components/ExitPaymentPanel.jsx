@@ -76,7 +76,7 @@ const getRemainingSeconds = (savedAt) => {
 };
 
 // ─── VNPay Pending Panel ───────────────────────────────────────────────────────
-function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt, onContinue, onDefer, onExpired }) {
+function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt, onContinue, onDefer, onExpired, onCancel }) {
     const [remaining, setRemaining] = useState(() => getRemainingSeconds(savedAt));
     const formatVND = (v) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v || 0);
 
@@ -144,6 +144,18 @@ function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt
                     Tiếp tục thanh toán VNPay
                 </button>
             </div>
+
+            {/* Hủy giao dịch (nằm bên trong card) */}
+            {onCancel && (
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="epp-btn-cancel-vnpay"
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel</span>
+                    Hủy giao dịch VNPay & Kiểm tra xe mới
+                </button>
+            )}
         </div>
     );
 }
@@ -536,17 +548,8 @@ export default function ExitPaymentPanel({
                         onContinue={handleContinueVNPay}
                         onDefer={handleDeferVNPay}
                         onExpired={handleVNPayExpired}
+                        onCancel={handleReset}
                     />
-
-                    {/* Kiểm tra xe khác */}
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="epp-btn-cancel-vnpay"
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>cancel</span>
-                        Hủy giao dịch VNPay & Kiểm tra xe mới
-                    </button>
                 </div>
             ) : (
                 <>

@@ -33328,10 +33328,6 @@ button.mc-btn .material-symbols-outlined {
 .epp-status-grid-value--code {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 3px 8px;
-  border-radius: 6px;
   color: #475569;
 }
 
@@ -33344,13 +33340,8 @@ button.mc-btn .material-symbols-outlined {
 .epp-status-grid-value--plate {
   font-weight: 800;
   color: #1e3a8a;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  padding: 4px 12px;
-  border-radius: 8px;
   font-size: 15px;
   letter-spacing: 0.05em;
-  display: inline-block;
 }
 
 .epp-info-tip {
