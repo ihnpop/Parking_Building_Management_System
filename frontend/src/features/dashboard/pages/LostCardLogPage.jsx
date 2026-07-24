@@ -690,9 +690,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                     // CHỈ KHỞI TẠO PHIẾU THU, KHÔNG GỌI confirmLostTurnCardCash ĐỂ KHÔNG ĐÓNG PHIÊN GỬI XE.
                     // Phiên gửi xe sẽ được đóng tại cổng ra (ExitPaymentPanel) khi Staff bấm Mở barie.
                 } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.open(payRes.payUrl, '_blank');
-                    showToast('Đã mở trang thanh toán VNPay trong tab mới. Sau khi hoàn tất, nhấn F5 để cập nhật trạng thái.', 'info');
-                    await fetchLostCards();
+                    window.location.href = payRes.payUrl;
                     return;
                 }
             } else if (createCardCategory === 'month') {
@@ -713,9 +711,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 if (createPaymentMethod === 'cash' && payRes?.order_code) {
                     await confirmReissueCash(payRes.order_code);
                 } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.open(payRes.payUrl, '_blank');
-                    showToast('Đã mở trang thanh toán VNPay trong tab mới. Sau khi hoàn tất, nhấn F5 để cập nhật trạng thái.', 'info');
-                    await fetchLostCards();
+                    window.location.href = payRes.payUrl;
                     return;
                 }
             }

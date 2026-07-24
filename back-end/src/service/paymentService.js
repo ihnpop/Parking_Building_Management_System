@@ -132,13 +132,21 @@ export async function handleIpn(query) {
         }
         // --- TRƯỜNG HỢP 3: Phí cấp lại thẻ tháng ---
         else if (payment.payment_type === "Phí cấp lại thẻ") {
-            const { processReissueSuccess } = await import("./lostCardService.js");
-            await processReissueSuccess(orderCode);
+            try {
+                const { processReissueSuccess } = await import("./lostCardService.js");
+                await processReissueSuccess(orderCode);
+            } catch (reissueErr) {
+                console.error("[handleIpn] Lỗi xử lý nghiệp vụ cấp lại thẻ (payment đã thành công):", reissueErr.message);
+            }
         }
         // --- TRƯỜNG HỢP 4: Phí mất thẻ lượt ---
         else if (payment.payment_type === "Phí mất thẻ lượt") {
-            const { processLostTurnCardPaymentSuccess } = await import("./lostCardService.js");
-            await processLostTurnCardPaymentSuccess(orderCode);
+            try {
+                const { processLostTurnCardPaymentSuccess } = await import("./lostCardService.js");
+                await processLostTurnCardPaymentSuccess(orderCode);
+            } catch (lostTurnErr) {
+                console.error("[handleIpn] Lỗi xử lý nghiệp vụ mất thẻ lượt (payment đã thành công):", lostTurnErr.message);
+            }
         }
     }
 

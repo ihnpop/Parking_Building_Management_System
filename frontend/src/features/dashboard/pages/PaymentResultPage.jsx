@@ -57,6 +57,7 @@ const PAYMENT_TYPE_LABEL = {
     "Đăng ký vé tháng": "Đăng ký vé tháng",
     "Gia hạn vé tháng": "Gia hạn vé tháng",
     "Phí cấp lại thẻ": "Cấp lại thẻ tháng (mất thẻ)",
+    "Phí mất thẻ lượt": "Thanh toán phí mất thẻ lượt",
 };
 
 // Định nghĩa hệ thống CSS trong code (inline styles) vì ứng dụng không sử dụng Tailwind CSS
@@ -187,7 +188,11 @@ export default function PaymentResultPage() {
             .finally(() => setLoading(false));
     }, [orderCode]);
 
-    const isSuccess = status === "success";
+    // Ưu tiên trạng thái từ DB (source of truth) khi có dữ liệu payment
+    // Fallback sang URL param 'status' nếu chưa load được payment từ DB
+    const isSuccess = payment
+        ? payment.status === "Đã thanh toán"
+        : status === "success";
 
     return (
         <div style={styles.page}>
@@ -244,7 +249,7 @@ export default function PaymentResultPage() {
                         </div>
                         <div style={styles.row}>
                             <span style={styles.label}>Thời gian</span>
-                            <span style={styles.value}>{formatDateTime(payment.paid_at)}</span>
+                            <span style={styles.value}>{formatDateTime(payment.paid_at || payment.payment_time)}</span>
                         </div>
                         <div style={styles.rowLast}>
                             <span style={styles.label}>Trạng thái</span>
