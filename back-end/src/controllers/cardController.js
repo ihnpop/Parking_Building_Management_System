@@ -1,4 +1,5 @@
 import * as cardService from "../service/cardService.js";
+import * as monthCardService from "../service/monthCardService.js";
 import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
 
 export const getCards = async (req, res) => {
@@ -12,7 +13,7 @@ export const getCards = async (req, res) => {
 
 export const getMonthCards = async (req, res) => {
   try {
-    const monthCards = await cardService.getMonthCards();
+    const monthCards = await monthCardService.getMonthCards();
     res.status(200).json(monthCards);
   } catch (err) {
     res.status(500).json({ error: err.message });

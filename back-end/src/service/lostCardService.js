@@ -566,9 +566,12 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
 
   const codeExists = await cardRepository.checkCodeExists(newCode.trim());
   if (codeExists) {
-    throw new Error(
-      `Mã RFID '${newCode.trim()}' đã tồn tại trong hệ thống. Vui lòng dùng mã khác.`
-    );
+    const blankCard = await cardRepository.findByCode(newCode.trim());
+    if (!blankCard || (blankCard.status !== 'Đang chờ' && blankCard.status !== 'Blank Card' && blankCard.status !== 'Available Card')) {
+      throw new Error(
+        `Mã RFID '${newCode.trim()}' đã tồn tại và không khả dụng (Trạng thái: ${blankCard?.status || 'Unknown'}). Vui lòng dùng mã khác.`
+      );
+    }
   }
 
   const REISSUE_FEE = 50000;
@@ -658,7 +661,29 @@ export const processReissueSuccess = async (orderCode) => {
 
   const oldCode = cardObj.code;
 
-  const updatedCard = await cardRepository.reissueCardUpdate(cardId, newCode.trim());
+  let updatedCard;
+  const blankCard = await cardRepository.findByCode(newCode.trim());
+
+  if (blankCard && (blankCard.status === 'Đang chờ' || blankCard.status === 'Blank Card' || blankCard.status === 'Available Card')) {
+    // Tái sử dụng thẻ đang chờ
+    updatedCard = await cardRepository.reuseWaitingCard(blankCard.card_id, new Date().toISOString());
+    
+    // Chuyển đăng ký từ thẻ cũ sang thẻ mới
+    if (report.vehicle_id) {
+      await cardRepository.insertCardRegistration({
+        card_id: blankCard.card_id,
+        vehicle_id: report.vehicle_id,
+        status: 'Hoạt động',
+        created_at: new Date().toISOString()
+      });
+    }
+
+    // Đánh dấu thẻ cũ là Đã xóa
+    await cardRepository.cancelCard(cardId, performedBy);
+  } else {
+    // Fallback: ghi đè mã nếu không phải thẻ trong kho
+    updatedCard = await cardRepository.reissueCardUpdate(cardId, newCode.trim());
+  }
 
   const regForAudit = await lostCardRepository.findRegForAudit(cardId, report.vehicle_id);
   let plateForAudit = null;
