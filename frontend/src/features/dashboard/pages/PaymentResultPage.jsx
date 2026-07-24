@@ -259,7 +259,15 @@ export default function PaymentResultPage() {
                 <div style={styles.actions}>
                     <button
                         style={styles.btnSecondary}
-                        onClick={() => navigate("/login/dashboard")}
+                        onClick={() => {
+                            if (payment?.payment_type === "Phí cấp lại thẻ" || payment?.payment_type === "Phí mất thẻ lượt") {
+                                navigate("/login/dashboard/lost-card-log");
+                            } else if (payment?.payment_type === "Gia hạn vé tháng" || payment?.payment_type === "Đăng ký vé tháng") {
+                                navigate("/login/dashboard/month-card-log");
+                            } else {
+                                navigate("/login/dashboard");
+                            }
+                        }}
                         onMouseEnter={e => e.target.style.background = "#343849"}
                         onMouseLeave={e => e.target.style.background = "#2a2e3d"}
                     >

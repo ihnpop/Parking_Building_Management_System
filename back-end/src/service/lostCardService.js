@@ -665,6 +665,9 @@ export const processReissueSuccess = async (orderCode) => {
   const blankCard = await cardRepository.findByCode(newCode.trim());
 
   if (blankCard && (blankCard.status === 'Đang chờ' || blankCard.status === 'Blank Card' || blankCard.status === 'Available Card')) {
+    // Đánh dấu thẻ cũ là Đã xóa trước để tránh lỗi unique constraint trên vehicle_id
+    await cardRepository.cancelCard(cardId, performedBy);
+
     // Tái sử dụng thẻ đang chờ
     updatedCard = await cardRepository.reuseWaitingCard(blankCard.card_id, new Date().toISOString());
     
@@ -677,9 +680,6 @@ export const processReissueSuccess = async (orderCode) => {
         created_at: new Date().toISOString()
       });
     }
-
-    // Đánh dấu thẻ cũ là Đã xóa
-    await cardRepository.cancelCard(cardId, performedBy);
   } else {
     // Fallback: ghi đè mã nếu không phải thẻ trong kho
     updatedCard = await cardRepository.reissueCardUpdate(cardId, newCode.trim());
