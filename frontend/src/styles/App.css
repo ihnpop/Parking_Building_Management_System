@@ -36679,6 +36679,25 @@ button.mc-btn .material-symbols-outlined {
   transform: translateX(-50%) translateY(-8px) scale(1) !important;
 }
 
+/* Style for Export Excel Button */
+.db-export-excel-btn {
+  background-color: #10b981 !important;
+  border: 1.5px solid #10b981 !important;
+  color: #ffffff !important;
+  transition: all 0.2s ease !important;
+}
+
+.db-export-excel-btn:hover {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2), 0 2px 4px -1px rgba(16, 185, 129, 0.1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.db-export-excel-btn:active {
+  transform: translateY(1px) !important;
+}
+
 
 
 

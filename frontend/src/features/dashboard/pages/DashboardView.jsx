@@ -1,109 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import supabase from '../../../config/supabaseClient';
 
-/** Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam */
-function todayVN() {
-    const vnTime = new Date().getTime() + 7 * 60 * 60 * 1000;
-    const vnDate = new Date(vnTime);
-    const y = vnDate.getUTCFullYear();
-    const m = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(vnDate.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-/** Trả về chuỗi yyyy-MM theo timezone Việt Nam */
-function thisMonthVN() {
-    return todayVN().slice(0, 7);
-}
-
-// Shift input date by +7 hours so that UTC methods return the Vietnam time components directly
-function getVNDateParts(dateInput) {
-    if (!dateInput) return null;
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return null;
-    const vnTime = d.getTime() + 7 * 60 * 60 * 1000;
-    const vnDate = new Date(vnTime);
-    return {
-        year: vnDate.getUTCFullYear(),
-        month: vnDate.getUTCMonth() + 1,
-        date: vnDate.getUTCDate(),
-        hour: vnDate.getUTCHours(),
-        minute: vnDate.getUTCMinutes(),
-        second: vnDate.getUTCSeconds(),
-        dayOfWeek: vnDate.getUTCDay()
-    };
-}
-
-function getLocalDateVN(dateInput) {
-    const parts = getVNDateParts(dateInput);
-    if (!parts) return '';
-    const y = parts.year;
-    const m = String(parts.month).padStart(2, '0');
-    const d = String(parts.date).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-}
-
-function formatLabel(dateStr) {
-    const parts = dateStr.split('-');
-    return `${parts[2]}/${parts[1]}`;
-}
-
-function getHourVN(dateInput) {
-    const parts = getVNDateParts(dateInput);
-    return parts ? parts.hour : -1;
-}
-
-function formatVNDCompact(val) {
-    if (val === null || val === undefined || isNaN(Number(val))) return '0 ₫';
-    const num = Number(val);
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M ₫';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(0) + 'K ₫';
-    }
-    return num + ' ₫';
-}
-
-function getVNPeriodRange(period, customDate, customMonth) {
-    let startVN, endVN;
-
-    if (period === 'day' && customDate) {
-        const [y, m, d] = customDate.split('-').map(Number);
-        startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-    } else if (period === 'week' && customDate) {
-        const [y, m, d] = customDate.split('-').map(Number);
-        // Find VN day of week (0 = Sunday, 1 = Monday...)
-        const targetTime = Date.UTC(y, m - 1, d, 12, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        const parts = getVNDateParts(targetTime);
-        const currentDay = parts.dayOfWeek;
-        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-
-        const mondayTime = targetTime + diffToMonday * 24 * 60 * 60 * 1000;
-        const mondayParts = getVNDateParts(mondayTime);
-
-        startVN = Date.UTC(mondayParts.year, mondayParts.month - 1, mondayParts.date, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = startVN + 7 * 24 * 60 * 60 * 1000 - 1;
-    } else if (period === 'month' && customMonth) {
-        const [y, m] = customMonth.split('-').map(Number);
-        startVN = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = Date.UTC(y, m, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-    } else {
-        const vnTime = new Date().getTime() + 7 * 60 * 60 * 1000;
-        const vnDate = new Date(vnTime);
-        const y = vnDate.getUTCFullYear();
-        const m = vnDate.getUTCMonth();
-        const d = vnDate.getUTCDate();
-
-        startVN = Date.UTC(y, m, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = Date.UTC(y, m, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-    }
-
-    return {
-        startDate: new Date(startVN).toISOString(),
-        endDate: new Date(endVN).toISOString()
-    };
-}
+import { 
+    todayVN, 
+    thisMonthVN, 
+    getVNDateParts, 
+    getLocalDateVN, 
+    formatLabel, 
+    getHourVN, 
+    formatVNDCompact, 
+    getVNPeriodRange, 
+    handleExportExcel as handleExportExcelUtil 
+} from '../../../utils/dashboardUtils';
 
 import DashboardShell from '../../../components/layout/DashboardShell';
 import { useAuth } from '../../../context/AuthContext';
@@ -435,6 +343,24 @@ export default function DashboardView() {
         loadData();
     };
 
+    const handleExportExcel = () => {
+        handleExportExcelUtil({
+            dashboardPeriod,
+            dateFormatted,
+            weekLabel,
+            monthFormatted,
+            stats,
+            floorData,
+            vehicleTypes,
+            trafficChartData,
+            revenueChartData,
+            recentIn,
+            recentOut,
+            incidents,
+            formatVND
+        });
+    };
+
     const renderTabButton = (label, isActive, onClickAction) => {
         const activeColor = '#004bca';
         return (
@@ -756,6 +682,33 @@ export default function DashboardView() {
                                         }}
                                     />
                                 )}
+
+                                <button
+                                    type="button"
+                                    onClick={handleExportExcel}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '0 16px',
+                                        height: '42px',
+                                        borderRadius: '10px',
+                                        border: '1.5px solid #10b981',
+                                        backgroundColor: '#10b981',
+                                        color: '#ffffff',
+                                        fontWeight: '600',
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                        boxSizing: 'border-box',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                        transition: 'all 0.2s ease',
+                                        marginRight: '8px'
+                                    }}
+                                    className="db-export-excel-btn"
+                                >
+                                    <span className="material-symbols-outlined">download_for_offline</span>
+                                    Xuất Excel
+                                </button>
 
                                 <button
                                     type="button"
