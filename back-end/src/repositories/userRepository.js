@@ -102,7 +102,7 @@ export const updateProfileRole = async (id, roleId) => {
  * @param {number} limit 
  * @returns {Promise<object[]>}
  */
-export const getLoginLogs = async (limit = 100) => {
+export const getLoginLogs = async () => {
     const { data, error } = await supabase
         .from("login_logs")
         .select(`
@@ -115,8 +115,7 @@ export const getLoginLogs = async (limit = 100) => {
             status,
             login_time
         `)
-        .order("login_time", { ascending: false })
-        .limit(limit);
+        .order("login_time", { ascending: false });
 
     if (error) throw error;
     return data || [];
