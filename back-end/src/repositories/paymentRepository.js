@@ -95,15 +95,19 @@ export async function findSessionById(sessionId) {
 /**
  * Cập nhật trạng thái phiên đỗ xe khi xe ra bãi (checkout)
  */
-export async function updateSessionOnCheckout(sessionId, { exitTime, finalFee, staffOutId }) {
+export async function updateSessionOnCheckout(sessionId, { exitTime, finalFee, estimatedFee, staffOutId }) {
+    const updatePayload = {
+        exit_time: exitTime,
+        status: "Hoàn thành",
+        final_fee: finalFee,
+        staff_out_id: staffOutId || null,
+    };
+    if (estimatedFee !== undefined) {
+        updatePayload.estimated_fee = estimatedFee;
+    }
     const { error } = await supabase
         .from("parking_sessions")
-        .update({
-            exit_time: exitTime,
-            status: "Hoàn thành",
-            final_fee: finalFee,
-            staff_out_id: staffOutId || null,
-        })
+        .update(updatePayload)
         .eq("session_id", sessionId);
     if (error) throw new Error("Lỗi cập nhật phiên gửi xe: " + error.message);
 }
@@ -111,10 +115,10 @@ export async function updateSessionOnCheckout(sessionId, { exitTime, finalFee, s
 /**
  * Cập nhật trạng thái phiên gửi xe (ví dụ: 'Chờ thanh toán')
  */
-export async function updateSessionStatus(sessionId, status) {
+export async function updateSessionStatus(sessionId, status, extraFields = {}) {
     const { error } = await supabase
         .from("parking_sessions")
-        .update({ status })
+        .update({ status, ...extraFields })
         .eq("session_id", sessionId);
     if (error) throw new Error("Lỗi cập nhật trạng thái phiên: " + error.message);
 }

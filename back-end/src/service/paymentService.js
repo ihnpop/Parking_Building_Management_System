@@ -228,6 +228,7 @@ export async function cashPayment(sessionId, staffId) {
     await paymentRepository.updateSessionOnCheckout(sessionId, {
         exitTime,
         finalFee: amount,
+        estimatedFee: amount,
         staffOutId: staffId,
     });
 
@@ -264,7 +265,7 @@ export async function cashPayment(sessionId, staffId) {
 
     return {
         payment,
-        session: { ...session, exit_time: exitTime, final_fee: amount, status: "Hoàn thành" },
+        session: { ...session, exit_time: exitTime, final_fee: amount, estimated_fee: amount, status: "Hoàn thành" },
         message: "Thanh toán tiền mặt thành công, có thể mở barie",
     };
 }
@@ -327,8 +328,8 @@ export async function createVnpayPayment(sessionId, staffId, ipAddr, origin) {
         created_by: staffId || null,
     });
 
-    // 5. Cập nhật trạng thái session
-    await paymentRepository.updateSessionStatus(sessionId, "Chờ thanh toán");
+    // 5. Cập nhật trạng thái session và lưu estimated_fee
+    await paymentRepository.updateSessionStatus(sessionId, "Chờ thanh toán", { estimated_fee: amount });
 
     // 6. Tạo URL VNPay
     const normalizedIp =
@@ -369,6 +370,7 @@ async function _processVnpayCheckout(payment) {
     await paymentRepository.updateSessionOnCheckout(sessionId, {
         exitTime,
         finalFee: payment.amount,
+        estimatedFee: payment.amount,
         staffOutId: payment.created_by,
     });
 

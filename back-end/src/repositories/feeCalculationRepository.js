@@ -204,3 +204,19 @@ export async function findPriceItemsByVehicleType(vehicleTypeId) {
     if (error) throw new Error(error.message);
     return data || [];
 }
+
+/**
+ * Cập nhật phí ước tính (estimated_fee) cho phiên gửi xe
+ * @param {string} sessionId
+ * @param {number} estimatedFee
+ */
+export async function updateSessionEstimatedFee(sessionId, estimatedFee) {
+    if (!sessionId) return;
+    const { error } = await supabase
+        .from("parking_sessions")
+        .update({ estimated_fee: estimatedFee })
+        .eq("session_id", sessionId);
+
+    if (error) console.error("[feeCalculationRepo] Lỗi cập nhật estimated_fee:", error.message);
+}
+
