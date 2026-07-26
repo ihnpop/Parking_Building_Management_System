@@ -1,5 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { updateMonthCard } from '../../../service/monthCardApi';
+import supabase from '../../../config/supabaseClient';
+
+// Helper: Convert UTC / ISO timestamp to local 'YYYY-MM-DDTHH:mm' for datetime-local input
+const toLocalISOString = (dateInput) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Helper: Convert local 'YYYY-MM-DDTHH:mm' input value to ISO string for backend payload
+const fromLocalISOString = (localISOStr) => {
+    if (!localISOStr || !localISOStr.trim()) return null;
+    const date = new Date(localISOStr);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString();
+};
 
 export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSuccess }) {
     // Lưu dữ liệu form cập nhật thẻ tháng
@@ -20,7 +42,6 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
     const [fieldErrors, setFieldErrors] = useState({ phone: '', email: '' });
     // Lưu thông báo thành công
     const [successMessage, setSuccessMessage] = useState('');
-    // Khi mở modal thì load dữ liệu vào form
     // Helper: convert UI label -> DB value
     const uiToDbStatus = (uiStatus) => {
         switch (uiStatus) {
@@ -33,24 +54,68 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
     };
 
     useEffect(() => {
-        if (isOpen && cardData) {
-            setFormData({
-                plate: cardData.plate !== 'Chưa có' ? cardData.plate || '' : '',
-                fullName: cardData.customer !== 'Khách vãng lai' ? cardData.customer || '' : '',
-                phone: cardData.phone || '',
-                email: cardData.email || '',
-                cccd_number: cardData.cccd_number || '',
-                status: uiToDbStatus(cardData.status || 'Hoạt động'),
-                checkInTime: cardData.check_in_time
-                    ? new Date(cardData.check_in_time).toISOString().slice(0, 16)
-                    : '',
-                checkOutTime: cardData.check_out_time
-                    ? new Date(cardData.check_out_time).toISOString().slice(0, 16)
-                    : ''
-            });
-            setError(null);
-            setSuccessMessage('');
-        }
+        let isMounted = true;
+
+        const loadSessionAndInitForm = async () => {
+            if (!isOpen || !cardData) return;
+
+            let checkIn = cardData.check_in_time || '';
+            let checkOut = cardData.check_out_time || '';
+
+            try {
+                const plate = cardData.plate !== 'Chưa có' ? cardData.plate : null;
+                if (plate || cardData.card_id) {
+                    let query = supabase
+                        .from('parking_sessions')
+                        .select('entry_time, exit_time, status')
+                        .order('entry_time', { ascending: false })
+                        .limit(1);
+
+                    if (cardData.card_id && plate) {
+                        query = query.or(`plate_number.eq.${plate},card_id.eq.${cardData.card_id}`);
+                    } else if (cardData.card_id) {
+                        query = query.eq('card_id', cardData.card_id);
+                    } else {
+                        query = query.eq('plate_number', plate);
+                    }
+
+                    const { data: session } = await query.maybeSingle();
+
+                    if (session && isMounted) {
+                        checkIn = session.entry_time || '';
+                        // Xe đang ở trong bãi xe (đã checkin, chưa checkout) -> exit_time rỗng
+                        if (!session.exit_time || session.status === 'Đang gửi' || session.status === 'Đang gửi xe') {
+                            checkOut = '';
+                        } else {
+                            checkOut = session.exit_time || '';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("[EditMonthCardDialog] Lỗi fetch session real-time:", err);
+            }
+
+            if (isMounted) {
+                setFormData({
+                    plate: cardData.plate !== 'Chưa có' ? cardData.plate || '' : '',
+                    fullName: cardData.customer !== 'Khách vãng lai' ? cardData.customer || '' : '',
+                    phone: cardData.phone || '',
+                    email: cardData.email || '',
+                    cccd_number: cardData.cccd_number || '',
+                    status: uiToDbStatus(cardData.status || 'Hoạt động'),
+                    checkInTime: toLocalISOString(checkIn),
+                    checkOutTime: toLocalISOString(checkOut)
+                });
+                setError(null);
+                setSuccessMessage('');
+            }
+        };
+
+        loadSessionAndInitForm();
+
+        return () => {
+            isMounted = false;
+        };
     }, [isOpen, cardData]);
 
     if (!isOpen || !cardData) return null;
@@ -106,8 +171,8 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                 email: formData.email,
                 cccd_number: formData.cccd_number,
                 status: formData.status,
-                checkInTime: hasPlate ? formData.checkInTime : null,
-                checkOutTime: hasPlate ? formData.checkOutTime : null
+                checkInTime: hasPlate && formData.checkInTime ? fromLocalISOString(formData.checkInTime) : null,
+                checkOutTime: hasPlate && formData.checkOutTime ? fromLocalISOString(formData.checkOutTime) : null
             };
 
             const res = await updateMonthCard(cardData.card_id, payload);

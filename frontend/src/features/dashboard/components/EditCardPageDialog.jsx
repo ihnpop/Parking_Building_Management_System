@@ -1,6 +1,28 @@
 import { useState, useEffect } from 'react';
 import { updateCard } from '../../../service/cardApi';
 import { useNotification } from '../../../context/NotificationContext';
+import supabase from '../../../config/supabaseClient';
+
+// Helper: Convert UTC / ISO timestamp to local 'YYYY-MM-DDTHH:mm' for datetime-local input
+const toLocalISOString = (dateInput) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Helper: Convert local 'YYYY-MM-DDTHH:mm' input value to ISO string for backend payload
+const fromLocalISOString = (localISOStr) => {
+    if (!localISOStr || !localISOStr.trim()) return null;
+    const date = new Date(localISOStr);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString();
+};
 
 // ─────────────────────────────────────────────
 // Modal: Cập nhật thẻ
@@ -18,20 +40,63 @@ export default function EditCardPageDialog({ isOpen, onClose, onSuccess, card })
     const [formError, setFormError] = useState(null);
 
     useEffect(() => {
-        if (isOpen && card) {
-            setFormData({
-                type: 'Thẻ lượt',
-                plate: card.plate || '',
-                checkInTime: card.check_in_time
-                    ? new Date(card.check_in_time).toISOString().slice(0, 16)
-                    : '',
-                checkOutTime: card.check_out_time
-                    ? new Date(card.check_out_time).toISOString().slice(0, 16)
-                    : '',
-                status: card.status || 'Hoạt động'
-            });
-            setFormError(null);
-        }
+        let isMounted = true;
+
+        const loadSessionAndInitForm = async () => {
+            if (!isOpen || !card) return;
+
+            let checkIn = card.check_in_time || '';
+            let checkOut = card.check_out_time || '';
+
+            try {
+                const plate = card.plate && card.plate !== 'Chưa có' ? card.plate : null;
+                if (plate || card.card_id) {
+                    let query = supabase
+                        .from('parking_sessions')
+                        .select('entry_time, exit_time, status')
+                        .order('entry_time', { ascending: false })
+                        .limit(1);
+
+                    if (card.card_id && plate) {
+                        query = query.or(`plate_number.eq.${plate},card_id.eq.${card.card_id}`);
+                    } else if (card.card_id) {
+                        query = query.eq('card_id', card.card_id);
+                    } else {
+                        query = query.eq('plate_number', plate);
+                    }
+
+                    const { data: session } = await query.maybeSingle();
+
+                    if (session && isMounted) {
+                        checkIn = session.entry_time || '';
+                        if (!session.exit_time || session.status === 'Đang gửi' || session.status === 'Đang gửi xe') {
+                            checkOut = '';
+                        } else {
+                            checkOut = session.exit_time || '';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("[EditCardPageDialog] Lỗi fetch session real-time:", err);
+            }
+
+            if (isMounted) {
+                setFormData({
+                    type: 'Thẻ lượt',
+                    plate: card.plate || '',
+                    checkInTime: toLocalISOString(checkIn),
+                    checkOutTime: toLocalISOString(checkOut),
+                    status: card.status || 'Hoạt động'
+                });
+                setFormError(null);
+            }
+        };
+
+        loadSessionAndInitForm();
+
+        return () => {
+            isMounted = false;
+        };
     }, [isOpen, card]);
 
     if (!isOpen || !card) return null;
@@ -57,8 +122,8 @@ export default function EditCardPageDialog({ isOpen, onClose, onSuccess, card })
             await updateCard(card.card_id, {
                 type: 'Thẻ lượt',
                 plate: formData.plate,
-                checkInTime: hasPlate ? formData.checkInTime : null,
-                checkOutTime: hasPlate ? formData.checkOutTime : null,
+                checkInTime: hasPlate && formData.checkInTime ? fromLocalISOString(formData.checkInTime) : null,
+                checkOutTime: hasPlate && formData.checkOutTime ? fromLocalISOString(formData.checkOutTime) : null,
                 status: hasPlate ? formData.status : card.status
             });
             showToast("Cập nhật thẻ thành công", "success");
