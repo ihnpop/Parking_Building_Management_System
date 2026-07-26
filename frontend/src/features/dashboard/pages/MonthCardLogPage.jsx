@@ -321,21 +321,20 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
         }
 
         if (d) {
-            // Add 7 hours to fix UTC+0 issue
-            const adjustedDate = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-            const timePart = new Intl.DateTimeFormat('vi-VN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Ho_Chi_Minh',
-            }).format(adjustedDate);
-            const datePart = new Intl.DateTimeFormat('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                timeZone: 'Asia/Ho_Chi_Minh',
-            }).format(adjustedDate);
+            // Đảm bảo hiển thị đúng UTC+7 bất chấp múi giờ của trình duyệt
+            // Bằng cách cộng trực tiếp 7 tiếng vào UTC time và lấy các thành phần UTC
+            const utc7Time = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+            
+            const hours = String(utc7Time.getUTCHours()).padStart(2, '0');
+            const minutes = String(utc7Time.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(utc7Time.getUTCSeconds()).padStart(2, '0');
+            const timePart = `${hours}:${minutes}:${seconds}`;
+
+            const day = String(utc7Time.getUTCDate()).padStart(2, '0');
+            const month = String(utc7Time.getUTCMonth() + 1).padStart(2, '0');
+            const year = utc7Time.getUTCFullYear();
+            const datePart = `${day}/${month}/${year}`;
+
             return (
                 <div className="log-time-column">
                     <span className="log-time-clock">{timePart}</span>
