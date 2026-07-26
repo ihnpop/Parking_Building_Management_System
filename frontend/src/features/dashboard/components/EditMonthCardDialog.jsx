@@ -298,7 +298,8 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                             value={formData.fullName}
                             onChange={handleFormChange}
                             required
-                            disabled={isSubmitting}
+                            disabled={true}
+                            style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }}
                         />
                     </div>
 
@@ -353,7 +354,8 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                             onChange={handleFormChange}
                             maxLength={12}
                             placeholder="079xxxxxxxxxxxxx"
-                            disabled={isSubmitting}
+                            disabled={true}
+                            style={{ backgroundColor: '#f1f5f9', cursor: 'not-allowed' }}
                         />
                     </div>
 
