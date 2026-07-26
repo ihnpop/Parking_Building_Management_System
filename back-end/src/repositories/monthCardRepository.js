@@ -1039,3 +1039,22 @@ export const getLostReportsByIds = async (reportIds) => {
   return data || [];
 };
 
+/**
+ * Chèn bản ghi KYC (CCCD) cho khách hàng
+ * @param {string} customerId
+ * @param {string} cccdNumber
+ * @returns {Promise<void>}
+ */
+export const insertCustomerKyc = async (customerId, cccdNumber) => {
+  const { error } = await supabase
+    .from('customer_kyc')
+    .insert({
+      customer_id: customerId,
+      cccd_number: cccdNumber,
+      ekyc_status: 'Đã xác thực',
+      verified_at: new Date().toISOString()
+    });
+
+  if (error) throw new Error(error.message);
+};
+

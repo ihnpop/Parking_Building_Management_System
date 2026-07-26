@@ -99,6 +99,32 @@ export const updateUserRole = async (req, res) => {
     }
 };
 
+/**
+ * PATCH /api/users/:id/profile
+ * Cập nhật thông tin cơ bản: phone, full_name, status
+ */
+export const updateUserProfile = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { phone, full_name, status } = req.body;
+
+        const updateData = {};
+        if (phone !== undefined) updateData.phone = phone;
+        if (full_name !== undefined) updateData.full_name = full_name;
+        if (status !== undefined) updateData.status = status;
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: "Không có dữ liệu nào để cập nhật" });
+        }
+
+        const updated = await userRepository.updateProfile(id, updateData);
+        return res.json({ message: "Cập nhật thông tin thành công", data: updated });
+    } catch (err) {
+        console.error("updateUserProfile error:", err);
+        return res.status(500).json({ message: err.message });
+    }
+};
+
 const getInitials = (name) => {
     if (!name) return "UK";
     const parts = name.trim().split(/\s+/);

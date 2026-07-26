@@ -69,12 +69,12 @@ async function getVehicleAndCard(session) {
  * @param {object|null} vehicle
  * @returns {Promise<boolean>}
  */
-async function checkLostCard(card, vehicle) {
+async function checkLostCard(card, vehicle, session) {
     if (card?.status === "Mất thẻ") {
         return true;
     }
     if (vehicle) {
-        const lostLog = await feeCalculationRepository.findUnresolvedLostCardLog(vehicle.vehicle_id);
+        const lostLog = await feeCalculationRepository.findUnresolvedLostCardLog(vehicle.vehicle_id, session?.entry_time);
         if (lostLog) {
             return true;
         }
@@ -379,7 +379,7 @@ export async function calculateExitFee({ plate_number }) {
     const { vehicle, card } = await getVehicleAndCard(session);
 
     // ─── 4. Kiểm tra thẻ mất ─────────────────────────────────────────────────
-    const isLostCard = await checkLostCard(card, vehicle);
+    const isLostCard = await checkLostCard(card, vehicle, session);
     if (isLostCard) {
         return {
             session,
