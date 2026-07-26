@@ -124,7 +124,7 @@ export const getLoginLogs = async (req, res) => {
     try {
         let logs;
         try {
-            logs = await userRepository.getLoginLogs(100);
+            logs = await userRepository.getLoginLogs();
         } catch (error) {
             return res.status(400).json({ message: error.message });
         }
