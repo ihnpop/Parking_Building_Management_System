@@ -421,6 +421,10 @@ export async function calculateExitFee({ plate_number }) {
         fullDays, remainingHours, dailyCeilingPrice, remainingFee
     } = await calculateHourlyFee(session, vehicle);
 
+    if (session?.session_id) {
+        await feeCalculationRepository.updateSessionEstimatedFee(session.session_id, estimated_fee);
+    }
+
     const warning = isMonthlyExpired
         ? "Vé tháng đã hết hạn — vui lòng nhắc khách gia hạn"
         : null;

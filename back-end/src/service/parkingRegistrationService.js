@@ -279,7 +279,7 @@ class ParkingRegistrationService {
                 status: 'Chờ thanh toán',
                 payment_method: mapPaymentMethod(payment_method),
                 payment_time: new Date().toISOString(),
-                note: JSON.stringify(savedPayload),
+                note: savedPayload,
                 created_by: created_by || null
             });
 
@@ -341,9 +341,9 @@ class ParkingRegistrationService {
                 throw new Error('Giao dịch chưa được xác nhận thanh toán. Vui lòng hoàn tất thanh toán rồi thử lại.');
             }
 
-            try {
-                registrationData = JSON.parse(paymentRecord.note);
-            } catch (e) {
+            // note là jsonb — Supabase trả về object trực tiếp, không cần JSON.parse()
+            registrationData = paymentRecord.note;
+            if (!registrationData || typeof registrationData !== 'object') {
                 throw new Error('Dữ liệu lưu trữ giao dịch không hợp lệ.');
             }
         } else {

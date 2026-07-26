@@ -65,17 +65,15 @@ export const getLostCards = async (buildingId = null) => {
           .eq('payment_type', paymentTypeToCheck)
           .eq('status', 'Chờ thanh toán')
           .gt('payment_time', timeoutThreshold)
-          .ilike('note', `%${log.lost_report_id}%`)
+          // note là jsonb — dùng .filter() với jsonb operator để tìm theo reportId
+          .filter('note->>reportId', 'eq', log.lost_report_id)
           .order('payment_time', { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (pm) {
-          try {
-            pendingNoteObj = JSON.parse(pm.note) || {};
-          } catch (e) {
-            console.error("Lỗi parse note:", e);
-          }
+          // note là jsonb — Supabase trả về object trực tiếp
+          pendingNoteObj = (pm.note && typeof pm.note === 'object') ? pm.note : {};
 
           let payUrl = null;
           if (pm.payment_method === 'VNPay') {
@@ -593,7 +591,7 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
       status: 'Chờ thanh toán',
       order_code: orderCode,
       payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
-      note: JSON.stringify(savedPayload),
+      note: savedPayload,
       payment_time: new Date().toISOString(),
       created_by: performedBy
     })
@@ -644,10 +642,9 @@ export const processReissueSuccess = async (orderCode) => {
   if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch: " + orderCode);
   if (payment.status !== 'Đã thanh toán') throw new Error("Giao dịch chưa được xác nhận thanh toán.");
 
-  let payload;
-  try {
-    payload = JSON.parse(payment.note);
-  } catch {
+  // note là jsonb — Supabase trả về object trực tiếp, không cần JSON.parse()
+  const payload = payment.note;
+  if (!payload || typeof payload !== 'object') {
     throw new Error("Dữ liệu note của giao dịch cấp lại không hợp lệ.");
   }
 
@@ -819,7 +816,7 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
       order_code: orderCode,
       payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
       session_id: session.session_id,
-      note: JSON.stringify(savedPayload),
+      note: savedPayload,
       payment_time: new Date().toISOString(),
       created_by: performedBy
     })
@@ -871,10 +868,9 @@ export const processLostTurnCardPaymentSuccess = async (orderCode) => {
   if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch: " + orderCode);
   if (payment.status !== 'Đã thanh toán') throw new Error("Giao dịch chưa được xác nhận thanh toán.");
 
-  let payload;
-  try {
-    payload = JSON.parse(payment.note);
-  } catch {
+  // note là jsonb — Supabase trả về object trực tiếp, không cần JSON.parse()
+  const payload = payment.note;
+  if (!payload || typeof payload !== 'object') {
     throw new Error("Dữ liệu note của giao dịch mất thẻ lượt không hợp lệ.");
   }
 

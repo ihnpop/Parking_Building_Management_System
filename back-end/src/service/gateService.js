@@ -491,6 +491,15 @@ export const preCheckExit = async (plateNumber) => {
     fee = feeResult.fee;
     durationStr = feeResult.durationStr;
     formattedEntryTime = feeResult.formattedEntryTime;
+
+    // Cập nhật estimated_fee vào DB cho phiên đang gửi
+    try {
+      await parkingRepository.updateParkingSession(activeSession.session_id, {
+        estimated_fee: fee,
+      });
+    } catch (e) {
+      console.error("[preCheckExit] Lỗi cập nhật estimated_fee:", e.message);
+    }
   } else {
     const diffMs = exitTime.getTime() - entryTime.getTime();
     const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
@@ -559,6 +568,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
       status: "Hoàn thành",
+      estimated_fee: fee,
       final_fee: fee,
       staff_out_id: staffId || null
     });
@@ -619,6 +629,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
       exit_vehicle_image: exitVehicleImage || null,
       exit_plate_image: exitPlateImage || null,
       status: "Hoàn thành",
+      estimated_fee: 0,
       final_fee: 0,
       staff_out_id: staffId || null
     });

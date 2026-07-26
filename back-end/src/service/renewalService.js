@@ -180,7 +180,7 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
         status: 'Chờ thanh toán',
         payment_method: mapPaymentMethod(paymentMethod),
         created_by: userId || null,
-        note: JSON.stringify(savedPayload),
+        note: savedPayload,
     });
 
     let payUrl = null;
@@ -250,10 +250,9 @@ export async function processRenewalSuccess(orderCode) {
         throw new Error('Giao dịch chưa được xác nhận thanh toán.');
     }
 
-    let payload;
-    try {
-        payload = JSON.parse(payment.note);
-    } catch {
+    // note là jsonb — Supabase trả về object trực tiếp, không cần JSON.parse()
+    const payload = payment.note;
+    if (!payload || typeof payload !== 'object') {
         throw new Error('Dữ liệu giao dịch gia hạn không hợp lệ.');
     }
 
@@ -374,12 +373,8 @@ export async function getRenewalInfo(cardId, userId, origin) {
         if (pm) {
             let payUrl = null;
             if (pm.payment_method === 'VNPay') {
-                let noteObj = {};
-                try {
-                    noteObj = JSON.parse(pm.note) || {};
-                } catch (e) {
-                    console.error("Lỗi parse note:", e);
-                }
+                // note là jsonb — Supabase trả về object trực tiếp
+                const noteObj = (pm.note && typeof pm.note === 'object') ? pm.note : {};
                 const cCode = noteObj.cardCode || card.code;
                 payUrl = vnpayService.createPaymentUrl({
                     orderCode: pm.order_code,
