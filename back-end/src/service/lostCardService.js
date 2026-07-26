@@ -41,7 +41,7 @@ export const getLostCards = async (buildingId = null) => {
       const statusVal = log.status || '';
       let statusText;
       if (statusVal === 'Đã xử lý xong' || statusVal === 'Đã xong' || statusVal === 'Đã tìm lại' || statusVal === 'Hoàn thành') {
-        statusText = 'Hoàn thành';
+        statusText = 'Đã xong';
       } else if (statusVal === 'Đã hủy thẻ') {
         statusText = 'Đã hủy thẻ';
       } else if (statusVal === 'Đã hủy (tạo nhầm)') {

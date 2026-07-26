@@ -18,6 +18,7 @@ function formatVND(amount) {
 
 function getStatusClass(status) {
     switch (status) {
+        case 'Đã xong':
         case 'Hoàn thành': return 'success';
         case 'Đang gửi xe': return 'info';
         case 'Chờ thanh toán': return 'pending';
@@ -212,14 +213,14 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
     const kpiActiveSessions = allRows.filter((r) => r.status === 'Đang gửi xe').length;
     // Ô 3: Thất bại (theo bộ lọc thời gian)
     const kpiFailedSessions = kpiFilteredRows.filter((r) => r.status === 'Thất bại').length;
-    // Ô 4: Tổng doanh thu (tính từ các phiên Hoàn thành trong khoảng thời gian)
+    // Ô 4: Tổng doanh thu (tính từ các phiên Hoàn thành/Đã xong trong khoảng thời gian)
     const kpiRevenue = kpiFilteredRows
-        .filter((r) => r.status === 'Hoàn thành')
+        .filter((r) => r.status === 'Hoàn thành' || r.status === 'Đã xong')
         .reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
 
     // ── Phân phối trạng thái (5 statuses, dùng kpiFilteredRows) ──────────────
     const distTotal = kpiFilteredRows.length;
-    const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành').length;
+    const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành' || r.status === 'Đã xong').length;
     const distActive = kpiFilteredRows.filter((r) => r.status === 'Đang gửi xe').length;
     const distPending = kpiFilteredRows.filter((r) => r.status === 'Chờ thanh toán').length;
     const distReissued = kpiFilteredRows.filter((r) => r.status === 'Thẻ đã cấp lại').length;
@@ -335,10 +336,10 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                     </div>
                     <hr className="lost-dist-divider" />
 
-                    {/* Hoàn thành */}
+                    {/* Đã xong */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Hoàn thành</span>
+                            <span>Đã xong</span>
                             <span>
                                 <span className="lost-dist-val">{distCompleted}</span>{' '}
                                 <span className="lost-dist-pct">({pct(distCompleted)}%)</span>
@@ -425,6 +426,7 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                             <option value="Tất cả">Tất cả</option>
                             <option value="Đang gửi xe">Đang gửi xe</option>
                             <option value="Chờ thanh toán">Chờ thanh toán</option>
+                            <option value="Đã xong">Đã xong</option>
                             <option value="Hoàn thành">Hoàn thành</option>
                             <option value="Thất bại">Thất bại</option>
                         </select>

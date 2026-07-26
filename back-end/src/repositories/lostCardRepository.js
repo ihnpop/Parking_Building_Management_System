@@ -65,7 +65,7 @@ export const findUnfinishedLostReportByVehicle = async (vehicleId) => {
     .from('card_lost_log')
     .select('lost_report_id, status, reported_at')
     .eq('vehicle_id', vehicleId)
-    .not('status', 'in', '("Đã xong","Đã xử lý xong","Đã hủy (tạo nhầm)")')
+    .not('status', 'in', '("Đã xong","Đã xử lý xong","Hoàn thành","Đã hủy (tạo nhầm)")')
     .order('reported_at', { ascending: false })
     .limit(1)
     .maybeSingle();

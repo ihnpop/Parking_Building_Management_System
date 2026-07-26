@@ -289,7 +289,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         const vnpTransactionStatus = queryParams.get('vnp_TransactionStatus');
 
         if (vnpResponseCode === '00' || vnpTransactionStatus === '00') {
-            showToast('Thanh toán VNPay thành công! Đơn báo mất đã hoàn thành.', 'success');
+            showToast('Thanh toán VNPay thành công! Đơn báo mất đã chuyển sang trạng thái Đã xong.', 'success');
             fetchLostCards();
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (vnpResponseCode && vnpResponseCode !== '00') {
@@ -948,11 +948,11 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                 let displayStatus = item.status;
                 if (item.status === 'Đã hủy thẻ') {
-                    // Nếu là Tiền mặt (đã thu tại quầy): hiển thị Hoàn thành (Chờ xe ra bãi)
+                    // Nếu là Tiền mặt (đã thu tại quầy): hiển thị Đã xong (Chờ xe ra bãi)
                     // Nếu là VNPay đang chờ thanh toán HOẶC bấm Xử lý sau: hiển thị Chờ thanh toán
-                    displayStatus = (item.pendingPayment && item.pendingPayment.paymentMethod === 'cash') ? 'Hoàn thành' : 'Chờ thanh toán';
-                } else if (item.status === 'Đã xong') {
-                    displayStatus = 'Hoàn thành';
+                    displayStatus = (item.pendingPayment && item.pendingPayment.paymentMethod === 'cash') ? 'Đã xong' : 'Chờ thanh toán';
+                } else if (item.status === 'Hoàn thành') {
+                    displayStatus = 'Đã xong';
                 }
 
                 return {
@@ -1035,8 +1035,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 return 'status-processing';
             case 'Chờ thanh toán':
                 return 'status-cancelled'; // Distinct warning badge
-            case 'Hoàn thành':
             case 'Đã xong':
+            case 'Hoàn thành':
             case 'Đã tìm lại':
                 return 'status-recovered';
             case 'Đã hủy (tạo nhầm)':
@@ -1223,7 +1223,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                         <div className="lost-dist-item">
                             <div className="lost-dist-label-row">
-                                <span>Hoàn thành</span>
+                                <span>Đã xong</span>
                                 <span><span className="lost-dist-val">{completedCount}</span> <span className="lost-dist-pct">({totalLost > 0 ? Math.round((completedCount / totalLost) * 100) : 0}%)</span></span>
                             </div>
                             <div className="lost-dist-track">
@@ -1261,6 +1261,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 <option value="Tất cả">Tất cả trạng thái</option>
                                 <option value="Đang chờ">Đang chờ</option>
                                 <option value="Đang xử lý">Đang xử lý</option>
+                                <option value="Chờ thanh toán">Chờ thanh toán</option>
+                                <option value="Đã xong">Đã xong</option>
                                 <option value="Đã hủy thẻ">Đã hủy thẻ</option>
                                 <option value="Đã hủy (tạo nhầm)">Đã hủy (tạo nhầm)</option>
                             </select>

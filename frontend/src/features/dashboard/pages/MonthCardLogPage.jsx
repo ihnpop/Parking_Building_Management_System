@@ -215,7 +215,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                     if (mappedType === 'Thẻ đã cấp lại' || mappedType === 'Báo mất' || mappedType === 'Báo mất thẻ' || mappedType === 'Cấp lại thẻ RFID') mappedType = 'Cấp lại thẻ';
                     return {
                         ...log,
-                        status: (log.status === 'Thành công' || log.status === 'Đã xong' || log.status === 'Đã thanh toán') ? 'Hoàn thành' : log.status,
+                        status: (log.status === 'Thành công' || log.status === 'Đã xong' || log.status === 'Đã thanh toán' || log.status === 'Hoàn thành') ? 'Đã xong' : log.status,
                         type: mappedType
                     };
                 }).filter(log => !(log.status === 'Chờ thanh toán' && log.type === 'Gia hạn'));
@@ -348,6 +348,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
 
     const getStatusClass = (status) => {
         switch (status) {
+            case 'Đã xong':
             case 'Hoàn thành': return 'success';
             case 'Chờ thanh toán': return 'pending';
             case 'Thất bại': return 'failed';
@@ -364,11 +365,11 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     const kpiPending = kpiFilteredLogs.filter(log => log.status === 'Chờ thanh toán').length;
     const kpiFailed = kpiFilteredLogs.filter(log => log.status === 'Thất bại').length;
     const kpiRevenue = kpiFilteredLogs
-        .filter(log => log.status === 'Hoàn thành')
+        .filter(log => log.status === 'Hoàn thành' || log.status === 'Đã xong')
         .reduce((sum, log) => sum + parseAmount(log.amount), 0);
 
     const distTotal = kpiFilteredLogs.length;
-    const distCompleted = kpiFilteredLogs.filter(log => log.status === 'Hoàn thành').length;
+    const distCompleted = kpiFilteredLogs.filter(log => log.status === 'Hoàn thành' || log.status === 'Đã xong').length;
     const distPending = kpiFilteredLogs.filter(log => log.status === 'Chờ thanh toán').length;
     const distFailed = kpiFilteredLogs.filter(log => log.status === 'Thất bại').length;
 
@@ -483,10 +484,10 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         </div>
                     </div>
 
-                    {/* Hoàn thành */}
+                    {/* Đã xong */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Hoàn thành</span>
+                            <span>Đã xong</span>
                             <span><span className="lost-dist-val">{distCompleted}</span> <span className="lost-dist-pct">({pct(distCompleted)}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
@@ -561,7 +562,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
                             <option value="Tất cả">Tất cả</option>
-                            <option value="Hoàn thành">Hoàn thành</option>
+                            <option value="Đã xong">Đã xong</option>
                             <option value="Chờ thanh toán">Chờ thanh toán</option>
                             <option value="Thất bại">Thất bại</option>
                         </select>
