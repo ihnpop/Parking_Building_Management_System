@@ -365,10 +365,10 @@ export default function EditMonthCardDialog({ isOpen, onClose, cardData, onSucce
                         </p>
                     )}
 
-                    <div className="renew-modal-actions emc-modal-actions">
+                    <div className="cp-modal-actions">
                         <button
                             type="button"
-                            className="renew-btn secondary"
+                            className="cp-btn cp-btn-outline"
                             onClick={onClose}
                             disabled={isSubmitting}
                         >

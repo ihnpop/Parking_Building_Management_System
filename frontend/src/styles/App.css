@@ -31771,8 +31771,10 @@ button.mc-btn .material-symbols-outlined {
 }
 
 .emc-modal-actions {
-  margin-top: 8px;
-  display: block;
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .history-pagination {
