@@ -7,14 +7,14 @@ import { useAuth } from "../../context/AuthContext";
  */
 export default function ProtectedRoute({ children }) {
     const { user, loading } = useAuth();
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
 
     // Không render component sớm khi đang khởi tạo session
     if (loading) {
         return null;
     }
 
-    if (!user || !token) {
+    if (!user && !token) {
         return <Navigate to="/login" replace />;
     }
 

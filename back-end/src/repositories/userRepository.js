@@ -83,6 +83,24 @@ export const findRoleByName = async (roleName) => {
 };
 
 /**
+ * Cập nhật thông tin profile (phone, full_name, status)
+ * @param {string} id
+ * @param {object} profileData - { phone, full_name, status }
+ * @returns {Promise<object>}
+ */
+export const updateProfile = async (id, profileData) => {
+    const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .update(profileData)
+        .eq("id", id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+/**
  * Cập nhật role_id của một profile
  * @param {string} id 
  * @param {string} roleId 
@@ -102,7 +120,7 @@ export const updateProfileRole = async (id, roleId) => {
  * @param {number} limit 
  * @returns {Promise<object[]>}
  */
-export const getLoginLogs = async (limit = 100) => {
+export const getLoginLogs = async () => {
     const { data, error } = await supabase
         .from("login_logs")
         .select(`
@@ -115,8 +133,7 @@ export const getLoginLogs = async (limit = 100) => {
             status,
             login_time
         `)
-        .order("login_time", { ascending: false })
-        .limit(limit);
+        .order("login_time", { ascending: false });
 
     if (error) throw error;
     return data || [];

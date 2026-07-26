@@ -98,7 +98,12 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
 
     // ── Filters & pagination (giữ nguyên) ────
 
-    const handleResetFilters = () => { setSearch(''); setStatusFilter('Tất cả trạng thái'); };
+    const handleResetFilters = () => {
+        setSearch('');
+        setStatusFilter('Tất cả trạng thái');
+        setCurrentPage(1);
+        fetchCards(1);
+    };
 
     const filteredCards = useMemo(() => cards.filter(card => {
         const matchesSearch = search === '' ||

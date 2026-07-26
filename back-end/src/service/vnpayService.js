@@ -35,15 +35,6 @@ function getVNPay() {
 export function createPaymentUrl({ orderCode, amount, orderInfo, ipAddr, origin }) {
     let returnUrl = process.env.VNP_RETURN_URL; // URL nhận kết quả thanh toán trả về trình duyệt
 
-    if (origin) {
-        try {
-            const parsed = new URL(origin);
-            const cleanOrigin = `${parsed.protocol}//${parsed.host}`;
-            returnUrl = `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}origin=${encodeURIComponent(cleanOrigin)}`;
-        } catch (e) {
-            returnUrl = `${returnUrl}${returnUrl.includes("?") ? "&" : "?"}origin=${encodeURIComponent(origin)}`;
-        }
-    }
 
     const paymentUrl = getVNPay().buildPaymentUrl({
         vnp_Amount: Math.round(amount), // Số tiền cần thanh toán
@@ -68,7 +59,13 @@ export function createPaymentUrl({ orderCode, amount, orderInfo, ipAddr, origin 
  */
 export function verifySignature(query) {
     try {
-        const result = getVNPay().verifyReturnUrl(query);
+        const vnpQuery = {};
+        for (const key in query) {
+            if (key.startsWith('vnp_')) {
+                vnpQuery[key] = query[key];
+            }
+        }
+        const result = getVNPay().verifyReturnUrl(vnpQuery);
         return result.isVerified; // Trả về trạng thái xác thực từ SDK
     } catch (err) {
         console.error("[VNPAY] Lỗi trong quá trình xác thực chữ ký:", err.message);

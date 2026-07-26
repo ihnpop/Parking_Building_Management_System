@@ -95,18 +95,43 @@ export async function findActiveRegistrationByVehicleId(vehicleId) {
 }
 
 /**
+ * Tìm gói xe (vehicle_package) đang hoạt động mới nhất theo vehicle_id
+ * @param {string} vehicleId
+ * @returns {Promise<object|null>}
+ */
+export async function findActiveVehiclePackageByVehicleId(vehicleId) {
+    if (!vehicleId) return null;
+    const { data, error } = await supabase
+        .from("vehicle_package")
+        .select("*")
+        .eq("vehicle_id", vehicleId)
+        .eq("status", "Hoạt động")
+        .order("end_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) return null;
+    return data;
+}
+
+/**
  * Kiểm tra xem xe có log báo mất thẻ nào chưa được xử lý không
  * @param {string} vehicleId
  * @returns {Promise<object|null>}
  */
-export async function findUnresolvedLostCardLog(vehicleId) {
-    const { data, error } = await supabase
+export async function findUnresolvedLostCardLog(vehicleId, entryTime = null) {
+    let query = supabase
         .from("card_lost_log")
         .select("lost_report_id")
         .eq("vehicle_id", vehicleId)
-        .neq("status", "Đã xử lý")
-        .limit(1)
-        .maybeSingle();
+        .neq("status", "Đã xong"); // Trạng thái đúng trong DB là 'Đã xong'
+
+    // Chỉ tìm log báo mất được tạo TRONG PHIÊN gửi xe hiện tại (sau entry_time)
+    if (entryTime) {
+        query = query.gte("reported_at", entryTime);
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
 
     if (error) throw new Error(error.message);
     return data;
@@ -179,3 +204,19 @@ export async function findPriceItemsByVehicleType(vehicleTypeId) {
     if (error) throw new Error(error.message);
     return data || [];
 }
+
+/**
+ * Cập nhật phí ước tính (estimated_fee) cho phiên gửi xe
+ * @param {string} sessionId
+ * @param {number} estimatedFee
+ */
+export async function updateSessionEstimatedFee(sessionId, estimatedFee) {
+    if (!sessionId) return;
+    const { error } = await supabase
+        .from("parking_sessions")
+        .update({ estimated_fee: estimatedFee })
+        .eq("session_id", sessionId);
+
+    if (error) console.error("[feeCalculationRepo] Lỗi cập nhật estimated_fee:", error.message);
+}
+

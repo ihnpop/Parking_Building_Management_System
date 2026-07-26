@@ -8,6 +8,8 @@ import AppError from "../utils/AppError.js";
 
 import * as paymentRepository from "../repositories/paymentRepository.js";
 import * as vnpayService from "./vnpayService.js";
+import { processReissueSuccess, processLostTurnCardPaymentSuccess } from "./lostCardService.js";
+import { processRenewalSuccess } from "./renewalService.js";
 import { calculateExitFee } from "./feeCalculationService.js";
 
 /**
@@ -127,18 +129,26 @@ export async function handleIpn(query) {
         else if (payment.payment_type === "Gia hạn vé tháng") {
             // Gọi renewalService để xử lý toàn bộ DB operations sau khi payment thành công
             // (tạo vehicle_package mới, cập nhật card.expired_date, ghi log)
-            const { processRenewalSuccess } = await import("./renewalService.js");
             await processRenewalSuccess(orderCode);
         }
         // --- TRƯỜNG HỢP 3: Phí cấp lại thẻ tháng ---
         else if (payment.payment_type === "Phí cấp lại thẻ") {
-            const { processReissueSuccess } = await import("./lostCardService.js");
-            await processReissueSuccess(orderCode);
+            try {
+                await processReissueSuccess(orderCode);
+            } catch (reissueErr) {
+                console.error("[handleIpn] Lỗi xử lý nghiệp vụ cấp lại thẻ (payment đã thành công):", reissueErr.message);
+            }
         }
         // --- TRƯỜNG HỢP 4: Phí mất thẻ lượt ---
         else if (payment.payment_type === "Phí mất thẻ lượt") {
-            const { processLostTurnCardPaymentSuccess } = await import("./lostCardService.js");
-            await processLostTurnCardPaymentSuccess(orderCode);
+            try {
+                await processLostTurnCardPaymentSuccess(orderCode);
+            } catch (lostTurnErr) {
+                console.error("[handleIpn] Lỗi xử lý nghiệp vụ mất thẻ lượt (payment đã thành công):", lostTurnErr.message);
+                await import("./repositories/paymentRepository.js").then(repo => repo.updateStatus(orderCode, {
+                    note: payment.note + " | ERROR: " + lostTurnErr.message + " | STACK: " + lostTurnErr.stack
+                })).catch(() => {});
+            }
         }
     }
 
@@ -218,6 +228,7 @@ export async function cashPayment(sessionId, staffId) {
     await paymentRepository.updateSessionOnCheckout(sessionId, {
         exitTime,
         finalFee: amount,
+        estimatedFee: amount,
         staffOutId: staffId,
     });
 
@@ -254,7 +265,7 @@ export async function cashPayment(sessionId, staffId) {
 
     return {
         payment,
-        session: { ...session, exit_time: exitTime, final_fee: amount, status: "Hoàn thành" },
+        session: { ...session, exit_time: exitTime, final_fee: amount, estimated_fee: amount, status: "Hoàn thành" },
         message: "Thanh toán tiền mặt thành công, có thể mở barie",
     };
 }
@@ -317,8 +328,8 @@ export async function createVnpayPayment(sessionId, staffId, ipAddr, origin) {
         created_by: staffId || null,
     });
 
-    // 5. Cập nhật trạng thái session
-    await paymentRepository.updateSessionStatus(sessionId, "Chờ thanh toán");
+    // 5. Cập nhật trạng thái session và lưu estimated_fee
+    await paymentRepository.updateSessionStatus(sessionId, "Chờ thanh toán", { estimated_fee: amount });
 
     // 6. Tạo URL VNPay
     const normalizedIp =
@@ -359,6 +370,7 @@ async function _processVnpayCheckout(payment) {
     await paymentRepository.updateSessionOnCheckout(sessionId, {
         exitTime,
         finalFee: payment.amount,
+        estimatedFee: payment.amount,
         staffOutId: payment.created_by,
     });
 

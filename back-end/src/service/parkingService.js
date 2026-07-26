@@ -111,6 +111,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
     exit_vehicle_image: exitVehicleUrl,
     exit_plate_image: exitPlateUrl,
     status: "Hoàn thành",
+    estimated_fee: fee,
     final_fee: fee,
   });
 
@@ -165,6 +166,7 @@ export const openGateFree = async ({ sessionId, staffId, finalFee = 0, ticketTyp
 
   const updatedSession = await parkingRepository.updateSessionById(sessionId, {
     exit_time: exitTime,
+    estimated_fee: finalFee,
     final_fee: finalFee,
     status: "Hoàn thành",
     staff_out_id: staffId || null,

@@ -533,18 +533,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         }
     };
 
-    const handleVerifyCccd = () => {
-        if (!cccdNumber.trim()) {
-            showToast('Vui lòng nhập số CCCD để xác thực!', 'error');
-            return;
-        }
-        if (cccdNumber.trim().length < 9) {
-            showToast('Số CCCD không hợp lệ (cần ít nhất 9-12 chữ số)!', 'error');
-            return;
-        }
-        setCccdVerified(true);
-        showToast('Xác thực thông tin CCCD thành công!', 'success');
-    };
+
 
     const handleConfirmCancelCard = () => {
         setShowCancelConfirmDialog(true);
@@ -701,9 +690,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                     // CHỈ KHỞI TẠO PHIẾU THU, KHÔNG GỌI confirmLostTurnCardCash ĐỂ KHÔNG ĐÓNG PHIÊN GỬI XE.
                     // Phiên gửi xe sẽ được đóng tại cổng ra (ExitPaymentPanel) khi Staff bấm Mở barie.
                 } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.open(payRes.payUrl, '_blank');
-                    showToast('Đã mở trang thanh toán VNPay trong tab mới. Sau khi hoàn tất, nhấn F5 để cập nhật trạng thái.', 'info');
-                    await fetchLostCards();
+                    window.location.href = payRes.payUrl;
                     return;
                 }
             } else if (createCardCategory === 'month') {
@@ -724,9 +711,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 if (createPaymentMethod === 'cash' && payRes?.order_code) {
                     await confirmReissueCash(payRes.order_code);
                 } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.open(payRes.payUrl, '_blank');
-                    showToast('Đã mở trang thanh toán VNPay trong tab mới. Sau khi hoàn tất, nhấn F5 để cập nhật trạng thái.', 'info');
-                    await fetchLostCards();
+                    window.location.href = payRes.payUrl;
                     return;
                 }
             }
@@ -2075,7 +2060,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                     <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>badge</span>
                                                     Xác minh thông tin CCCD chủ thẻ tháng
                                                 </label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '12px' }}>
                                                     <div>
                                                         <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Ảnh CCCD</label>
                                                         <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px', textAlign: 'center', backgroundColor: '#fff', position: 'relative', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -2085,25 +2070,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                             ) : (
                                                                 <span style={{ fontSize: '12px', color: '#64748b' }}>📷 Tải ảnh CCCD</span>
                                                             )}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Số CCCD (Nhập thủ công)</label>
-                                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Nhập số CCCD..."
-                                                                value={cccdNumber}
-                                                                onChange={(e) => setCccdNumber(e.target.value)}
-                                                                style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={handleVerifyCccd}
-                                                                style={{ padding: '8px 12px', background: cccdVerified ? '#16a34a' : '#0284c7', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                                            >
-                                                                {cccdVerified ? '✓ Đã xác thực' : 'Xác thực'}
-                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>

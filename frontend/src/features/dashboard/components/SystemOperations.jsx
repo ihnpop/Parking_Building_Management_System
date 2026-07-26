@@ -10,7 +10,7 @@ import {
     getParkingSessions
 } from '../../../service/parkingApi';
 import { createCheckoutPayment } from '../../../service/paymentApi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
@@ -40,8 +40,19 @@ const actionShortcuts = [
 
 export default function SystemOperations() {
     const { showToast } = useNotification();
+    const [searchParams] = useSearchParams();
+
     // ── Mode State ───────────────────────────────────────────────────────────
     const [mode, setMode] = useState('IN'); // 'IN' or 'OUT'
+
+    // Tự động chuyển tab sang XE RA khi có tham số mode=OUT hoặc orderCode từ URL
+    useEffect(() => {
+        const modeParam = searchParams.get('mode');
+        const orderCodeParam = searchParams.get('orderCode');
+        if (modeParam === 'OUT' || orderCodeParam) {
+            setMode('OUT');
+        }
+    }, [searchParams]);
 
     // ── Check-In State ───────────────────────────────────────────────────────
     const [plateNumber, setPlateNumber] = useState('');
@@ -263,6 +274,13 @@ export default function SystemOperations() {
             } else {
                 const res = await preCheckExitGate(plate);
                 setPreCheckResult(res);
+                // Tự động chuyển chọn loại xe (Xe máy / Ô tô) khi xe ra dựa trên thông tin checkin / DB
+                const autoVehicleType = res.vehicle?.vehicle_type?.name 
+                    || res.session?.vehicle?.vehicle_type?.name 
+                    || res.vehicleCategory;
+                if (autoVehicleType) {
+                    setVehicleType(autoVehicleType);
+                }
                 // Lưu riêng ảnh check-in để hiển thị trực tiếp lên camera 1 & 2
                 setEntryVehicleImageDisplay(res.entryVehicleImage || null);
                 setEntryPlateImageDisplay(res.entryPlateImage || null);
@@ -333,8 +351,14 @@ export default function SystemOperations() {
 
             if (result.success) {
                 showToast(result.message || 'Check in thành công!', 'success');
+                const vTypeName = result.session?.vehicle?.vehicle_type?.name
+                    || result.session?.vehicle_type?.name
+                    || result.session?.vehicle_type_name
+                    || preCheckResult?.vehicleCategory
+                    || vehicleType;
                 setLastSession({
                     ...result.session,
+                    vehicle_type_name: vTypeName,
                     type: 'IN'
                 });
                 resetInForm();
@@ -382,6 +406,11 @@ export default function SystemOperations() {
 
             if (result.success) {
                 showToast(result.message || 'Check out thành công!', 'success');
+                const vTypeName = result.session?.vehicle?.vehicle_type?.name
+                    || result.session?.vehicle_type?.name
+                    || result.session?.vehicle_type_name
+                    || preCheckResult?.vehicleCategory
+                    || vehicleType;
                 setLastSession({
                     ...result.session,
                     fee: preCheckResult.fee,
@@ -389,7 +418,8 @@ export default function SystemOperations() {
                     entry_time: result.session?.entry_time || new Date().toISOString(),
                     exit_time: result.session?.exit_time || new Date().toISOString(),
                     type: 'OUT',
-                    status: 'Hoàn thành'
+                    status: 'Hoàn thành',
+                    vehicle_type_name: vTypeName
                 });
                 resetOutForm();
                 fetchStats();
@@ -1000,6 +1030,16 @@ export default function SystemOperations() {
                                             <strong className="last-session-value">{lastSession.plate_number}</strong>
                                         </div>
                                         <div className="last-session-item">
+                                            <span className="last-session-label">Loại xe:</span>
+                                            <strong className="last-session-value">
+                                                {lastSession.vehicle_type_name
+                                                    || (typeof lastSession.vehicle_type === 'string' ? lastSession.vehicle_type : lastSession.vehicle_type?.name)
+                                                    || lastSession.vehicle?.vehicle_type?.name
+                                                    || lastSession.vehicleCategory
+                                                    || '--'}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item">
                                             <span className="last-session-label">Trạng thái:</span>
                                             <strong className="last-session-value status-done">
                                                 {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
@@ -1048,6 +1088,16 @@ export default function SystemOperations() {
                                             <strong className="last-session-value">{lastSession.plate_number}</strong>
                                         </div>
                                         <div className="last-session-item">
+                                            <span className="last-session-label">Loại xe:</span>
+                                            <strong className="last-session-value">
+                                                {lastSession.vehicle_type_name
+                                                    || (typeof lastSession.vehicle_type === 'string' ? lastSession.vehicle_type : lastSession.vehicle_type?.name)
+                                                    || lastSession.vehicle?.vehicle_type?.name
+                                                    || lastSession.vehicleCategory
+                                                    || '--'}
+                                            </strong>
+                                        </div>
+                                        <div className="last-session-item">
                                             <span className="last-session-label">Trạng thái:</span>
                                             <strong className="last-session-value status-done">
                                                 {(lastSession.status === 'Đang gửi xe') ? 'ĐANG GỬI' :
@@ -1083,6 +1133,10 @@ export default function SystemOperations() {
                                     <div className="last-session-grid">
                                         <div className="last-session-item">
                                             <span className="last-session-label">Biển số:</span>
+                                            <strong className="last-session-value">--</strong>
+                                        </div>
+                                        <div className="last-session-item">
+                                            <span className="last-session-label">Loại xe:</span>
                                             <strong className="last-session-value">--</strong>
                                         </div>
                                         <div className="last-session-item">

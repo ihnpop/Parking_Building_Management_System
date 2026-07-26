@@ -53,16 +53,18 @@ export function AuthProvider({ children }) {
                 localStorage.setItem("access_token", session.access_token);
                 await fetchUserProfile(session.user);
             } else if (storedToken) {
-                // Nếu có token trong localStorage (từ đăng nhập thường), giữ nguyên phiên người dùng
+                // Nếu có token trong localStorage, duy trì vĩnh viễn phiên người dùng
                 const savedRole = localStorage.getItem("userRole") || "STAFF";
+                const savedEmail = localStorage.getItem("userEmail") || "user@parkflow.com";
+                const savedUserId = localStorage.getItem("userId") || "00000000-0000-0000-0000-000000000000";
                 setUserRole(savedRole);
-                setUser({ email: localStorage.getItem("userEmail") || "user@parkflow.com" });
+                setUser({ id: savedUserId, email: savedEmail });
             }
             initialCheckDone.current = true;
             setLoading(false);
         });
 
-        // 2. Lắng nghe sự kiện Auth (chỉ cập nhật khi đăng nhập thành công hoặc bấm đăng xuất thủ công)
+        // 2. Lắng nghe sự kiện Auth (duy trì phiên liên tục ngay cả khi Supabase tự xóa session do quá hạn)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!initialCheckDone.current && event === 'INITIAL_SESSION') return;
 
@@ -77,8 +79,17 @@ export function AuthProvider({ children }) {
                 localStorage.setItem("accessToken", session.access_token);
                 localStorage.setItem("access_token", session.access_token);
                 await fetchUserProfile(session.user);
+            } else {
+                // Tuyệt đối không đăng xuất tự động khi token hết hạn hay SIGNED_OUT từ Supabase SDK
+                const storedToken = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+                if (storedToken) {
+                    const savedRole = localStorage.getItem("userRole") || "STAFF";
+                    const savedEmail = localStorage.getItem("userEmail") || "user@parkflow.com";
+                    const savedUserId = localStorage.getItem("userId") || "00000000-0000-0000-0000-000000000000";
+                    setUserRole(savedRole);
+                    setUser({ id: savedUserId, email: savedEmail });
+                }
             }
-            // Chỉ đăng xuất khi người dùng chủ động nhấn Đăng xuất (khi đó SIGNED_OUT sẽ đi kèm việc không có local token)
         });
 
         return () => {

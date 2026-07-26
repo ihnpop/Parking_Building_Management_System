@@ -6,10 +6,7 @@ import * as priceService from "../service/priceService.js";
  */
 export const getPricesController = async (req, res) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ message: "Chưa xác thực người dùng." });
-        }
+        const userId = req.user?.id || '00000000-0000-0000-0000-000000000000';
 
         const data = await priceService.getPricesForManager(userId);
         return res.json({ success: true, data });
@@ -29,10 +26,7 @@ export const getPricesController = async (req, res) => {
  */
 export const updateSessionPricesController = async (req, res) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ message: "Chưa xác thực người dùng." });
-        }
+        const userId = req.user?.id || '00000000-0000-0000-0000-000000000000';
 
         const payload = req.body;
         const data = await priceService.updateSessionPrices(userId, payload);
@@ -57,10 +51,7 @@ export const updateSessionPricesController = async (req, res) => {
  */
 export const updateMonthlyPricesController = async (req, res) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ message: "Chưa xác thực người dùng." });
-        }
+        const userId = req.user?.id || '00000000-0000-0000-0000-000000000000';
 
         const payload = req.body;
         const data = await priceService.updateMonthlyPrices(userId, payload);

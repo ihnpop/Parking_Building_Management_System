@@ -20,6 +20,11 @@ API.interceptors.request.use(async (config) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
             config.headers.Authorization = `Bearer ${session.access_token}`;
+        } else {
+            const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
         }
     } catch (err) {
         console.warn("[casualCardApi] Could not get Supabase session:", err.message);

@@ -137,6 +137,8 @@ export default function MonthCardPage() {
         setSearch('');
         setVehicleTypeFilter('Tất cả loại xe');
         setStatusFilter('Tất cả trạng thái');
+        setCurrentPage(1);
+        fetchMonthCards(1);
     };
 
     // ── Trạng thái xóa thẻ tháng ──────────────────────────────────────────────
