@@ -304,14 +304,59 @@ export default function ExitPaymentPanel({
         }
     };
 
-    const handleClearVNPayResult = () => {
-        const plate = vnpayResultState?.plateNumber || plateNumber;
+    const handleRetryVNPayExit = async () => {
+        const targetPlate = (
+            vnpayResultState?.plateNumber ||
+            vnpayResultState?.session?.plate_number ||
+            vnpayResultState?.session?.vehicle?.plate_number ||
+            plateNumber ||
+            ""
+        ).trim().toUpperCase();
+
         setVnpayResultState(null);
         setSearchParams({}, { replace: true });
-        if (plate) {
-            setPlateNumber(plate);
+        clearPendingVNPay();
+        setVnpayPending(null);
+
+        if (targetPlate) {
+            if (setPlateNumber) setPlateNumber(targetPlate);
+            try {
+                setAllLoading(true);
+                setPreCheckResult(null);
+                setLostCardReport(null);
+                const res = await checkExitFee(targetPlate);
+                const data = res.data?.data ?? res.data;
+                if (data) {
+                    setPreCheckResult(data);
+                    savePrecheckState(data, targetPlate);
+                    if (onPreCheckLoaded) onPreCheckLoaded(data);
+
+                    if (data.ticket_type === "Mất thẻ") {
+                        try {
+                            const lostCardsList = await getLostCards();
+                            const foundReport = Array.isArray(lostCardsList)
+                                ? lostCardsList.find(r => (r.plate_number || '').trim().toUpperCase() === targetPlate && r.status !== 'Đã hủy (tạo nhầm)')
+                                : null;
+                            setLostCardReport(foundReport || null);
+                        } catch (errReport) {
+                            console.warn("[ExitPaymentPanel] Lỗi tra cứu báo cáo mất thẻ:", errReport);
+                        }
+                    }
+                    showToast("Đã tải thông tin xe ra. Vui lòng chọn phương thức thanh toán lại.", "info");
+                } else {
+                    throw new Error("Không nhận được dữ liệu phản hồi.");
+                }
+            } catch (err) {
+                console.error("[handleRetryVNPayExit] Lỗi:", err);
+                const msg = err.response?.data?.message || err.message || "Lỗi kiểm tra thông tin xe ra.";
+                showToast(msg, "error");
+                setPreCheckResult(null);
+            } finally {
+                setAllLoading(false);
+            }
+        } else {
+            handleReset();
         }
-        handleReset();
     };
 
     // ── Khôi phục trạng thái khi component mount ──
@@ -763,11 +808,12 @@ export default function ExitPaymentPanel({
                             <div className="epp-actions" style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
                                 <button
                                     type="button"
-                                    onClick={handleClearVNPayResult}
+                                    onClick={handleRetryVNPayExit}
+                                    disabled={isDisableActions}
                                     className="epp-btn-primary"
-                                    style={{ width: "100%", justifyContent: "center" }}
+                                    style={{ width: "100%", justifyContent: "center", background: "#2563eb", color: "#fff", fontWeight: 600, height: 40, borderRadius: 8, cursor: "pointer" }}
                                 >
-                                    <RefreshCw size={14} />
+                                    <RefreshCw size={16} />
                                     <span>Thử lại / Kiểm tra xe lại</span>
                                 </button>
                                 <button
