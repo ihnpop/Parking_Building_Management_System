@@ -287,7 +287,8 @@ export default function ExitPaymentPanel({
                     fee: finalFee,
                     type: "OUT",
                     exit_time: vnpayResultState.paidAt || new Date().toISOString(),
-                    status: "Hoàn thành"
+                    status: "Hoàn thành",
+                    vehicle_type_name: sessionData?.vehicle?.vehicle_type?.name || sessionData?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                 });
             }
 
@@ -387,6 +388,18 @@ export default function ExitPaymentPanel({
         fetchMonthlyCards();
     }, []);
 
+    // Tự động nhảy loại xe (Xe máy / Ô tô) khi preCheckResult có dữ liệu xe lúc check-in / DB
+    useEffect(() => {
+        if (preCheckResult) {
+            const autoVehicleType = preCheckResult.vehicle?.vehicle_type?.name 
+                || preCheckResult.session?.vehicle?.vehicle_type?.name 
+                || preCheckResult.vehicleCategory;
+            if (autoVehicleType) {
+                setVehicleType(autoVehicleType);
+            }
+        }
+    }, [preCheckResult]);
+
     const setAllLoading = (val) => {
         setLoading(val);
         if (setParentLoading) setParentLoading(val);
@@ -424,6 +437,14 @@ export default function ExitPaymentPanel({
                 setPreCheckResult(data);
                 savePrecheckState(data, trimmedPlate);
                 if (onPreCheckLoaded) onPreCheckLoaded(data);
+
+                // Tự động nhảy loại xe (Xe máy / Ô tô) từ thông tin checkin / DB của xe
+                const autoVehicleType = data.vehicle?.vehicle_type?.name 
+                    || data.session?.vehicle?.vehicle_type?.name 
+                    || data.vehicleCategory;
+                if (autoVehicleType) {
+                    setVehicleType(autoVehicleType);
+                }
 
                 // 🔴 Nếu xe thuộc luồng báo mất thẻ → Tìm báo cáo mất thẻ tương ứng
                 if (data.ticket_type === "Mất thẻ") {
@@ -495,7 +516,8 @@ export default function ExitPaymentPanel({
                     ...sessionResult,
                     fee: parkingFeeOnly,
                     type: "OUT",
-                    plate_number: plateNumber.trim().toUpperCase()
+                    plate_number: plateNumber.trim().toUpperCase(),
+                    vehicle_type_name: sessionResult?.vehicle?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                 });
             }
             handleReset();
@@ -525,7 +547,8 @@ export default function ExitPaymentPanel({
                     ...res.session,
                     fee: 0,
                     type: "OUT",
-                    plate_number: plateNumber.trim().toUpperCase()
+                    plate_number: plateNumber.trim().toUpperCase(),
+                    vehicle_type_name: res.session?.vehicle?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                 });
             }
             handleReset();
@@ -550,7 +573,8 @@ export default function ExitPaymentPanel({
                         ...data.session,
                         fee: data.payment.amount,
                         type: "OUT",
-                        plate_number: plateNumber.trim().toUpperCase()
+                        plate_number: plateNumber.trim().toUpperCase(),
+                        vehicle_type_name: data.session?.vehicle?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                     });
                 }
                 handleReset();
@@ -596,6 +620,7 @@ export default function ExitPaymentPanel({
                 plate_number: statusData?.plate_number || plateNumber.trim().toUpperCase(),
                 fee: statusData?.amount,
                 type: "OUT",
+                vehicle_type_name: preCheckResult?.vehicleCategory || vehicleType
             });
         }
         if (resetForm) resetForm();
