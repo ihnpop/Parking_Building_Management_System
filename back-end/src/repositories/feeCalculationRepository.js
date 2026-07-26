@@ -119,14 +119,19 @@ export async function findActiveVehiclePackageByVehicleId(vehicleId) {
  * @param {string} vehicleId
  * @returns {Promise<object|null>}
  */
-export async function findUnresolvedLostCardLog(vehicleId) {
-    const { data, error } = await supabase
+export async function findUnresolvedLostCardLog(vehicleId, entryTime = null) {
+    let query = supabase
         .from("card_lost_log")
         .select("lost_report_id")
         .eq("vehicle_id", vehicleId)
-        .neq("status", "Đã xử lý")
-        .limit(1)
-        .maybeSingle();
+        .neq("status", "Đã xong"); // Trạng thái đúng trong DB là 'Đã xong'
+
+    // Chỉ tìm log báo mất được tạo TRONG PHIÊN gửi xe hiện tại (sau entry_time)
+    if (entryTime) {
+        query = query.gte("reported_at", entryTime);
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
 
     if (error) throw new Error(error.message);
     return data;
