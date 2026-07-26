@@ -10,7 +10,7 @@ import {
     getParkingSessions
 } from '../../../service/parkingApi';
 import { createCheckoutPayment } from '../../../service/paymentApi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
@@ -40,8 +40,19 @@ const actionShortcuts = [
 
 export default function SystemOperations() {
     const { showToast } = useNotification();
+    const [searchParams] = useSearchParams();
+
     // ── Mode State ───────────────────────────────────────────────────────────
     const [mode, setMode] = useState('IN'); // 'IN' or 'OUT'
+
+    // Tự động chuyển tab sang XE RA khi có tham số mode=OUT hoặc orderCode từ URL
+    useEffect(() => {
+        const modeParam = searchParams.get('mode');
+        const orderCodeParam = searchParams.get('orderCode');
+        if (modeParam === 'OUT' || orderCodeParam) {
+            setMode('OUT');
+        }
+    }, [searchParams]);
 
     // ── Check-In State ───────────────────────────────────────────────────────
     const [plateNumber, setPlateNumber] = useState('');

@@ -269,6 +269,8 @@ export default function PaymentResultPage() {
                                 navigate("/login/dashboard/lost-card-log");
                             } else if (payment?.payment_type === "Gia hạn vé tháng" || payment?.payment_type === "Đăng ký vé tháng") {
                                 navigate("/login/dashboard/month-card-log");
+                            } else if (orderCode) {
+                                navigate(`/login/dashboard?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=${isSuccess ? 'success' : 'failed'}`);
                             } else {
                                 navigate("/login/dashboard");
                             }
@@ -281,7 +283,13 @@ export default function PaymentResultPage() {
                     {!isSuccess && (
                         <button
                             style={styles.btnPrimary}
-                            onClick={() => navigate(-1)}
+                            onClick={() => {
+                                if (orderCode) {
+                                    navigate(`/login/dashboard?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=failed`);
+                                } else {
+                                    navigate("/login/dashboard");
+                                }
+                            }}
                             onMouseEnter={e => e.target.style.background = "#1d4ed8"}
                             onMouseLeave={e => e.target.style.background = "#2563eb"}
                         >

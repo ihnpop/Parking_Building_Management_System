@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { LogOut, Wallet, CreditCard, Clock, AlertTriangle, RefreshCw } from "lucide-react";
-import { checkExitFee, payCash, createVnpayCheckout, getPaymentStatus } from "../../../service/paymentApi";
+import { checkExitFee, payCash, createVnpayCheckout, getPaymentStatus, getPaymentByOrderCode } from "../../../service/paymentApi";
 import { openGateFree } from "../../../service/parkingApi";
 import { getMonthCards } from "../../../service/monthCardApi";
 import { getLostCards, confirmLostTurnCardCash } from "../../../service/cardApi";
 import { useNotification } from "../../../context/NotificationContext";
+import supabase from "../../../config/supabaseClient";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "exit_pending_vnpay";
@@ -203,6 +205,114 @@ export default function ExitPaymentPanel({
     const [vnpayPending, setVnpayPending] = useState(null); // { orderCode, amount, plateNumber, paymentUrl, savedAt }
     // Lost Card Report state for handling lost card exit confirmation
     const [lostCardReport, setLostCardReport] = useState(null);
+
+    // ── Xử lý kết quả trả về từ VNPay qua URL query (orderCode & vnpayStatus) ──
+    const [searchParams, setSearchParams] = useSearchParams();
+    const orderCodeParam = searchParams.get("orderCode");
+    const vnpayStatusParam = searchParams.get("vnpayStatus");
+    const [vnpayResultState, setVnpayResultState] = useState(null);
+
+    useEffect(() => {
+        if (!orderCodeParam) return;
+
+        let isMounted = true;
+        setAllLoading(true);
+
+        getPaymentByOrderCode(orderCodeParam)
+            .then(async (res) => {
+                if (!isMounted) return;
+                const paymentData = res.data?.data ?? res.data;
+                if (paymentData) {
+                    let sessionData = null;
+                    if (paymentData.session_id) {
+                        try {
+                            const { data: s } = await supabase
+                                .from("parking_sessions")
+                                .select("*, vehicle:vehicle_id(plate_number, vehicle_type_id), card:card_id(code, card_code)")
+                                .eq("session_id", paymentData.session_id)
+                                .maybeSingle();
+                            sessionData = s;
+                        } catch (e) {
+                            console.warn("[ExitPaymentPanel] Lỗi fetch session:", e);
+                        }
+                    }
+
+                    const plate = sessionData?.plate_number || sessionData?.vehicle?.plate_number || paymentData?.session?.plate_number || "";
+                    if (plate && setPlateNumber) {
+                        setPlateNumber(plate);
+                    }
+
+                    const isSuccess = paymentData.status === "Đã thanh toán" || vnpayStatusParam === "success";
+
+                    setVnpayResultState({
+                        payment: paymentData,
+                        session: sessionData,
+                        orderCode: paymentData.order_code || orderCodeParam,
+                        amount: paymentData.amount,
+                        plateNumber: plate,
+                        bankCode: paymentData.bank_code,
+                        paidAt: paymentData.paid_at || paymentData.payment_time,
+                        isSuccess,
+                        statusText: paymentData.status
+                    });
+                }
+            })
+            .catch((err) => {
+                console.error("[ExitPaymentPanel] Lỗi load payment theo orderCode:", err);
+            })
+            .finally(() => {
+                if (isMounted) setAllLoading(false);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [orderCodeParam, vnpayStatusParam]);
+
+    const handleConfirmVNPayExit = async () => {
+        if (!vnpayResultState) return;
+        try {
+            setAllLoading(true);
+            const finalPlate = (vnpayResultState.plateNumber || plateNumber || "").trim().toUpperCase();
+            const finalFee = vnpayResultState.amount || 0;
+            const sessionData = vnpayResultState.session;
+
+            showToast("Đã mở barie cho xe ra bãi thành công!", "success");
+
+            if (onSessionCompleted) {
+                onSessionCompleted({
+                    ...sessionData,
+                    session_id: vnpayResultState.payment?.session_id || sessionData?.session_id,
+                    plate_number: finalPlate,
+                    fee: finalFee,
+                    type: "OUT",
+                    exit_time: vnpayResultState.paidAt || new Date().toISOString(),
+                    status: "Hoàn thành"
+                });
+            }
+
+            setVnpayResultState(null);
+            setSearchParams({}, { replace: true });
+            clearPendingVNPay();
+            clearPrecheckState();
+            handleReset();
+        } catch (err) {
+            console.error("[handleConfirmVNPayExit] Lỗi:", err);
+            showToast(err.message || "Lỗi khi xử lý cho xe ra.", "error");
+        } finally {
+            setAllLoading(false);
+        }
+    };
+
+    const handleClearVNPayResult = () => {
+        const plate = vnpayResultState?.plateNumber || plateNumber;
+        setVnpayResultState(null);
+        setSearchParams({}, { replace: true });
+        if (plate) {
+            setPlateNumber(plate);
+        }
+        handleReset();
+    };
 
     // ── Khôi phục trạng thái khi component mount ──
     // Lưu ý: KHÔNG tự động hiện lại VNPay pending khi mount để tránh hiển thị
@@ -409,7 +519,7 @@ export default function ExitPaymentPanel({
         }
     };
 
-    // ── Thanh toán VNPay — mở tab mới, giữ trạng thái pending ──
+    // ── Thanh toán VNPay — redirect toàn trang (giống flow gia hạn thẻ tháng) ──
     const handlePayVNPay = async () => {
         if (!preCheckResult?.session?.session_id) return;
         try {
@@ -417,28 +527,14 @@ export default function ExitPaymentPanel({
             const res = await createVnpayCheckout(preCheckResult.session.session_id);
             const resData = res.data?.data ?? res.data;
             if (resData?.payment_url) {
-                const pendingData = {
-                    orderCode: resData.order_code || resData.orderCode || `PK${Date.now()}`,
-                    amount: preCheckResult.estimated_fee,
-                    plateNumber: plateNumber.trim().toUpperCase(),
-                    paymentUrl: resData.payment_url,
-                    savedAt: Date.now()
-                };
-                // Lưu vào localStorage (15 phút)
-                savePendingVNPay(pendingData);
-                // Mở tab mới thay vì redirect toàn trang
-                window.open(resData.payment_url, "_blank");
-                showToast("Đã mở trang thanh toán VNPay trong tab mới.", "success");
-                // Chuyển sang màn hình đang chờ VNPay (PRECHECK không còn cần vì VNPay pending đảm nhiệm)
-                clearPrecheckState();
-                setVnpayPending(pendingData);
-                setPreCheckResult(null);
+                // Redirect toàn trang sang VNPay (giống Manager renewal — đã hoạt động)
+                // VNPay sẽ redirect về đúng môi trường (local hoặc production)
+                window.location.href = resData.payment_url;
             } else {
                 throw new Error("Không nhận được URL thanh toán từ VNPay.");
             }
         } catch (err) {
             showToast(err.response?.data?.message || err.message || "Lỗi khởi tạo giao dịch VNPay.", "error");
-        } finally {
             setAllLoading(false);
         }
     };
@@ -495,8 +591,12 @@ export default function ExitPaymentPanel({
         clearPendingVNPay();
         clearPrecheckState();
         setVnpayPending(null);
+        setVnpayResultState(null);
         setPreCheckResult(null);
         setLostCardReport(null);
+        if (searchParams.get("orderCode")) {
+            setSearchParams({}, { replace: true });
+        }
         if (resetForm) resetForm();
     };
 
@@ -564,8 +664,125 @@ export default function ExitPaymentPanel({
 
     return (
         <div className="epp-container">
-            {/* ── TRẠNG THÁI: Đang chờ VNPay (ưu tiên hiển thị) ── */}
-            {vnpayPending ? (
+            {/* ── TRẠNG THÁI: Kết quả thanh toán VNPay từ return URL (Ưu tiên cao nhất) ── */}
+            {vnpayResultState ? (
+                <div className="epp-result-stack">
+                    {vnpayResultState.isSuccess ? (
+                        <div className="epp-card" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                            <div className="epp-card-header">
+                                <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#16a34a" }}>check_circle</span>
+                                <span className="epp-card-title" style={{ color: "#166534", fontSize: 16, fontWeight: 700, flex: 1 }}>
+                                    THANH TOÁN VNPAY THÀNH CÔNG
+                                </span>
+                                <span className="epp-badge" style={{ background: "#dcfce7", color: "#16a34a", border: "1px solid #bbf7d0" }}>
+                                    Đã thanh toán
+                                </span>
+                            </div>
+
+                            <div className="epp-info-grid" style={{ marginTop: 12 }}>
+                                <div className="epp-info-item">
+                                    <span className="epp-info-label">Mã giao dịch:</span>
+                                    <span className="epp-info-value" style={{ fontWeight: 700, color: "#2563eb" }}>
+                                        {vnpayResultState.orderCode}
+                                    </span>
+                                </div>
+                                <div className="epp-info-item">
+                                    <span className="epp-info-label">Biển số xe:</span>
+                                    <span className="epp-info-value" style={{ fontWeight: 700 }}>
+                                        {vnpayResultState.plateNumber || plateNumber}
+                                    </span>
+                                </div>
+                                <div className="epp-info-item">
+                                    <span className="epp-info-label">Phương thức:</span>
+                                    <span className="epp-info-value">
+                                        VNPay {vnpayResultState.bankCode ? `(${vnpayResultState.bankCode})` : ""}
+                                    </span>
+                                </div>
+                                <div className="epp-info-item">
+                                    <span className="epp-info-label">Thời gian:</span>
+                                    <span className="epp-info-value">
+                                        {vnpayResultState.paidAt ? new Date(vnpayResultState.paidAt).toLocaleString("vi-VN") : "---"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="epp-fee-row" style={{ marginTop: 12, paddingTop: 8, borderTop: "1px dashed #bbf7d0" }}>
+                                <span className="epp-fee-label">Số tiền đã thanh toán:</span>
+                                <span className="epp-fee-amt" style={{ color: "#16a34a", fontSize: 18, fontWeight: 700 }}>
+                                    {formatVND(vnpayResultState.amount)}
+                                </span>
+                            </div>
+
+                            <div className="epp-actions" style={{ marginTop: 16 }}>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmVNPayExit}
+                                    disabled={isDisableActions}
+                                    className="epp-btn-primary epp-btn-primary--free"
+                                    style={{ height: 44, fontSize: 15, fontWeight: 600, width: "100%", justifyContent: "center" }}
+                                >
+                                    <LogOut size={16} />
+                                    <span>Cho xe ra / Mở barie</span>
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="epp-card" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+                            <div className="epp-card-header">
+                                <span className="material-symbols-outlined" style={{ fontSize: 22, color: "#dc2626" }}>cancel</span>
+                                <span className="epp-card-title" style={{ color: "#991b1b", fontSize: 16, fontWeight: 700, flex: 1 }}>
+                                    THANH TOÁN VNPAY THẤT BẠI
+                                </span>
+                                <span className="epp-badge" style={{ background: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca" }}>
+                                    {vnpayResultState.statusText || "Thất bại"}
+                                </span>
+                            </div>
+
+                            <div className="epp-info-grid" style={{ marginTop: 12 }}>
+                                <div className="epp-info-item">
+                                    <span className="epp-info-label">Mã giao dịch:</span>
+                                    <span className="epp-info-value" style={{ fontWeight: 700, color: "#dc2626" }}>
+                                        {vnpayResultState.orderCode}
+                                    </span>
+                                </div>
+                                <div className="epp-info-item">
+                                    <span className="epp-info-label">Biển số xe:</span>
+                                    <span className="epp-info-value" style={{ fontWeight: 700 }}>
+                                        {vnpayResultState.plateNumber || plateNumber}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="epp-fee-row" style={{ marginTop: 12, paddingTop: 8, borderTop: "1px dashed #fecaca" }}>
+                                <span className="epp-fee-label">Số tiền:</span>
+                                <span className="epp-fee-amt" style={{ color: "#dc2626", fontSize: 18, fontWeight: 700 }}>
+                                    {formatVND(vnpayResultState.amount)}
+                                </span>
+                            </div>
+
+                            <div className="epp-actions" style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                                <button
+                                    type="button"
+                                    onClick={handleClearVNPayResult}
+                                    className="epp-btn-primary"
+                                    style={{ width: "100%", justifyContent: "center" }}
+                                >
+                                    <RefreshCw size={14} />
+                                    <span>Thử lại / Kiểm tra xe lại</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleReset}
+                                    className="epp-btn-cancel"
+                                    style={{ width: "100%", justifyContent: "center" }}
+                                >
+                                    Hủy giao dịch
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : vnpayPending ? (
                 <div className="epp-result-stack">
                     {/* Banner thông báo có pending */}
                     <div className="epp-vnpay-pending-banner">
