@@ -53,6 +53,12 @@ export default function LoginPage() {
             localStorage.setItem("token", token);
             localStorage.setItem("accessToken", token);
             localStorage.setItem("access_token", token);
+            localStorage.setItem("userEmail", email);
+            if (response.data?.user?.id) {
+                localStorage.setItem("userId", response.data.user.id);
+            } else if (response.data?.session?.user?.id) {
+                localStorage.setItem("userId", response.data.session.user.id);
+            }
 
             // Xóa tab đã lưu từ phiên trước để khi đăng nhập mới luôn hiển thị tab đầu tiên của sidebar
             localStorage.removeItem("dashboard_current_view");

@@ -9,22 +9,23 @@ import { useAuth } from '../../context/AuthContext';
  * @param {string[]} allowedRoles - Danh sách role được phép truy cập
  */
 export default function RoleProtectedRoute({ children, allowedRoles }) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('access_token');
     const { user, userRole } = useAuth();
 
     if (!token) {
         return <Navigate to="/login" replace />;
     }
 
-    const email = user?.email ? user.email.toLowerCase().trim() : '';
-    let role = userRole ? userRole.toUpperCase() : null;
+    const savedRole = localStorage.getItem("userRole") || userRole;
+    const email = user?.email ? user.email.toLowerCase().trim() : (localStorage.getItem("userEmail") || '').toLowerCase().trim();
+    let role = savedRole ? savedRole.toUpperCase() : null;
     if (email === 'admin@gmail.com') role = 'ADMIN';
     else if (email === 'manager@gmail.com') role = 'MANAGER';
     else if (email === 'staff@gmail.com') role = 'STAFF';
 
-    // Nếu role chưa load xong thì chờ (không redirect sớm)
+    // Nếu chưa load xong role thì fallback về savedRole hoặc STAFF để không làm văng phiên
     if (!role) {
-        return null;
+        role = 'STAFF';
     }
 
     if (!allowedRoles.includes(role)) {

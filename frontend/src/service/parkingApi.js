@@ -11,13 +11,16 @@ const API = axios.create({
 // Tránh 401 do dùng token hết hạn từ localStorage
 API.interceptors.request.use(async (config) => {
   try {
-    // getSession() sẽ tự refresh token nếu đã hết hạn
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
+    } else {
+      const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
   } catch (err) {
-    // Nếu không lấy được session, request sẽ tiến hành không có token
     console.warn('[parkingApi] Could not get Supabase session:', err.message);
   }
   return config;
