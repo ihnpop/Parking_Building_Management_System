@@ -543,7 +543,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                         <input type="email" className="renew-select" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="email@example.com" />
                                     </div>
                                     <div className="renew-form-group" style={{ gridColumn: '1/-1' }}>
-                                        <label>Số CCCD/CMND <span style={{ fontSize: 12, color: '#888', fontWeight: 400 }}>(tùy chọn — dùng cho hợp đồng)</span></label>
+                                        <label>Số CCCD <span style={{ fontSize: 12, color: '#888', fontWeight: 400 }}>(tùy chọn — dùng cho hợp đồng)</span></label>
                                         <input type="text" className="renew-select" value={formData.cccd_number} onChange={e => setFormData({ ...formData, cccd_number: e.target.value })} placeholder="079xxxxxxxxxxxxx" maxLength={12} />
                                     </div>
                                 </div>
