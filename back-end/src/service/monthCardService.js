@@ -266,14 +266,7 @@ export const createMonthCard = async ({
 
   const cleanCccd = (cccdNumber || cccd_number || '').trim();
   if (customerId && cleanCccd) {
-    await supabase
-      .from('customer_kyc')
-      .insert({
-        customer_id: customerId,
-        cccd_number: cleanCccd,
-        ekyc_status: 'Đã xác thực',
-        verified_at: new Date().toISOString()
-      });
+    await monthCardRepository.insertCustomerKyc(customerId, cleanCccd);
   }
 
   // 4. Tìm hoặc tạo xe
@@ -550,14 +543,7 @@ export const updateMonthCard = async (cardId, payload) => {
 
       const cleanCccd = (cccd_number || cccdNumber || '').trim();
       if (cleanCccd) {
-        await supabase
-          .from('customer_kyc')
-          .insert({
-            customer_id: customerId,
-            cccd_number: cleanCccd,
-            ekyc_status: 'Đã xác thực',
-            verified_at: new Date().toISOString()
-          });
+        await monthCardRepository.insertCustomerKyc(customerId, cleanCccd);
       }
     }
 
