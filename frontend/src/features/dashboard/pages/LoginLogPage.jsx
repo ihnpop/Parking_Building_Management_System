@@ -47,24 +47,26 @@ const renderFormattedTime = (dateInput) => {
         d = dateInput;
     }
 
-    if (d) {
-        const timePart = new Intl.DateTimeFormat('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-            timeZone: 'Asia/Ho_Chi_Minh',
-        }).format(d);
-        const datePart = new Intl.DateTimeFormat('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            timeZone: 'Asia/Ho_Chi_Minh',
-        }).format(d);
-        return (
-            <div className="log-time-column">
-                <span className="log-time-clock">{timePart}</span>
-                <span className="log-time-date">{datePart}</span>
+        if (d) {
+            // Add 7 hours to fix UTC+0 issue
+            const adjustedDate = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+            const timePart = new Intl.DateTimeFormat('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Ho_Chi_Minh',
+            }).format(adjustedDate);
+            const datePart = new Intl.DateTimeFormat('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'Asia/Ho_Chi_Minh',
+            }).format(adjustedDate);
+            return (
+                <div className="log-time-column">
+                    <span className="log-time-clock">{timePart}</span>
+                    <span className="log-time-date">{datePart}</span>
             </div>
         );
     }
