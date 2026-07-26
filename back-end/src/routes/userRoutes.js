@@ -1,5 +1,5 @@
 import express from "express";
-import { getUsers, updateUserRole, getLoginLogs, inviteUserController } from "../controllers/userController.js";
+import { getUsers, updateUserRole, updateUserProfile, getLoginLogs, inviteUserController } from "../controllers/userController.js";
 import { verifyToken, authorize } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -15,6 +15,12 @@ router.get("/", verifyToken, authorize("ADMIN"), getUsers);
  * Cập nhật role cho người dùng (chỉ ADMIN)
  */
 router.patch("/:id/role", verifyToken, authorize("ADMIN"), updateUserRole);
+
+/**
+ * PATCH /api/users/:id/profile
+ * Cập nhật thông tin cơ bản: phone, full_name, status (chỉ ADMIN)
+ */
+router.patch("/:id/profile", verifyToken, authorize("ADMIN"), updateUserProfile);
 
 /**
  * GET /api/users/login-logs

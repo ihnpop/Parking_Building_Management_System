@@ -83,6 +83,24 @@ export const findRoleByName = async (roleName) => {
 };
 
 /**
+ * Cập nhật thông tin profile (phone, full_name, status)
+ * @param {string} id
+ * @param {object} profileData - { phone, full_name, status }
+ * @returns {Promise<object>}
+ */
+export const updateProfile = async (id, profileData) => {
+    const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .update(profileData)
+        .eq("id", id)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+};
+
+/**
  * Cập nhật role_id của một profile
  * @param {string} id 
  * @param {string} roleId 
