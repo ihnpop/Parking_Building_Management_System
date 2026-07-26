@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
-import { getUsers, updateUserRole } from '../../../service/userApi';
+import { getUsers, updateUserRole, updateUserProfile } from '../../../service/userApi';
 import { inviteUser } from '../../../service/cardApi';
 import supabase from '../../../config/supabaseClient';
 import EditUserDialog from '../components/EditUserDialog';
@@ -127,15 +127,24 @@ export default function UserManagementPage() {
         try {
             setIsLoading(true);
             const roleNameUpper = editingUser.role.toUpperCase(); // e.g. "ADMIN", "MANAGER", "STAFF"
-            await updateUserRole(editingUser.id, roleNameUpper);
+
+            // Cập nhật cả role và thông tin cơ bản (phone, full_name, status) cùng lúc
+            await Promise.all([
+                updateUserRole(editingUser.id, roleNameUpper),
+                updateUserProfile(editingUser.id, {
+                    full_name: editingUser.name,
+                    phone: editingUser.phone,
+                    status: editingUser.status,
+                })
+            ]);
 
             setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
             setIsEditModalOpen(false);
             setEditingUser(null);
             showToast("Đã lưu thông tin người dùng thành công!", "success");
         } catch (error) {
-            console.error("Lỗi cập nhật vai trò:", error);
-            showToast("Lỗi khi cập nhật vai trò: " + (error.response?.data?.message || error.message), "error");
+            console.error("Lỗi cập nhật thông tin:", error);
+            showToast("Lỗi khi cập nhật: " + (error.response?.data?.message || error.message), "error");
         } finally {
             setIsLoading(false);
         }

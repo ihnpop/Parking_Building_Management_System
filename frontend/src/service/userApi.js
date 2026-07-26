@@ -47,6 +47,16 @@ export const updateUserRole = async (userId, roleName) => {
 };
 
 /**
+ * Cập nhật thông tin cơ bản của người dùng (phone, full_name, status)
+ * @param {string} userId - UUID của người dùng
+ * @param {object} profileData - { phone, full_name, status }
+ */
+export const updateUserProfile = async (userId, profileData) => {
+    const response = await API.patch(`/users/${userId}/profile`, profileData);
+    return response.data;
+};
+
+/**
  * Lấy danh sách nhật ký đăng nhập
  */
 export const getLoginLogs = async () => {
