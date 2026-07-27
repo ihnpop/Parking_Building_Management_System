@@ -34,6 +34,27 @@ export default function App() {
       <Route path="/dashboard/*" element={<Navigate to="/login/dashboard" replace />} />
 
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập và phân quyền */}
+      <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
+
+      {/* Route riêng cho Quản lý Thẻ lượt */}
+      <Route path="/login/dashboard/card" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <DashboardView initialView="card-management" initialCardTab="Thẻ lượt" />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+
+      {/* Route riêng cho Quản lý Thẻ tháng */}
+      <Route path="/login/dashboard/month-card" element={
+        <ProtectedRoute>
+          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+            <DashboardView initialView="card-management" initialCardTab="Thẻ tháng" />
+          </RoleProtectedRoute>
+        </ProtectedRoute>
+      } />
+
+      {/* Catch-all cho các sub-route khác trong Dashboard */}
       <Route path="/login/dashboard/*" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
 
       <Route path="/set-password" element={<SetPasswordPage />} />
