@@ -265,10 +265,18 @@ export default function PaymentResultPage() {
                     <button
                         style={styles.btnSecondary}
                         onClick={() => {
-                            if (payment?.payment_type === "Phí cấp lại thẻ" || payment?.payment_type === "Phí mất thẻ lượt") {
-                                navigate("/login/dashboard/lost-card-log");
-                            } else if (payment?.payment_type === "Gia hạn vé tháng" || payment?.payment_type === "Đăng ký vé tháng") {
-                                navigate("/login/dashboard/month-card-log");
+                            const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
+                                               payment?.payment_type === "Phí mất thẻ lượt" ||
+                                               (orderCode && orderCode.startsWith("LC"));
+                                               
+                            const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
+                                                payment?.payment_type === "Đăng ký vé tháng" ||
+                                                (orderCode && (orderCode.startsWith("RN") || orderCode.startsWith("PK")));
+
+                            if (isLostCard) {
+                                navigate("/login/dashboard/log-management/lost-card");
+                            } else if (isMonthCard) {
+                                navigate("/login/dashboard/card-management/month-card");
                             } else if (orderCode) {
                                 navigate(`/login/dashboard?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=${isSuccess ? 'success' : 'failed'}`);
                             } else {
@@ -284,7 +292,19 @@ export default function PaymentResultPage() {
                         <button
                             style={styles.btnPrimary}
                             onClick={() => {
-                                if (orderCode) {
+                                const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
+                                                   payment?.payment_type === "Phí mất thẻ lượt" ||
+                                                   (orderCode && orderCode.startsWith("LC"));
+                                                   
+                                const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
+                                                    payment?.payment_type === "Đăng ký vé tháng" ||
+                                                    (orderCode && (orderCode.startsWith("RN") || orderCode.startsWith("PK")));
+
+                                if (isLostCard) {
+                                    navigate("/login/dashboard/log-management/lost-card");
+                                } else if (isMonthCard) {
+                                    navigate("/login/dashboard/card-management/month-card");
+                                } else if (orderCode) {
                                     navigate(`/login/dashboard?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=failed`);
                                 } else {
                                     navigate("/login/dashboard");

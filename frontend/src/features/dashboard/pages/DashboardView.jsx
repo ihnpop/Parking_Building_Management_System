@@ -142,6 +142,14 @@ export default function DashboardView() {
         } else if (path.includes('/log-management/login-log')) {
             setCurrentView('log-management');
             setActiveLogTab('Đăng nhập');
+        } else if (path.includes('/card-management/month-card') || path.endsWith('/month-card')) {
+            setCurrentView('card-management');
+            setActiveCardTab('Thẻ tháng');
+        } else if (path.includes('/card-management/casual-card') || path.endsWith('/card')) {
+            setCurrentView('card-management');
+            setActiveCardTab('Thẻ lượt');
+        } else if (path.includes('/adjust-prices')) {
+            setCurrentView('adjust-prices');
         }
     }, [location.pathname]);
 
@@ -151,6 +159,13 @@ export default function DashboardView() {
         if (tabName === 'Thẻ lượt') path = '/login/dashboard/log-management/casual-card';
         if (tabName === 'Vé tháng') path = '/login/dashboard/log-management/month-card';
         if (tabName === 'Đăng nhập') path = '/login/dashboard/log-management/login-log';
+        navigate(path);
+    };
+
+    const handleCardTabClick = (tabName) => {
+        let path = '';
+        if (tabName === 'Thẻ lượt') path = '/login/dashboard/card-management/casual-card';
+        if (tabName === 'Thẻ tháng') path = '/login/dashboard/card-management/month-card';
         navigate(path);
     };
 
@@ -620,7 +635,17 @@ export default function DashboardView() {
     const monthFormatted = formatMonthLabel(selectedCustomMonth);
 
     return (
-        <DashboardShell currentTab={currentView} onTabSelect={(tab) => setCurrentView(tab)}>
+        <DashboardShell currentTab={currentView} onTabSelect={(tab) => {
+            if (tab === 'card-management') {
+                navigate('/login/dashboard/month-card');
+            } else if (tab === 'adjust-prices') {
+                navigate('/login/dashboard/adjust-prices');
+            } else if (tab === 'manager-dashboard') {
+                navigate('/login/dashboard');
+            } else {
+                setCurrentView(tab);
+            }
+        }}>
 
             {/* 0. VIEW BẢNG ĐIỀU KHIỂN MANAGER */}
             {currentView === 'manager-dashboard' && (
@@ -633,8 +658,8 @@ export default function DashboardView() {
             {currentView === 'card-management' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 24px 24px 24px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '0' }}>
-                        {renderTabButton('Thẻ lượt', activeCardTab === 'Thẻ lượt', () => setActiveCardTab('Thẻ lượt'))}
-                        {renderTabButton('Thẻ tháng', activeCardTab === 'Thẻ tháng', () => setActiveCardTab('Thẻ tháng'))}
+                        {renderTabButton('Thẻ lượt', activeCardTab === 'Thẻ lượt', () => handleCardTabClick('Thẻ lượt'))}
+                        {renderTabButton('Thẻ tháng', activeCardTab === 'Thẻ tháng', () => handleCardTabClick('Thẻ tháng'))}
                     </div>
                     <div style={{ marginTop: '5px' }}>
                         {activeCardTab === 'Thẻ lượt' ? <CardPage defaultType="Thẻ lượt" /> : <MonthCardPage />}
