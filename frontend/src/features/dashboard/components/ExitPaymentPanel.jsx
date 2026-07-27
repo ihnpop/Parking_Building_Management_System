@@ -7,6 +7,7 @@ import { getMonthCards } from "../../../service/monthCardApi";
 import { getLostCards, confirmLostTurnCardCash } from "../../../service/cardApi";
 import { useNotification } from "../../../context/NotificationContext";
 import supabase from "../../../config/supabaseClient";
+import { normalizePlate, validatePlateNumber } from "../../../utils/plateValidation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "exit_pending_vnpay";
@@ -391,8 +392,8 @@ export default function ExitPaymentPanel({
     // Tự động nhảy loại xe (Xe máy / Ô tô) khi preCheckResult có dữ liệu xe lúc check-in / DB
     useEffect(() => {
         if (preCheckResult) {
-            const autoVehicleType = preCheckResult.vehicle?.vehicle_type?.name 
-                || preCheckResult.session?.vehicle?.vehicle_type?.name 
+            const autoVehicleType = preCheckResult.vehicle?.vehicle_type?.name
+                || preCheckResult.session?.vehicle?.vehicle_type?.name
                 || preCheckResult.vehicleCategory;
             if (autoVehicleType) {
                 setVehicleType(autoVehicleType);
@@ -408,11 +409,12 @@ export default function ExitPaymentPanel({
     // ── Kiểm tra xe ra ──
     const handleCheckExit = async (e) => {
         if (e) e.preventDefault();
-        const trimmedPlate = (plateNumber || "").trim().toUpperCase();
-        if (!trimmedPlate) {
-            showToast("Vui lòng nhập biển số xe cần kiểm tra.", "error");
+        const validation = validatePlateNumber(plateNumber);
+        if (!validation.isValid) {
+            showToast(validation.message, "error");
             return;
         }
+        const trimmedPlate = validation.cleanPlate;
 
         // ✔ Kiểm tra localStorage trước khi gọi API:
         // Chỉ chặn nếu đơn VNPay đang chờ ĐÚNG BIỂN SỐ này
@@ -439,8 +441,8 @@ export default function ExitPaymentPanel({
                 if (onPreCheckLoaded) onPreCheckLoaded(data);
 
                 // Tự động nhảy loại xe (Xe máy / Ô tô) từ thông tin checkin / DB của xe
-                const autoVehicleType = data.vehicle?.vehicle_type?.name 
-                    || data.session?.vehicle?.vehicle_type?.name 
+                const autoVehicleType = data.vehicle?.vehicle_type?.name
+                    || data.session?.vehicle?.vehicle_type?.name
                     || data.vehicleCategory;
                 if (autoVehicleType) {
                     setVehicleType(autoVehicleType);
@@ -836,7 +838,7 @@ export default function ExitPaymentPanel({
                                     onClick={handleRetryVNPayExit}
                                     disabled={isDisableActions}
                                     className="epp-btn-primary"
-                                    style={{ width: "100%", justifyContent: "center", background: "#2563eb", color: "#fff", fontWeight: 600, height: 40, borderRadius: 8, cursor: "pointer" }}
+                                    style={{ width: "100%", justifyContent: "center", background: "#bebb25ff", color: "#fff", fontWeight: 600, height: 40, borderRadius: 8, cursor: "pointer" }}
                                 >
                                     <RefreshCw size={16} />
                                     <span>Thử lại / Kiểm tra xe lại</span>
@@ -845,7 +847,7 @@ export default function ExitPaymentPanel({
                                     type="button"
                                     onClick={handleReset}
                                     className="epp-btn-cancel"
-                                    style={{ width: "100%", justifyContent: "center" }}
+                                    style={{ width: "100%", justifyContent: "center", background: "#dc2626", color: "#fff", fontWeight: 600, height: 40, borderRadius: 8, cursor: "pointer" }}
                                 >
                                     Hủy giao dịch
                                 </button>

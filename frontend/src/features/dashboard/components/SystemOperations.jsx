@@ -15,6 +15,7 @@ import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
 import ExitPaymentPanel from './ExitPaymentPanel';
+import { normalizePlate, validatePlateNumber } from '../../../utils/plateValidation';
 
 const cameraCards = [
     {
@@ -251,11 +252,16 @@ export default function SystemOperations() {
     };
 
     const handlePreCheck = async (plate) => {
-        if (!plate || !plate.trim()) return;
+        const validation = validatePlateNumber(plate);
+        if (!validation.isValid) {
+            showToast(validation.message, 'error');
+            return;
+        }
+        const cleanPlate = validation.cleanPlate;
         try {
             setLoading(true);
             if (mode === 'IN') {
-                const res = await preCheckEntryGate(plate);
+                const res = await preCheckEntryGate(cleanPlate);
                 setPreCheckResult(res);
                 if (res.vehicleType === 'VISITOR') {
                     // Mặc định chọn thẻ đầu tiên nếu có
@@ -311,10 +317,12 @@ export default function SystemOperations() {
     };
 
     const handleCheckInSubmit = async () => {
-        if (!plateNumber.trim()) {
-            showToast('Vui lòng nhập biển số xe.', 'error');
+        const validation = validatePlateNumber(plateNumber);
+        if (!validation.isValid) {
+            showToast(validation.message, 'error');
             return;
         }
+        const cleanPlate = validation.cleanPlate;
 
         if (!preCheckResult) return;
 
@@ -330,7 +338,7 @@ export default function SystemOperations() {
                 }
                 result = await entryGate({
                     cardCode: selectedCard,
-                    plateNumber: plateNumber.trim().toUpperCase(),
+                    plateNumber: cleanPlate,
                     entryVehicleImage: entryVehicleUrl || null,
                     entryPlateImage: entryPlateUrl || null,
                     vehicleType: vehicleType
@@ -343,7 +351,7 @@ export default function SystemOperations() {
                     return;
                 }
                 result = await entryGate({
-                    plateNumber: plateNumber.trim().toUpperCase(),
+                    plateNumber: cleanPlate,
                     entryVehicleImage: entryVehicleUrl || null,
                     entryPlateImage: entryPlateUrl || null
                 });
@@ -377,10 +385,12 @@ export default function SystemOperations() {
     };
 
     const handleCheckOutSubmit = async () => {
-        if (!plateNumber.trim()) {
-            showToast('Vui lòng nhập biển số xe cần check-out.', 'error');
+        const validation = validatePlateNumber(plateNumber);
+        if (!validation.isValid) {
+            showToast(validation.message, 'error');
             return;
         }
+        const cleanPlate = validation.cleanPlate;
 
         if (!preCheckResult) return;
 
@@ -391,14 +401,14 @@ export default function SystemOperations() {
             if (preCheckResult.vehicleType === 'VISITOR') {
                 result = await exitGate({
                     cardCode: preCheckResult.cardCode,
-                    plateNumber: plateNumber.trim().toUpperCase(),
+                    plateNumber: cleanPlate,
                     exitVehicleImage: exitVehicleUrl || null,
                     exitPlateImage: exitPlateUrl || null
                 });
             } else {
                 // Monthly
                 result = await exitGate({
-                    plateNumber: plateNumber.trim().toUpperCase(),
+                    plateNumber: cleanPlate,
                     exitVehicleImage: exitVehicleUrl || null,
                     exitPlateImage: exitPlateUrl || null
                 });
@@ -414,7 +424,7 @@ export default function SystemOperations() {
                 setLastSession({
                     ...result.session,
                     fee: preCheckResult.fee,
-                    plate_number: plateNumber.trim().toUpperCase(),
+                    plate_number: cleanPlate,
                     entry_time: result.session?.entry_time || new Date().toISOString(),
                     exit_time: result.session?.exit_time || new Date().toISOString(),
                     type: 'OUT',
@@ -464,8 +474,9 @@ export default function SystemOperations() {
 
     const handleFormSubmit = async (e) => {
         e.preventDefault();
-        if (!plateNumber.trim()) {
-            showToast('Vui lòng nhập biển số xe.', 'error');
+        const validation = validatePlateNumber(plateNumber);
+        if (!validation.isValid) {
+            showToast(validation.message, 'error');
             return;
         }
         // Bước 2: Nếu đã precheck rồi -> xác nhận luôn
@@ -478,7 +489,7 @@ export default function SystemOperations() {
             return;
         }
         // Bước 1: Chưa precheck -> gọi precheck để hiện thông tin
-        await handlePreCheck(plateNumber);
+        await handlePreCheck(validation.cleanPlate);
     };
     useEffect(() => {
         if (buildingId) {
@@ -586,8 +597,9 @@ export default function SystemOperations() {
 
                             const ocrRes = await simulateOcrFile(file);
                             if (ocrRes.success) {
-                                setPlateNumber(ocrRes.plateNumber);
-                                showToast(`OCR nhận diện biển số: ${ocrRes.plateNumber}`, "success");
+                                const cleanOcrPlate = normalizePlate(ocrRes.plateNumber);
+                                setPlateNumber(cleanOcrPlate);
+                                showToast(`OCR nhận diện biển số: ${cleanOcrPlate}`, "success");
                             }
                         } catch (err) {
                             showToast("Lỗi tải ảnh hoặc OCR.", "error");
@@ -633,8 +645,9 @@ export default function SystemOperations() {
 
                             const ocrRes = await simulateOcrFile(file);
                             if (ocrRes.success) {
-                                setPlateNumber(ocrRes.plateNumber);
-                                showToast(`OCR nhận diện biển số ra: ${ocrRes.plateNumber}`, "success");
+                                const cleanOcrPlate = normalizePlate(ocrRes.plateNumber);
+                                setPlateNumber(cleanOcrPlate);
+                                showToast(`OCR nhận diện biển số ra: ${cleanOcrPlate}`, "success");
                             }
                         } catch (err) {
                             showToast("Lỗi tải ảnh hoặc OCR.", "error");
@@ -837,7 +850,7 @@ export default function SystemOperations() {
                                 placeholder="NHẬP BIỂN SỐ..."
                                 className="transaction-plate so-plate-input"
                                 value={plateNumber}
-                                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+                                onChange={(e) => setPlateNumber(normalizePlate(e.target.value))}
                                 disabled={loading}
                             />
 
