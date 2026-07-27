@@ -10,6 +10,9 @@ import {
     getHourVN, 
     formatVNDCompact, 
     getVNPeriodRange, 
+    formatDateFormatted,
+    formatWeekLabel,
+    formatMonthLabel,
     handleExportExcel as handleExportExcelUtil 
 } from '../../../utils/dashboardUtils';
 
@@ -122,8 +125,8 @@ export default function DashboardView() {
 
     // ── KPI Time Filter (lifted from CasualCardLogPage) ───────────────────
     const [kpiTimeFilter, setKpiTimeFilter] = useState('day');
-    const [kpiDate, setKpiDate] = useState(todayVN);
-    const [kpiMonth, setKpiMonth] = useState(thisMonthVN);
+    const [kpiDate, setKpiDate] = useState(todayVN());
+    const [kpiMonth, setKpiMonth] = useState(thisMonthVN());
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -285,19 +288,31 @@ export default function DashboardView() {
                     peak: val === maxRev && val > 0
                 })));
             } else {
-                // Daily traffic & revenue
+                // Daily traffic & revenue for Week or Month
                 const datesList = [];
-                const startMs = new Date(startDate).getTime() + 7 * 60 * 60 * 1000;
-                const endMs = new Date(endDate).getTime() + 7 * 60 * 60 * 1000;
-
-                let walkMs = startMs;
-                while (walkMs <= endMs) {
-                    const walkDate = new Date(walkMs);
-                    const y = walkDate.getUTCFullYear();
-                    const m = String(walkDate.getUTCMonth() + 1).padStart(2, '0');
-                    const d = String(walkDate.getUTCDate()).padStart(2, '0');
-                    datesList.push(`${y}-${m}-${d}`);
-                    walkMs += 24 * 60 * 60 * 1000;
+                if (dashboardPeriod === 'week') {
+                    const parts = (selectedCustomDate || todayVN()).split('-').map(Number);
+                    const [y, m, d] = (parts.length === 3 && !parts.some(isNaN)) ? parts : [2026, 7, 27];
+                    const dt = new Date(y, m - 1, d);
+                    const currentDay = dt.getDay();
+                    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+                    for (let i = 0; i < 7; i++) {
+                        const dayMs = Date.UTC(y, m - 1, d + diffToMonday + i, 12, 0, 0);
+                        const dayObj = new Date(dayMs);
+                        const dy = dayObj.getUTCFullYear();
+                        const dm = String(dayObj.getUTCMonth() + 1).padStart(2, '0');
+                        const dd = String(dayObj.getUTCDate()).padStart(2, '0');
+                        datesList.push(`${dy}-${dm}-${dd}`);
+                    }
+                } else if (dashboardPeriod === 'month') {
+                    const parts = (selectedCustomMonth || thisMonthVN()).split('-').map(Number);
+                    const [y, m] = (parts.length === 2 && !parts.some(isNaN)) ? parts : [2026, 7];
+                    const daysInMonth = new Date(y, m, 0).getDate();
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dm = String(m).padStart(2, '0');
+                        const dd = String(day).padStart(2, '0');
+                        datesList.push(`${y}-${dm}-${dd}`);
+                    }
                 }
 
                 // Daily traffic
@@ -543,29 +558,9 @@ export default function DashboardView() {
     const maxRevenueVal = Math.max(...revenueChartData.map(d => d.val), 1);
 
     // Compute date ranges labels for cards & descriptions
-    const dateFormatted = selectedCustomDate.split('-').reverse().join('/');
-    
-    // For week label, calculate the Monday and Sunday dates
-    let weekLabel = '';
-    if (selectedCustomDate) {
-        const [y, m, d] = selectedCustomDate.split('-').map(Number);
-        const selectedDateObj = new Date(y, m - 1, d);
-        const currentDay = selectedDateObj.getDay();
-        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-        const monday = new Date(selectedDateObj);
-        monday.setDate(selectedDateObj.getDate() + diffToMonday);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-
-        const formatShort = (dateObj) => {
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            return `${dd}/${mm}`;
-        };
-        weekLabel = `${formatShort(monday)} - ${formatShort(sunday)}`;
-    }
-
-    const monthFormatted = selectedCustomMonth.split('-').reverse().join('/');
+    const dateFormatted = formatDateFormatted(selectedCustomDate);
+    const weekLabel = formatWeekLabel(selectedCustomDate);
+    const monthFormatted = formatMonthLabel(selectedCustomMonth);
 
     return (
         <DashboardShell currentTab={currentView} onTabSelect={(tab) => setCurrentView(tab)}>
@@ -776,7 +771,10 @@ export default function DashboardView() {
                                     value={selectedCustomDate}
                                     onChange={(e) => setSelectedCustomDate(e.target.value)}
                                     style={{
-                                        padding: '0 16px',
+                                        padding: '0 10px',
+                                        width: '150px',
+                                        minWidth: '150px',
+                                        maxWidth: '150px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
@@ -787,7 +785,8 @@ export default function DashboardView() {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                         cursor: 'pointer',
                                         height: '42px',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0
                                     }}
                                 />
                             )}
@@ -798,7 +797,10 @@ export default function DashboardView() {
                                     value={selectedCustomDate}
                                     onChange={(e) => setSelectedCustomDate(e.target.value)}
                                     style={{
-                                        padding: '0 16px',
+                                        padding: '0 10px',
+                                        width: '150px',
+                                        minWidth: '150px',
+                                        maxWidth: '150px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
@@ -809,7 +811,8 @@ export default function DashboardView() {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                         cursor: 'pointer',
                                         height: '42px',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0
                                     }}
                                 />
                             )}
@@ -820,7 +823,10 @@ export default function DashboardView() {
                                     value={selectedCustomMonth}
                                     onChange={(e) => setSelectedCustomMonth(e.target.value)}
                                     style={{
-                                        padding: '0 16px',
+                                        padding: '0 10px',
+                                        width: '150px',
+                                        minWidth: '150px',
+                                        maxWidth: '150px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
@@ -831,7 +837,8 @@ export default function DashboardView() {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                         cursor: 'pointer',
                                         height: '42px',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0
                                     }}
                                 />
                             )}

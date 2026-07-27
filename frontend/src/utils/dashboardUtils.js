@@ -1,17 +1,12 @@
 /**
- * Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam
+ * Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam (ICT)
  */
 export function todayVN() {
-    const vnTime = new Date().getTime() + 7 * 60 * 60 * 1000;
-    const vnDate = new Date(vnTime);
-    const y = vnDate.getUTCFullYear();
-    const m = String(vnDate.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(vnDate.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 }
 
 /**
- * Trả về chuỗi yyyy-MM theo timezone Việt Nam
+ * Trả về chuỗi yyyy-MM theo timezone Việt Nam (ICT)
  */
 export function thisMonthVN() {
     return todayVN().slice(0, 7);
@@ -44,23 +39,51 @@ export function getVNDateParts(dateInput) {
     };
 }
 
+/**
+ * Format timestamp sang yyyy-MM-dd theo timezone Việt Nam
+ */
 export function getLocalDateVN(dateInput) {
-    const parts = getVNDateParts(dateInput);
-    if (!parts) return '';
-    const y = parts.year;
-    const m = String(parts.month).padStart(2, '0');
-    const d = String(parts.date).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    if (!dateInput) return '';
+    let val = String(dateInput).trim();
+    if (val.includes(' ') && !val.includes('T')) {
+        val = val.replace(' ', 'T');
+    }
+    if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+        val = val + 'Z';
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
 }
 
 export function formatLabel(dateStr) {
+    if (!dateStr || !dateStr.includes('-')) return '';
     const parts = dateStr.split('-');
-    return `${parts[2]}/${parts[1]}`;
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+    return dateStr;
 }
 
+/**
+ * Lấy giờ (0..23) theo timezone Việt Nam
+ */
 export function getHourVN(dateInput) {
-    const parts = getVNDateParts(dateInput);
-    return parts ? parts.hour : -1;
+    if (!dateInput) return -1;
+    let val = String(dateInput).trim();
+    if (val.includes(' ') && !val.includes('T')) {
+        val = val.replace(' ', 'T');
+    }
+    if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+        val = val + 'Z';
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return -1;
+    const hourStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: 'numeric',
+        hour12: false
+    }).format(d);
+    const h = parseInt(hourStr, 10);
+    return h === 24 ? 0 : h;
 }
 
 export function formatVNDCompact(val) {
@@ -75,38 +98,76 @@ export function formatVNDCompact(val) {
     return num + ' ₫';
 }
 
+export function formatDateFormatted(customDate) {
+    if (!customDate) return '';
+    const parts = customDate.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return customDate;
+}
+
+export function formatWeekLabel(customDate) {
+    if (!customDate) return '';
+    const parts = customDate.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return '';
+    const [y, m, d] = parts;
+    const dt = new Date(y, m - 1, d);
+    const currentDay = dt.getDay();
+    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(y, m - 1, d + diffToMonday);
+    const sunday = new Date(y, m - 1, d + diffToMonday + 6);
+    const formatShort = (dateObj) => {
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        return `${dd}/${mm}`;
+    };
+    return `${formatShort(monday)} - ${formatShort(sunday)}`;
+}
+
+export function formatMonthLabel(customMonth) {
+    if (!customMonth) return '';
+    const parts = customMonth.split('-');
+    if (parts.length === 2) {
+        return `${parts[1]}/${parts[0]}`;
+    }
+    return customMonth;
+}
+
 export function getVNPeriodRange(period, customDate, customMonth) {
     let startVN, endVN;
 
     if (period === 'day' && customDate) {
-        const [y, m, d] = customDate.split('-').map(Number);
+        const parts = customDate.split('-').map(Number);
+        if (parts.length === 3 && !parts.some(isNaN)) {
+            const [y, m, d] = parts;
+            startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+            endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+        }
+    } else if (period === 'week' && customDate) {
+        const parts = customDate.split('-').map(Number);
+        if (parts.length === 3 && !parts.some(isNaN)) {
+            const [y, m, d] = parts;
+            const dt = new Date(y, m - 1, d);
+            const currentDay = dt.getDay();
+            const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+            startVN = Date.UTC(y, m - 1, d + diffToMonday, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+            endVN = Date.UTC(y, m - 1, d + diffToMonday + 6, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+        }
+    } else if (period === 'month' && customMonth) {
+        const parts = customMonth.split('-').map(Number);
+        if (parts.length === 2 && !parts.some(isNaN)) {
+            const [y, m] = parts;
+            startVN = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+            endVN = Date.UTC(y, m, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+        }
+    }
+
+    if (!startVN || !endVN) {
+        const todayStr = todayVN();
+        const [y, m, d] = todayStr.split('-').map(Number);
         startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
         endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-    } else if (period === 'week' && customDate) {
-        const [y, m, d] = customDate.split('-').map(Number);
-        const targetTime = Date.UTC(y, m - 1, d, 12, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        const parts = getVNDateParts(targetTime);
-        const currentDay = parts.dayOfWeek;
-        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-
-        const mondayTime = targetTime + diffToMonday * 24 * 60 * 60 * 1000;
-        const mondayParts = getVNDateParts(mondayTime);
-
-        startVN = Date.UTC(mondayParts.year, mondayParts.month - 1, mondayParts.date, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = startVN + 7 * 24 * 60 * 60 * 1000 - 1;
-    } else if (period === 'month' && customMonth) {
-        const [y, m] = customMonth.split('-').map(Number);
-        startVN = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = Date.UTC(y, m, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-    } else {
-        const vnTime = new Date().getTime() + 7 * 60 * 60 * 1000;
-        const vnDate = new Date(vnTime);
-        const y = vnDate.getUTCFullYear();
-        const m = vnDate.getUTCMonth();
-        const d = vnDate.getUTCDate();
-
-        startVN = Date.UTC(y, m, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = Date.UTC(y, m, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
     }
 
     return {
