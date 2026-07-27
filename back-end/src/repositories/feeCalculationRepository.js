@@ -124,7 +124,7 @@ export async function findUnresolvedLostCardLog(vehicleId, entryTime = null) {
         .from("card_lost_log")
         .select("lost_report_id")
         .eq("vehicle_id", vehicleId)
-        .neq("status", "Đã xong"); // Trạng thái đúng trong DB là 'Đã xong'
+        .neq("status", "Đã hủy (tạo nhầm)");
 
     // Chỉ tìm log báo mất được tạo TRONG PHIÊN gửi xe hiện tại (sau entry_time)
     if (entryTime) {

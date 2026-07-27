@@ -373,9 +373,9 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                             <table className="log-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '850px' }}>
                                 <colgroup>
                                     <col style={{ width: '25%' }} /> {/* THỜI GIAN */}
-                                    <col style={{ width: '25%' }} /> {/* HỌ TÊN */}
+                                    <col style={{ width: '30%' }} /> {/* HỌ TÊN */}
                                     <col style={{ width: '25%' }} /> {/* VAI TRÒ */}
-                                    <col style={{ width: '25%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '20%' }} /> {/* TRẠNG THÁI */}
                                 </colgroup>
                                 <thead>
                                     <tr>

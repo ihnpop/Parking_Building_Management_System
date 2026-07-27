@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import supabase from '../../../config/supabaseClient';
 
 import { 
@@ -122,6 +123,37 @@ export default function DashboardView() {
 
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
+
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // ── Sync URL to state ──
+    useEffect(() => {
+        const path = location.pathname;
+        if (path.includes('/log-management/lost-card')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Quẹt thẻ');
+        } else if (path.includes('/log-management/casual-card')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Thẻ lượt');
+        } else if (path.includes('/log-management/month-card')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Vé tháng');
+        } else if (path.includes('/log-management/login-log')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Đăng nhập');
+        }
+    }, [location.pathname]);
+
+    const handleLogTabClick = (tabName) => {
+        let path = '';
+        if (tabName === 'Quẹt thẻ') path = '/login/dashboard/log-management/lost-card';
+        if (tabName === 'Thẻ lượt') path = '/login/dashboard/log-management/casual-card';
+        if (tabName === 'Vé tháng') path = '/login/dashboard/log-management/month-card';
+        if (tabName === 'Đăng nhập') path = '/login/dashboard/log-management/login-log';
+        navigate(path);
+    };
+
 
     // ── KPI Time Filter (lifted from CasualCardLogPage) ───────────────────
     const [kpiTimeFilter, setKpiTimeFilter] = useState('day');
@@ -616,10 +648,10 @@ export default function DashboardView() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f0f0f0', marginTop: '0', flexWrap: 'nowrap' }}>
                         {/* Tab Menu - Không cho phép xuống dòng */}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
-                            {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => setActiveLogTab('Thẻ lượt'))}
-                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
-                            {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
+                            {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => handleLogTabClick('Quẹt thẻ'))}
+                            {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => handleLogTabClick('Thẻ lượt'))}
+                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'Vé tháng', () => handleLogTabClick('Vé tháng'))}
+                            {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => handleLogTabClick('Đăng nhập'))}
                         </div>
                         {/* KPI Time Filter – Áp dụng cho tất cả các tab */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '4px', flexShrink: 0 }}>

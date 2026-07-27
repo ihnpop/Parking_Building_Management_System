@@ -633,8 +633,8 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                                 {/* Mã giao dịch */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
                                     <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Mã giao dịch</span>
-                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.session_id || ''}>
-                                        {selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.session_id || '---'}
+                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.paymentInfo?.transaction_no || selectedBill.session_id || ''}>
+                                        {selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.paymentInfo?.transaction_no || selectedBill.session_id || '---'}
                                     </span>
                                 </div>
                                 {/* Loại giao dịch */}

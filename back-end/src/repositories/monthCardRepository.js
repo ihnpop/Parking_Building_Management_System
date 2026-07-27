@@ -781,7 +781,9 @@ export const getMonthCardLogs = async (buildingId = null) => {
 
     const staffIds = (staffProfiles || []).map(p => p.id);
     if (staffIds.length > 0) {
-      query = query.in('performed_by', staffIds);
+      query = query.or(`performed_by.in.(${staffIds.join(',')}),performed_by.is.null`);
+    } else {
+      query = query.is('performed_by', null);
     }
   }
 
