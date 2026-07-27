@@ -389,7 +389,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                                         currentData.map((log, index) => (
                                             <tr key={index}>
                                                 <td style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-                                                    {renderFormattedTime(log.timestamp || log.login_time || log.created_at || log.time)}
+                                                    {renderFormattedTime(log.login_time || log.timestamp || log.created_at || log.time)}
                                                 </td>
                                                 <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     <div className="log-user-cell" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>

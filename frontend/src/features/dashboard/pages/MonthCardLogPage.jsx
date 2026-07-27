@@ -621,7 +621,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                     {currentData.length > 0 ? (
                                         currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
-                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderFormattedTime(log.time)}</td>
+                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderFormattedTime(log.timestamp || log.time)}</td>
                                                 <td style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '0.78rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {log.orderCode
                                                         ? <span title={log.orderCode}>{log.orderCode}</span>
