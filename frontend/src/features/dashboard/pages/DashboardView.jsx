@@ -241,15 +241,40 @@ export default function DashboardView() {
             const periodRevenue = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
             // Compute second revenue metric (doanh thu tháng or average)
-            let periodRevenue2 = data.monthRevenue; // fallback
+            let periodRevenue2 = 0;
+            const selMonthStr = dashboardPeriod === 'month' 
+                ? (selectedCustomMonth || thisMonthVN()) 
+                : (selectedCustomDate || todayVN()).slice(0, 7);
+
             if (dashboardPeriod === 'day') {
-                periodRevenue2 = data.monthRevenue;
+                const monthRange = getVNPeriodRange('month', null, selMonthStr);
+                let monthPaymentsQuery = supabase
+                    .from('payment')
+                    .select('amount')
+                    .eq('status', 'Đã thanh toán')
+                    .gte('payment_time', monthRange.startDate)
+                    .lte('payment_time', monthRange.endDate);
+
+                if (targetBuildingId) {
+                    const { data: logs } = await supabase
+                        .from('entry_exit_log')
+                        .select('session_id')
+                        .eq('building_id', targetBuildingId);
+                    const sessionIds = [...new Set((logs || []).map(l => l.session_id).filter(Boolean))];
+                    if (sessionIds.length > 0) {
+                        monthPaymentsQuery = monthPaymentsQuery.in('session_id', sessionIds);
+                    } else {
+                        monthPaymentsQuery = monthPaymentsQuery.in('session_id', ['none']);
+                    }
+                }
+                const { data: monthPayments } = await monthPaymentsQuery;
+                periodRevenue2 = (monthPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
             } else if (dashboardPeriod === 'week') {
                 periodRevenue2 = Math.round(periodRevenue / 7);
             } else if (dashboardPeriod === 'month') {
-                const [y, m] = selectedCustomMonth.split('-').map(Number);
+                const [y, m] = selMonthStr.split('-').map(Number);
                 const daysInMonth = new Date(y, m, 0).getDate();
-                periodRevenue2 = Math.round(periodRevenue / daysInMonth);
+                periodRevenue2 = Math.round(periodRevenue / (daysInMonth || 30));
             }
 
             setStats({
@@ -996,7 +1021,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueToday)}</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' : 'Doanh thu trong khoảng thời gian'}
+                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' : 
+                                 dashboardPeriod === 'week' ? `Tổng doanh thu trong tuần ${weekLabel}` : 
+                                 `Tổng doanh thu trong tháng ${monthFormatted}`}
                             </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
@@ -1008,7 +1035,7 @@ export default function DashboardView() {
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsMonthModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>
-                                    {dashboardPeriod === 'day' ? 'DOANH THU THÁNG' : 'DOANH THU TB NGÀY'}
+                                    {dashboardPeriod === 'day' ? `DOANH THU THÁNG ${monthFormatted}` : 'DOANH THU TB NGÀY'}
                                 </span>
                                 <span className="db-kpi-icon" style={{ color: '#1D4ED8' }}>
                                     <span className="material-symbols-outlined">trending_up</span>
@@ -1016,7 +1043,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueMonth)}</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? 'Tổng doanh thu 30 ngày gần nhất' : 'Doanh thu trung bình mỗi ngày'}
+                                {dashboardPeriod === 'day' ? `Tổng doanh thu tháng ${monthFormatted}` : 
+                                 dashboardPeriod === 'week' ? 'Doanh thu trung bình mỗi ngày trong tuần' : 
+                                 'Doanh thu trung bình mỗi ngày trong tháng'}
                             </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>

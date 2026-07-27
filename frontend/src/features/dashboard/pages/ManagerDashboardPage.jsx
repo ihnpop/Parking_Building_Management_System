@@ -247,39 +247,40 @@ export default function ManagerDashboardPage() {
                 periodPayments = payments || [];
             }
 
-            const periodRevenue = periodPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-            // Fetch monthly revenue for building (as default/fallback)
-            let monthRevenue = 0;
-            if (buildingSessionIds.length > 0) {
-                const { data: mPayments } = await supabase
-                    .from('payment')
-                    .select('amount')
-                    .eq('status', 'Đã thanh toán')
-                    .gte('payment_time', startMonth)
-                    .lte('payment_time', endMonth)
-                    .in('session_id', buildingSessionIds);
-                monthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            } else {
-                const { data: mPayments } = await supabase
-                    .from('payment')
-                    .select('amount')
-                    .eq('status', 'Đã thanh toán')
-                    .gte('payment_time', startMonth)
-                    .lte('payment_time', endMonth);
-                monthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            }
-
             // Compute second revenue metric (monthly or average)
-            let periodRevenue2 = monthRevenue;
+            const selMonthStr = dashboardPeriod === 'month' 
+                ? (selectedCustomMonth || thisMonthVN()) 
+                : (selectedCustomDate || todayVN()).slice(0, 7);
+
+            let periodRevenue2 = 0;
             if (dashboardPeriod === 'day') {
-                periodRevenue2 = monthRevenue;
+                const monthRange = getVNPeriodRange('month', null, selMonthStr);
+                let targetMonthRevenue = 0;
+                if (buildingSessionIds.length > 0) {
+                    const { data: mPayments } = await supabase
+                        .from('payment')
+                        .select('amount')
+                        .eq('status', 'Đã thanh toán')
+                        .gte('payment_time', monthRange.startDate)
+                        .lte('payment_time', monthRange.endDate)
+                        .in('session_id', buildingSessionIds);
+                    targetMonthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                } else {
+                    const { data: mPayments } = await supabase
+                        .from('payment')
+                        .select('amount')
+                        .eq('status', 'Đã thanh toán')
+                        .gte('payment_time', monthRange.startDate)
+                        .lte('payment_time', monthRange.endDate);
+                    targetMonthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                }
+                periodRevenue2 = targetMonthRevenue;
             } else if (dashboardPeriod === 'week') {
                 periodRevenue2 = Math.round(periodRevenue / 7);
             } else if (dashboardPeriod === 'month') {
-                const [y, m] = (selectedCustomMonth || thisMonthVN()).split('-').map(Number);
+                const [y, m] = selMonthStr.split('-').map(Number);
                 const daysInMonth = new Date(y, m, 0).getDate();
-                periodRevenue2 = Math.round(periodRevenue / daysInMonth);
+                periodRevenue2 = Math.round(periodRevenue / (daysInMonth || 30));
             }
 
             setStats({
@@ -1044,7 +1045,9 @@ export default function ManagerDashboardPage() {
                     </div>
                     <div className="mgr-kpi-body">
                         <div className="mgr-kpi-label">
-                            {dashboardPeriod === 'day' ? 'LƯỢT XE HÔM NAY' : dashboardPeriod === 'week' ? 'LƯỢT XE TUẦN NÀY' : 'LƯỢT XE THÁNG NÀY'}
+                            {dashboardPeriod === 'day' ? `LƯỢT XE NGÀY ${dateFormatted}` : 
+                             dashboardPeriod === 'week' ? `LƯỢT XE TUẦN ${weekLabel}` : 
+                             `LƯỢT XE THÁNG ${monthFormatted}`}
                         </div>
                         <div className="mgr-kpi-value">{stats.todayTraffic.toLocaleString('vi-VN')}</div>
                         <div className="mgr-kpi-unit">lượt ra/vào trong khoảng thời gian</div>
@@ -1057,7 +1060,9 @@ export default function ManagerDashboardPage() {
                     </div>
                     <div className="mgr-kpi-body">
                         <div className="mgr-kpi-label">
-                            {dashboardPeriod === 'day' ? 'DOANH THU HÔM NAY' : 'DOANH THU KHOẢNG THỜI GIAN'}
+                            {dashboardPeriod === 'day' ? `DOANH THU NGÀY ${dateFormatted}` : 
+                             dashboardPeriod === 'week' ? `DOANH THU TUẦN ${weekLabel}` : 
+                             `DOANH THU THÁNG ${monthFormatted}`}
                         </div>
                         <div className="mgr-kpi-value mgr-kpi-value--sm">{formatVND(stats.revenueToday)}</div>
                         <div className="mgr-kpi-unit">tiền mặt &amp; QR đã thu</div>
@@ -1070,11 +1075,13 @@ export default function ManagerDashboardPage() {
                     </div>
                     <div className="mgr-kpi-body">
                         <div className="mgr-kpi-label">
-                            {dashboardPeriod === 'day' ? 'DOANH THU THÁNG' : 'DOANH THU TRUNG BÌNH HÀNG NGÀY'}
+                            {dashboardPeriod === 'day' ? `DOANH THU THÁNG ${monthFormatted}` : 'DOANH THU TRUNG BÌNH HÀNG NGÀY'}
                         </div>
                         <div className="mgr-kpi-value mgr-kpi-value--sm">{formatVND(stats.revenueMonth)}</div>
                         <div className="mgr-kpi-unit">
-                            {dashboardPeriod === 'day' ? 'tổng thu tháng hiện tại' : 'trung bình thực tế mỗi ngày'}
+                            {dashboardPeriod === 'day' ? `tổng thu tháng ${monthFormatted}` : 
+                             dashboardPeriod === 'week' ? 'trung bình thực tế mỗi ngày trong tuần' : 
+                             'trung bình thực tế mỗi ngày trong tháng'}
                         </div>
                     </div>
                 </div>
