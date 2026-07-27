@@ -424,11 +424,6 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                                             <td colSpan="5" className="table-status-empty">
                                                 Không có dữ liệu nhật ký phù hợp
                                             </td>
-                                            <td>
-                                                <button type="button" className="log-action-btn">
-                                                    <span className="material-symbols-outlined">visibility</span>
-                                                </button>
-                                            </td>
                                         </tr>
                                     )}
                                 </tbody>

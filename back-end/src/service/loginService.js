@@ -1,4 +1,5 @@
 import supabase from "../config/supabaseClient.js";
+import supabaseAdmin from "../config/supabaseAdmin.js";
 import axios from "axios";
 import { UAParser } from "ua-parser-js";
 
@@ -58,7 +59,7 @@ export const getIPLocation = async (ip) => {
  * @returns {Promise<number>}
  */
 export const getConsecutiveFailures = async (email) => {
-  const { data: logs, error } = await supabase
+  const { data: logs, error } = await supabaseAdmin
     .from("login_logs")
     .select("status")
     .eq("username", email)
@@ -89,7 +90,7 @@ export const getConsecutiveFailures = async (email) => {
  */
 export const login = async ({ email, password, ip, userAgent }) => {
   // 1. Kiểm tra profile tồn tại (không log nếu email không có trong hệ thống)
-  const { data: profile, error: profileErr } = await supabase
+  const { data: profile, error: profileErr } = await supabaseAdmin
     .from("profiles")
     .select("id")
     .eq("email", email)
@@ -118,15 +119,16 @@ export const login = async ({ email, password, ip, userAgent }) => {
     const status = consecutiveFailures + 1 > 3 ? "Tài khoản bị khóa" : "Thất bại";
 
     // Ghi log đăng nhập thất bại
-    await supabase.from("login_logs").insert({
-      profiles_id: profilesId,
-      username: email,
-      ip_address: ip,
-      device_browser: deviceBrowser,
-      location,
-      status,
-      login_time: new Date().toISOString(),
-    });
+    try {
+      await supabaseAdmin.from("login_logs").insert({
+        profiles_id: profilesId,
+        username: email,
+        status,
+        login_time: new Date().toISOString(),
+      });
+    } catch (logErr) {
+      console.error("[LoginService] Error inserting failed login log:", logErr.message);
+    }
 
     const err = new Error(error.message);
     err.statusCode = 401;
@@ -134,15 +136,16 @@ export const login = async ({ email, password, ip, userAgent }) => {
   }
 
   // 3. Đăng nhập thành công → ghi log
-  await supabase.from("login_logs").insert({
-    profiles_id: profilesId,
-    username: email,
-    ip_address: ip,
-    device_browser: deviceBrowser,
-    location,
-    status: "Thành công",
-    login_time: new Date().toISOString(),
-  });
+  try {
+    await supabaseAdmin.from("login_logs").insert({
+      profiles_id: profilesId,
+      username: email,
+      status: "Thành công",
+      login_time: new Date().toISOString(),
+    });
+  } catch (logErr) {
+    console.error("[LoginService] Error inserting success login log:", logErr.message);
+  }
 
   return data;
 };
