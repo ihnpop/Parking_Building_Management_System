@@ -600,14 +600,14 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         <div style={{ width: '100%', overflowX: 'auto' }}>
                             <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '920px' }}>
                                 <colgroup>
-                                    <col style={{ width: '10%' }} /> {/* THỜI GIAN */}
-                                    <col style={{ width: '17%' }} /> {/* MÃ GIAO DỊCH */}
-                                    <col style={{ width: '9%' }} />  {/* BIỂN SỐ */}
-                                    <col style={{ width: '17%' }} /> {/* CHỦ XE */}
-                                    <col style={{ width: '9%' }} />  {/* LOẠI GIAO DỊCH */}
-                                    <col style={{ width: '15%' }} /> {/* PHÍ */}
-                                    <col style={{ width: '15%' }} /> {/* TRẠNG THÁI */}
-                                    <col style={{ width: '8%' }} />  {/* HÓA ĐƠN */}
+                                    <col style={{ width: '10%' }} />
+                                    <col style={{ width: '17%' }} />
+                                    <col style={{ width: '9%' }} />
+                                    <col style={{ width: '17%' }} />
+                                    <col style={{ width: '9%' }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '8%' }} />
                                 </colgroup>
                                 <thead>
                                     <tr>

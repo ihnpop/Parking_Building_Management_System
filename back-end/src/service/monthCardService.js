@@ -785,7 +785,8 @@ export const getMonthCardLogs = async (buildingId = null) => {
     }
     // Fallback: parse từ note (cấp mới ghi "Đơn: PK...")
     if (!orderCode && item.note) {
-      const match = item.note.match(/Đơn:\s*(\S+)/);
+      const noteStr = typeof item.note === 'string' ? item.note : JSON.stringify(item.note);
+      const match = noteStr.match(/Đơn:\s*(\S+)/);
       if (match) orderCode = match[1];
     }
     if (orderCode) {
@@ -824,15 +825,25 @@ export const getMonthCardLogs = async (buildingId = null) => {
                : p.payment_type === 'Phí cấp lại thẻ' ? 'Thẻ đã cấp lại'
                : 'Cấp mới';
 
+      const noteStr = typeof p.note === 'string' ? p.note : (p.note ? JSON.stringify(p.note) : '');
+
       // 1. Regex match UUID to find reportId in note (works for both JSON and plain text)
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-      const uuidMatch = (p.note || '').match(uuidRegex);
+      const uuidMatch = noteStr.match(uuidRegex);
       if (uuidMatch) {
         reportId = uuidMatch[0];
       }
 
-      try {
-        const noteObj = JSON.parse(p.note || '{}');
+      let noteObj = null;
+      if (p.note && typeof p.note === 'object') {
+        noteObj = p.note;
+      } else if (typeof p.note === 'string') {
+        try {
+          noteObj = JSON.parse(p.note);
+        } catch (e) { /* bỏ qua lỗi parse note dạng plain text */ }
+      }
+
+      if (noteObj) {
         if (p.payment_type === 'Gia hạn vé tháng') {
           cardNo = noteObj.cardCode || '---';
           vehicleId = noteObj.vehicleId || null;
@@ -847,7 +858,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
           plate = noteObj.vehicle_info?.plate_number || 'Chưa có';
           owner = noteObj.customer_info?.full_name || 'Khách vãng lai';
         }
-      } catch (e) { /* bỏ qua lỗi parse note dạng plain text */ }
+      }
 
       const displayStatus = (p.status === 'Hết hạn' || p.status === 'Thất bại') ? 'Thất bại' : 'Chờ thanh toán';
       const amountNum = Number(p.amount) || 0;
