@@ -478,6 +478,13 @@ class ParkingRegistrationService {
 
         return { card_code, vehicle_package_id: vehiclePackage.vehicle_package_id, expired_date: expiredDateStr };
     }
+
+    async getPendingRegistration(userId) {
+        if (!userId) return null;
+        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+        return await repo.findPendingRegistration(userId, fifteenMinutesAgo);
+    }
 }
 
 export default new ParkingRegistrationService();
+
