@@ -28,7 +28,7 @@ export const packagePayment = async (req, res) => {
         const { vehiclePackageId, amount, isRenewal } = req.body;
         const ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
         const origin = req.headers["origin"] || req.headers["referer"];
-        
+
         // Tạo hóa đơn tạm ở database và lấy URL chuyển tiếp VNPay tương ứng
         const result = await paymentService.createPackagePayment(vehiclePackageId, amount, isRenewal, ipAddr, origin);
         res.json(result);
@@ -45,12 +45,12 @@ export const checkout = async (req, res) => {
         const { sessionId, amount } = req.body;
         let ipAddr = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
         const origin = req.headers["origin"] || req.headers["referer"];
-        
+
         // Chuẩn hóa địa chỉ IP cục bộ
         if (ipAddr === "::1" || ipAddr.includes("::ffff:")) {
             ipAddr = "127.0.0.1";
         }
-        
+
         // Tạo hóa đơn tạm ở database và lấy URL chuyển tiếp VNPay tương ứng
         const result = await paymentService.createCheckoutPayment(sessionId, amount, ipAddr, origin);
         res.json(result);
@@ -82,12 +82,12 @@ export const vnpayReturn = async (req, res) => {
         console.log("[VNPAY Return] Kết quả xử lý IPN cục bộ tại Return URL:", ipnResult);
 
         // Trạng thái được coi là thành công khi chữ ký hợp lệ (hoặc đơn hàng đã được cập nhật thành công) và mã phản hồi VNPay vnp_ResponseCode là "00"
-        const isSuccess = 
-            (ipnResult.RspCode === "00" || ipnResult.Message === "Order already confirmed") && 
+        const isSuccess =
+            (ipnResult.RspCode === "00" || ipnResult.Message === "Order already confirmed") &&
             req.query.vnp_ResponseCode === "00";
 
         const status = isSuccess ? "success" : "failed";
-        
+
         // Chuyển hướng người dùng về trang kết quả ở pbms.id.vn (HashRouter dạng /#/payment-result)
         res.redirect(`${frontendUrl}/#/payment-result?orderCode=${orderCode}&status=${status}`);
     } catch (err) {
