@@ -1157,3 +1157,30 @@ export const getCardDetailsForContract = async (cardId) => {
     } : null
   };
 };
+
+// ─────────────────────────────────────────────────────────────
+// VEHICLE TYPES & PACKAGES
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Lấy danh sách loại xe
+ * @returns {Promise<object[]>}
+ */
+export const getVehicleTypes = async () => {
+  return await monthCardRepository.getAllVehicleTypes();
+};
+
+/**
+ * Lấy danh sách gói cước đang hoạt động, lọc theo building của user nếu có
+ * @param {string|null} userId - UUID user từ JWT token
+ * @returns {Promise<object[]>}
+ */
+export const getPackages = async (userId) => {
+  let priceTableIds = null;
+
+  if (userId) {
+    priceTableIds = await monthCardRepository.getPriceTableIdsByUserId(userId);
+  }
+
+  return await monthCardRepository.getActivePackages(priceTableIds);
+};
