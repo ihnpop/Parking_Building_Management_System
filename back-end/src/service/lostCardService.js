@@ -101,7 +101,9 @@ export const getLostCards = async (buildingId = null) => {
             newCode: pendingNoteObj.newCode || '',
             paymentTime: pm.payment_time,
             // Trích xuất parking_fee từ note để hiển thị đúng khi resume
-            parkingFee: pendingNoteObj.parkingFee ?? 0
+            parkingFee: pendingNoteObj.parkingFee ?? 0,
+            // Với thẻ lượt: lấy từ note.lostCardFee, với thẻ tháng: amount chính là phí cấp lại
+            reissueFee: cardType === 'Thẻ tháng' ? pm.amount : (pendingNoteObj.lostCardFee ?? 0)
           };
         }
       }
@@ -137,7 +139,7 @@ export const getLostCards = async (buildingId = null) => {
       // Lấy reissue_fee để hiển thị phí cấp lại thẻ
       let reissue_fee = pendingPayment?.reissueFee ?? pendingPayment?.lostFee;
       if (reissue_fee === undefined || reissue_fee === null) {
-        reissue_fee = await lostCardRepository.getCardReissueFee(log.vehicle_id);
+        reissue_fee = await lostCardRepository.getCardReissueFee(log.vehicle_id, buildingId);
       }
 
       return {
@@ -388,7 +390,7 @@ export const checkLostCardPlate = async ({ plate_number, card_category, building
 
   let parkingFee = 0;
   if (activeSession) {
-    const feeRes = await calculateExitFee(activeSession);
+    const feeRes = await calculateExitFee({ ...activeSession, skipLostCheck: true });
     parkingFee = feeRes.estimated_fee || 0;
   }
 
@@ -878,7 +880,7 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
   }
 
   // 2. Tính phí gửi xe dựa trên entry_time và thời điểm hiện tại
-  const feeResult = await calculateExitFee(session);
+  const feeResult = await calculateExitFee({ ...session, skipLostCheck: true });
   const parkingFee = feeResult.estimated_fee || 0;
   const lostCardFee = await lostCardRepository.getCardReissueFee(report?.vehicle_id, buildingId);
   const totalAmount = parkingFee + lostCardFee;

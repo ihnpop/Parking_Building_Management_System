@@ -363,7 +363,7 @@ async function calculateHourlyFee(session, vehicle) {
  *   warning: string|null
  * }>}
  */
-export async function calculateExitFee({ plate_number }) {
+export async function calculateExitFee({ plate_number, skipLostCheck = false }) {
     if (!plate_number || !plate_number.trim()) {
         const err = new Error("Biển số xe là bắt buộc.");
         err.statusCode = 400;
@@ -379,18 +379,20 @@ export async function calculateExitFee({ plate_number }) {
     const { vehicle, card } = await getVehicleAndCard(session);
 
     // ─── 4. Kiểm tra thẻ mất ─────────────────────────────────────────────────
-    const isLostCard = await checkLostCard(card, vehicle, session);
-    if (isLostCard) {
-        return {
-            session,
-            vehicle,
-            card,
-            is_monthly_valid: false,
-            estimated_fee: 0, // Fee sẽ được tính riêng theo quy trình mất thẻ
-            fee_breakdown: null,
-            ticket_type: "Mất thẻ",
-            warning: null,
-        };
+    if (!skipLostCheck) {
+        const isLostCard = await checkLostCard(card, vehicle, session);
+        if (isLostCard) {
+            return {
+                session,
+                vehicle,
+                card,
+                is_monthly_valid: false,
+                estimated_fee: 0, // Fee sẽ được tính riêng theo quy trình mất thẻ
+                fee_breakdown: null,
+                ticket_type: "Mất thẻ",
+                warning: null,
+            };
+        }
     }
 
     const isMonthCard =
