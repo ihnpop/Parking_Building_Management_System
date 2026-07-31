@@ -271,10 +271,10 @@ export default function PaymentResultPage() {
                                                
                             const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
                                                 payment?.payment_type === "Đăng ký vé tháng" ||
-                                                (orderCode && (orderCode.startsWith("RN") || orderCode.startsWith("PK")));
+                                                (orderCode && orderCode.startsWith("RN"));
 
                             if (isLostCard) {
-                                navigate("/login/dashboard/log-management/lost-card");
+                                navigate("/login/dashboard");
                             } else if (isMonthCard) {
                                 navigate("/login/dashboard/card-management/month-card");
                             } else if (orderCode) {
@@ -293,15 +293,13 @@ export default function PaymentResultPage() {
                             style={styles.btnPrimary}
                             onClick={() => {
                                 const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
-                                                   payment?.payment_type === "Phí mất thẻ lượt" ||
-                                                   (orderCode && orderCode.startsWith("LC"));
+                                                   payment?.payment_type === "Phí mất thẻ lượt";
                                                    
                                 const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
-                                                    payment?.payment_type === "Đăng ký vé tháng" ||
-                                                    (orderCode && (orderCode.startsWith("RN") || orderCode.startsWith("PK")));
+                                                    payment?.payment_type === "Đăng ký vé tháng";
 
                                 if (isLostCard) {
-                                    navigate("/login/dashboard/log-management/lost-card");
+                                    navigate("/login/dashboard/lost-card-log");
                                 } else if (isMonthCard) {
                                     navigate("/login/dashboard/card-management/month-card");
                                 } else if (orderCode) {
