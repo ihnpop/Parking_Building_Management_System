@@ -4,6 +4,10 @@ import * as vnpayService from "./vnpayService.js";
 import supabase from "../config/supabaseClient.js";
 import { calculateParkingFee, parseEntryTime } from "./gateService.js";
 
+// Regex validate mã RFID: chỉ chứa chữ và số, độ dài 4–20 ký tự
+const RFID_CODE_REGEX = /^[A-Za-z0-9]{4,20}$/;
+
+
 export const getLostCards = async (buildingId = null) => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log thông qua Repository
   const data = await lostCardRepository.getLostCardLogs(buildingId);
@@ -183,6 +187,10 @@ export const createLostCard = async ({
 
   if (!description || !description.trim()) {
     throw new Error("Vui lòng nhập lí do báo mất.");
+  }
+
+  if (description.trim().length > 500) {
+    throw new Error("Lí do báo mất không được vượt quá 500 ký tự.");
   }
 
   if (!performedBy) {
@@ -467,6 +475,24 @@ export const cancelLostCardReport = async ({ reportId, performedBy, note }) => {
  */
 export const updateLostCardReport = async (reportId, { description, vehicle_registration_image_url, id_card_image_url }) => {
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
+
+  // Kiểm tra báo cáo tồn tại
+  const report = await lostCardRepository.findLostReport(reportId);
+  if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
+
+  // Chỉ cho phép cập nhật khi báo cáo chưa kết thúc
+  const EDITABLE_STATUSES = ['Đang chờ', 'Chờ xử lý', 'Đang xử lý'];
+  if (!EDITABLE_STATUSES.includes(report.status)) {
+    throw new Error(
+      `Không thể cập nhật báo cáo đã ở trạng thái '${report.status}'. ` +
+      `Chỉ có thể chỉnh sửa khi báo cáo đang ở trạng thái: ${EDITABLE_STATUSES.join(', ')}.`
+    );
+  }
+
+  if (description?.trim() && description.trim().length > 500) {
+    throw new Error("Lí do báo mất không được vượt quá 500 ký tự.");
+  }
+
   return await lostCardRepository.updateLostReport(reportId, {
     description: description?.trim() || undefined,
     vehicle_registration_image_url: vehicle_registration_image_url || undefined,
@@ -531,6 +557,11 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
 
+  // Validate format mã RFID mới
+  if (!RFID_CODE_REGEX.test(newCode.trim())) {
+    throw new Error("Mã RFID mới không hợp lệ. Chỉ được chứa chữ cái và chữ số, độ dài từ 4 đến 20 ký tự.");
+  }
+
   // Không cho phép ghi nợ nữa
   if (paymentMethod === 'defer') {
     throw new Error("Phương thức thanh toán 'Thanh toán sau' không còn được hỗ trợ. Vui lòng chọn Tiền mặt hoặc VNPay.");
@@ -559,6 +590,35 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
   if (cardObj.type !== 'Thẻ tháng') {
     throw new Error(
       `Chỉ áp dụng cấp lại cho thẻ tháng. Loại thẻ hiện tại: '${cardObj.type}'.`
+    );
+  }
+
+  // Không cho phép dùng lại chính mã RFID cũ của thẻ
+  if (cardObj.code && newCode.trim().toUpperCase() === cardObj.code.toUpperCase()) {
+    throw new Error(
+      `Mã RFID mới ('${newCode.trim()}') trùng với mã hiện tại của thẻ. Vui lòng nhập mã RFID khác.`
+    );
+  }
+
+  // Ngăn tạo phiếu thu trùng lặp — nếu đã có payment 'Chờ thanh toán' cho report này thì trả về để resume
+  const existingPayment = await lostCardRepository.findPendingPaymentByReportId(report.lost_report_id || reportId, 'Phí cấp lại thẻ');
+  if (existingPayment) {
+    let existingPayUrl = null;
+    if (existingPayment.payment_method === 'VNPay' || paymentMethod === 'vnpay') {
+      try {
+        const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:')) ? ipAddr : '127.0.0.1';
+        existingPayUrl = vnpayService.createPaymentUrl({
+          orderCode: existingPayment.order_code,
+          amount: existingPayment.amount,
+          orderInfo: `Phi cap lai the thang - Report ${reportId.substring(0, 8).toUpperCase()}`,
+          ipAddr: clientIp,
+          origin
+        });
+      } catch (_) { /* ignore */ }
+    }
+    throw Object.assign(
+      new Error(`Đã có phiếu thu phí cấp lại thẻ đang chờ thanh toán (mã: ${existingPayment.order_code}). Vui lòng hoàn tất thanh toán trước khi tạo mới.`),
+      { existingOrderCode: existingPayment.order_code, existingPayUrl, reissue_fee: existingPayment.amount }
     );
   }
 
@@ -762,6 +822,27 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
     throw new Error(
       `Báo cáo mất thẻ phải ở trạng thái 'Đang chờ', 'Đang xử lý' hoặc 'Đã hủy thẻ' để thanh toán. ` +
       `Trạng thái hiện tại: '${report.status}'.`
+    );
+  }
+
+  // Ngăn tạo phiếu thu trùng lặp — nếu đã có payment 'Chờ thanh toán' cho report này thì trả về để resume
+  const existingPayment = await lostCardRepository.findPendingPaymentByReportId(report.lost_report_id || reportId, 'Phí mất thẻ lượt');
+  if (existingPayment) {
+    let existingPayUrl = null;
+    if (paymentMethod === 'vnpay') {
+      try {
+        const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:')) ? ipAddr : '127.0.0.1';
+        existingPayUrl = vnpayService.createPaymentUrl({
+          orderCode: existingPayment.order_code,
+          amount: existingPayment.amount,
+          orderInfo: `Phi mat the luot - Report ${reportId.substring(0, 8).toUpperCase()}`,
+          ipAddr: clientIp
+        });
+      } catch (_) { /* ignore */ }
+    }
+    throw Object.assign(
+      new Error(`Đã có phiếu thu phí mất thẻ lượt đang chờ thanh toán (mã: ${existingPayment.order_code}). Vui lòng hoàn tất thanh toán trước khi tạo mới.`),
+      { existingOrderCode: existingPayment.order_code, existingPayUrl, total_fee: existingPayment.amount }
     );
   }
 

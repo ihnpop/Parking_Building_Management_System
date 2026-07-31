@@ -401,6 +401,28 @@ export const findSessionById = async (sessionId) => {
  * @param {string|null} vehicleId
  * @returns {Promise<number>}
  */
+/**
+ * Tìm payment đang ở trạng thái 'Chờ thanh toán' cho một báo cáo mất thẻ cụ thể.
+ * Dùng để ngăn tạo phiếu thu trùng lặp cho cùng một reportId.
+ * @param {string} reportId - UUID của báo cáo mất thẻ
+ * @param {string} paymentType - 'Phí cấp lại thẻ' | 'Phí mất thẻ lượt'
+ * @returns {Promise<object|null>} payment record hoặc null nếu chưa có
+ */
+export const findPendingPaymentByReportId = async (reportId, paymentType) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .select('payment_id, order_code, amount, payment_method, status')
+    .eq('payment_type', paymentType)
+    .eq('status', 'Chờ thanh toán')
+    .filter('note->>reportId', 'eq', reportId)
+    .order('payment_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 export const getCardReissueFee = async (vehicleId = null) => {
   try {
     let parkingId = null;
