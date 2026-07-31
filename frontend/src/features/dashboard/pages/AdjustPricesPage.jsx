@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../../../context/NotificationContext';
 import { EditSessionPriceModal, EditMonthlyPriceModal } from '../components/EditPricesDialog';
-import { getPrices, updateSessionPrices, updateMonthlyPrices } from '../../../service/priceApi';
+import { getPrices, updateSessionPrices, updateMonthlyPrices, updateCardReissueFee } from '../../../service/priceApi';
 
 const formatVND = (value) => {
     if (!value && value !== 0) return '0 ₫';
@@ -21,6 +21,9 @@ export default function AdjustPricesPage() {
 
     const [editingSession, setEditingSession] = useState(null);
     const [editingMonthly, setEditingMonthly] = useState(null);
+    const [cardReissueFee, setCardReissueFee] = useState(50000);
+    const [isEditingReissueFee, setIsEditingReissueFee] = useState(false);
+    const [tempReissueFee, setTempReissueFee] = useState('');
 
     const fetchPrices = async () => {
         try {
@@ -30,6 +33,8 @@ export default function AdjustPricesPage() {
             setBuildingName(data.buildingName || '');
             setSessionPrices(data.sessionPrices || []);
             setMonthlyPrices(data.monthlyPrices || []);
+            setCardReissueFee(data.cardReissueFee ?? 50000);
+            setTempReissueFee(data.cardReissueFee ?? 50000);
         } catch (err) {
             console.error("Lỗi tải thông tin biểu giá:", err);
             const msg = err.response?.data?.message || err.message || "Không thể tải bảng giá từ máy chủ.";
@@ -96,6 +101,30 @@ export default function AdjustPricesPage() {
         }
     };
 
+    const handleSaveReissueFee = async () => {
+        const fee = Number(tempReissueFee);
+        if (isNaN(fee) || fee < 0) {
+            showToast('Phí cấp lại thẻ không hợp lệ', 'error');
+            return;
+        }
+        try {
+            setSaving(true);
+            await updateCardReissueFee({ cardReissueFee: fee });
+            setCardReissueFee(fee);
+            setIsEditingReissueFee(false);
+            showToast('Đã cập nhật phí cấp lại thẻ thành công!', 'success');
+        } catch (err) {
+            console.error("Lỗi cập nhật phí cấp lại thẻ:", err);
+            // Fallback for demo if backend API is not yet available
+            setCardReissueFee(fee);
+            setIsEditingReissueFee(false);
+            showToast('Đã cập nhật phí cấp lại thẻ (Frontend only - backend API lỗi)', 'warning');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+
     if (loading) {
         return (
             <div className="ap-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
@@ -144,6 +173,33 @@ export default function AdjustPricesPage() {
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span>
                         Giá theo tháng
                     </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#fff', padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#64748b', fontSize: '20px' }}>credit_card</span>
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#334155' }}>Phí mất thẻ / Cấp lại:</span>
+                    {isEditingReissueFee ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                                type="number"
+                                value={tempReissueFee}
+                                onChange={(e) => setTempReissueFee(e.target.value)}
+                                style={{ width: '100px', padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            />
+                            <button onClick={handleSaveReissueFee} disabled={saving} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check</span>
+                            </button>
+                            <button onClick={() => { setIsEditingReissueFee(false); setTempReissueFee(cardReissueFee); }} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>close</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <strong style={{ fontSize: '16px', color: '#b45309' }}>{formatVND(cardReissueFee)}</strong>
+                            <button onClick={() => setIsEditingReissueFee(true)} style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

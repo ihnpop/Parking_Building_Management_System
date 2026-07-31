@@ -69,3 +69,28 @@ export const updateMonthlyPricesController = async (req, res) => {
         });
     }
 };
+
+/**
+ * PUT /api/prices/reissue-fee
+ * Cập nhật phí cấp lại thẻ
+ */
+export const updateCardReissueFeeController = async (req, res) => {
+    try {
+        const userId = req.user?.id || '00000000-0000-0000-0000-000000000000';
+
+        const payload = req.body;
+        const data = await priceService.updateCardReissueFee(userId, payload);
+        return res.json({
+            success: true,
+            message: "Cập nhật phí cấp lại thẻ thành công!",
+            data,
+        });
+    } catch (err) {
+        console.error("Lỗi updateCardReissueFeeController:", err);
+        const statusCode = err.statusCode || 500;
+        return res.status(statusCode).json({
+            success: false,
+            message: err.message || "Lỗi server khi cập nhật phí cấp lại thẻ.",
+        });
+    }
+};

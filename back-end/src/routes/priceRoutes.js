@@ -4,6 +4,7 @@ import {
     getPricesController,
     updateSessionPricesController,
     updateMonthlyPricesController,
+    updateCardReissueFeeController,
 } from "../controllers/priceController.js";
 
 const router = Router();
@@ -14,5 +15,6 @@ router.use(verifyToken, authorize("MANAGER", "ADMIN"));
 router.get("/", getPricesController);
 router.put("/session", updateSessionPricesController);
 router.put("/monthly", updateMonthlyPricesController);
+router.put("/reissue-fee", updateCardReissueFeeController);
 
 export default router;

@@ -234,7 +234,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     const [reissueStartDate, setReissueStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [reissuePayMethod, setReissuePayMethod] = useState('vnpay'); // 'vnpay' | 'cash' | 'defer'
     const [showCashPanel, setShowCashPanel] = useState(false);
-    const [cashPanelData, setCashPanelData] = useState({ orderCode: '', amount: 50000 });
+    const [cashPanelData, setCashPanelData] = useState({ orderCode: '', amount: 0 });
     const [cashConfirmSuccess, setCashConfirmSuccess] = useState(false);
     const [availableCards, setAvailableCards] = useState([]);
     const [loadingAvailableCards, setLoadingAvailableCards] = useState(false);
@@ -319,7 +319,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             setReissueStartDate(new Date().toISOString().split('T')[0]);
             setReissuePayMethod('vnpay');
             setShowCashPanel(false);
-            setCashPanelData({ orderCode: '', amount: 50000 });
+            setCashPanelData({ orderCode: '', amount: 0 });
             setCashConfirmSuccess(false);
         }
     }, [editingCard]);
@@ -482,8 +482,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             ownerName: row.customer_name || row.owner || (cat === 'month' ? 'Chủ thẻ tháng' : 'Khách vãng lai'),
             package: cat === 'month' ? 'Gói vé tháng' : 'Vé gửi theo lượt/ca',
             parkingFee: cat === 'casual' ? actualParkingFee : 0,
-            lostFee: 50000,
-            totalFee: cat === 'casual' ? actualParkingFee + 50000 : 50000
+            lostFee: row.reissue_fee ?? 50000,
+            totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee ?? 50000) : (row.reissue_fee ?? 50000)
         });
 
         // Dùng _backendStatus (status gốc từ Backend) để xác định đúng bước resume
@@ -768,7 +768,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             if (paymentMethod === 'cash') {
                 showToast('Đã khởi tạo yêu cầu thu tiền mặt thành công!', 'success');
                 const orderCode = res?.order_code || `REISSUE-${Date.now()}`;
-                setCashPanelData({ orderCode, amount: 50000 });
+                setCashPanelData({ orderCode, amount: res?.reissue_fee || 50000 });
                 setShowCashPanel(true);
                 setCashConfirmSuccess(false);
                 await fetchLostCards();
@@ -1058,7 +1058,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     const waitProcessingCount = pendingCount + processingCount;
     const awaitingPayCount = kpiFilteredCards.filter(c => c.status === 'Chờ thanh toán').length;
     const completedCount = kpiFilteredCards.filter(c => c.status === 'Hoàn thành' || c.status === 'Đã xong').length;
-    const totalLostFee = completedCount * 50000;
+    const totalLostFee = kpiFilteredCards
+        .filter(c => c.status === 'Hoàn thành' || c.status === 'Đã xong')
+        .reduce((sum, c) => sum + Number(c.reissue_fee ?? c.pendingPayment?.amount ?? 50000), 0);
 
     // Pagination logic
     const totalPages = Math.ceil(filteredCards.length / itemsPerPage);
@@ -1483,7 +1485,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                         <div><span style={{ color: '#64748b' }}>Biển số xe:</span> <strong style={{ color: '#0f172a' }}>{(editingCard.plate_number || editingCard.plate || '---').toUpperCase()}</strong></div>
                                         <div><span style={{ color: '#64748b' }}>Loại thẻ:</span> <strong style={{ color: '#0284c7' }}>{editingCard.card_type || 'Thẻ lượt'}</strong></div>
                                         <div><span style={{ color: '#64748b' }}>Người xử lý:</span> <strong style={{ color: '#334155' }}>{editingCard.handler_name || '---'}</strong></div>
-                                        <div><span style={{ color: '#64748b' }}>Phí cấp lại:</span> <strong style={{ color: '#b45309' }}>50.000 đ</strong></div>
+                                        <div><span style={{ color: '#64748b' }}>Phí cấp lại:</span> <strong style={{ color: '#b45309' }}>{(editingCard.reissue_fee ?? editingCard.pendingPayment?.amount ?? 50000).toLocaleString('vi-VN')} đ</strong></div>
                                     </div>
                                     <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '14px 0 10px' }} />
                                     <div style={{ fontSize: '13.5px', marginBottom: '8px' }}>
@@ -1611,7 +1613,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                                     <span style={{ color: '#64748b' }}>Mã giao dịch</span>
                                                                     <span style={{ fontWeight: 600, color: '#1e293b' }}>{editingCard.pendingPayment.orderCode}</span>
                                                                     <span style={{ color: '#64748b' }}>Số tiền</span>
-                                                                    <span style={{ fontWeight: 700, color: '#b45309' }}>50.000 đ</span>
+                                                                    <span style={{ fontWeight: 700, color: '#b45309' }}>{(editingCard.reissue_fee ?? editingCard.pendingPayment?.amount ?? 50000).toLocaleString('vi-VN')} đ</span>
                                                                     <span style={{ color: '#64748b' }}>Mã thẻ mới</span>
                                                                     <span style={{ color: '#1e293b' }}>{newRfidCode}</span>
                                                                     <span style={{ color: '#64748b' }}>Biển số xe</span>
@@ -1667,7 +1669,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                                     <span style={{ color: '#64748b' }}>Mã giao dịch</span>
                                                                     <span style={{ fontWeight: 600, color: '#1e293b' }}>{cashPanelData.orderCode}</span>
                                                                     <span style={{ color: '#64748b' }}>Số tiền</span>
-                                                                    <span style={{ fontWeight: 700, color: '#166534' }}>50.000 đ</span>
+                                                                    <span style={{ fontWeight: 700, color: '#166534' }}>{(cashPanelData.amount || 50000).toLocaleString('vi-VN')} đ</span>
                                                                     <span style={{ color: '#64748b' }}>Mã thẻ mới</span>
                                                                     <span style={{ color: '#1e293b' }}>{newRfidCode}</span>
                                                                     <span style={{ color: '#64748b' }}>Biển số xe</span>
@@ -1711,7 +1713,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                                         disabled={actionLoading}
                                                                     >
                                                                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check</span>
-                                                                        Xác nhận đã thu 50.000 đ
+                                                                        Xác nhận đã thu {(cashPanelData.amount || 50000).toLocaleString('vi-VN')} đ
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -1752,7 +1754,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
                                                             {/* Chọn phương thức thanh toán */}
                                                             <div style={{ marginTop: '4px' }}>
-                                                                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px', fontWeight: '500' }}>Phương thức thanh toán (Phí 50.000đ)</p>
+                                                                <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px', fontWeight: '500' }}>Phương thức thanh toán</p>
                                                                 <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
                                                                     {/* VNPay */}
                                                                     <label style={{
