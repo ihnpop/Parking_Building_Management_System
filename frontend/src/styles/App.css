@@ -31816,11 +31816,6 @@ button.mc-btn .material-symbols-outlined {
   padding: 12px 24px !important;
 }
 
-.history-card {
-  padding: 12px 16px;
-  margin-bottom: 12px;
-}
-
 .history-modal-wide {
   width: 850px !important;
 }
@@ -31840,12 +31835,6 @@ button.mc-btn .material-symbols-outlined {
 
 .history-pagination-container {
   padding: 8px 20px !important;
-}
-
-.history-card {
-  padding: 12px 16px !important;
-  margin-bottom: 12px !important;
-  min-height: 80px;
 }
 
 .history-page-btn {
@@ -32348,6 +32337,8 @@ button.lost-create-button .material-symbols-outlined {
     gap: 8px !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
     transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    flex-shrink: 0 !important; /* Prevent squishing */
+    min-height: min-content !important;
 }
 
 .history-card:hover {

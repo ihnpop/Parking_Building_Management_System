@@ -336,9 +336,17 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     // ── Helper kiểm tra thông tin thẻ khi bấm "Kiểm tra" trong form báo mất mới (Gọi API Backend thực tế) ──
     const handleCheckCardInfo = async () => {
-        if (!checkPlateInput.trim()) {
+        const plate = checkPlateInput.trim();
+        if (!plate) {
             setStepError("Vui lòng nhập biển số xe.");
             showToast("Vui lòng nhập biển số xe.", "error");
+            return;
+        }
+
+        const plateRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9\-.\s]+$/;
+        if (!plateRegex.test(plate)) {
+            setStepError("Biển số không hợp lệ (phải chứa ít nhất 1 chữ cái và 1 số).");
+            showToast("Biển số không hợp lệ (phải chứa ít nhất 1 chữ cái và 1 số).", "error");
             return;
         }
 
@@ -561,8 +569,19 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             return;
         }
 
+        const plateRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9\-.\s]+$/;
+        if (!plateRegex.test(plate)) {
+            showToast('Biển số không hợp lệ (phải chứa ít nhất 1 chữ cái và 1 số).', 'error');
+            return;
+        }
+
         if (!reason) {
             showToast('Vui lòng nhập lý do báo mất thẻ.', 'error');
+            return;
+        }
+
+        if (reason.length > 500) {
+            showToast('Lý do báo mất không được vượt quá 500 ký tự.', 'error');
             return;
         }
 
@@ -745,8 +764,19 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     };
 
     const handleReissueCard = async (paymentMethod = 'vnpay') => {
-        if (!newRfidCode.trim()) {
+        const code = newRfidCode.trim();
+        if (!code) {
             showToast('Vui lòng nhập mã thẻ RFID mới!', 'error');
+            return;
+        }
+
+        if (code === editingCard?.card_code) {
+            showToast('Mã thẻ mới không được trùng với mã thẻ cũ.', 'error');
+            return;
+        }
+
+        if (!/^[A-Za-z0-9]{4,20}$/.test(code)) {
+            showToast('Mã thẻ mới phải từ 4-20 ký tự, chỉ chứa chữ và số.', 'error');
             return;
         }
         if (!editingCard?.card_id) {
