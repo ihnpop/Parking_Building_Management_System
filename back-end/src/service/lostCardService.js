@@ -381,7 +381,7 @@ export const checkLostCardPlate = async ({ plate_number, card_category }) => {
     parkingFee = feeRes.fee || 0;
   }
 
-  const lostFee = 50000;
+  const lostFee = await lostCardRepository.getCardReissueFee(vehicle?.vehicle_id);
   const totalFee = isDailyCard ? parkingFee + lostFee : lostFee;
 
   return {
@@ -572,7 +572,7 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     }
   }
 
-  const REISSUE_FEE = 50000;
+  const REISSUE_FEE = await lostCardRepository.getCardReissueFee(report?.vehicle_id);
   const orderCode = `RI${Date.now()}`;
 
   const savedPayload = {
@@ -793,7 +793,7 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
   const feeResult = await calculateParkingFee(entryTime, new Date(), vehicle);
 
   const parkingFee = feeResult.fee || 0;
-  const lostCardFee = 50000;
+  const lostCardFee = await lostCardRepository.getCardReissueFee(report?.vehicle_id);
   const totalAmount = parkingFee + lostCardFee;
 
   const orderCode = `LTC${Date.now()}`;

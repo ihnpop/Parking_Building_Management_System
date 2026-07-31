@@ -47,7 +47,7 @@ export const getOrCreateActivePriceTable = async (parkingId, buildingName = "") 
     // 1. Tìm bảng giá đang hoạt động
     const { data: existing, error: findErr } = await supabase
         .from("price_table")
-        .select("price_table_id, name, status")
+        .select("price_table_id, name, status, card_reissue_fee")
         .eq("parking_id", parkingId)
         .eq("status", "Hoạt động")
         .limit(1);
@@ -67,12 +67,29 @@ export const getOrCreateActivePriceTable = async (parkingId, buildingName = "") 
             name: tableName,
             description: `Bảng giá áp dụng cho ${buildingName}`,
             status: "Hoạt động",
+            card_reissue_fee: 50000,
         })
         .select()
         .single();
 
     if (createErr) throw new Error("Lỗi tạo bảng giá mặc định: " + createErr.message);
     return created;
+};
+
+/**
+ * Cập nhật phí cấp lại/làm lại thẻ trong bảng giá
+ * @param {string} priceTableId
+ * @param {number} cardReissueFee
+ */
+export const updateCardReissueFee = async (priceTableId, cardReissueFee) => {
+    const { data, error } = await supabase
+        .from("price_table")
+        .update({ card_reissue_fee: cardReissueFee })
+        .eq("price_table_id", priceTableId)
+        .select();
+
+    if (error) throw new Error("Lỗi cập nhật phí cấp lại thẻ: " + error.message);
+    return data;
 };
 
 /**

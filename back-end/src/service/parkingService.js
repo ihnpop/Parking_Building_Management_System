@@ -86,10 +86,8 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
   const exitTime = new Date();
   const diffMs = exitTime.getTime() - entryTime.getTime();
   const totalHours = diffMs / (1000 * 60 * 60);
-  const billableHours = Math.max(1, Math.ceil(totalHours));
 
-
-  let fee = billableHours * 10000; // Giá mặc định 10k/giờ
+  let fee = 0;
 
 
   try {
