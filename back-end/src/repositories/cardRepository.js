@@ -150,12 +150,13 @@ export const findWaitingCard = async (type) => {
  * @param {string} startDate
  * @returns {Promise<object>}
  */
-export const reuseWaitingCard = async (cardId, startDate) => {
+export const reuseWaitingCard = async (cardId, startDate, expiredDate = null) => {
   const { data, error } = await supabase
     .from('card')
     .update({
       status: 'Hoạt động',
-      created_at: startDate || new Date().toISOString()
+      created_at: startDate || new Date().toISOString(),
+      expired_date: expiredDate
     })
     .eq('card_id', cardId)
     .select()
