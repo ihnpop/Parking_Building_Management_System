@@ -172,11 +172,12 @@ export const openGateFree = async ({ sessionId, staffId, finalFee = 0, ticketTyp
     staff_out_id: staffId || null,
   });
 
-  // 4. Giải phóng thẻ tháng / thẻ lượt tương ứng
+  // 4. Giải phóng thẻ lượt tương ứng nếu session sử dụng thẻ lượt
   if (session.card_id) {
+    const cardObj = await parkingRepository.getCardById(session.card_id);
     const activeReg = await parkingRepository.findActiveCardRegistration(session.card_id);
 
-    if (activeReg && resolvedTicketType === "Thẻ lượt") {
+    if (activeReg && (cardObj?.type === "Thẻ lượt" || resolvedTicketType === "Thẻ lượt")) {
       await parkingRepository.deactivateCardRegistration(activeReg.registration_id);
       await parkingRepository.resetCardStatus(session.card_id);
     }

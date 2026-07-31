@@ -233,7 +233,7 @@ export const preCheckEntry = async (plateNumber) => {
 
   if (!isCardActive) {
     canOpenGate = false;
-    message = "Thẻ tháng đã bị khóa hoặc chưa được kích hoạt.";
+    message = "Thẻ tháng đã hết hạn";
   } else if (!isVehicleActive) {
     canOpenGate = false;
     message = "Phương tiện xe tháng đã bị vô hiệu hóa.";

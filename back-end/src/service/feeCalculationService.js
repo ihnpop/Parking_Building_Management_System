@@ -52,8 +52,8 @@ async function getVehicleAndCard(session) {
         }
     }
 
-    // Nếu có thẻ mà card.vehicle_package chưa có, tìm vehicle_package qua vehicle_id
-    if (card && !card.vehicle_package && vehicle?.vehicle_id) {
+    // Nếu có thẻ mà card.vehicle_package chưa có, tìm vehicle_package qua vehicle_id (chỉ khi là Thẻ tháng)
+    if (card && card.type === "Thẻ tháng" && !card.vehicle_package && vehicle?.vehicle_id) {
         const vp = await feeCalculationRepository.findActiveVehiclePackageByVehicleId(vehicle.vehicle_id);
         if (vp) {
             card.vehicle_package = vp;
@@ -89,6 +89,10 @@ async function checkLostCard(card, vehicle, session) {
  */
 function checkMonthlyValidity(card) {
     const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+    if (card?.type === "Thẻ lượt") {
+        return { isMonthlyValid: false, isMonthlyExpired: false };
+    }
 
     const isMonthCard =
         card?.type === "Thẻ tháng" ||
@@ -393,10 +397,11 @@ export async function calculateExitFee({ plate_number }) {
         };
     }
 
-    const isMonthCard =
+    const isMonthCard = card?.type === "Thẻ lượt" ? false : (
         card?.type === "Thẻ tháng" ||
         (typeof card?.code === "string" && card.code.toUpperCase().startsWith("MONTH")) ||
-        card?.vehicle_package != null;
+        card?.vehicle_package != null
+    );
 
     // ─── 5. Kiểm tra vehicle_package còn hạn ─────────────────────────────────
     const { isMonthlyValid, isMonthlyExpired } = checkMonthlyValidity(card);
@@ -445,7 +450,7 @@ export async function calculateExitFee({ plate_number }) {
             dailyCeilingPrice: dailyCeilingPrice ?? 0,
             remainingFee: remainingFee ?? 0,
         },
-        ticket_type: isMonthCard ? "Thẻ tháng" : "Thẻ lượt",
+        ticket_type: (isMonthCard && card?.type !== "Thẻ lượt") ? "Thẻ tháng" : "Thẻ lượt",
         warning,
     };
 }
