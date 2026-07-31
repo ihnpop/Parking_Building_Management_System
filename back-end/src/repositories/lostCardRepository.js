@@ -426,13 +426,13 @@ export const getCardReissueFee = async (vehicleId = null) => {
       query = query.eq('parking_id', parkingId);
     }
 
-    const { data, error } = await query.limit(1).maybeSingle();
+    const { data, error } = await query.limit(1);
 
-    if (error || !data || data.card_reissue_fee == null) {
+    if (error || !data || data.length === 0 || data[0]?.card_reissue_fee == null) {
       return 50000;
     }
 
-    return Number(data.card_reissue_fee) || 50000;
+    return Number(data[0].card_reissue_fee) || 50000;
   } catch (err) {
     console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback 50000:', err.message);
     return 50000;
