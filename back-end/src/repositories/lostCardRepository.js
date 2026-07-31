@@ -399,8 +399,10 @@ export const findSessionById = async (sessionId) => {
 /**
  * Lấy phí cấp lại/mất thẻ từ bảng price_table active (fallback 50.000đ nếu chưa cấu hình)
  * @param {string|null} vehicleId
+ * @param {string|null} buildingId
  * @returns {Promise<number>}
  */
+
 /**
  * Tìm payment đang ở trạng thái 'Chờ thanh toán' cho một báo cáo mất thẻ cụ thể.
  * Dùng để ngăn tạo phiếu thu trùng lặp cho cùng một reportId.
@@ -423,11 +425,21 @@ export const findPendingPaymentByReportId = async (reportId, paymentType) => {
   return data;
 };
 
-export const getCardReissueFee = async (vehicleId = null) => {
+export const getCardReissueFee = async (vehicleId = null, buildingId = null) => {
   try {
     let parkingId = null;
 
-    if (vehicleId) {
+    if (buildingId) {
+      const { data: parking } = await supabase
+        .from('parking')
+        .select('parking_id')
+        .eq('building_id', buildingId)
+        .limit(1)
+        .maybeSingle();
+      parkingId = parking?.parking_id;
+    }
+
+    if (!parkingId && vehicleId) {
       const { data: sess } = await supabase
         .from('parking_sessions')
         .select('slot:slot_id(area:area_id(floor:floor_id(parking_id)))')
