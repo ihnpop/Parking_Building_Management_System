@@ -396,3 +396,47 @@ export const findSessionById = async (sessionId) => {
   return data;
 };
 
+/**
+ * Lấy phí cấp lại/mất thẻ từ bảng price_table active (fallback 50.000đ nếu chưa cấu hình)
+ * @param {string|null} vehicleId
+ * @returns {Promise<number>}
+ */
+export const getCardReissueFee = async (vehicleId = null) => {
+  try {
+    let parkingId = null;
+
+    if (vehicleId) {
+      const { data: sess } = await supabase
+        .from('parking_sessions')
+        .select('slot:slot_id(area:area_id(floor:floor_id(parking_id)))')
+        .eq('vehicle_id', vehicleId)
+        .order('entry_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      parkingId = sess?.slot?.area?.floor?.parking_id || null;
+    }
+
+    let query = supabase
+      .from('price_table')
+      .select('card_reissue_fee')
+      .eq('status', 'Hoạt động');
+
+    if (parkingId) {
+      query = query.eq('parking_id', parkingId);
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
+
+    if (error || !data || data.card_reissue_fee == null) {
+      return 50000;
+    }
+
+    return Number(data.card_reissue_fee) || 50000;
+  } catch (err) {
+    console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback 50000:', err.message);
+    return 50000;
+  }
+};
+
+

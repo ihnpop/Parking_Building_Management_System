@@ -139,6 +139,7 @@ export const getPricesForManager = async (userId) => {
         buildingId,
         buildingName,
         priceTableId,
+        cardReissueFee: priceTable?.card_reissue_fee != null ? Number(priceTable.card_reissue_fee) : 50000,
         sessionPrices,
         monthlyPrices,
     };
