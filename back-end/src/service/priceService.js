@@ -262,3 +262,21 @@ export const updateMonthlyPrices = async (userId, payload) => {
     await priceRepository.upsertMonthlyPackages(packages);
     return getPricesForManager(userId);
 };
+
+/**
+ * Cập nhật phí cấp lại thẻ
+ * @param {string} userId
+ * @param {object} payload - { cardReissueFee }
+ */
+export const updateCardReissueFee = async (userId, payload) => {
+    const { cardReissueFee } = payload;
+    if (cardReissueFee === undefined || cardReissueFee === null) {
+        const err = new Error("Thiếu thông tin phí cấp lại thẻ (cardReissueFee).");
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const { priceTableId } = await getPricesForManager(userId);
+    await priceRepository.updateCardReissueFee(priceTableId, cardReissueFee);
+    return getPricesForManager(userId);
+};
