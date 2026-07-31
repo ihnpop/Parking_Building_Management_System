@@ -139,8 +139,15 @@ export const resolveBuildingIdFromReq = async (req) => {
         if (authHeader && authHeader.startsWith("Bearer ")) {
             const token = authHeader.substring(7);
             try {
-                const { data: { user: u } } = await supabase.auth.getUser(token);
-                user = u;
+                const { data: { user: u }, error } = await supabase.auth.getUser(token);
+                if (!error && u) {
+                    user = u;
+                } else {
+                    const decoded = decodeJwtPayload(token);
+                    if (decoded && (decoded.sub || decoded.id)) {
+                        user = { id: decoded.sub || decoded.id, email: decoded.email };
+                    }
+                }
             } catch (err) {
                 const decoded = decodeJwtPayload(token);
                 if (decoded && (decoded.sub || decoded.id)) {
