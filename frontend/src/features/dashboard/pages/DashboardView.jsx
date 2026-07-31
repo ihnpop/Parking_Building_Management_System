@@ -150,8 +150,19 @@ export default function DashboardView() {
             setActiveCardTab('Thẻ lượt');
         } else if (path.includes('/adjust-prices')) {
             setCurrentView('adjust-prices');
+        } else if (path === '/login/dashboard' || path === '/login/dashboard/') {
+            if (computedRole === 'MANAGER') {
+                setCurrentView('manager-dashboard');
+            } else {
+                const savedView = localStorage.getItem('dashboard_current_view');
+                if (savedView && ADMIN_ALLOWED_VIEWS.includes(savedView)) {
+                    setCurrentView(savedView);
+                } else {
+                    setCurrentView(getDefaultViewForRole(computedRole));
+                }
+            }
         }
-    }, [location.pathname]);
+    }, [location.pathname, computedRole]);
 
     const handleLogTabClick = (tabName) => {
         let path = '';
