@@ -94,7 +94,17 @@ function filterRowsByTime(rows, mode, dateStr) {
                 entry = new Date(t);
             }
         } else {
-            entry = new Date(t);
+            // Normalize: thêm 'T' và 'Z' giống renderFormattedTime để tránh lệch ngày khi lọc
+            let strForParse = strT;
+            if (strForParse.includes(' ') && !strForParse.includes('T')) {
+                strForParse = strForParse.replace(' ', 'T');
+            }
+            const hasTimezone = strForParse.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strForParse);
+            if (!hasTimezone) {
+                strForParse = strForParse + 'Z';
+            }
+            entry = new Date(strForParse);
+            if (isNaN(entry.getTime())) entry = new Date(t); // fallback
         }
 
         if (isNaN(entry.getTime())) return false;

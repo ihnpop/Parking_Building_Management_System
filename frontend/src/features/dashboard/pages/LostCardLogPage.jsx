@@ -112,7 +112,17 @@ function filterRowsByTime(rows, mode, dateStr) {
                 entry = new Date(t);
             }
         } else {
-            entry = new Date(t);
+            // Normalize: thêm 'T' và 'Z' giống renderFormattedTime để tránh lệch ngày khi lọc
+            let strForParse = strT;
+            if (strForParse.includes(' ') && !strForParse.includes('T')) {
+                strForParse = strForParse.replace(' ', 'T');
+            }
+            const hasTimezone = strForParse.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strForParse);
+            if (!hasTimezone) {
+                strForParse = strForParse + 'Z';
+            }
+            entry = new Date(strForParse);
+            if (isNaN(entry.getTime())) entry = new Date(t); // fallback
         }
 
         if (isNaN(entry.getTime())) return false;
@@ -326,9 +336,17 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     // ── Helper kiểm tra thông tin thẻ khi bấm "Kiểm tra" trong form báo mất mới (Gọi API Backend thực tế) ──
     const handleCheckCardInfo = async () => {
-        if (!checkPlateInput.trim()) {
+        const plate = checkPlateInput.trim();
+        if (!plate) {
             setStepError("Vui lòng nhập biển số xe.");
             showToast("Vui lòng nhập biển số xe.", "error");
+            return;
+        }
+
+        const plateRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9\-.\s]+$/;
+        if (!plateRegex.test(plate)) {
+            setStepError("Biển số không hợp lệ (phải chứa ít nhất 1 chữ cái và 1 số).");
+            showToast("Biển số không hợp lệ (phải chứa ít nhất 1 chữ cái và 1 số).", "error");
             return;
         }
 
@@ -479,11 +497,12 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             cardId: row.card_id,
             cardCode: row.card_code || row.cardNo || '---',
             cardType: row.card_type || (cat === 'month' ? 'Thẻ tháng' : 'Thẻ lượt'),
+            vehicleType: row.vehicle_type || '---',
             ownerName: row.customer_name || row.owner || (cat === 'month' ? 'Chủ thẻ tháng' : 'Khách vãng lai'),
             package: cat === 'month' ? 'Gói vé tháng' : 'Vé gửi theo lượt/ca',
             parkingFee: cat === 'casual' ? actualParkingFee : 0,
-            lostFee: row.reissue_fee ?? 50000,
-            totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee ?? 50000) : (row.reissue_fee ?? 50000)
+            lostFee: row.reissue_fee || 0,
+            totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee || 0) : (row.reissue_fee || 0)
         });
 
         // Dùng _backendStatus (status gốc từ Backend) để xác định đúng bước resume
@@ -550,8 +569,19 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             return;
         }
 
+        const plateRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9\-.\s]+$/;
+        if (!plateRegex.test(plate)) {
+            showToast('Biển số không hợp lệ (phải chứa ít nhất 1 chữ cái và 1 số).', 'error');
+            return;
+        }
+
         if (!reason) {
             showToast('Vui lòng nhập lý do báo mất thẻ.', 'error');
+            return;
+        }
+
+        if (reason.length > 500) {
+            showToast('Lý do báo mất không được vượt quá 500 ký tự.', 'error');
             return;
         }
 
@@ -734,8 +764,19 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     };
 
     const handleReissueCard = async (paymentMethod = 'vnpay') => {
-        if (!newRfidCode.trim()) {
+        const code = newRfidCode.trim();
+        if (!code) {
             showToast('Vui lòng nhập mã thẻ RFID mới!', 'error');
+            return;
+        }
+
+        if (code === editingCard?.card_code) {
+            showToast('Mã thẻ mới không được trùng với mã thẻ cũ.', 'error');
+            return;
+        }
+
+        if (!/^[A-Za-z0-9]{4,20}$/.test(code)) {
+            showToast('Mã thẻ mới phải từ 4-20 ký tự, chỉ chứa chữ và số.', 'error');
             return;
         }
         if (!editingCard?.card_id) {
@@ -1856,18 +1897,18 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 )}
 
                 {showCreateModal && (
-                    <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+                    <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
                         <div style={{ backgroundColor: '#fff', borderRadius: '16px', width: '600px', maxWidth: '95%', padding: '0', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden', animation: 'fadeInScale 0.2s ease-out' }}>
                             {/* Wizard Header */}
-                            <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #2563eb 100%)', padding: '20px 24px 16px', color: '#fff', position: 'relative' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <div style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%)', padding: '20px 24px 0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <div style={{ background: 'rgba(255, 255, 255, 0.18)', padding: '8px', borderRadius: '10px', display: 'flex' }}>
-                                            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '22px' }}>badge</span>
+                                            <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '22px' }}>credit_card_off</span>
                                         </div>
                                         <div>
-                                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', letterSpacing: '-0.3px', color: '#fff' }}>Quy Trình Báo Mất Thẻ</h2>
-                                            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>Màn hình xử lý tập trung nghiệp vụ báo mất</span>
+                                            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', letterSpacing: '-0.3px', color: '#fff' }}>Báo mất thẻ</h2>
+                                            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>Quy trình xử lý thẻ bị mất</span>
                                         </div>
                                     </div>
                                     <button
@@ -1879,22 +1920,21 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 </div>
 
                                 {/* Step Indicator Bar */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', background: 'rgba(0,0,0,0.15)', padding: '5px', borderRadius: '10px', marginTop: '10px' }}>
+                                <div style={{ display: 'flex', gap: '4px', paddingBottom: '0' }}>
                                     {[
                                         { step: 1, label: '1. Kiểm tra' },
                                         { step: 2, label: '2. Nhập tin' },
                                         { step: 3, label: '3. Tiếp nhận' },
-                                        { step: 4, label: '4. Khóa thẻ' },
+                                        { step: 4, label: '4. Hủy thẻ' },
                                         { step: 5, label: '5. Thanh toán' }
                                     ].map((s) => (
                                         <div
                                             key={s.step}
                                             style={{
-                                                textAlign: 'center', padding: '6px 2px', borderRadius: '6px', fontSize: '11px', fontWeight: '600',
-                                                background: wizardStep === s.step ? '#ffffff' : wizardStep > s.step ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
-                                                color: wizardStep === s.step ? '#2563eb' : wizardStep > s.step ? '#ffffff' : 'rgba(255, 255, 255, 0.55)',
-                                                boxShadow: wizardStep === s.step ? '0 2px 6px rgba(0,0,0,0.12)' : 'none',
-                                                transition: 'all 0.2s'
+                                                flex: 1, textAlign: 'center', padding: '8px 0', fontSize: '13px', fontWeight: '600',
+                                                borderBottom: wizardStep >= s.step ? '2.5px solid #fff' : '2.5px solid rgba(255,255,255,0.25)',
+                                                color: wizardStep >= s.step ? '#fff' : 'rgba(255,255,255,0.5)',
+                                                marginBottom: '0'
                                             }}
                                         >
                                             {s.label}
@@ -1904,86 +1944,28 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                             </div>
 
                             {/* Wizard Body */}
-                            <div style={{ padding: '24px', maxHeight: '72vh', overflowY: 'auto' }}>
+                            <div style={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}>
                                 {stepError && (
-                                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>error</span>
-                                        <span style={{ fontWeight: '500' }}>{stepError}</span>
+                                    <div style={{ color: '#ef4444', fontSize: '13px', marginBottom: '12px' }}>
+                                        {stepError}
                                     </div>
                                 )}
 
                                 {/* ── BƯỚC 1: KIỂM TRA BIỂN SỐ XE ── */}
                                 {wizardStep === 1 && (
                                     <div>
-                                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '18px' }}>
-                                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>BƯỚC 1: KHỞI TẠO BÁO MẤT</span>
-                                            <span style={{ fontSize: '13px', color: '#334155', fontWeight: '500' }}>
-                                                Chọn loại thẻ và nhập biển số xe để hệ thống xác minh thông tin báo mất.
-                                            </span>
-                                        </div>
 
-                                        {/* Toggle Chọn Loại Thẻ (Thẻ lượt / Thẻ tháng) */}
-                                        <div style={{ marginBottom: '16px' }}>
-                                            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-                                                Loại thẻ báo mất
-                                            </label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCreateCardCategory('casual')}
-                                                    style={{
-                                                        padding: '10px',
-                                                        borderRadius: '8px',
-                                                        border: `2px solid ${createCardCategory === 'casual' ? '#2563eb' : '#e2e8f0'}`,
-                                                        background: createCardCategory === 'casual' ? '#eff6ff' : '#fff',
-                                                        color: createCardCategory === 'casual' ? '#2563eb' : '#64748b',
-                                                        fontWeight: '700',
-                                                        fontSize: '13.5px',
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '6px'
-                                                    }}
-                                                >
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>two_wheeler</span>
-                                                    Thẻ lượt (Vé ca)
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCreateCardCategory('month')}
-                                                    style={{
-                                                        padding: '10px',
-                                                        borderRadius: '8px',
-                                                        border: `2px solid ${createCardCategory === 'month' ? '#2563eb' : '#e2e8f0'}`,
-                                                        background: createCardCategory === 'month' ? '#eff6ff' : '#fff',
-                                                        color: createCardCategory === 'month' ? '#2563eb' : '#64748b',
-                                                        fontWeight: '700',
-                                                        fontSize: '13.5px',
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        gap: '6px'
-                                                    }}
-                                                >
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>credit_card</span>
-                                                    Thẻ tháng (Vé tháng)
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-                                            Biển số xe báo mất <span style={{ color: '#ef4444' }}>*</span>
+                                        <label style={{ fontSize: '13px', fontWeight: '500', color: '#0f172a', display: 'block', marginBottom: '8px' }}>
+                                            Biển số xe <span style={{ color: '#ef4444' }}>*</span>
                                         </label>
-                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                                             <input
                                                 type="text"
-                                                placeholder="Nhập biển số xe (Ví dụ: 30A-12345)..."
+                                                placeholder="Nhập biển số xe..."
                                                 value={checkPlateInput}
                                                 onChange={(e) => { setCheckPlateInput(e.target.value); setStepError(null); }}
                                                 onKeyDown={(e) => { if (e.key === 'Enter') handleCheckCardInfo(); }}
-                                                style={{ flex: 1, height: '42px', padding: '0 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', outline: 'none' }}
+                                                style={{ flex: 1, height: '36px', padding: '0 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                                                 autoFocus
                                             />
                                             <button
@@ -1991,11 +1973,10 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                 onClick={handleCheckCardInfo}
                                                 disabled={cardChecking}
                                                 style={{
-                                                    height: '42px', padding: '0 20px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px',
-                                                    fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13.5px', whiteSpace: 'nowrap'
+                                                    height: '36px', padding: '0 16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px',
+                                                    fontWeight: '500', cursor: 'pointer', fontSize: '13px'
                                                 }}
                                             >
-                                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>search</span>
                                                 {cardChecking ? 'Đang kiểm tra...' : 'Kiểm tra'}
                                             </button>
                                         </div>
@@ -2005,197 +1986,140 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 {/* ── BƯỚC 2: NHẬP THÔNG TIN THEO LOẠI THẺ ── */}
                                 {wizardStep === 2 && cardCheckData && (
                                     <div>
-                                        {/* Dynamic Card Type Verification Badge */}
-                                        <div style={{
-                                            background: createCardCategory === 'casual' ? '#f0fdf4' : '#eff6ff',
-                                            border: `1px solid ${createCardCategory === 'casual' ? '#bbf7d0' : '#bfdbfe'}`,
-                                            borderRadius: '10px', padding: '14px 16px', marginBottom: '18px'
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', color: createCardCategory === 'casual' ? '#166534' : '#1e40af' }}>
-                                                    XÁC MINH LOẠI THẺ: {cardCheckData.cardType.toUpperCase()}
-                                                </span>
-                                                <span style={{ fontSize: '12px', background: createCardCategory === 'casual' ? '#dcfce7' : '#dbeafe', color: createCardCategory === 'casual' ? '#15803d' : '#1d4ed8', fontWeight: '700', padding: '2px 8px', borderRadius: '6px' }}>
-                                                    {cardCheckData.cardType}
-                                                </span>
-                                            </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px' }}>
+                                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px', marginBottom: '12px', fontSize: '13px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                                                 <div><span style={{ color: '#64748b' }}>Biển số xe:</span> <strong style={{ color: '#0f172a' }}>{checkPlateInput.toUpperCase()}</strong></div>
-                                                <div><span style={{ color: '#64748b' }}>Trạng thái:</span> <strong style={{ color: '#16a34a' }}>Đang hoạt động</strong></div>
-                                                {createCardCategory === 'casual' ? (
-                                                    <div><span style={{ color: '#64748b' }}>Xe trong bãi:</span> <strong style={{ color: '#0284c7' }}>Xe đang ở trong bãi</strong></div>
-                                                ) : (
+                                                <div><span style={{ color: '#64748b' }}>Loại xe:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.vehicleType || '---'}</strong></div>
+                                                <div><span style={{ color: '#64748b' }}>Loại thẻ:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.cardType}</strong></div>
+                                                {createCardCategory !== 'casual' && (
                                                     <>
                                                         <div><span style={{ color: '#64748b' }}>Chủ xe:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.ownerName || '---'}</strong></div>
-                                                        <div><span style={{ color: '#64748b' }}>Gói tháng:</span> <strong style={{ color: '#0284c7' }}>{cardCheckData.package || 'Vé tháng'}</strong></div>
+                                                        <div><span style={{ color: '#64748b' }}>Gói tháng:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.package || 'Vé tháng'}</strong></div>
                                                     </>
                                                 )}
                                             </div>
                                         </div>
 
-                                        {/* Dynamic Form Content */}
                                         {createCardCategory === 'casual' ? (
-                                            /* --- THẺ LƯỢT: Upload Ảnh Cà vẹt (Bắt buộc) + Lý do (Bắt buộc) --- */
-                                            <div>
-                                                <div style={{ marginBottom: '16px' }}>
-                                                    <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
-                                                        Upload Ảnh Cà vẹt xe (Bắt buộc) <span style={{ color: '#ef4444' }}>*</span>
-                                                    </label>
-                                                    <div style={{ border: '2px dashed #cbd5e1', borderRadius: '10px', padding: '14px', textAlign: 'center', backgroundColor: '#f8fafc', cursor: 'pointer', position: 'relative' }}>
-                                                        <input type="file" accept="image/*" onChange={handleCavetImageUpload} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
-                                                        {cavetPreviewUrl ? (
-                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                                                                <img src={cavetPreviewUrl} alt="Cà vẹt" style={{ height: '60px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #cbd5e1' }} />
-                                                                <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '700' }}>✓ Đã chọn ảnh cà vẹt xe</span>
-                                                            </div>
-                                                        ) : (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                                                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#94a3b8' }}>cloud_upload</span>
-                                                                <span style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>Bấm để chọn hoặc chụp ảnh Cà vẹt xe</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ fontSize: '13px', fontWeight: '500', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
+                                                    Ảnh cà vẹt <span style={{ color: '#ef4444' }}>*</span>
+                                                </label>
+                                                <div style={{ border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '12px', textAlign: 'center', backgroundColor: '#fff', cursor: 'pointer', position: 'relative' }}>
+                                                    <input type="file" accept="image/*" onChange={handleCavetImageUpload} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+                                                    {cavetPreviewUrl ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                            <img src={cavetPreviewUrl} alt="Cà vẹt" style={{ height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
+                                                            <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '500' }}>✓ Đã chọn ảnh</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ fontSize: '13px', color: '#64748b' }}>Bấm để tải ảnh lên</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ) : (
-                                            /* --- THẺ THÁNG: Upload Ảnh CCCD + Ô nhập Số CCCD + Nút Xác thực --- */
-                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
-                                                <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>badge</span>
-                                                    Xác minh thông tin CCCD chủ thẻ tháng
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ fontSize: '13px', fontWeight: '500', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
+                                                    Ảnh CCCD chủ thẻ
                                                 </label>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '12px' }}>
-                                                    <div>
-                                                        <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>Ảnh CCCD</label>
-                                                        <div style={{ border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '10px', textAlign: 'center', backgroundColor: '#fff', position: 'relative', minHeight: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <input type="file" accept="image/*" onChange={handleCccdImageUpload} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
-                                                            {cccdPreviewUrl ? (
-                                                                <img src={cccdPreviewUrl} alt="CCCD" style={{ height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
-                                                            ) : (
-                                                                <span style={{ fontSize: '12px', color: '#64748b' }}>📷 Tải ảnh CCCD</span>
-                                                            )}
+                                                <div style={{ border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '12px', textAlign: 'center', backgroundColor: '#fff', position: 'relative' }}>
+                                                    <input type="file" accept="image/*" onChange={handleCccdImageUpload} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+                                                    {cccdPreviewUrl ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                                            <img src={cccdPreviewUrl} alt="CCCD" style={{ height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
+                                                            <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: '500' }}>✓ Đã chọn ảnh</span>
                                                         </div>
-                                                    </div>
+                                                    ) : (
+                                                        <span style={{ fontSize: '13px', color: '#64748b' }}>Bấm để tải ảnh lên</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
 
-                                        <div style={{ marginBottom: '16px' }}>
-                                            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '6px' }}>
-                                                Lý do báo mất thẻ (Bắt buộc) <span style={{ color: '#ef4444' }}>*</span>
+                                        <div style={{ marginBottom: '12px' }}>
+                                            <label style={{ fontSize: '13px', fontWeight: '500', color: '#0f172a', display: 'block', marginBottom: '6px' }}>
+                                                Lý do <span style={{ color: '#ef4444' }}>*</span>
                                             </label>
                                             <input
                                                 type="text"
-                                                placeholder="Nhập lý do báo mất thẻ..."
+                                                placeholder="Nhập lý do báo mất..."
                                                 value={createLostReason}
                                                 onChange={(e) => setCreateLostReason(e.target.value)}
-                                                style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                                                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }}
                                             />
                                         </div>
                                     </div>
                                 )}
 
-                                {/* ── BƯỚC 3: TIẾP NHẬN ĐƠN & KHÓA THẺ BẢO MẬT ── */}
+                                {/* ── BƯỚC 3: TIẾP NHẬN ĐƠN & HỦY THẺ BẢO MẬT ── */}
                                 {wizardStep === 3 && (
                                     <div>
-                                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: '700', fontSize: '14px', marginBottom: '8px' }}>
-                                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>warning</span>
-                                                YÊU CẦU NGHIỆP VỤ: KHÓA THẺ BẢO MẬT TRƯỚC KHI THANH TOÁN
-                                            </div>
-                                            <p style={{ fontSize: '13px', color: '#78350f', margin: 0, lineHeight: '1.4' }}>
-                                                Nhân viên tiến hành <strong>Khóa thẻ</strong> (đổi trạng thái sang Đã khóa). Bản ghi thẻ, thông tin xe và phiên gửi xe vẫn được giữ nguyên trên CSDL để phục vụ tính phí và cho xe xuất bến.
-                                            </p>
+                                        <div style={{ fontSize: '13px', color: '#0f172a', marginBottom: '16px' }}>
+                                            Tiến hành <strong>Hủy thẻ</strong> (đổi trạng thái sang Đã xóa). Bản ghi thẻ và phiên gửi xe vẫn được giữ nguyên.
                                         </div>
-
-                                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', marginBottom: '18px' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', fontSize: '13px' }}>
+                                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px', marginBottom: '12px', fontSize: '13px' }}>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                                                 <div><span style={{ color: '#64748b' }}>Biển số xe:</span> <strong>{checkPlateInput.toUpperCase()}</strong></div>
+                                                <div><span style={{ color: '#64748b' }}>Loại xe:</span> <strong>{cardCheckData?.vehicleType || '---'}</strong></div>
                                                 <div><span style={{ color: '#64748b' }}>Loại thẻ:</span> <strong>{cardCheckData?.cardType}</strong></div>
-                                                <div><span style={{ color: '#64748b' }}>Trạng thái tiếp nhận:</span> <span style={{ color: '#d97706', fontWeight: '700' }}>Đang xử lý</span></div>
+                                                <div><span style={{ color: '#64748b' }}>Trạng thái:</span> <span style={{ color: '#d97706', fontWeight: '500' }}>Đang xử lý</span></div>
                                                 <div><span style={{ color: '#64748b' }}>Người tiếp nhận:</span> <strong>{currentUserName}</strong></div>
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* ── BƯỚC 4: THANH TOÁN (SAU KHÓA THẺ THÀNH CÔNG) ── */}
+                                {/* ── BƯỚC 4: THANH TOÁN (SAU HỦY THẺ THÀNH CÔNG) ── */}
                                 {wizardStep === 4 && (
                                     <div>
-                                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', fontSize: '13px' }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>check_circle</span>
-                                            <span>Thẻ đã được <strong>KHÓA BẢO MẬT</strong> an toàn (giữ nguyên thông tin phiên gửi xe). Đã đủ điều kiện tiến hành thanh toán.</span>
-                                        </div>
-
-                                        {/* Payment Breakdown Box */}
-                                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
-                                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#b45309', display: 'block', marginBottom: '10px' }}>
-                                                CHI TIẾT PHÍ THANH TOÁN BÁO MẤT
-                                            </span>
+                                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px', marginBottom: '12px', fontSize: '13px' }}>
+                                            <span style={{ fontWeight: '600', color: '#0f172a', display: 'block', marginBottom: '8px' }}>Chi tiết thanh toán</span>
                                             {createCardCategory === 'casual' ? (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span style={{ color: '#64748b' }}>Phí gửi xe trong bãi (Backend):</span>
-                                                        <strong style={{ color: '#1e293b' }}>
-                                                            {(cardCheckData?.parkingFee ?? 0).toLocaleString('vi-VN')} đ
-                                                        </strong>
+                                                        <span style={{ color: '#64748b' }}>Phí gửi xe:</span>
+                                                        <strong>{(cardCheckData?.parkingFee ?? 0).toLocaleString('vi-VN')} đ</strong>
                                                     </div>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span style={{ color: '#64748b' }}>Phí mất thẻ lượt:</span>
-                                                        <strong style={{ color: '#1e293b' }}>
-                                                            {(cardCheckData?.lostFee ?? 50000).toLocaleString('vi-VN')} đ
-                                                        </strong>
+                                                        <span style={{ color: '#64748b' }}>Phí báo mất:</span>
+                                                        <strong>{(cardCheckData?.lostFee || 0).toLocaleString('vi-VN')} đ</strong>
                                                     </div>
-                                                    <div style={{ borderTop: '1px dashed #fcd34d', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <strong style={{ color: '#92400e', fontSize: '14px' }}>Tổng thanh toán:</strong>
-                                                        <strong style={{ color: '#b45309', fontSize: '18px' }}>
-                                                            {(cardCheckData?.totalFee ?? ((cardCheckData?.parkingFee ?? 0) + (cardCheckData?.lostFee ?? 50000))).toLocaleString('vi-VN')} đ
+                                                    <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <strong>Tổng cộng:</strong>
+                                                        <strong style={{ fontSize: '16px', color: '#0f172a' }}>
+                                                            {(cardCheckData?.totalFee ?? ((cardCheckData?.parkingFee || 0) + (cardCheckData?.lostFee || 0))).toLocaleString('vi-VN')} đ
                                                         </strong>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                        <span style={{ color: '#64748b' }}>Phí cấp thẻ mới:</span>
-                                                        <strong style={{ color: '#1e293b' }}>
-                                                            {(cardCheckData?.lostFee ?? 50000).toLocaleString('vi-VN')} đ
-                                                        </strong>
+                                                        <span style={{ color: '#64748b' }}>Phí báo mất:</span>
+                                                        <strong>{(cardCheckData?.lostFee || 0).toLocaleString('vi-VN')} đ</strong>
                                                     </div>
-                                                    <div style={{ borderTop: '1px dashed #fcd34d', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <strong style={{ color: '#92400e', fontSize: '14px' }}>Tổng thanh toán:</strong>
-                                                        <strong style={{ color: '#b45309', fontSize: '18px' }}>
-                                                            {(cardCheckData?.lostFee ?? 50000).toLocaleString('vi-VN')} đ
+                                                    <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <strong>Tổng cộng:</strong>
+                                                        <strong style={{ fontSize: '16px', color: '#0f172a' }}>
+                                                            {(cardCheckData?.lostFee || 0).toLocaleString('vi-VN')} đ
                                                         </strong>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Card Selection for Month Card */}
                                         {createCardCategory === 'month' && (
-                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
-                                                <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>style</span>
-                                                    CHỌN THẺ THÁNG MỚI ĐỂ CẤP LẠI
-                                                </h4>
-                                                <div style={{ fontSize: '12.5px', color: '#475569', marginBottom: '12px', background: '#eff6ff', padding: '8px 12px', borderRadius: '8px' }}>
-                                                    Thông tin kế thừa: Chủ xe <strong>{cardCheckData?.ownerName || '---'}</strong> — Biển số <strong>{checkPlateInput.toUpperCase()}</strong> — Gói <strong>{cardCheckData?.package || 'Vé tháng'}</strong>
-                                                </div>
-                                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '4px' }}>Mã thẻ mới <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <label style={{ fontSize: '13px', fontWeight: '500', color: '#0f172a', display: 'block', marginBottom: '6px' }}>Mã thẻ mới <span style={{ color: '#ef4444' }}>*</span></label>
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <select
                                                         value={reissueRfidInput}
                                                         onChange={(e) => setReissueRfidInput(e.target.value)}
-                                                        style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none', background: '#fff' }}
+                                                        style={{ flex: 1, padding: '0 12px', height: '36px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', outline: 'none' }}
                                                         disabled={loadingAvailableCards}
                                                     >
-                                                        <option value="" disabled>
-                                                            {loadingAvailableCards ? "Đang tải danh sách thẻ..." : "Chọn mã thẻ mới..."}
-                                                        </option>
+                                                        <option value="" disabled>{loadingAvailableCards ? "Đang tải..." : "Chọn mã thẻ mới..."}</option>
                                                         {availableCards.map(card => (
-                                                            <option key={card.card_id} value={card.code || card.cardNo}>
-                                                                {card.code || card.cardNo}
-                                                            </option>
+                                                            <option key={card.card_id} value={card.code || card.cardNo}>{card.code || card.cardNo}</option>
                                                         ))}
                                                     </select>
                                                     <button
@@ -2203,121 +2127,77 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                         onClick={() => {
                                                             if (availableCards.length > 0) {
                                                                 setReissueRfidInput(availableCards[0].code || availableCards[0].cardNo);
-                                                                showToast('Đã lấy thẻ tự động!', 'success');
                                                             } else {
                                                                 showToast('Không có thẻ trống nào!', 'error');
                                                             }
                                                         }}
-                                                        style={{ padding: '0 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                                        style={{ height: '36px', padding: '0 12px', background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '6px', fontWeight: '500', fontSize: '12px', cursor: 'pointer' }}
                                                     >
-                                                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>auto_awesome</span>
-                                                        Lấy tự động
+                                                        Tự động
                                                     </button>
                                                 </div>
-                                                {!loadingAvailableCards && availableCards.length === 0 && (
-                                                    <p style={{ fontSize: '12px', color: '#ef4444', margin: '4px 0 0 0' }}>Không có thẻ nào đang chờ trong kho.</p>
-                                                )}
                                             </div>
                                         )}
 
-                                        {/* Payment Methods */}
                                         <div>
-                                            <label style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b', display: 'block', marginBottom: '8px' }}>
-                                                Chọn phương thức thanh toán
-                                            </label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            <label style={{ fontSize: '13px', fontWeight: '500', color: '#0f172a', display: 'block', marginBottom: '6px' }}>Phương thức thanh toán</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                                                 <label style={{
-                                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '10px', cursor: 'pointer',
-                                                    border: `2px solid ${createPaymentMethod === 'cash' ? '#16a34a' : '#cbd5e1'}`,
-                                                    background: createPaymentMethod === 'cash' ? '#f0fdf4' : '#fff'
+                                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer',
+                                                    border: `1px solid ${createPaymentMethod === 'cash' ? '#2563eb' : '#e2e8f0'}`,
+                                                    background: '#fff'
                                                 }}>
-                                                    <input type="radio" name="createPaymentMethod" value="cash" checked={createPaymentMethod === 'cash'} onChange={() => setCreatePaymentMethod('cash')} style={{ accentColor: '#16a34a' }} />
-                                                    <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '20px' }}>payments</span>
-                                                    <span style={{ fontSize: '13px', fontWeight: '700' }}>Tiền mặt</span>
+                                                    <input type="radio" name="createPaymentMethod" value="cash" checked={createPaymentMethod === 'cash'} onChange={() => setCreatePaymentMethod('cash')} style={{ accentColor: '#2563eb' }} />
+                                                    <span style={{ fontSize: '13px', fontWeight: createPaymentMethod === 'cash' ? '600' : '400' }}>Tiền mặt</span>
                                                 </label>
 
                                                 <label style={{
-                                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', borderRadius: '10px', cursor: 'pointer',
-                                                    border: `2px solid ${createPaymentMethod === 'vnpay' ? '#2563eb' : '#cbd5e1'}`,
-                                                    background: createPaymentMethod === 'vnpay' ? '#eff6ff' : '#fff'
+                                                    display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer',
+                                                    border: `1px solid ${createPaymentMethod === 'vnpay' ? '#2563eb' : '#e2e8f0'}`,
+                                                    background: '#fff'
                                                 }}>
                                                     <input type="radio" name="createPaymentMethod" value="vnpay" checked={createPaymentMethod === 'vnpay'} onChange={() => setCreatePaymentMethod('vnpay')} style={{ accentColor: '#2563eb' }} />
-                                                    <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '20px' }}>credit_card</span>
-                                                    <span style={{ fontSize: '13px', fontWeight: '700' }}>VNPay Sandbox</span>
+                                                    <span style={{ fontSize: '13px', fontWeight: createPaymentMethod === 'vnpay' ? '600' : '400' }}>VNPay</span>
                                                 </label>
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* ── BƯỚC 5: HOÀN TẤT & QUY TRÌNH TIẾP THEO (XE RA / CẤP THẺ MỚI) ── */}
+                                {/* ── BƯỚC 5: HOÀN TẤT ── */}
                                 {wizardStep === 5 && (
                                     <div>
-                                        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '12px', padding: '16px', marginBottom: '18px', textAlign: 'center' }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '36px', color: '#16a34a', display: 'block', marginBottom: '4px' }}>check_circle</span>
-                                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#166534' }}>
-                                                {createCardCategory === 'casual' ? 'ĐÃ GHI NHẬN THANH TOÁN — CHỜ XE RA' : 'BÁO MẤT VÀ THANH TOÁN HOÀN TẤT'}
-                                            </h3>
+                                        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '24px', textAlign: 'center', fontSize: '14px', color: '#0f172a' }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#10b981', display: 'block', marginBottom: '8px' }}>check_circle</span>
+                                            {createCardCategory === 'casual' ? (
+                                                <div>Đã ghi nhận thanh toán. Phiên gửi xe vẫn đang mở. Xe sẽ xuất bến khi nhập biển số <strong style={{ color: '#0284c7' }}>{checkPlateInput.toUpperCase()}</strong> tại cổng ra.</div>
+                                            ) : (
+                                                <div>Hoàn tất báo mất và thanh toán. Vui lòng giao thẻ vật lý có mã <strong style={{ color: '#0284c7' }}>{reissueRfidInput}</strong> cho khách hàng.</div>
+                                            )}
                                         </div>
-
-                                        {createCardCategory === 'casual' ? (
-                                            /* --- Thẻ lượt: Thông tin màn hình Quản lý xe ra/vào cho Staff cho xe ra --- */
-                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
-                                                <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>directions_car</span>
-                                                    THÔNG TIN XE CHO RA BÃI (QUẢN LÝ XE RA/VÀO)
-                                                </h4>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '13px' }}>
-                                                    <div><span style={{ color: '#64748b' }}>Biển số xe:</span> <strong style={{ color: '#0284c7' }}>{checkPlateInput.toUpperCase()}</strong></div>
-                                                    <div><span style={{ color: '#64748b' }}>Phí gửi xe:</span> <strong>{(cardCheckData?.parkingFee ?? 0).toLocaleString('vi-VN')} đ</strong></div>
-                                                    <div><span style={{ color: '#64748b' }}>Phí mất thẻ:</span> <strong>{(cardCheckData?.lostFee ?? 50000).toLocaleString('vi-VN')} đ</strong></div>
-                                                    <div><span style={{ color: '#64748b' }}>Tổng thanh toán:</span> <strong>{(cardCheckData?.totalFee ?? ((cardCheckData?.parkingFee ?? 0) + (cardCheckData?.lostFee ?? 50000))).toLocaleString('vi-VN')} đ</strong></div>
-                                                    <div style={{ gridColumn: 'span 2', marginTop: '6px' }}>
-                                                        <span style={{ color: '#64748b' }}>Trạng thái:</span> <span style={{ background: '#dcfce7', color: '#15803d', fontWeight: '700', padding: '3px 8px', borderRadius: '6px' }}>ĐÃ THANH TOÁN (CHỜ XE RA)</span>
-                                                    </div>
-                                                </div>
-
-                                                <p style={{ fontSize: '12px', color: '#0369a1', marginTop: '12px', marginBottom: 0, fontStyle: 'italic', background: '#e0f2fe', padding: '8px 12px', borderRadius: '6px' }}>
-                                                    ℹ️ Phiên gửi xe <strong>vẫn đang mở</strong>. Xe chỉ chính thức xuất bến và đóng phiên khi Staff nhập biển số <strong>{checkPlateInput.toUpperCase()}</strong> tại cổng ra và bấm <strong>"Mở barie / Cho xe ra"</strong>.
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            /* --- Thẻ tháng: Quy trình cấp thẻ tháng mới --- */
-                                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
-                                                <h4 style={{ margin: '0 0 10px', fontSize: '13px', color: '#1e293b', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#16a34a' }}>task_alt</span>
-                                                    HOÀN TẤT CẤP LẠI THẺ THÁNG
-                                                </h4>
-                                                <div style={{ fontSize: '14px', color: '#1e293b', padding: '16px 0' }}>
-                                                    Vui lòng lấy thẻ vật lý có mã <strong style={{ color: '#0284c7', fontSize: '18px' }}>{reissueRfidInput}</strong> giao cho khách hàng.
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
 
                             {/* Wizard Footer Actions */}
-                            <div style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button
                                         type="button"
                                         onClick={() => { setShowCreateModal(false); resetCreateModalState(); }}
-                                        style={{ height: '40px', padding: '0 18px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#fff', color: '#475569', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
+                                        style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: '500', cursor: 'pointer', fontSize: '13px' }}
                                         disabled={actionLoading}
                                     >
-                                        {wizardStep === 5 ? 'Đóng' : 'Hủy bỏ'}
+                                        Hủy
                                     </button>
 
                                     {wizardStep >= 1 && wizardStep < 5 && (
                                         <button
                                             type="button"
                                             onClick={handleProcessLater}
-                                            style={{ height: '40px', padding: '0 18px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#b45309', fontWeight: '600', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                            style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: '500', cursor: 'pointer', fontSize: '13px' }}
                                             disabled={actionLoading}
-                                            title="Tạm dừng xử lý và quay về Nhật ký mất thẻ"
                                         >
-                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>pause_circle</span>
                                             Xử lý sau
                                         </button>
                                     )}
@@ -2329,10 +2209,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                             type="button"
                                             onClick={handleAcceptAndCreateReport}
                                             disabled={actionLoading}
-                                            style={{ height: '40px', padding: '0 22px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                            style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)' }}
                                         >
-                                            {actionLoading ? 'Đang tiếp nhận...' : 'Tiếp tục (Tiếp nhận đơn)'}
-                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_forward</span>
+                                            {actionLoading ? 'Đang xử lý...' : 'Tiếp tục'}
                                         </button>
                                     )}
 
@@ -2341,10 +2220,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                             type="button"
                                             onClick={handleConfirmCancelCard}
                                             disabled={actionLoading}
-                                            style={{ height: '40px', padding: '0 22px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                            style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)' }}
                                         >
-                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lock</span>
-                                            Xác nhận Khóa thẻ
+                                            Hủy thẻ
                                         </button>
                                     )}
 
@@ -2353,10 +2231,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                             type="button"
                                             onClick={handleFinalizePayment}
                                             disabled={actionLoading}
-                                            style={{ height: '40px', padding: '0 22px', borderRadius: '8px', border: 'none', background: createPaymentMethod === 'cash' ? '#16a34a' : '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                            style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)' }}
                                         >
-                                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check_circle</span>
-                                            {actionLoading ? 'Đang xử lý...' : createPaymentMethod === 'cash' ? 'Xác nhận đã thu tiền' : 'Thanh toán qua VNPay'}
+                                            {actionLoading ? 'Đang xử lý...' : createPaymentMethod === 'cash' ? 'Thu tiền mặt' : 'Thanh toán VNPay'}
                                         </button>
                                     )}
 
@@ -2364,9 +2241,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                         <button
                                             type="button"
                                             onClick={() => { setShowCreateModal(false); resetCreateModalState(); }}
-                                            style={{ height: '40px', padding: '0 22px', borderRadius: '8px', border: 'none', background: '#16a34a', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
+                                            style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #1e40af, #2563eb)', color: '#fff', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)' }}
                                         >
-                                            Hoàn tất & Quay về Nhật ký
+                                            Hoàn tất
                                         </button>
                                     )}
                                 </div>
@@ -2507,7 +2384,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                     </div>
                 )}
 
-                {/* Modal xác nhận Khóa thẻ (Centered Dialog UI) */}
+                {/* Modal xác nhận Hủy thẻ (Centered Dialog UI) */}
                 {showCancelConfirmDialog && (
                     <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
                         <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', width: '440px', maxWidth: '90%', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', animation: 'fadeInScale 0.15s ease-out' }}>

@@ -119,12 +119,18 @@ export const getFallbackVehicleTypeId = async () => {
  * Lấy bảng giá theo loại xe
  * @param {string} vehicleTypeId
  */
-export const getPriceItems = async (vehicleTypeId) => {
-  const { data } = await supabase
+export const getPriceItems = async (vehicleTypeId, parkingId = null) => {
+  let query = supabase
     .from("price_item")
-    .select("price, min_hour, max_hour, price_table!inner(status)")
+    .select("price, min_hour, max_hour, price_table!inner(status, parking_id)")
     .eq("vehicle_type_id", vehicleTypeId)
     .eq("price_table.status", "Hoạt động");
+
+  if (parkingId) {
+    query = query.eq("price_table.parking_id", parkingId);
+  }
+
+  const { data } = await query;
   return data || [];
 };
 
