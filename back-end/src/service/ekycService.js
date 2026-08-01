@@ -4,7 +4,10 @@ import https from 'https';
 import { config } from '../config/config.js';
 
 // ─── Cấu hình VNPT eKYC ──────────────────────────────────────────────────────
-const VNPT_DOMAIN = config.vnptDomain;
+const getVnptDomain = () => {
+  const domain = config.vnptDomain || process.env.VNPT_DOMAIN || 'https://api.idg.vnpt.vn';
+  return domain.trim().replace(/\/+$/, '');
+};
 
 // VNPT_ACCESS_TOKEN trong .env có thể chứa prefix "bearer " (lowercase)
 // → cần normalize về "Bearer xxx"
@@ -46,7 +49,7 @@ export const uploadImageToVNPT = async (base64String, title = 'cccd_image') => {
     form.append('description', `eKYC - ${title}`);
 
     const response = await axios.post(
-      `${VNPT_DOMAIN}/file-service/v1/addFile`,
+      `${getVnptDomain()}/file-service/v1/addFile`,
       form,
       {
         httpsAgent,
@@ -82,7 +85,7 @@ export const uploadImageToVNPT = async (base64String, title = 'cccd_image') => {
 export const checkDocumentLiveness = async (imageHash) => {
   try {
     const response = await axios.post(
-      `${VNPT_DOMAIN}/ai/v1/card/liveness`,
+      `${getVnptDomain()}/ai/v1/card/liveness`,
       {
         img: imageHash,
         client_session: makeClientSession()
@@ -136,7 +139,7 @@ export const checkDocumentLiveness = async (imageHash) => {
 export const ocrIdentityCard = async (frontHash, backHash) => {
   try {
     const response = await axios.post(
-      `${VNPT_DOMAIN}/ai/v1/ocr/id`,
+      `${getVnptDomain()}/ai/v1/ocr/id`,
       {
         img_front: frontHash,
         img_back: backHash,

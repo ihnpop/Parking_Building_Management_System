@@ -152,7 +152,11 @@ export const getCardDetailsForContract = async (cardId) => {
             customer_id,
             full_name,
             phone,
-            email
+            email,
+            customer_kyc (
+              cccd_number,
+              created_at
+            )
           ),
           vehicle_type (
             vehicle_type_id,
@@ -163,7 +167,12 @@ export const getCardDetailsForContract = async (cardId) => {
             start_date,
             end_date,
             status,
-            package_id
+            package_id,
+            package (
+              package_id,
+              name,
+              price
+            )
           )
         )
       )
