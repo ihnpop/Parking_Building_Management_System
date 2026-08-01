@@ -77,6 +77,9 @@ export default function ManagerDashboardPage() {
         todayTraffic: 0,
         revenueToday: 0,
         revenueMonth: 0,
+        emptySlots: 0,
+        usedSlots: 0,
+        incidents: 0,
     });
 
     const [dashboardPeriod, setDashboardPeriod] = useState('day');
@@ -313,6 +316,20 @@ export default function ManagerDashboardPage() {
                 periodRevenue2 = Math.round(periodRevenue / (daysInMonth || 30));
             }
 
+            // Query incidents count for the period
+            let incidentCount = 0;
+            try {
+                const { count } = await supabase
+                    .from('card_lost_log')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('building_id', bldId)
+                    .gte('reported_at', startDate)
+                    .lte('reported_at', endDate);
+                incidentCount = count || 0;
+            } catch (e) {
+                console.error('[ManagerDashboard] Error counting incidents:', e);
+            }
+
             setStats({
                 availableSlots,
                 occupiedSlots,
@@ -321,6 +338,9 @@ export default function ManagerDashboardPage() {
                 todayTraffic: periodTraffic,
                 revenueToday: periodRevenue,
                 revenueMonth: periodRevenue2,
+                emptySlots: availableSlots,
+                usedSlots: occupiedSlots,
+                incidents: incidentCount,
             });
 
             // 8. Generate traffic and revenue charts
