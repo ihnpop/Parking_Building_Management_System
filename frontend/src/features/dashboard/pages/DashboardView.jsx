@@ -650,6 +650,8 @@ export default function DashboardView() {
                 navigate('/login/dashboard/adjust-prices');
             } else if (tab === 'manager-dashboard') {
                 navigate('/login/dashboard');
+            } else if (tab === 'log-management') {
+                navigate('/login/dashboard/log-management/lost-card');
             } else {
                 setCurrentView(tab);
             }
