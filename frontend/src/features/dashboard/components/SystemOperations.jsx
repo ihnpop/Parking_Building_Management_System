@@ -290,7 +290,7 @@ export default function SystemOperations() {
 
                 // Nếu là xe tháng nhưng thẻ/gói cước đã hết hạn (hoặc bị khóa) và chưa ở trong bãi
                 if (res.vehicleType === 'MONTHLY' && res.canOpenGate === false && !res.message?.includes('ở trong bãi')) {
-                    showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (vé lượt).`, 'warning');
+                    showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (thẻ lượt).`, 'warning');
 
                     // Lấy danh sách thẻ lượt vãng lai khả dụng từ hệ thống
                     let visitorCards = [];
@@ -971,7 +971,7 @@ export default function SystemOperations() {
                                             <div>
                                                 <div>⚠️ {preCheckResult.expiredMessage}</div>
                                                 <div style={{ fontSize: '12px', fontWeight: '400', color: '#8c4e03', marginTop: '2px' }}>
-                                                    Hệ thống tự động chuyển sang lượt xe vãng lai (vé lượt). Vui lòng chọn thẻ lượt bên dưới để cấp cho xe vào.
+                                                    Hệ thống tự động chuyển sang lượt xe vãng lai (thẻ lượt). Vui lòng chọn thẻ lượt bên dưới để cấp cho xe vào.
                                                 </div>
                                             </div>
                                         </div>
@@ -1082,7 +1082,7 @@ export default function SystemOperations() {
                                         <div className="last-session-item">
                                             <span className="last-session-label">Loại thẻ:</span>
                                             <strong className="last-session-value">
-                                                {preCheckResult.vehicleType === 'MONTHLY' ? 'Vé tháng' : 'Vé lượt'}
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? 'thẻ tháng' : 'thẻ lượt'}
                                             </strong>
                                         </div>
                                         <div className="last-session-item">
@@ -1094,7 +1094,7 @@ export default function SystemOperations() {
                                         <div className="last-session-item">
                                             <span className="last-session-label">Biển số đăng ký:</span>
                                             <strong className="last-session-value">
-                                                {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'Vé lượt'}
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'thẻ lượt'}
                                             </strong>
                                         </div>
                                         {preCheckResult.vehicleType === 'MONTHLY' && (

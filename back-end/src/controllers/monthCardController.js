@@ -196,7 +196,7 @@ export const deleteMonthCard = async (req, res) => {
     const performedBy = req.user?.id;
 
     const result = await monthCardService.deleteMonthCard(id, performedBy);
-    return res.status(200).json({ message: 'Xóa vé tháng thành công', data: result });
+    return res.status(200).json({ message: 'Xóa thẻ tháng thành công', data: result });
   } catch (err) {
     console.error('deleteMonthCard error:', err);
     return res.status(err.statusCode || 500).json({ message: err.message || 'Lỗi server' });
@@ -337,7 +337,7 @@ export const getContractPdf = async (req, res) => {
     doc.moveDown(2);
 
     // 2. Tên hợp đồng
-    doc.fontSize(15).bold().text("HỢP ĐỒNG ĐĂNG KÝ VÉ THÁNG GỬI XE", { align: 'center', paragraphGap: 5 });
+    doc.fontSize(15).bold().text("HỢP ĐỒNG ĐĂNG KÝ thẻ THÁNG GỬI XE", { align: 'center', paragraphGap: 5 });
     doc.fontSize(10).italic().text(`Số: HD-${details.card_code || 'xxxx'}/PBMS`, { align: 'center', paragraphGap: 20 });
 
     // 3. Nội dung văn bản
@@ -358,7 +358,7 @@ export const getContractPdf = async (req, res) => {
     doc.moveDown(0.8);
 
     // 5. Nội dung thỏa thuận chi tiết
-    doc.fontSize(11).bold().text("THÔNG TIN VÉ THÁNG VÀ PHƯƠNG TIỆN ĐĂNG KÝ:");
+    doc.fontSize(11).bold().text("THÔNG TIN thẻ THÁNG VÀ PHƯƠNG TIỆN ĐĂNG KÝ:");
     doc.moveDown(0.4);
 
     // Vẽ bảng thông tin

@@ -99,7 +99,7 @@ export default function AdjustPricesPage() {
         }
     };
 
-    // Hàm xử lý lưu biểu giá vé xe tháng sau khi chỉnh sửa qua Modal
+    // Hàm xử lý lưu biểu giá thẻ xe tháng sau khi chỉnh sửa qua Modal
     const handleSaveMonthly = async (updated) => {
         try {
             setSaving(true);
@@ -276,12 +276,12 @@ export default function AdjustPricesPage() {
                 </div>
             )}
 
-            {/* ── TAB BIỂU GIÁ VÉ THÁNG (MONTHLY PRICES) ── */}
+            {/* ── TAB BIỂU GIÁ thẻ THÁNG (MONTHLY PRICES) ── */}
             {activeTab === 'monthly' && (
                 <div className="mc-table-card" style={{ padding: '20px' }}>
                     <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
-                        <span>Giá tháng áp dụng khi khách đăng ký gói vé tháng tại tòa nhà.</span>
+                        <span>Giá tháng áp dụng khi khách đăng ký gói thẻ tháng tại tòa nhà.</span>
                     </div>
 
                     <div className="ap-monthly-grid">
@@ -295,7 +295,7 @@ export default function AdjustPricesPage() {
                                         <h3 className="ap-card-name">{item.vehicleType}</h3>
                                         <span className="ap-card-type-badge ap-card-type-badge--monthly">Giá tháng</span>
                                     </div>
-                                    {/* Nút mở modal sửa bảng giá vé tháng */}
+                                    {/* Nút mở modal sửa bảng giá thẻ tháng */}
                                     <button
                                         className="mc-btn mc-btn-outline"
                                         style={{ padding: '8px 12px', fontSize: '13px' }}

@@ -507,7 +507,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 cardType: row.card_type || (cat === 'month' ? 'Thẻ tháng' : 'Thẻ lượt'),
                 vehicleType: row.vehicle_type || '---',
                 ownerName: row.customer_name || row.owner || (cat === 'month' ? 'Chủ thẻ tháng' : 'Khách vãng lai'),
-                package: cat === 'month' ? 'Gói vé tháng' : 'Vé gửi theo lượt/ca',
+                package: cat === 'month' ? 'Gói thẻ tháng' : 'thẻ gửi theo lượt/ca',
                 parkingFee: cat === 'casual' ? actualParkingFee : 0,
                 lostFee: row.reissue_fee || 0,
                 totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee || 0) : (row.reissue_fee || 0)
@@ -2025,7 +2025,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                 {createCardCategory !== 'casual' && (
                                                     <>
                                                         <div><span style={{ color: '#64748b' }}>Chủ xe:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.ownerName || '---'}</strong></div>
-                                                        <div><span style={{ color: '#64748b' }}>Gói tháng:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.package || 'Vé tháng'}</strong></div>
+                                                        <div><span style={{ color: '#64748b' }}>Gói tháng:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.package || 'thẻ tháng'}</strong></div>
                                                     </>
                                                 )}
                                             </div>

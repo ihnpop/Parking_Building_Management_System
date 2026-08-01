@@ -402,13 +402,13 @@ export const checkLostCardPlate = async ({ plate_number, card_category, building
     cardType: cardObj.type,
     cardCode: cardObj.code,
     ownerName: vWithCust?.customer?.full_name || (isDailyCard ? 'Khách gửi xe lượt' : 'Chủ thẻ tháng'),
-    package: isDailyCard ? 'Vé gửi theo lượt/ca' : 'Gói vé tháng',
+    package: isDailyCard ? 'thẻ gửi theo lượt/ca' : 'Gói thẻ tháng',
     inPark: !!activeSession,
     entryTime: activeSession ? activeSession.entry_time : null,
     parkingFee,
     lostFee,
     totalFee,
-    feeDisplay: isDailyCard ? `${parkingFee.toLocaleString('vi-VN')} đ` : '0 đ (Vé tháng)',
+    feeDisplay: isDailyCard ? `${parkingFee.toLocaleString('vi-VN')} đ` : '0 đ (thẻ tháng)',
     vehicleType: vWithCust?.vehicle_type?.name || '---'
   };
 };
@@ -723,11 +723,11 @@ export const processReissueSuccess = async (orderCode) => {
 
     // Tái sử dụng thẻ đang chờ và giữ nguyên ngày bắt đầu/kết thúc của thẻ cũ
     updatedCard = await cardRepository.reuseWaitingCard(
-      blankCard.card_id, 
-      oldCardFull.created_at, 
+      blankCard.card_id,
+      oldCardFull.created_at,
       oldCardFull.expired_date
     );
-    
+
     // Chuyển đăng ký từ thẻ cũ sang thẻ mới
     if (report.vehicle_id) {
       await cardRepository.insertCardRegistration({

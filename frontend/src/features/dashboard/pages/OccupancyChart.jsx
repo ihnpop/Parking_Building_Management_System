@@ -264,15 +264,15 @@ export default function OccupancyChart() {
                         </h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                             {/* Bộ chọn ngày (Date Picker) */}
-                            <div 
-                                style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: 8, 
-                                    background: '#ffffff', 
-                                    borderRadius: 10, 
-                                    padding: '6px 12px', 
-                                    border: '1.5px solid #cbd5e1', 
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    background: '#ffffff',
+                                    borderRadius: 10,
+                                    padding: '6px 12px',
+                                    border: '1.5px solid #cbd5e1',
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                     color: '#1f2937',
                                     height: '34px',
@@ -315,29 +315,29 @@ export default function OccupancyChart() {
 
                             {/* Các nút lọc trạng thái */}
                             <div className="system-sessions-filters" style={{ margin: 0 }}>
-                            <button
-                                type="button"
-                                className={`filter-btn ${filterType === 'ALL' ? 'active' : ''}`}
-                                onClick={() => setFilterType('ALL')}
-                            >
-                                Tất cả
-                            </button>
-                            <button
-                                type="button"
-                                className={`filter-btn ${filterType === 'INSIDE' ? 'active' : ''}`}
-                                onClick={() => setFilterType('INSIDE')}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>login</span>
-                                Xe đang gửi
-                            </button>
-                            <button
-                                type="button"
-                                className={`filter-btn ${filterType === 'OUT' ? 'active' : ''}`}
-                                onClick={() => setFilterType('OUT')}
-                            >
-                                <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>logout</span>
-                                Xe đã ra
-                            </button>
+                                <button
+                                    type="button"
+                                    className={`filter-btn ${filterType === 'ALL' ? 'active' : ''}`}
+                                    onClick={() => setFilterType('ALL')}
+                                >
+                                    Tất cả
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`filter-btn ${filterType === 'INSIDE' ? 'active' : ''}`}
+                                    onClick={() => setFilterType('INSIDE')}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>login</span>
+                                    Xe đang gửi
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`filter-btn ${filterType === 'OUT' ? 'active' : ''}`}
+                                    onClick={() => setFilterType('OUT')}
+                                >
+                                    <span className="material-symbols-outlined" style={{ fontSize: 16, marginRight: 4, display: 'inline-block', verticalAlign: 'middle' }}>logout</span>
+                                    Xe đã ra
+                                </button>
                             </div>
                         </div>
                     </header>
@@ -347,7 +347,7 @@ export default function OccupancyChart() {
                                 <tr>
                                     <th>STT</th>
                                     <th>Biển số xe</th>
-                                    <th>Loại vé / Thẻ</th>
+                                    <th>Loại thẻ / Thẻ</th>
                                     <th>Thời gian vào</th>
                                     <th>Thời gian ra</th>
                                     <th>Thời gian gửi</th>
@@ -478,7 +478,7 @@ export default function OccupancyChart() {
                                             return false;
                                         }
 
-                                        // 3. Column: Loại vé / Thẻ
+                                        // 3. Column: Loại thẻ / Thẻ
                                         const cardType = session.card?.type || 'Thẻ lượt';
                                         if (columnFilters.cardType !== 'ALL' && cardType !== columnFilters.cardType) {
                                             return false;

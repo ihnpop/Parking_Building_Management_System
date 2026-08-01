@@ -38,7 +38,7 @@ export const packagePayment = async (req, res) => {
 };
 
 /**
- * Endpoint: Khởi tạo thanh toán cho dịch vụ vé lượt (Thanh toán để xe ra bãi)
+ * Endpoint: Khởi tạo thanh toán cho dịch vụ thẻ lượt (Thanh toán để xe ra bãi)
  */
 export const checkout = async (req, res) => {
     try {
@@ -99,7 +99,7 @@ export const vnpayReturn = async (req, res) => {
 };
 
 /**
- * Endpoint: Thanh toán tiền mặt tại quầy cho Vé lượt (xe ra)
+ * Endpoint: Thanh toán tiền mặt tại quầy cho thẻ lượt (xe ra)
  * POST /api/payments/cash
  * Body: { sessionId }
  */
@@ -122,7 +122,7 @@ export const payCash = async (req, res) => {
 };
 
 /**
- * Endpoint: Khởi tạo thanh toán VNPay an toàn cho Vé lượt (xe ra)
+ * Endpoint: Khởi tạo thanh toán VNPay an toàn cho thẻ lượt (xe ra)
  * POST /api/payments/vnpay/create
  * Body: { sessionId }
  */

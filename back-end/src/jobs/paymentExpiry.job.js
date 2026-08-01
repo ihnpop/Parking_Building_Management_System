@@ -30,9 +30,9 @@ export function startPaymentExpiryJob() {
 
             for (const payment of expiredPayments) {
                 // Giao dịch thẻ tháng (Đăng ký / Gia hạn) → đánh dấu 'Thất bại'
-                // Giao dịch vé lượt → đánh dấu 'Hết hạn' (giữ tương thích hệ thống cũ)
-                const isMonthCard = payment.payment_type === 'Đăng ký vé tháng'
-                    || payment.payment_type === 'Gia hạn vé tháng';
+                // Giao dịch thẻ lượt → đánh dấu 'Hết hạn' (giữ tương thích hệ thống cũ)
+                const isMonthCard = payment.payment_type === 'Đăng ký thẻ tháng'
+                    || payment.payment_type === 'Gia hạn thẻ tháng';
                 const newStatus = isMonthCard ? 'Thất bại' : 'Hết hạn';
 
                 console.log(`[PaymentExpiryJob] Xử lý hết hạn cho đơn: ${payment.order_code} → ${newStatus}`);
@@ -47,7 +47,7 @@ export function startPaymentExpiryJob() {
                     continue;
                 }
 
-                // Với vé lượt: nếu có session_id, phục hồi session về 'Đang gửi xe'
+                // Với thẻ lượt: nếu có session_id, phục hồi session về 'Đang gửi xe'
                 if (!isMonthCard && payment.session_id) {
                     const { error: updateSessionErr } = await supabase
                         .from("parking_sessions")

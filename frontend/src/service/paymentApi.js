@@ -1,7 +1,7 @@
 import API from "./apiClient";
 
 /**
- * API: Khởi tạo thanh toán Vé lượt
+ * API: Khởi tạo thanh toán thẻ lượt
  * @param {string} sessionId
  * @param {number} amount
  */
@@ -11,7 +11,7 @@ export const createCheckoutPayment = async (sessionId, amount) => {
 };
 
 /**
- * API: Khởi tạo thanh toán Đăng ký/Gia hạn Vé tháng
+ * API: Khởi tạo thanh toán Đăng ký/Gia hạn thẻ tháng
  * @param {string} vehiclePackageId
  * @param {number} amount
  * @param {boolean} isRenewal

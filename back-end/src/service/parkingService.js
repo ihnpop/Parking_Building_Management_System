@@ -124,7 +124,7 @@ export const checkOut = async (plateNumber, vehicleImageFile, plateImageFile) =>
 // ─── openGateFree service ─────────────────────────────────────────────────────
 
 /**
- * Mở barie trực tiếp/miễn phí khi estimated_fee = 0 (vé tháng còn hạn hoặc thời gian gửi quá ngắn)
+ * Mở barie trực tiếp/miễn phí khi estimated_fee = 0 (thẻ tháng còn hạn hoặc thời gian gửi quá ngắn)
  *
  * @param {string} sessionId
  * @param {string} staffId

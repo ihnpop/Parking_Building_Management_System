@@ -83,7 +83,7 @@ async function checkLostCard(card, vehicle, session) {
 }
 
 /**
- * Kiểm tra trạng thái hiệu lực của vé tháng
+ * Kiểm tra trạng thái hiệu lực của thẻ tháng
  * @param {object|null} card
  * @returns {{isMonthlyValid: boolean, isMonthlyExpired: boolean}}
  */
@@ -436,7 +436,7 @@ export async function calculateExitFee({ plate_number, skipLostCheck = false, se
     }
 
     const warning = isMonthlyExpired
-        ? "Vé tháng đã hết hạn — vui lòng nhắc khách gia hạn"
+        ? "thẻ tháng đã hết hạn — vui lòng nhắc khách gia hạn"
         : null;
 
     return {

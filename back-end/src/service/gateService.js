@@ -582,7 +582,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 
     // Chèn thông tin payment cho xe vãng lai
     try {
-      const existingPayment = await gateRepository.checkExistingPayment(activeSession.session_id, 'Vé lượt');
+      const existingPayment = await gateRepository.checkExistingPayment(activeSession.session_id, 'thẻ lượt');
       if (!existingPayment) {
         const paymentErr = await gateRepository.insertPayment({
           session_id: activeSession.session_id,
@@ -590,7 +590,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
           payment_method: 'Tiền mặt',
           status: 'Đã thanh toán',
           payment_time: exitTime.toISOString(),
-          payment_type: 'Vé lượt',
+          payment_type: 'thẻ lượt',
           created_by: staffId || null
         });
         if (paymentErr) {
