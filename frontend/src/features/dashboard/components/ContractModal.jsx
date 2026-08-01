@@ -3,6 +3,7 @@ import { XCircle, Download, Loader2, X, Mail } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 import { getContractStatus, sendContractEmail } from '../../../service/contractApi';
 import ContractDocument from './ContractDocument';
+import "./ContractModal.css";
 
 export default function ContractModal({ isOpen, onClose, cardData }) {
   const { showToast } = useNotification();

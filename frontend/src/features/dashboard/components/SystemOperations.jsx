@@ -16,6 +16,19 @@ import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
 import ExitPaymentPanel from './ExitPaymentPanel';
 import { normalizePlate, validatePlateNumber } from '../../../utils/plateValidation';
+import "./SystemOperations.css";
+
+const normalizeVehicleTypeName = (name) => {
+    if (!name) return '';
+    const clean = name.trim().toLowerCase().normalize('NFC');
+    if (clean.includes('ô tô') || clean.includes('oto') || clean.includes('car') || clean.includes('ôtô')) {
+        return 'Ô tô';
+    }
+    if (clean.includes('xe máy') || clean.includes('xe may') || clean.includes('motor') || clean.includes('bike')) {
+        return 'Xe máy';
+    }
+    return name.trim();
+};
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 // Số session gần nhất hiển thị trong bảng lịch sử
@@ -315,7 +328,7 @@ export default function SystemOperations() {
                         setSelectedCard('');
                         // Tự động đặt loại xe khớp với dữ liệu đã đăng ký trong DB
                         if (res.vehicleCategory) {
-                            setVehicleType(res.vehicleCategory);
+                            setVehicleType(normalizeVehicleTypeName(res.vehicleCategory));
                         }
                     }
                 }
@@ -917,7 +930,7 @@ export default function SystemOperations() {
                             {/* Cảnh báo loại xe không khớp - Chỉ hiện khi là xe tháng và staff đã chọn loại xe sai */}
                             {mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && (() => {
                                 const registeredType = preCheckResult.vehicleCategory;
-                                const isMismatch = registeredType !== vehicleType;
+                                const isMismatch = normalizeVehicleTypeName(registeredType) !== normalizeVehicleTypeName(vehicleType);
                                 return (
                                     <div className={`vehicle-mismatch-banner ${isMismatch ? 'mismatch' : ''}`}>
                                         <span className="material-symbols-outlined mismatch-icon">
@@ -995,8 +1008,13 @@ export default function SystemOperations() {
                                 disabled={
                                     loading ||
                                     (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.canOpenGate === false) ||
-                                    (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && preCheckResult.vehicleCategory !== vehicleType)
+                                    (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && normalizeVehicleTypeName(preCheckResult.vehicleCategory) !== normalizeVehicleTypeName(vehicleType))
                                 }
+                                onClick={(e) => {
+                                    if (!e.defaultPrevented) {
+                                        handleFormSubmit(e);
+                                    }
+                                }}
                             >
                                 {loading ? (
                                     <>

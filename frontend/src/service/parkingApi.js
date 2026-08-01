@@ -1,41 +1,9 @@
-import axios from "axios";
-
-import supabase from "../config/supabaseClient";
-
-const API = axios.create({
-  // baseURL: "http://localhost:3636/api"     //sửa chỗ này
-  baseURL: import.meta.env.VITE_API_URL
-});
-
-// Tự động lấy token Supabase mới nhất trước mỗi request
-// Tránh 401 do dùng token hết hạn từ localStorage
-API.interceptors.request.use(async (config) => {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
-    } else {
-      const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-  } catch (err) {
-    console.warn('[parkingApi] Could not get Supabase session:', err.message);
-  }
-  return config;
-});
-
-// Giữ lại getAuthHeaders cho các nơi có thể còn dùng (fallback)
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+import API from "./apiClient";
 
 /**
  * Tải ảnh camera lên cho Gate Simulator.
- * @param {File} file 
- * @param {string} folder - 'entry/vehicle', 'entry/plate', 'exit/vehicle', 'exit/plate'
+ * @param {File} file - File ảnh cần upload
+ * @param {string} folder - Thư mục lưu
  * @returns {Promise<{ success: boolean, publicUrl: string }>}
  */
 export const uploadGateFile = async (file, folder) => {
@@ -53,7 +21,7 @@ export const uploadGateFile = async (file, folder) => {
 
 /**
  * Gọi API giả lập OCR nhận diện biển số xe từ file ảnh.
- * @param {File} file 
+ * @param {File} file
  * @returns {Promise<{ success: boolean, plateNumber: string }>}
  */
 export const simulateOcrFile = async (file) => {
@@ -66,11 +34,9 @@ export const simulateOcrFile = async (file) => {
   return response.data;
 };
 
-
-
 /**
  * Kiểm tra xe vào (Entry Pre-check)
- * @param {string} plateNumber 
+ * @param {string} plateNumber
  */
 export const preCheckEntryGate = async (plateNumber) => {
   const response = await API.post("/gate/entry/pre-check", { plateNumber });
@@ -79,7 +45,7 @@ export const preCheckEntryGate = async (plateNumber) => {
 
 /**
  * Xác nhận xe vào bãi (Check-In)
- * @param {object} payload - { cardCode, plateNumber, entryVehicleImage, entryPlateImage }
+ * @param {object} payload
  */
 export const entryGate = async (payload) => {
   const response = await API.post("/gate/entry", payload);
@@ -88,7 +54,7 @@ export const entryGate = async (payload) => {
 
 /**
  * Kiểm tra xe ra (Exit Pre-check)
- * @param {string} plateNumber 
+ * @param {string} plateNumber
  */
 export const preCheckExitGate = async (plateNumber) => {
   const response = await API.post("/gate/exit/pre-check", { plateNumber });
@@ -97,7 +63,7 @@ export const preCheckExitGate = async (plateNumber) => {
 
 /**
  * Xác nhận xe ra bãi (Check-Out)
- * @param {object} payload - { cardCode, plateNumber, exitVehicleImage, exitPlateImage }
+ * @param {object} payload
  */
 export const exitGate = async (payload) => {
   const response = await API.post("/gate/exit", payload);
@@ -106,8 +72,8 @@ export const exitGate = async (payload) => {
 
 /**
  * Lấy thống kê bãi xe thực tế
- * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì lấy hôm nay.
- * @param {string|null} buildingId - ID tòa nhà của nhân viên
+ * @param {string|null} dateStr
+ * @param {string|null} buildingId
  */
 export const getParkingStats = async (dateStr = null, buildingId = null) => {
   const params = {};
@@ -119,8 +85,8 @@ export const getParkingStats = async (dateStr = null, buildingId = null) => {
 
 /**
  * Lấy danh sách tất cả phiên gửi xe
- * @param {string|null} dateStr - Ngày dạng 'YYYY-MM-DD'. Nếu null thì lấy hôm nay.
- * @param {string|null} buildingId - ID tòa nhà
+ * @param {string|null} dateStr
+ * @param {string|null} buildingId
  */
 export const getParkingSessions = async (dateStr = null, buildingId = null) => {
   const params = {};
@@ -138,5 +104,3 @@ export const openGateFree = async (payload) => {
   const response = await API.post("/parking/open-gate-free", payload);
   return response.data;
 };
-
-

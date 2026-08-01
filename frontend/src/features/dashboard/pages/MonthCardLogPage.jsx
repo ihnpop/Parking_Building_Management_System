@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getMonthCardLogs } from '../../../service/monthCardApi';
 import axios from 'axios';
+import "./MonthCardLogPage.css";
 
 function formatVND(amount) {
     const num = Number(amount);

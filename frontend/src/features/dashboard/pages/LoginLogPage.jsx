@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getLoginLogs } from '../../../service/userApi';
+import "./LoginLogPage.css";
 
 const renderFormattedTime = (dateInput) => {
     if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;

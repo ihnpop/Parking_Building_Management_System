@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import "./ContractDocument.css";
 
 /**
  * Component hiển thị tờ Hợp đồng đăng ký vé tháng dạng giấy A4

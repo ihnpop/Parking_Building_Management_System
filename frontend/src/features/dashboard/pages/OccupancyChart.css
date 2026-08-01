@@ -1,0 +1,158 @@
+.occupancy-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 280px;
+  position: relative;
+  z-index: 1;
+}
+
+.occupancy-chart-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 32px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  max-width: 100% !important;
+  padding: clamp(20px, 3vw, 40px) clamp(16px, 2.5vw, 36px) !important;
+}
+
+.occupancy-chart-title-group {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.occupancy-chart-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+.occupancy-chart-title {
+  font-size: clamp(2rem, 2.4vw, 3rem);
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.occupancy-chart-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 22px;
+  padding-top: 16px;
+}
+
+.occupancy-chart-y-axis {
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 280px;
+  padding-bottom: 12px;
+}
+
+.occupancy-chart-inner {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+}
+
+.occupancy-chart-grid-lines {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  pointer-events: none;
+}
+
+.occupancy-chart-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  color: #475569;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.occupancy-chart-legend span:first-child {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: #2563eb;
+  display: inline-block;
+}
+
+.cardpage-status.pending {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.occupancy-chart-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.session-status-badge.inside {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.session-status-badge.out {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.session-status-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.session-status-badge.inside .badge-dot {
+  animation: pulse-dot 1.5s infinite;
+}
+
+.realtime-timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--primary, #2563eb);
+}
+
+.realtime-timer.stopped {
+  font-family: inherit;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.realtime-timer span.timer-icon {
+  font-size: 16px;
+  color: var(--primary, #2563eb);
+  animation: rotate-timer 2s linear infinite;
+}
+
+.realtime-timer.stopped span.timer-icon {
+  color: #94a3b8;
+  animation: none;
+}

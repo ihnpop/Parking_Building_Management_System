@@ -17,6 +17,7 @@ import {
 } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
+import "./LostCardLogPage.css";
 
 const renderFormattedTime = (dateInput) => {
     if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;
@@ -408,19 +409,18 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     // ── Nút "Xử lý sau": Lưu toàn bộ thông tin đã nhập & trạng thái hiện tại xuống Backend ──
     const handleProcessLater = async () => {
+        // Nếu đang ở Bước 1 hoặc chưa có bản ghi báo mất nháp (chưa qua bước kiểm tra biển số thành công)
+        // -> Cho thoát ngay (coi như chưa thao tác gì, không lưu gì cả)
+        if (wizardStep === 1 || !currentDraftId) {
+            setShowCreateModal(false);
+            resetCreateModalState();
+            return;
+        }
+
         const plate = checkPlateInput.trim() || newLostCard.plate_number.trim();
         try {
             setActionLoading(true);
             let reportIdToUse = currentDraftId;
-
-            if (!reportIdToUse && plate) {
-                const createRes = await createLostCard({
-                    plate_number: plate,
-                    description: createLostReason || 'Báo mất thẻ'
-                });
-                reportIdToUse = createRes.lost_report_id || createRes.data?.lost_report_id || createRes.id;
-                setCurrentDraftId(reportIdToUse);
-            }
 
             if (reportIdToUse) {
                 // Cập nhật thông tin lý do và ảnh hiện có xuống Backend CSDL nếu có

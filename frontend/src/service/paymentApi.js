@@ -1,77 +1,67 @@
-/**
- * paymentApi.js
- * Cung cấp các phương thức gọi API HTTP (Axios) từ Frontend Client tới Backend Server
- * để khởi tạo hóa đơn và truy vấn thông tin thanh toán VNPay.
- */
-
-import axios from "axios";
-import supabase from "../config/supabaseClient";
-
-// Khởi tạo instance Axios kết nối với backend port 3636
-const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-});
-
-// Tự động lấy token Supabase mới nhất trước mỗi request
-API.interceptors.request.use(async (config) => {
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-            config.headers.Authorization = `Bearer ${session.access_token}`;
-        } else {
-            const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-        }
-    } catch (err) {
-        console.warn('[paymentApi] Could not get session token:', err.message);
-    }
-    return config;
-});
-
-// Hàm hỗ trợ đính kèm JWT (đã được interceptor xử lý tự động lấy token mới nhất)
-const getAuthHeaders = () => ({});
+import API from "./apiClient";
 
 /**
- * API: Khởi tạo thanh toán Vé lượt (cho xe chuẩn bị xuất bến)
+ * API: Khởi tạo thanh toán Vé lượt
+ * @param {string} sessionId
+ * @param {number} amount
  */
-export const createCheckoutPayment = (sessionId, amount) =>
-    API.post("/payments/checkout", { sessionId, amount }, { headers: getAuthHeaders() });
+export const createCheckoutPayment = async (sessionId, amount) => {
+    const response = await API.post("/payments/checkout", { sessionId, amount });
+    return response.data;
+};
 
 /**
  * API: Khởi tạo thanh toán Đăng ký/Gia hạn Vé tháng
+ * @param {string} vehiclePackageId
+ * @param {number} amount
+ * @param {boolean} isRenewal
  */
-export const createPackagePayment = (vehiclePackageId, amount, isRenewal) =>
-    API.post("/payments/package", { vehiclePackageId, amount, isRenewal }, { headers: getAuthHeaders() });
+export const createPackagePayment = async (vehiclePackageId, amount, isRenewal) => {
+    const response = await API.post("/payments/package", { vehiclePackageId, amount, isRenewal });
+    return response.data;
+};
 
 /**
- * API: Lấy thông tin chi tiết một hóa đơn bằng mã đơn hàng (orderCode) 
- * (Dùng công khai ở màn hình kết quả hóa đơn nên không cần đính kèm JWT Token)
+ * API: Lấy thông tin chi tiết một hóa đơn bằng mã đơn hàng (orderCode)
+ * @param {string} orderCode
  */
-export const getPaymentByOrderCode = (orderCode) =>
-    API.get(`/payments/${orderCode}`);
+export const getPaymentByOrderCode = async (orderCode) => {
+    const response = await API.get(`/payments/${orderCode}`);
+    return response.data;
+};
 
 /**
  * API: Kiểm tra thông tin xe ra và tính phí trước (check-exit)
+ * @param {string} plateNumber
  */
-export const checkExitFee = (plateNumber) =>
-    API.get(`/gate/check-exit`, { params: { plate_number: plateNumber }, headers: getAuthHeaders() });
+export const checkExitFee = async (plateNumber) => {
+    const response = await API.get(`/gate/check-exit`, { params: { plate_number: plateNumber } });
+    return response.data;
+};
 
 /**
- * API: Thanh toán tiền mặt
+ * API: Thanh toán tiền mặt cho phiên gửi xe
+ * @param {string} sessionId
  */
-export const payCash = (sessionId) =>
-    API.post("/payments/cash", { sessionId }, { headers: getAuthHeaders() });
+export const payCash = async (sessionId) => {
+    const response = await API.post("/payments/cash", { sessionId });
+    return response.data;
+};
 
 /**
- * API: Khởi tạo thanh toán VNPay an toàn
+ * API: Khởi tạo thanh toán VNPay cho phiên gửi xe
+ * @param {string} sessionId
  */
-export const createVnpayCheckout = (sessionId) =>
-    API.post("/payments/vnpay/create", { sessionId }, { headers: getAuthHeaders() });
+export const createVnpayCheckout = async (sessionId) => {
+    const response = await API.post("/payments/vnpay/create", { sessionId });
+    return response.data;
+};
 
 /**
  * API: Polling trạng thái thanh toán VNPay theo order_code
+ * @param {string} orderCode
  */
-export const getPaymentStatus = (orderCode) =>
-    API.get("/payments/status", { params: { order_code: orderCode } });
+export const getPaymentStatus = async (orderCode) => {
+    const response = await API.get("/payments/status", { params: { order_code: orderCode } });
+    return response.data;
+};

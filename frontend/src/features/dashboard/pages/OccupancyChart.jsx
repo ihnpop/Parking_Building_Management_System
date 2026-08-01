@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getParkingStats, getParkingSessions } from '../../../service/parkingApi';
+import "./OccupancyChart.css";
 
 export default function OccupancyChart() {
     const { user, userRole, logout } = useAuth();

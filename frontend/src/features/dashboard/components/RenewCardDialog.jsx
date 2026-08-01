@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getRenewalInfo, initiateRenewal, confirmRenewalCash } from '../../../service/monthCardApi';
+import "./RenewCardDialog.css";
 
 // ─── Helpers ──────────────────────────────────────────────────
 // Delay (ms) trước khi đóng dialog sau khi gia hạn thành công

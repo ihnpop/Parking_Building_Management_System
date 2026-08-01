@@ -7,6 +7,10 @@ import crypto from "crypto";
  */
 const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) => {
   const apiKey = process.env.RESEND_API_KEY;
+  // const apiUrl = process.env.RESEND_API_URL;
+  // const fromEmail = process.env.MAIL_FROM;
+
+  const apiUrl = process.env.RESEND_API_URL || "https://api.resend.com/emails";
   const fromEmail = process.env.MAIL_FROM || "onboarding@resend.dev";
 
   if (!apiKey) {
@@ -61,7 +65,7 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
 
   try {
     const response = await axios.post(
-      "https://api.resend.com/emails",
+      apiUrl,
       {
         from: `BQL Bãi Xe PBMS <${fromEmail}>`,
         to: [toEmail],

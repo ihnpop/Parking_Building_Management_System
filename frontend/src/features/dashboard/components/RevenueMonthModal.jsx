@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { fetchMonthlyRevenueDetails, formatVND } from '../../../service/dashboardApi';
+import "./RevenueMonthModal.css";
 
 export default function RevenueMonthModal({ isOpen, onClose }) {
     const [loading, setLoading] = useState(true);
