@@ -711,17 +711,30 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
             // Nếu là thẻ lượt: khởi tạo và xác nhận thu tiền mặt khi bấm nút
             if (createCardCategory === 'casual') {
-                const payRes = await initiateLostTurnCardPayment({
-                    reportId: currentDraftId,
-                    paymentMethod: createPaymentMethod
-                });
+                let orderCodeToConfirm = null;
+                try {
+                    const payRes = await initiateLostTurnCardPayment({
+                        reportId: currentDraftId,
+                        paymentMethod: createPaymentMethod
+                    });
 
-                if (createPaymentMethod === 'cash' && payRes?.order_code) {
-                    // CHỈ KHỞI TẠO PHIẾU THU, KHÔNG GỌI confirmLostTurnCardCash ĐỂ KHÔNG ĐÓNG PHIÊN GỬI XE.
-                    // Phiên gửi xe sẽ được đóng tại cổng ra (ExitPaymentPanel) khi Staff bấm Mở barie.
-                } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.location.href = payRes.payUrl;
-                    return;
+                    if (createPaymentMethod === 'cash' && payRes?.order_code) {
+                        orderCodeToConfirm = payRes.order_code;
+                    } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
+                        window.location.href = payRes.payUrl;
+                        return;
+                    }
+                } catch (payErr) {
+                    const existingOrderCode = payErr.existingOrderCode || payErr.response?.data?.existingOrderCode;
+                    if (createPaymentMethod === 'cash' && existingOrderCode) {
+                        orderCodeToConfirm = existingOrderCode;
+                    } else {
+                        throw payErr;
+                    }
+                }
+
+                if (createPaymentMethod === 'cash' && orderCodeToConfirm) {
+                    await confirmLostTurnCardCash(orderCodeToConfirm);
                 }
             } else if (createCardCategory === 'month') {
                 let targetCode = reissueRfidInput;
@@ -731,18 +744,32 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                     return;
                 }
 
-                const payRes = await reissueCard({
-                    cardId: cardCheckData?.cardId,
-                    newCode: targetCode.trim(),
-                    reportId: currentDraftId,
-                    paymentMethod: createPaymentMethod
-                });
+                let orderCodeToConfirm = null;
+                try {
+                    const payRes = await reissueCard({
+                        cardId: cardCheckData?.cardId,
+                        newCode: targetCode.trim(),
+                        reportId: currentDraftId,
+                        paymentMethod: createPaymentMethod
+                    });
 
-                if (createPaymentMethod === 'cash' && payRes?.order_code) {
-                    await confirmReissueCash(payRes.order_code);
-                } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.location.href = payRes.payUrl;
-                    return;
+                    if (createPaymentMethod === 'cash' && payRes?.order_code) {
+                        orderCodeToConfirm = payRes.order_code;
+                    } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
+                        window.location.href = payRes.payUrl;
+                        return;
+                    }
+                } catch (payErr) {
+                    const existingOrderCode = payErr.existingOrderCode || payErr.response?.data?.existingOrderCode;
+                    if (createPaymentMethod === 'cash' && existingOrderCode) {
+                        orderCodeToConfirm = existingOrderCode;
+                    } else {
+                        throw payErr;
+                    }
+                }
+
+                if (createPaymentMethod === 'cash' && orderCodeToConfirm) {
+                    await confirmReissueCash(orderCodeToConfirm);
                 }
             }
 
