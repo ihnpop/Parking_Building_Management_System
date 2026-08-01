@@ -294,6 +294,7 @@ export default function ExitPaymentPanel({
                     plate_number: finalPlate,
                     fee: finalFee,
                     type: "OUT",
+                    entry_time: sessionData?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime,
                     exit_time: vnpayResultState.paidAt || new Date().toISOString(),
                     status: "Hoàn thành",
                     vehicle_type_name: sessionData?.vehicle?.vehicle_type?.name || sessionData?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
@@ -526,6 +527,9 @@ export default function ExitPaymentPanel({
                     fee: parkingFeeOnly,
                     type: "OUT",
                     plate_number: plateNumber.trim().toUpperCase(),
+                    entry_time: sessionResult?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime,
+                    exit_time: sessionResult?.exit_time || new Date().toISOString(),
+                    status: "Hoàn thành",
                     vehicle_type_name: sessionResult?.vehicle?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                 });
             }
@@ -557,6 +561,9 @@ export default function ExitPaymentPanel({
                     fee: 0,
                     type: "OUT",
                     plate_number: plateNumber.trim().toUpperCase(),
+                    entry_time: res.session?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime,
+                    exit_time: res.session?.exit_time || new Date().toISOString(),
+                    status: "Hoàn thành",
                     vehicle_type_name: res.session?.vehicle?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                 });
             }
@@ -583,6 +590,9 @@ export default function ExitPaymentPanel({
                         fee: data.payment.amount,
                         type: "OUT",
                         plate_number: plateNumber.trim().toUpperCase(),
+                        entry_time: data.session?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime,
+                        exit_time: data.session?.exit_time || new Date().toISOString(),
+                        status: "Hoàn thành",
                         vehicle_type_name: data.session?.vehicle?.vehicle_type?.name || preCheckResult?.vehicleCategory || vehicleType
                     });
                 }
@@ -626,9 +636,13 @@ export default function ExitPaymentPanel({
         showToast("Thanh toán VNPay thành công! Mở barie cho xe ra.", "success");
         if (onSessionCompleted) {
             onSessionCompleted({
+                ...preCheckResult?.session,
                 plate_number: statusData?.plate_number || plateNumber.trim().toUpperCase(),
                 fee: statusData?.amount,
                 type: "OUT",
+                entry_time: statusData?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime,
+                exit_time: statusData?.paid_at || new Date().toISOString(),
+                status: "Hoàn thành",
                 vehicle_type_name: preCheckResult?.vehicleCategory || vehicleType
             });
         }

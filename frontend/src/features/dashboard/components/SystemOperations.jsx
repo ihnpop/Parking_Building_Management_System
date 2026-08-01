@@ -243,6 +243,28 @@ export default function SystemOperations() {
         }
     };
 
+    // Helper định dạng ngày giờ hiển thị an toàn, tránh Invalid Date
+    const formatSessionDate = (dateVal) => {
+        if (!dateVal) return '--';
+        try {
+            let str = dateVal;
+            if (typeof str === 'string') {
+                str = str.trim();
+                if (str.includes(' ') && !str.includes('T')) {
+                    str = str.replace(' ', 'T');
+                }
+                if (!str.endsWith('Z') && !str.match(/[+-]\d{2}(:\d{2})?$/) && str.includes('T')) {
+                    str += 'Z';
+                }
+            }
+            const d = new Date(str);
+            if (isNaN(d.getTime())) return '--';
+            return d.toLocaleString('vi-VN');
+        } catch {
+            return '--';
+        }
+    };
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     const resetInForm = () => {
@@ -480,7 +502,7 @@ export default function SystemOperations() {
                     ...result.session,
                     fee: preCheckResult.fee,
                     plate_number: cleanPlate,
-                    entry_time: result.session?.entry_time || new Date().toISOString(),
+                    entry_time: result.session?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime || new Date().toISOString(),
                     exit_time: result.session?.exit_time || new Date().toISOString(),
                     type: 'OUT',
                     status: 'Hoàn thành',
@@ -1137,7 +1159,7 @@ export default function SystemOperations() {
                                         </div>
                                         <div className="last-session-item full-width">
                                             <span className="last-session-label">Giờ vào:</span>
-                                            <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                            <strong className="last-session-value">{formatSessionDate(lastSession.entry_time)}</strong>
                                         </div>
                                     </div>
                                 </div>
@@ -1195,13 +1217,13 @@ export default function SystemOperations() {
                                         </div>
                                         <div className="last-session-item full-width">
                                             <span className="last-session-label">Giờ vào:</span>
-                                            <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                            <strong className="last-session-value">{formatSessionDate(lastSession.entry_time)}</strong>
                                         </div>
                                         {lastSession.type === 'OUT' && (
                                             <>
                                                 <div className="last-session-item full-width">
                                                     <span className="last-session-label">Giờ ra:</span>
-                                                    <strong className="last-session-value">{new Date(lastSession.exit_time).toLocaleString('vi-VN')}</strong>
+                                                    <strong className="last-session-value">{formatSessionDate(lastSession.exit_time)}</strong>
                                                 </div>
                                                 <div className="last-session-item full-width highlight-row">
                                                     <span className="last-session-label">Giá tiền:</span>
