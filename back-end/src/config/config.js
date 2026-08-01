@@ -11,10 +11,10 @@ export const config = {
   vnpayHost: process.env.VNPAY_HOST,
 
   // ─── Giới hạn nghiệp vụ (có thể override bằng .env nếu cần) ────────────
-  maxMonthCards:         Number(process.env.MAX_MONTH_CARDS)         || 100,
-  maxLoginFailures:      Number(process.env.MAX_LOGIN_FAILURES)      || 3,
-  paymentTimeoutMinutes: Number(process.env.PAYMENT_TIMEOUT_MINUTES) || 15,
-  contractExpireDays:    Number(process.env.CONTRACT_EXPIRE_DAYS)    || 7,
+  maxMonthCards: 100,
+  maxLoginFailures: 3,
+  paymentTimeoutMinutes: 15,
+  contractExpireDays: 7,
 };
 
 export default config;

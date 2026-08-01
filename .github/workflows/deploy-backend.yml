@@ -53,6 +53,8 @@ jobs:
           VNP_RETURN_URL: ${{ secrets.VNP_RETURN_URL }}
           VNP_TMN_CODE: ${{ secrets.VNP_TMN_CODE }}
           VNP_URL: ${{ secrets.VNP_URL }}
+          VNPT_DOMAIN: ${{ secrets.VNPT_DOMAIN }}
+          VNPAY_HOST: ${{ secrets.VNPAY_HOST}}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
 
         with:
