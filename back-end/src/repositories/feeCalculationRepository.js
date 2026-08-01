@@ -88,10 +88,15 @@ export async function findActiveRegistrationByVehicleId(vehicleId) {
         .select("*, card:card_id(*, vehicle_package:active_vehicle_package_id(*))")
         .eq("vehicle_id", vehicleId)
         .eq("status", "Hoạt động")
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data;
+    if (!data || data.length === 0) return null;
+
+    const monthlyReg = data.find(r => r.card?.type === 'Thẻ tháng');
+    if (monthlyReg) return monthlyReg;
+
+    return data[0];
 }
 
 /**

@@ -63,19 +63,13 @@ export const updateMonthCard = async (id, payload) => {
 };
 
 export const monthCardApi = {
-    // Hàm gửi dữ liệu ảnh Base64 lên Backend của bạn
+    // Hàm gửi dữ liệu ảnh Base64 lên Backend — dùng instance API để interceptor tự đính token
     verifyEkyc: async (frontBase64, backBase64) => {
-        const token = localStorage.getItem('supabase_token'); // Hoặc lấy từ AuthContext
-        const response = await axios.post(
-            `${import.meta.env.VITE_API_URL}/month-card/verify-document`,
+        const response = await API.post(
+            '/verify-document',
             {
                 img_front_base64: frontBase64,
                 img_back_base64: backBase64
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
             }
         );
         return response.data;

@@ -12,7 +12,13 @@ import { normalizePlate, validatePlateNumber } from "../../../utils/plateValidat
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "exit_pending_vnpay";
 const PRECHECK_KEY = "exit_precheck_state";
-const EXPIRY_MS = 15 * 60 * 1000; // 15 phút
+// Thời gian hiệu lực giao dịch (15 phút, phải khớp cấu hình backend)
+const EXPIRY_MS = 15 * 60 * 1000;
+// Ngưỡng cảnh báo khẩn cấp khi còn lại (giây)
+const URGENT_THRESHOLD_SECONDS = 60;
+// Khoảng cách polling trạng thái thanh toán VNPay (ms)
+const VNPAY_POLL_INTERVAL_MS = 4000;
+
 
 // ─── Storage helpers — VNPay pending ─────────────────────────────────────────
 const savePendingVNPay = (data) => {
@@ -95,7 +101,7 @@ function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt
 
     const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
     const ss = String(remaining % 60).padStart(2, "0");
-    const isUrgent = remaining <= 60;
+    const isUrgent = remaining <= URGENT_THRESHOLD_SECONDS;
 
     // ── Polling: kiểm tra trạng thái thanh toán mỗi 4 giây ──
     useEffect(() => {
@@ -111,7 +117,7 @@ function VNPayPendingPanel({ orderCode, amount, plateNumber, paymentUrl, savedAt
             } catch (e) {
                 // Bỏ qua lỗi polling, thử lại ở lần tiếp theo
             }
-        }, 4000);
+        }, VNPAY_POLL_INTERVAL_MS);
         return () => clearInterval(interval);
     }, [orderCode, onPaymentSuccess]);
 

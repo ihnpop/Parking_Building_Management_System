@@ -202,8 +202,12 @@ export const handleExportExcel = ({
             
     const exportTimeStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-    const totalCapacity = stats.usedSlots + stats.emptySlots;
-    const occupancyPercentage = Math.round((stats.usedSlots / (totalCapacity || 1)) * 100);
+    const emptySlots = stats.emptySlots !== undefined ? stats.emptySlots : (stats.availableSlots !== undefined ? stats.availableSlots : 0);
+    const usedSlots = stats.usedSlots !== undefined ? stats.usedSlots : (stats.occupiedSlots !== undefined ? stats.occupiedSlots : 0);
+    const incidentsCount = stats.incidents !== undefined ? stats.incidents : (Array.isArray(incidents) ? incidents.length : 0);
+
+    const totalCapacity = usedSlots + emptySlots;
+    const occupancyPercentage = Math.round((usedSlots / (totalCapacity || 1)) * 100);
     const avgRevenuePerVehicle = stats.todayTraffic > 0 ? Math.round(stats.revenueToday / stats.todayTraffic) : 0;
     
     let capacityAlert = 'Bình thường';
@@ -279,8 +283,8 @@ export const handleExportExcel = ({
         <!-- Row 1: Values -->
         <tr style="height: 35px;">
           <td class="kpi-val" style="color: #2563eb;">${stats.todayTraffic} lượt</td>
-          <td class="kpi-val" style="color: #10b981;">${stats.emptySlots} chỗ</td>
-          <td class="kpi-val" style="color: #6366f1;">${stats.usedSlots} chỗ</td>
+          <td class="kpi-val" style="color: #10b981;">${emptySlots} chỗ</td>
+          <td class="kpi-val" style="color: #6366f1;">${usedSlots} chỗ</td>
           <td class="kpi-val" style="color: #0f172a;">${occupancyPercentage}%</td>
         </tr>
         <!-- Row 2: Labels -->
@@ -292,7 +296,7 @@ export const handleExportExcel = ({
         <!-- Row 2: Values -->
         <tr style="height: 35px;">
           <td colspan="2" class="kpi-val" style="color: #059669;">${formatVND(stats.revenueToday)}</td>
-          <td class="kpi-val" style="color: ${stats.incidents > 0 ? '#ef4444' : '#10b981'};">${stats.incidents} sự cố</td>
+          <td class="kpi-val" style="color: ${incidentsCount > 0 ? '#ef4444' : '#10b981'};">${incidentsCount} sự cố</td>
           <td class="kpi-val" style="color: #1d4ed8;">${formatVND(stats.revenueMonth)}</td>
         </tr>
       </table>

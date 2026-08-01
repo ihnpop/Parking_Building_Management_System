@@ -66,17 +66,14 @@ export default function DashboardView() {
     const userEmail = user?.email || '';
     const email = userEmail.toLowerCase().trim();
 
-    // Xác định vai trò chuẩn của người dùng
+    // Xác định vai trò chuẩn của người dùng — dùng trực tiếp từ AuthContext (đã load từ DB)
     let computedRole = userRole ? userRole.toUpperCase() : 'STAFF';
-    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
-    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
-    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
 
     // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
     const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management'];
-    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic', 'log-management'];
 
     // Trả về tab đầu tiên trên Sidebar của từng vai trò
     const getDefaultViewForRole = (r) => {
@@ -150,8 +147,19 @@ export default function DashboardView() {
             setActiveCardTab('Thẻ lượt');
         } else if (path.includes('/adjust-prices')) {
             setCurrentView('adjust-prices');
+        } else if (path === '/login/dashboard' || path === '/login/dashboard/') {
+            if (computedRole === 'MANAGER') {
+                setCurrentView('manager-dashboard');
+            } else {
+                const savedView = localStorage.getItem('dashboard_current_view');
+                if (savedView && ADMIN_ALLOWED_VIEWS.includes(savedView)) {
+                    setCurrentView(savedView);
+                } else {
+                    setCurrentView(getDefaultViewForRole(computedRole));
+                }
+            }
         }
-    }, [location.pathname]);
+    }, [location.pathname, computedRole]);
 
     const handleLogTabClick = (tabName) => {
         let path = '';
@@ -642,6 +650,8 @@ export default function DashboardView() {
                 navigate('/login/dashboard/adjust-prices');
             } else if (tab === 'manager-dashboard') {
                 navigate('/login/dashboard');
+            } else if (tab === 'log-management') {
+                navigate('/login/dashboard/log-management/lost-card');
             } else {
                 setCurrentView(tab);
             }
@@ -1394,7 +1404,7 @@ export default function DashboardView() {
                                 <button
                                     type="button"
                                     className="db-view-all-btn"
-                                    onClick={() => setCurrentView('log-management')}
+                                    onClick={() => handleLogTabClick('Quẹt thẻ')}
                                 >
                                     Xem tất cả nhật ký
                                 </button>

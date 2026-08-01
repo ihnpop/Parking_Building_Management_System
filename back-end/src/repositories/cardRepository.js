@@ -503,25 +503,20 @@ export const insertCustomer = async (payload) => {
  * @returns {Promise<object|null>}
  */
 export const findActiveRegistrationByVehicle = async (vehicleId) => {
-  const { data: reg, error: regError } = await supabase
+  const { data: regs, error: regError } = await supabase
     .from('card_registrations')
-    .select('*')
+    .select('*, card(*)')
     .eq('vehicle_id', vehicleId)
     .eq('status', 'Hoạt động')
-    .maybeSingle();
+    .order('created_at', { ascending: false });
 
   if (regError) throw new Error(regError.message);
-  if (!reg) return null;
+  if (!regs || regs.length === 0) return null;
 
-  const { data: card, error: cardError } = await supabase
-    .from('card')
-    .select('*')
-    .eq('card_id', reg.card_id)
-    .maybeSingle();
+  const monthlyReg = regs.find(r => r.card?.type === 'Thẻ tháng');
+  if (monthlyReg) return monthlyReg;
 
-  if (cardError) throw new Error(cardError.message);
-  reg.card = card;
-  return reg;
+  return regs[0];
 };
 
 /**

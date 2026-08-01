@@ -143,8 +143,8 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     </button>
                 )}
 
-                {/* 5. Nhật ký vận hành (Chỉ Manager) */}
-                {computedRole === 'MANAGER' && (
+                {/* 5. Nhật ký vận hành (Manager & Admin) */}
+                {(computedRole === 'MANAGER' || computedRole === 'ADMIN') && (
                     <button
                         type="button"
                         className={`menu-item ${activeTab === 'log-management' ? 'active' : ''}`}

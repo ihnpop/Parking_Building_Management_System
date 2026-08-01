@@ -154,6 +154,21 @@ export const resetCardStatus = async (cardId) => {
 };
 
 /**
+ * Lấy thông tin thẻ theo card_id.
+ * @param {string} cardId
+ */
+export const getCardById = async (cardId) => {
+  const { data, error } = await supabase
+    .from("card")
+    .select("*")
+    .eq("card_id", cardId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
  * Lấy log xe vào theo session_id.
  * @param {string} sessionId
  * @returns {Promise<{building_id: string, parking_id: string, gate_id: string}|null>}

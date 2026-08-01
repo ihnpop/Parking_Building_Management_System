@@ -16,7 +16,7 @@ export default function DashboardShell({ children, currentTab, onTabSelect }) {
 
     // Danh sách tab được phép truy cập theo từng vai trò
     const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management'];
-    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic', 'log-management'];
 
     const getDefaultTab = (currentRole) => {
         if (currentRole === 'ADMIN') return 'user-management'; // Tab đầu tiên của Admin

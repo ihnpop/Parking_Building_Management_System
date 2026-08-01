@@ -17,18 +17,30 @@ import { useNotification } from '../../../context/NotificationContext';
 import ExitPaymentPanel from './ExitPaymentPanel';
 import { normalizePlate, validatePlateNumber } from '../../../utils/plateValidation';
 
+// ─── Constants ──────────────────────────────────────────────────────────────
+// Số session gần nhất hiển thị trong bảng lịch sử
+const RECENT_SESSIONS_LIMIT = 3;
+// Delay (ms) trước khi redirect sang VNPay để toast kịp hiển thị
+const VNPAY_REDIRECT_DELAY_MS = 800;
+// Biển số placeholder dùng để lấy danh sách thẻ lượt vãng lai
+// (backend trả availableCards cho mọi xe VISITOR không ở trong bãi)
+const VISITOR_CARD_FETCH_PLATE = '59X1-99999';
+// Route phím tắt F1/F2 của Staff
+const SHORTCUT_ROUTES = {
+    F1: '/login/dashboard/OccupancyChart',
+    F2: '/login/dashboard/lost-card-log',
+};
+
 const cameraCards = [
     {
         id: 'plateImage',
         title: 'Camera 01 - Biển số VÀO',
-        image:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuBY_qQ9w1hTwomzRMVxQ_cRALiO7poUpyGH1d3L0BBc0z08g2A6uhN9AdQexl9JYb6VtLi2iuOqTbW3DSJotPZxrJllI0aHC5CPNpLQTmD8UIekVaSmP79O8332EpfIlwC1L22wcXGMvEmYrBRIGbaGtSZGflODD7zMesEs_nUSi8ncvTapJXU9_ntgQdVTCK2CposjUZXTOC40qJ4OMb_eccDmW7JE2u59YBJxOp_x_Mz97TbHeh_hwM1Oczzwci2Qmyhd0XFTHno',
+        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBY_qQ9w1hTwomzRMVxQ_cRALiO7poUpyGH1d3L0BBc0z08g2A6uhN9AdQexl9JYb6VtLi2iuOqTbW3DSJotPZxrJllI0aHC5CPNpLQTmD8UIekVaSmP79O8332EpfIlwC1L22wcXGMvEmYrBRIGbaGtSZGflODD7zMesEs_nUSi8ncvTapJXU9_ntgQdVTCK2CposjUZXTOC40qJ4OMb_eccDmW7JE2u59YBJxOp_x_Mz97TbHeh_hwM1Oczzwci2Qmyhd0XFTHno',
     },
     {
         id: 'camera4',
         title: 'Camera 02 - Biển số RA',
-        image:
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuDJCOcqayYGfaWqXDR4TjBRcDUAGQyuvhkTCQ3r2Ivprb_szJonOqtBHW-ICNPYfFv97j3bVpHhH-WnSA4aS2MCIYAuo40ZbNe02ndW35ycuxzb_SF9PEYBs5oL0UVMatcLg6wI6fohgpgo1GWmXT4eX2ujtuTCWlPYYZBc88zmIKNCnhQ8mGiDg5muXtxL4-loBashck6sklVinfS5HN2mCsxrgS2gT725B0SaQ6_FovbCcTfINamNS7eRSyYTR8rsROnXGYm3pdU',
+        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDJCOcqayYGfaWqXDR4TjBRcDUAGQyuvhkTCQ3r2Ivprb_szJonOqtBHW-ICNPYfFv97j3bVpHhH-WnSA4aS2MCIYAuo40ZbNe02ndW35ycuxzb_SF9PEYBs5oL0UVMatcLg6wI6fohgpgo1GWmXT4eX2ujtuTCWlPYYZBc88zmIKNCnhQ8mGiDg5muXtxL4-loBashck6sklVinfS5HN2mCsxrgS2gT725B0SaQ6_FovbCcTfINamNS7eRSyYTR8rsROnXGYm3pdU',
     },
 ]
 
@@ -100,7 +112,7 @@ export default function SystemOperations() {
                     const timeB = new Date(b.exit_time || b.entry_time).getTime();
                     return timeB - timeA;
                 });
-                setRecentSessions(sorted.slice(0, 3));
+                setRecentSessions(sorted.slice(0, RECENT_SESSIONS_LIMIT));
             }
         } catch (err) {
             console.error("Error fetching recent sessions:", err);
@@ -262,19 +274,49 @@ export default function SystemOperations() {
             setLoading(true);
             if (mode === 'IN') {
                 const res = await preCheckEntryGate(cleanPlate);
-                setPreCheckResult(res);
-                if (res.vehicleType === 'VISITOR') {
-                    // Mặc định chọn thẻ đầu tiên nếu có
-                    if (res.availableCards?.length > 0) {
-                        setSelectedCard(res.availableCards[0].code);
+                
+                // Nếu là xe tháng nhưng thẻ/gói cước đã hết hạn (hoặc bị khóa) và chưa ở trong bãi
+                if (res.vehicleType === 'MONTHLY' && res.canOpenGate === false && !res.message?.includes('ở trong bãi')) {
+                    showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (vé lượt).`, 'warning');
+
+                    // Lấy danh sách thẻ lượt vãng lai khả dụng từ hệ thống
+                    let visitorCards = [];
+                    try {
+                        const visitorRes = await preCheckEntryGate(VISITOR_CARD_FETCH_PLATE);
+                        visitorCards = visitorRes?.availableCards || [];
+                    } catch (cardErr) {
+                        console.warn("Lỗi lấy danh sách thẻ lượt vãng lai:", cardErr);
+                    }
+
+                    const modifiedRes = {
+                        ...res,
+                        vehicleType: 'VISITOR',
+                        availableCards: visitorCards,
+                        isExpiredMonthly: true,
+                        expiredMessage: res.message || 'Gói cước / Thẻ đăng ký xe tháng đã hết hạn.'
+                    };
+
+                    setPreCheckResult(modifiedRes);
+                    if (visitorCards.length > 0) {
+                        setSelectedCard(visitorCards[0].code);
                     } else {
                         setSelectedCard('');
                     }
                 } else {
-                    setSelectedCard('');
-                    // Tự động đặt loại xe khớp với dữ liệu đã đăng ký trong DB
-                    if (res.vehicleCategory) {
-                        setVehicleType(res.vehicleCategory);
+                    setPreCheckResult(res);
+                    if (res.vehicleType === 'VISITOR') {
+                        // Mặc định chọn thẻ đầu tiên nếu có
+                        if (res.availableCards?.length > 0) {
+                            setSelectedCard(res.availableCards[0].code);
+                        } else {
+                            setSelectedCard('');
+                        }
+                    } else {
+                        setSelectedCard('');
+                        // Tự động đặt loại xe khớp với dữ liệu đã đăng ký trong DB
+                        if (res.vehicleCategory) {
+                            setVehicleType(res.vehicleCategory);
+                        }
                     }
                 }
             } else {
@@ -459,7 +501,7 @@ export default function SystemOperations() {
                 showToast("Đang chuyển hướng sang VNPAY...", "success");
                 setTimeout(() => {
                     window.location.href = response.data.payUrl;
-                }, 1000);
+                }, VNPAY_REDIRECT_DELAY_MS);
             } else {
                 throw new Error("Không khởi tạo được đường dẫn thanh toán");
             }
@@ -521,11 +563,11 @@ export default function SystemOperations() {
         const handleKeyDown = (event) => {
             if (event.key === 'F1') {
                 event.preventDefault();
-                navigate('/login/dashboard/OccupancyChart');
+                navigate(SHORTCUT_ROUTES.F1);
             }
             if (event.key === 'F2') {
                 event.preventDefault();
-                navigate('/login/dashboard/lost-card-log');
+                navigate(SHORTCUT_ROUTES.F2);
             }
 
             if (event.key === 'Enter') {
@@ -732,9 +774,7 @@ export default function SystemOperations() {
                             >
                                 <div
                                     className="camera-image"
-                                    style={{
-                                        backgroundImage: `url(${bgImage})`
-                                    }}
+                                    style={bgImage ? { backgroundImage: `url(${bgImage})` } : {}}
                                     onClick={() => {
                                         // Camera 1 & 2 ở mode OUT khi đã có ảnh check-in: không cho upload
                                         const isEntryCamera = camera.id === 'vehicleImage' || camera.id === 'plateImage';
@@ -905,6 +945,29 @@ export default function SystemOperations() {
 
                             {mode === 'IN' && preCheckResult && preCheckResult.vehicleType === 'VISITOR' && (
                                 <div className="visitor-card-select-container">
+                                    {preCheckResult.isExpiredMonthly && (
+                                        <div style={{
+                                            background: '#fffbe6',
+                                            border: '1px solid #ffe58f',
+                                            borderRadius: '8px',
+                                            padding: '10px 14px',
+                                            marginBottom: '12px',
+                                            color: '#d46b08',
+                                            fontSize: '13px',
+                                            fontWeight: '600',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#fa8c16' }}>warning</span>
+                                            <div>
+                                                <div>⚠️ {preCheckResult.expiredMessage}</div>
+                                                <div style={{ fontSize: '12px', fontWeight: '400', color: '#8c4e03', marginTop: '2px' }}>
+                                                    Hệ thống tự động chuyển sang lượt xe vãng lai (vé lượt). Vui lòng chọn thẻ lượt bên dưới để cấp cho xe vào.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <label className="transaction-label">Chọn thẻ lượt:</label>
                                     <select
                                         value={selectedCard}
