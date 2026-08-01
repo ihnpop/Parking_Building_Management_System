@@ -197,7 +197,27 @@ export default function PaymentResultPage() {
         }
 
         getPaymentByOrderCode(orderCode)
-            .then((res) => setPayment(res.data?.data ?? res.data))
+            .then((res) => {
+                const paymentData = res.data?.data ?? res.data;
+                setPayment(paymentData);
+
+                // Tự động redirect về trang thẻ tháng nếu đây là thanh toán đăng ký vé tháng
+                // và có state VNPay đang chờ khôi phục trong sessionStorage
+                const hasPendingState = sessionStorage.getItem('vnpay_monthcard_pending');
+                const isMonthCardPayment = paymentData?.payment_type === 'Đăng ký vé tháng';
+                const isPaymentSuccess = paymentData?.status === 'Đã thanh toán' || status === 'success';
+
+                if (hasPendingState && isMonthCardPayment) {
+                    if (isPaymentSuccess) {
+                        // Redirect về trang month-card với flag để tự mở dialog
+                        navigate('/login/dashboard/month-card?vnpayReturn=1', { replace: true });
+                        return;
+                    } else {
+                        // Thanh toán bị hủy / thất bại -> Xóa pending state để tránh khôi phục sai
+                        sessionStorage.removeItem('vnpay_monthcard_pending');
+                    }
+                }
+            })
             .catch(() => setError("Không tìm thấy thông tin giao dịch"))
             .finally(() => setLoading(false));
     }, [orderCode]);

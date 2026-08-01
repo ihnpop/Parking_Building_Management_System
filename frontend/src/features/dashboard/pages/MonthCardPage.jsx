@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getMonthCards, deleteMonthCard } from '../../../service/monthCardApi';
 import RenewCardDialog from '../components/RenewCardDialog';
 import EditMonthCardDialog from '../components/EditMonthCardDialog';
@@ -11,6 +12,7 @@ import { useNotification } from '../../../context/NotificationContext';
 const ITEMS_PER_PAGE = 10;
 
 export default function MonthCardPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [monthCards, setMonthCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -59,6 +61,16 @@ export default function MonthCardPage() {
 
     useEffect(() => {
         fetchMonthCards();
+    }, []);
+
+    // Tự mở dialog khi quay về từ VNPay redirect
+    useEffect(() => {
+        if (searchParams.get('vnpayReturn') === '1') {
+            setIsCreateOpen(true);
+            // Xóa param khỏi URL để không bị lặp
+            searchParams.delete('vnpayReturn');
+            setSearchParams(searchParams, { replace: true });
+        }
     }, []);
 
     // Filter Logic
