@@ -152,13 +152,80 @@ export const getContractByToken = async (token) => {
     throw new Error("Mã xác thực hợp đồng không tồn tại.");
   }
 
-  const cardId = contract.card_registrations?.card_id;
+  const reg = Array.isArray(contract.card_registrations)
+    ? contract.card_registrations[0]
+    : contract.card_registrations;
+
+  const cardId = reg?.card_id;
   if (!cardId) {
     throw new Error("Không tìm thấy thông tin thẻ liên kết với hợp đồng.");
   }
 
   // Lấy chi tiết thẻ trực tiếp từ contractRepository
-  const cardDetails = await contractRepository.getCardDetailsForContract(cardId);
+  const rawCard = await contractRepository.getCardDetailsForContract(cardId);
+  if (!rawCard) {
+    throw new Error("Không tìm thấy dữ liệu chi tiết thẻ.");
+  }
+
+  const activeReg = Array.isArray(rawCard.card_registrations)
+    ? (rawCard.card_registrations.find(r => r.status === 'Hoạt động') || rawCard.card_registrations[0])
+    : rawCard.card_registrations;
+
+  const vehicle = activeReg?.vehicle;
+  const customer = vehicle?.customer;
+  const vehicleType = vehicle?.vehicle_type;
+
+  // Lấy số CCCD từ customer_kyc
+  let cccdNumber = '';
+  const kycList = customer?.customer_kyc;
+  if (Array.isArray(kycList) && kycList.length > 0) {
+    const validKyc = kycList
+      .filter(k => k.cccd_number)
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (validKyc.length > 0) {
+      cccdNumber = validKyc[0].cccd_number;
+    }
+  }
+
+  // Lấy gói dịch vụ
+  const vpList = vehicle?.vehicle_package;
+  const activeVp = Array.isArray(vpList)
+    ? (vpList.find(vp => vp.status === 'Hoạt động') || vpList[0])
+    : vpList;
+
+  let price = activeVp?.package?.price || 0;
+  if (!price && vehicleType?.name) {
+    price = vehicleType.name === 'Ô tô' ? 850000 : 300000;
+  }
+
+  const cardDetails = {
+    card_id: rawCard.card_id,
+    card_code: rawCard.code,
+    code: rawCard.code,
+    type: vehicleType?.name || rawCard.type || '',
+    customer: {
+      customer_id: customer?.customer_id,
+      full_name: customer?.full_name || '',
+      phone: customer?.phone || '',
+      email: customer?.email || '',
+      cccd_number: cccdNumber
+    },
+    vehicle: {
+      vehicle_id: vehicle?.vehicle_id,
+      plate_number: vehicle?.plate_number || '',
+      type_name: vehicleType?.name || '',
+      vehicle_type: vehicleType
+    },
+    package: {
+      start_date: activeVp?.start_date || rawCard.created_at,
+      end_date: activeVp?.end_date || rawCard.expired_date,
+      price: price
+    },
+    payment: {
+      status: 'Đã thanh toán'
+    },
+    raw: rawCard
+  };
 
   return {
     contract_id: contract.contract_id,
@@ -166,6 +233,7 @@ export const getContractByToken = async (token) => {
     status: contract.status,
     token_expires_at: contract.token_expires_at,
     signed_at: contract.signed_at,
+    signed_ip: contract.signed_ip,
     cardDetails
   };
 };
