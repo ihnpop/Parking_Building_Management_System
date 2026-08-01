@@ -644,6 +644,7 @@ export default function DashboardView() {
 
     return (
         <DashboardShell currentTab={currentView} onTabSelect={(tab) => {
+            setCurrentView(tab);
             if (tab === 'card-management') {
                 navigate('/login/dashboard/month-card');
             } else if (tab === 'adjust-prices') {
@@ -652,8 +653,8 @@ export default function DashboardView() {
                 navigate('/login/dashboard');
             } else if (tab === 'log-management') {
                 navigate('/login/dashboard/log-management/lost-card');
-            } else {
-                setCurrentView(tab);
+            } else if (tab === 'user-management' || tab === 'dashboard') {
+                navigate('/login/dashboard');
             }
         }}>
 
