@@ -156,7 +156,7 @@ class ParkingRegistrationService {
                 const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
                 const dupPayment = await repo.findDuplicatePayment({
                     vehiclePackageId: vehiclePackage.vehicle_package_id,
-                    paymentType: 'Đăng ký thẻ tháng',
+                    paymentType: 'Đăng ký vé tháng',
                     sinceTime: oneMinuteAgo
                 });
 
@@ -167,7 +167,7 @@ class ParkingRegistrationService {
                         payment_method: 'Tiền mặt', // Đăng ký online (legacy flow) mặc định tiền mặt
                         status: 'Đã thanh toán',
                         payment_time: new Date().toISOString(),
-                        payment_type: 'Đăng ký thẻ tháng'
+                        payment_type: 'Đăng ký vé tháng'
                     });
                 }
             } catch (payEx) {
@@ -282,7 +282,7 @@ class ParkingRegistrationService {
 
             await paymentRepository.create({
                 vehicle_package_id: null,
-                payment_type: 'Đăng ký thẻ tháng',
+                payment_type: 'Đăng ký vé tháng',
                 amount: packagePrice,
                 order_code: orderCode,
                 status: 'Chờ thanh toán',

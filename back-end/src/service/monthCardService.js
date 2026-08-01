@@ -874,7 +874,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
       }
 
       if (noteObj) {
-        if (p.payment_type === 'Gia hạn thẻ tháng') {
+        if (p.payment_type === 'Gia hạn thẻ tháng' || p.payment_type === 'Gia hạn vé tháng') {
           cardNo = noteObj.cardCode || '---';
           vehicleId = noteObj.vehicleId || null;
         } else if (p.payment_type === 'Phí cấp lại thẻ') {
