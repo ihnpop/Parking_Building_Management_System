@@ -33,6 +33,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .contract-header h3 {
@@ -64,9 +65,15 @@
   padding: 20px 24px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
   display: flex;
   justify-content: center;
   background-color: #f1f5f9;
+}
+
+.contract-paper-wrapper {
+  align-self: flex-start;
+  max-width: 100%;
 }
 
 .contract-footer {
@@ -76,6 +83,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .contract-btn {

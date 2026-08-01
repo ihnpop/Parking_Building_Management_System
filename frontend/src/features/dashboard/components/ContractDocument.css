@@ -10,7 +10,6 @@
   line-height: 1.5;
   font-size: 14px;
   user-select: none;
-  pointer-events: none;
   align-self: flex-start;
 }
 
