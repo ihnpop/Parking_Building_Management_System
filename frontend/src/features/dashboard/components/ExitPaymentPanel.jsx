@@ -984,7 +984,7 @@ export default function ExitPaymentPanel({
                                         color: (isMonthly || isMonthlyValid) ? "#16a34a" : "#2563eb",
                                         border: `1px solid ${(isMonthly || isMonthlyValid) ? "#bbf7d0" : "#bfdbfe"}`
                                     }}>
-                                        {preCheckResult.ticket_type || "Vé lượt"}
+                                        {preCheckResult.ticket_type || "thẻ lượt"}
                                     </span>
                                 </div>
 

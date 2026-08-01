@@ -1,6 +1,6 @@
 /**
  * parkingRegistrationRepository.js
- * Lớp truy xuất cơ sở dữ liệu (Repository) cho luồng Đăng ký Vé tháng.
+ * Lớp truy xuất cơ sở dữ liệu (Repository) cho luồng Đăng ký thẻ tháng.
  * Tập trung toàn bộ thao tác Supabase liên quan đến:
  *   - Customer & CustomerKYC
  *   - Vehicle
@@ -67,7 +67,7 @@ export const updateCustomer = async (customerId, payload) => {
 /**
  * Ghi hoặc cập nhật log xác thực eKYC cho khách hàng vào bảng customer_kyc.
  * Dùng upsert để tránh lỗi duplicate key khi cùng customer_id hoặc cccd_number
- * đã tồn tại (ví dụ: khách hàng đăng ký lại sau khi hết hạn vé tháng).
+ * đã tồn tại (ví dụ: khách hàng đăng ký lại sau khi hết hạn thẻ tháng).
  * @param {{ customer_id: string, cccd_number: string, ekyc_status: string, verified_at: string }} payload
  * @returns {Promise<void>}
  */
@@ -178,7 +178,7 @@ export const createVehiclePackage = async (payload) => {
 // ============================================================
 
 /**
- * Tìm giao dịch đăng ký vé tháng đang chờ thanh toán hoặc đã thanh toán nhưng chưa hoàn tất
+ * Tìm giao dịch đăng ký thẻ tháng đang chờ thanh toán hoặc đã thanh toán nhưng chưa hoàn tất
  * @param {string} userId
  * @param {string} fifteenMinutesAgo - ISO timestamp
  * @returns {Promise<object|null>}
@@ -187,7 +187,7 @@ export const findPendingRegistration = async (userId, fifteenMinutesAgo) => {
     const { data, error } = await supabase
         .from('payment')
         .select('*')
-        .eq('payment_type', 'Đăng ký vé tháng')
+        .eq('payment_type', 'Đăng ký thẻ tháng')
         .in('status', ['Chờ thanh toán', 'Đã thanh toán'])
         .is('vehicle_package_id', null)
         .eq('created_by', userId)

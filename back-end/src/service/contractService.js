@@ -17,7 +17,7 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
     throw new Error("Chưa cấu hình RESEND_API_KEY trong file .env");
   }
 
-  const subject = `[PBMS] Yêu cầu ký hợp đồng đăng ký vé tháng gửi xe - Số ${contractNo}`;
+  const subject = `[PBMS] Yêu cầu ký hợp đồng đăng ký thẻ tháng gửi xe - Số ${contractNo}`;
   const htmlContent = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fffaf7;">
       <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #ff8c00;">
@@ -28,7 +28,7 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
       <div style="padding: 24px 0; color: #2d3748; line-height: 1.6;">
         <p style="font-size: 16px; font-weight: bold;">Kính chào Quý khách ${customerName},</p>
         
-        <p>Yêu cầu đăng ký vé tháng gửi xe của quý khách đã được duyệt thành công trên hệ thống PBMS.</p>
+        <p>Yêu cầu đăng ký thẻ tháng gửi xe của quý khách đã được duyệt thành công trên hệ thống PBMS.</p>
         <p>Để hoàn tất thủ tục và kích hoạt thẻ tháng, quý khách vui lòng xem qua điều khoản và xác nhận ký hợp đồng điện tử bằng cách click vào nút bên dưới:</p>
         
         <div style="text-align: center; margin: 30px 0;">

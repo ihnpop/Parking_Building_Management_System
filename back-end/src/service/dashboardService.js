@@ -473,7 +473,7 @@ export async function getTodayRevenueBreakdown(buildingId = null) {
             const amt = Number(p.amount) || 0;
             const pType = p.payment_type || 'CASUAL';
 
-            if (pType === 'CASUAL' || pType === 'Vé lượt') {
+            if (pType === 'CASUAL' || pType === 'thẻ lượt') {
                 result.casual.total += amt;
                 let rawType = sessionMap[p.session_id] || '';
                 let vTypeLabel = 'Chưa phân loại';
@@ -487,7 +487,7 @@ export async function getTodayRevenueBreakdown(buildingId = null) {
                 result.casual.items[vTypeLabel].count += 1;
                 result.casual.items[vTypeLabel].revenue += amt;
 
-            } else if (pType === 'MONTHLY_NEW' || pType === 'Đăng ký vé tháng') {
+            } else if (pType === 'MONTHLY_NEW' || pType === 'Đăng ký thẻ tháng') {
                 result.monthlyNew.total += amt;
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
@@ -505,7 +505,7 @@ export async function getTodayRevenueBreakdown(buildingId = null) {
                 result.monthlyNew.items[key].count += 1;
                 result.monthlyNew.items[key].revenue += amt;
 
-            } else if (pType === 'MONTHLY_RENEW' || pType === 'Gia hạn vé tháng') {
+            } else if (pType === 'MONTHLY_RENEW' || pType === 'Gia hạn thẻ tháng') {
                 result.renewals.total += amt;
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
@@ -627,7 +627,7 @@ export async function getMonthlyRevenueBreakdown(buildingId = null) {
 
             const pType = p.payment_type || 'CASUAL';
 
-            if (pType === 'CASUAL' || pType === 'Vé lượt') {
+            if (pType === 'CASUAL' || pType === 'thẻ lượt') {
                 let rawType = sessionMap[p.session_id] || '';
                 let vTypeLabel = 'Chưa phân loại';
                 if (isCar(rawType)) vTypeLabel = 'Ô tô';
@@ -636,7 +636,7 @@ export async function getMonthlyRevenueBreakdown(buildingId = null) {
 
                 targetWeek.casual[vTypeLabel] = (targetWeek.casual[vTypeLabel] || 0) + amt;
 
-            } else if (pType === 'MONTHLY_NEW' || pType === 'Đăng ký vé tháng') {
+            } else if (pType === 'MONTHLY_NEW' || pType === 'Đăng ký thẻ tháng') {
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
                 let vTypeLabel = 'Chưa phân loại';
@@ -653,7 +653,7 @@ export async function getMonthlyRevenueBreakdown(buildingId = null) {
                 targetWeek.monthlyNew[key].count += 1;
                 targetWeek.monthlyNew[key].revenue += amt;
 
-            } else if (pType === 'MONTHLY_RENEW' || pType === 'Gia hạn vé tháng') {
+            } else if (pType === 'MONTHLY_RENEW' || pType === 'Gia hạn thẻ tháng') {
                 const info = vpMap[p.vehicle_package_id];
                 let rawType = info?.vehicleType || '';
                 let vTypeLabel = 'Chưa phân loại';

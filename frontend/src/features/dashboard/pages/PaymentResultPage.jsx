@@ -5,7 +5,7 @@
  * Luồng hoạt động:
  * 1. Nhận các tham số truy vấn `orderCode` và `status` từ URL redirect (vnpayReturn).
  * 2. Gọi API công khai `getPaymentByOrderCode` để truy xuất chi tiết giao dịch từ database.
- * 3. Hiển thị thông tin biên lai (mã giao dịch, loại vé, số tiền thực thu, ngân hàng, thời gian thanh toán).
+ * 3. Hiển thị thông tin biên lai (mã giao dịch, loại thẻ, số tiền thực thu, ngân hàng, thời gian thanh toán).
  * 4. Hỗ trợ chuyển hướng người dùng quay lại Dashboard hoặc thực hiện thanh toán lại nếu thất bại.
  */
 
@@ -53,9 +53,9 @@ function formatDateTime(iso) {
 
 // Map nhãn hiển thị mô tả cho từng loại hình dịch vụ thanh toán
 const PAYMENT_TYPE_LABEL = {
-    "Vé lượt": "Thanh toán gửi xe",
-    "Đăng ký vé tháng": "Đăng ký vé tháng",
-    "Gia hạn vé tháng": "Gia hạn vé tháng",
+    "thẻ lượt": "Thanh toán gửi xe",
+    "Đăng ký thẻ tháng": "Đăng ký thẻ tháng",
+    "Gia hạn thẻ tháng": "Gia hạn thẻ tháng",
     "Phí cấp lại thẻ": "Cấp lại thẻ tháng (mất thẻ)",
     "Phí mất thẻ lượt": "Thanh toán phí mất thẻ lượt",
 };
@@ -299,13 +299,13 @@ export default function PaymentResultPage() {
                     <button
                         style={styles.btnSecondary}
                         onClick={() => {
-                            const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
-                                               payment?.payment_type === "Phí mất thẻ lượt" ||
-                                               (orderCode && orderCode.startsWith(ORDER_PREFIX.LOST_CARD));
-                                               
-                            const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
-                                                payment?.payment_type === "Đăng ký vé tháng" ||
-                                                (orderCode && orderCode.startsWith(ORDER_PREFIX.RENEWAL));
+                            const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" ||
+                                payment?.payment_type === "Phí mất thẻ lượt" ||
+                                (orderCode && orderCode.startsWith(ORDER_PREFIX.LOST_CARD));
+
+                            const isMonthCard = payment?.payment_type === "Gia hạn thẻ tháng" ||
+                                payment?.payment_type === "Đăng ký thẻ tháng" ||
+                                (orderCode && orderCode.startsWith(ORDER_PREFIX.RENEWAL));
 
                             if (isLostCard) {
                                 navigate(ROUTES.DASHBOARD);
@@ -326,11 +326,11 @@ export default function PaymentResultPage() {
                         <button
                             style={styles.btnPrimary}
                             onClick={() => {
-                                const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
-                                                   payment?.payment_type === "Phí mất thẻ lượt";
-                                                   
-                                const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
-                                                    payment?.payment_type === "Đăng ký vé tháng";
+                                const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" ||
+                                    payment?.payment_type === "Phí mất thẻ lượt";
+
+                                const isMonthCard = payment?.payment_type === "Gia hạn thẻ tháng" ||
+                                    payment?.payment_type === "Đăng ký thẻ tháng";
 
                                 if (isLostCard) {
                                     navigate(ROUTES.LOST_CARD_LOG);

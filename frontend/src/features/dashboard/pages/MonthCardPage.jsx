@@ -54,7 +54,7 @@ export default function MonthCardPage() {
             }
         } catch (err) {
             console.error("Error fetching monthly cards:", err);
-            setError("Không thể tải danh sách vé tháng. Vui lòng thử lại sau!");
+            setError("Không thể tải danh sách thẻ tháng. Vui lòng thử lại sau!");
         } finally {
             setLoading(false);
         }
@@ -178,7 +178,7 @@ export default function MonthCardPage() {
             fetchMonthCards();
         } catch (err) {
             console.error("Error deleting month card:", err);
-            setDeleteError(err.response?.data?.message || err.message || "Xóa vé tháng thất bại. Vui lòng thử lại!");
+            setDeleteError(err.response?.data?.message || err.message || "Xóa thẻ tháng thất bại. Vui lòng thử lại!");
         } finally {
             setIsDeleting(false);
         }
@@ -194,7 +194,7 @@ export default function MonthCardPage() {
             {/* Stats Row */}
             <div className="mc-stats-row">
                 <div className="mc-stats-grid">
-                    {/* Tổng số vé */}
+                    {/* Tổng số thẻ */}
                     <div className="mc-stat-card mc-stat-primary">
                         <div className="mc-stat-card-header">
                             <div className="mc-stat-icon">
@@ -342,7 +342,7 @@ export default function MonthCardPage() {
                     </button>
                     <button type="button" className="mc-btn mc-btn-primary" onClick={() => setIsCreateOpen(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                        Đăng ký vé tháng
+                        Đăng ký thẻ tháng
 
                     </button>
                 </div>
@@ -355,7 +355,7 @@ export default function MonthCardPage() {
                 )}
 
                 {loading ? (
-                    <div className="mc-loading-message">Đang tải danh sách vé tháng...</div>
+                    <div className="mc-loading-message">Đang tải danh sách thẻ tháng...</div>
                 ) : (
                     <>
                         <div className="mc-table-scroll">
@@ -492,7 +492,7 @@ export default function MonthCardPage() {
                                     ) : (
                                         <tr>
                                             <td colSpan="9" className="mc-empty-row">
-                                                Không tìm thấy vé tháng phù hợp
+                                                Không tìm thấy thẻ tháng phù hợp
                                             </td>
                                         </tr>
                                     )}

@@ -43,7 +43,7 @@ router.get("/logs", monthCardController.getMonthCardLogs);
 
 /**
  * GET /api/month-card/pending-registration
- * BƯỚC 4 & 5: Kiểm tra giao dịch đăng ký vé tháng đang chờ thanh toán hoặc chưa hoàn tất
+ * BƯỚC 4 & 5: Kiểm tra giao dịch đăng ký thẻ tháng đang chờ thanh toán hoặc chưa hoàn tất
  */
 router.get("/pending-registration", registrationController.getPendingRegistration);
 
@@ -90,7 +90,7 @@ router.post("/confirm-cash-payment/:orderCode", registrationController.confirmCa
 router.post("/finalize-registration", registrationController.finalizeRegistration);
 
 // ─────────────────────────────────────────────────────────────
-// RENEWAL ROUTES (Gia hạn vé tháng qua VNPay / tiền mặt)
+// RENEWAL ROUTES (Gia hạn thẻ tháng qua VNPay / tiền mặt)
 // ─────────────────────────────────────────────────────────────
 
 /**

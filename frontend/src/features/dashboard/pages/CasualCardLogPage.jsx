@@ -332,7 +332,7 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                             <div className="lost-kpi-value val-orange" style={{ fontSize: '1.1rem' }}>
                                 {loading ? '...' : formatVND(kpiRevenue)}
                             </div>
-                            <div className="lost-kpi-footer txt-orange">Vé lượt đã thanh toán</div>
+                            <div className="lost-kpi-footer txt-orange">thẻ lượt đã thanh toán</div>
                         </div>
                     </div>
 

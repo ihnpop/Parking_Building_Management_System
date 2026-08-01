@@ -123,7 +123,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                         await restoreStateAfterVNPayReturn();
                     }
                 } catch (err) {
-                    console.error('Lỗi tải danh mục đăng ký vé tháng:', err);
+                    console.error('Lỗi tải danh mục đăng ký thẻ tháng:', err);
                 }
             };
             fetchMetadataAndCheckPending();
@@ -495,7 +495,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             }
             // Xóa state VNPay pending nếu còn sót
             sessionStorage.removeItem('vnpay_monthcard_pending');
-            setSuccessMessage('Đăng ký vé tháng thành công!');
+            setSuccessMessage('Đăng ký thẻ tháng thành công!');
             setTimeout(() => { onSuccess?.(); onClose(); }, 1500);
         } catch (err) {
             setError(err.response?.data?.error || 'Không thể hoàn tất đăng ký.');
@@ -523,7 +523,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
 
                 {/* Header */}
                 <div className="renew-modal-header">
-                    <h2>Đăng Ký Vé Tháng</h2>
+                    <h2>Đăng Ký thẻ Tháng</h2>
                     <button type="button" className="renew-modal-close" onClick={onClose} disabled={loading || initiating}>
                         <span className="material-symbols-outlined">close</span>
                     </button>
@@ -741,7 +741,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     <p style={{ fontSize: 13, color: '#555', marginTop: 12 }}>
                                         Bên cung cấp dịch vụ nhận giữ xe theo tháng cho khách hàng tại khu vực bãi xe được chỉ định.
                                         Khách hàng cam kết cung cấp thông tin chính xác và tuân thủ toàn bộ nội quy gửi xe.
-                                        Vé tháng có hiệu lực theo thời hạn của gói đã đăng ký.
+                                        thẻ tháng có hiệu lực theo thời hạn của gói đã đăng ký.
                                     </p>
                                 </div>
 

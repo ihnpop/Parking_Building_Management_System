@@ -15,7 +15,7 @@ import "./ContractSignPage.css";
 export default function ContractSignPage() {
   // Lấy parameter `token` từ URL (ví dụ: /contract/sign/:token)
   const { token } = useParams();
-  
+
   // State quản lý trạng thái đang tải dữ liệu hợp đồng ban đầu
   const [loading, setLoading] = useState(true);
   // State quản lý trạng thái đang xử lý gọi API ký hợp đồng
@@ -106,7 +106,7 @@ export default function ContractSignPage() {
   const rawVehicle = rawReg?.vehicle;
   const rawCustomer = rawVehicle?.customer;
 
-  // Định dạng hiển thị số tiền gói cước vé tháng theo chuẩn VND (Ví dụ: 500.000 ₫)
+  // Định dạng hiển thị số tiền gói cước thẻ tháng theo chuẩn VND (Ví dụ: 500.000 ₫)
   const rawPrice = cardDetails?.package?.price || rawVehicle?.vehicle_package?.[0]?.package?.price;
   const priceDisplay = rawPrice
     ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(rawPrice)
@@ -158,7 +158,7 @@ export default function ContractSignPage() {
             </div>
             <div className="success-text-wrapper">
               <h3>Hợp đồng đã ký thành công</h3>
-              <p>Cảm ơn quý khách đã hoàn thành ký hợp đồng điện tử đăng ký vé xe tháng.</p>
+              <p>Cảm ơn quý khách đã hoàn thành ký hợp đồng điện tử đăng ký thẻ xe tháng.</p>
               <p style={{ fontSize: '13px', color: '#718096', marginTop: '4px' }}>
                 Mã hợp đồng: <strong>{contractData?.contract_no}</strong>
               </p>
@@ -196,7 +196,7 @@ export default function ContractSignPage() {
           />
         </div>
       </div>
-      
+
       {/* Thông báo lỗi Toast nảy ra ở góc nếu việc ký bị thất bại */}
       {error && signedSuccess && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '16px 24px', borderRadius: '8px', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>

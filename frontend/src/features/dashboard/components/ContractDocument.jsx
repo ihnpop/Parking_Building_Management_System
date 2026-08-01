@@ -3,7 +3,7 @@ import { CheckCircle2 } from 'lucide-react';
 import "./ContractDocument.css";
 
 /**
- * Component hiển thị tờ Hợp đồng đăng ký vé tháng dạng giấy A4
+ * Component hiển thị tờ Hợp đồng đăng ký thẻ tháng dạng giấy A4
  * Dùng chung cho cả Admin Modal (ContractModal) và Trang Ký Public (ContractSignPage)
  */
 const ContractDocument = forwardRef(({ data = {}, signedSuccess = false }, ref) => {
@@ -35,7 +35,7 @@ const ContractDocument = forwardRef(({ data = {}, signedSuccess = false }, ref) 
 
       {/* Tên hợp đồng */}
       <div className="contract-title">
-        <h2>HỢP ĐỒNG ĐĂNG KÝ VÉ THÁNG GỬI XE</h2>
+        <h2>HỢP ĐỒNG ĐĂNG KÝ thẻ THÁNG GỬI XE</h2>
         <p>Số: {contractNo}</p>
       </div>
 
@@ -62,7 +62,7 @@ const ContractDocument = forwardRef(({ data = {}, signedSuccess = false }, ref) 
       </div>
 
       {/* Bảng chi tiết dịch vụ */}
-      <div className="contract-section-title">Thông tin vé tháng và phương tiện đăng ký:</div>
+      <div className="contract-section-title">Thông tin thẻ tháng và phương tiện đăng ký:</div>
       <table className="contract-table">
         <thead>
           <tr>

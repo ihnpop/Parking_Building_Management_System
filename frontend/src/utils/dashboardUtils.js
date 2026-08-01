@@ -2,221 +2,221 @@
  * Trả về chuỗi yyyy-MM-dd theo timezone Việt Nam (ICT)
  */
 export function todayVN() {
-    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 }
 
 /**
  * Trả về chuỗi yyyy-MM theo timezone Việt Nam (ICT)
  */
 export function thisMonthVN() {
-    return todayVN().slice(0, 7);
+  return todayVN().slice(0, 7);
 }
 
 /**
  * Shift input date by +7 hours so that UTC methods return the Vietnam time components directly
  */
 export function getVNDateParts(dateInput) {
-    if (!dateInput) return null;
-    let val = String(dateInput).trim();
-    if (val.includes(' ') && !val.includes('T')) {
-        val = val.replace(' ', 'T');
-    }
-    if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
-        val = val + 'Z';
-    }
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return null;
-    const vnTime = d.getTime() + 7 * 60 * 60 * 1000;
-    const vnDate = new Date(vnTime);
-    return {
-        year: vnDate.getUTCFullYear(),
-        month: vnDate.getUTCMonth() + 1,
-        date: vnDate.getUTCDate(),
-        hour: vnDate.getUTCHours(),
-        minute: vnDate.getUTCMinutes(),
-        second: vnDate.getUTCSeconds(),
-        dayOfWeek: vnDate.getUTCDay()
-    };
+  if (!dateInput) return null;
+  let val = String(dateInput).trim();
+  if (val.includes(' ') && !val.includes('T')) {
+    val = val.replace(' ', 'T');
+  }
+  if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+    val = val + 'Z';
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  const vnTime = d.getTime() + 7 * 60 * 60 * 1000;
+  const vnDate = new Date(vnTime);
+  return {
+    year: vnDate.getUTCFullYear(),
+    month: vnDate.getUTCMonth() + 1,
+    date: vnDate.getUTCDate(),
+    hour: vnDate.getUTCHours(),
+    minute: vnDate.getUTCMinutes(),
+    second: vnDate.getUTCSeconds(),
+    dayOfWeek: vnDate.getUTCDay()
+  };
 }
 
 /**
  * Format timestamp sang yyyy-MM-dd theo timezone Việt Nam
  */
 export function getLocalDateVN(dateInput) {
-    if (!dateInput) return '';
-    let val = String(dateInput).trim();
-    if (val.includes(' ') && !val.includes('T')) {
-        val = val.replace(' ', 'T');
-    }
-    if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
-        val = val + 'Z';
-    }
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return '';
-    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
+  if (!dateInput) return '';
+  let val = String(dateInput).trim();
+  if (val.includes(' ') && !val.includes('T')) {
+    val = val.replace(' ', 'T');
+  }
+  if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+    val = val + 'Z';
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
 }
 
 export function formatLabel(dateStr) {
-    if (!dateStr || !dateStr.includes('-')) return '';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
-    return dateStr;
+  if (!dateStr || !dateStr.includes('-')) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+  return dateStr;
 }
 
 /**
  * Lấy giờ (0..23) theo timezone Việt Nam
  */
 export function getHourVN(dateInput) {
-    if (!dateInput) return -1;
-    let val = String(dateInput).trim();
-    if (val.includes(' ') && !val.includes('T')) {
-        val = val.replace(' ', 'T');
-    }
-    if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
-        val = val + 'Z';
-    }
-    const d = new Date(val);
-    if (isNaN(d.getTime())) return -1;
-    const hourStr = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        hour: 'numeric',
-        hour12: false
-    }).format(d);
-    const h = parseInt(hourStr, 10);
-    return h === 24 ? 0 : h;
+  if (!dateInput) return -1;
+  let val = String(dateInput).trim();
+  if (val.includes(' ') && !val.includes('T')) {
+    val = val.replace(' ', 'T');
+  }
+  if (!val.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(val)) {
+    val = val + 'Z';
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return -1;
+  const hourStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: 'numeric',
+    hour12: false
+  }).format(d);
+  const h = parseInt(hourStr, 10);
+  return h === 24 ? 0 : h;
 }
 
 export function formatVNDCompact(val) {
-    if (val === null || val === undefined || isNaN(Number(val))) return '0 ₫';
-    const num = Number(val);
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M ₫';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(0) + 'K ₫';
-    }
-    return num + ' ₫';
+  if (val === null || val === undefined || isNaN(Number(val))) return '0 ₫';
+  const num = Number(val);
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M ₫';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(0) + 'K ₫';
+  }
+  return num + ' ₫';
 }
 
 export function formatDateFormatted(customDate) {
-    if (!customDate) return '';
-    const parts = customDate.split('-');
-    if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    }
-    return customDate;
+  if (!customDate) return '';
+  const parts = customDate.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return customDate;
 }
 
 export function formatWeekLabel(customDate) {
-    if (!customDate) return '';
-    const parts = customDate.split('-').map(Number);
-    if (parts.length !== 3 || parts.some(isNaN)) return '';
-    const [y, m, d] = parts;
-    const dt = new Date(y, m - 1, d);
-    const currentDay = dt.getDay();
-    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(y, m - 1, d + diffToMonday);
-    const sunday = new Date(y, m - 1, d + diffToMonday + 6);
-    const formatShort = (dateObj) => {
-        const dd = String(dateObj.getDate()).padStart(2, '0');
-        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-        return `${dd}/${mm}`;
-    };
-    return `${formatShort(monday)} - ${formatShort(sunday)}`;
+  if (!customDate) return '';
+  const parts = customDate.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return '';
+  const [y, m, d] = parts;
+  const dt = new Date(y, m - 1, d);
+  const currentDay = dt.getDay();
+  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+  const monday = new Date(y, m - 1, d + diffToMonday);
+  const sunday = new Date(y, m - 1, d + diffToMonday + 6);
+  const formatShort = (dateObj) => {
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}`;
+  };
+  return `${formatShort(monday)} - ${formatShort(sunday)}`;
 }
 
 export function formatMonthLabel(customMonth) {
-    if (!customMonth) return '';
-    const parts = customMonth.split('-');
-    if (parts.length === 2) {
-        return `${parts[1]}/${parts[0]}`;
-    }
-    return customMonth;
+  if (!customMonth) return '';
+  const parts = customMonth.split('-');
+  if (parts.length === 2) {
+    return `${parts[1]}/${parts[0]}`;
+  }
+  return customMonth;
 }
 
 export function getVNPeriodRange(period, customDate, customMonth) {
-    let startVN, endVN;
+  let startVN, endVN;
 
-    if (period === 'day' && customDate) {
-        const parts = customDate.split('-').map(Number);
-        if (parts.length === 3 && !parts.some(isNaN)) {
-            const [y, m, d] = parts;
-            startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-            endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-        }
-    } else if (period === 'week' && customDate) {
-        const parts = customDate.split('-').map(Number);
-        if (parts.length === 3 && !parts.some(isNaN)) {
-            const [y, m, d] = parts;
-            const dt = new Date(y, m - 1, d);
-            const currentDay = dt.getDay();
-            const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-            startVN = Date.UTC(y, m - 1, d + diffToMonday, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-            endVN = Date.UTC(y, m - 1, d + diffToMonday + 6, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-        }
-    } else if (period === 'month' && customMonth) {
-        const parts = customMonth.split('-').map(Number);
-        if (parts.length === 2 && !parts.some(isNaN)) {
-            const [y, m] = parts;
-            startVN = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-            endVN = Date.UTC(y, m, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
-        }
+  if (period === 'day' && customDate) {
+    const parts = customDate.split('-').map(Number);
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      const [y, m, d] = parts;
+      startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+      endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
     }
-
-    if (!startVN || !endVN) {
-        const todayStr = todayVN();
-        const [y, m, d] = todayStr.split('-').map(Number);
-        startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
-        endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+  } else if (period === 'week' && customDate) {
+    const parts = customDate.split('-').map(Number);
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      const [y, m, d] = parts;
+      const dt = new Date(y, m - 1, d);
+      const currentDay = dt.getDay();
+      const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      startVN = Date.UTC(y, m - 1, d + diffToMonday, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+      endVN = Date.UTC(y, m - 1, d + diffToMonday + 6, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
     }
+  } else if (period === 'month' && customMonth) {
+    const parts = customMonth.split('-').map(Number);
+    if (parts.length === 2 && !parts.some(isNaN)) {
+      const [y, m] = parts;
+      startVN = Date.UTC(y, m - 1, 1, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+      endVN = Date.UTC(y, m, 0, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+    }
+  }
 
-    return {
-        startDate: new Date(startVN).toISOString(),
-        endDate: new Date(endVN).toISOString()
-    };
+  if (!startVN || !endVN) {
+    const todayStr = todayVN();
+    const [y, m, d] = todayStr.split('-').map(Number);
+    startVN = Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 7 * 60 * 60 * 1000;
+    endVN = Date.UTC(y, m - 1, d, 23, 59, 59, 999) - 7 * 60 * 60 * 1000;
+  }
+
+  return {
+    startDate: new Date(startVN).toISOString(),
+    endDate: new Date(endVN).toISOString()
+  };
 }
 
 /**
  * Trích xuất dữ liệu Dashboard ra Excel (XLS XML format)
  */
 export const handleExportExcel = ({
-    dashboardPeriod,
-    dateFormatted,
-    weekLabel,
-    monthFormatted,
-    stats,
-    floorData,
-    vehicleTypes,
-    trafficChartData,
-    revenueChartData,
-    recentIn,
-    recentOut,
-    incidents,
-    formatVND
+  dashboardPeriod,
+  dateFormatted,
+  weekLabel,
+  monthFormatted,
+  stats,
+  floorData,
+  vehicleTypes,
+  trafficChartData,
+  revenueChartData,
+  recentIn,
+  recentOut,
+  incidents,
+  formatVND
 }) => {
-    const periodStr = dashboardPeriod === 'day' 
-        ? `Ngày ${dateFormatted}` 
-        : dashboardPeriod === 'week' 
-            ? `Tuần ${weekLabel}` 
-            : `Tháng ${monthFormatted}`;
-            
-    const exportTimeStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const periodStr = dashboardPeriod === 'day'
+    ? `Ngày ${dateFormatted}`
+    : dashboardPeriod === 'week'
+      ? `Tuần ${weekLabel}`
+      : `Tháng ${monthFormatted}`;
 
-    const emptySlots = stats.emptySlots !== undefined ? stats.emptySlots : (stats.availableSlots !== undefined ? stats.availableSlots : 0);
-    const usedSlots = stats.usedSlots !== undefined ? stats.usedSlots : (stats.occupiedSlots !== undefined ? stats.occupiedSlots : 0);
-    const incidentsCount = stats.incidents !== undefined ? stats.incidents : (Array.isArray(incidents) ? incidents.length : 0);
+  const exportTimeStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
-    const totalCapacity = usedSlots + emptySlots;
-    const occupancyPercentage = Math.round((usedSlots / (totalCapacity || 1)) * 100);
-    const avgRevenuePerVehicle = stats.todayTraffic > 0 ? Math.round(stats.revenueToday / stats.todayTraffic) : 0;
-    
-    let capacityAlert = 'Bình thường';
-    if (occupancyPercentage >= 90) capacityAlert = 'Quá tải nghiêm trọng';
-    else if (occupancyPercentage >= 80) capacityAlert = 'Cảnh báo quá tải';
-    else if (occupancyPercentage >= 50) capacityAlert = 'Hiệu suất tốt';
-    else capacityAlert = 'Thấp';
+  const emptySlots = stats.emptySlots !== undefined ? stats.emptySlots : (stats.availableSlots !== undefined ? stats.availableSlots : 0);
+  const usedSlots = stats.usedSlots !== undefined ? stats.usedSlots : (stats.occupiedSlots !== undefined ? stats.occupiedSlots : 0);
+  const incidentsCount = stats.incidents !== undefined ? stats.incidents : (Array.isArray(incidents) ? incidents.length : 0);
 
-    const html = `
+  const totalCapacity = usedSlots + emptySlots;
+  const occupancyPercentage = Math.round((usedSlots / (totalCapacity || 1)) * 100);
+  const avgRevenuePerVehicle = stats.todayTraffic > 0 ? Math.round(stats.revenueToday / stats.todayTraffic) : 0;
+
+  let capacityAlert = 'Bình thường';
+  if (occupancyPercentage >= 90) capacityAlert = 'Quá tải nghiêm trọng';
+  else if (occupancyPercentage >= 80) capacityAlert = 'Cảnh báo quá tải';
+  else if (occupancyPercentage >= 50) capacityAlert = 'Hiệu suất tốt';
+  else capacityAlert = 'Thấp';
+
+  const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
     <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
@@ -404,8 +404,8 @@ export const handleExportExcel = ({
           <th style="text-align: right;">Doanh thu phát sinh</th>
         </tr>
         ${trafficChartData.map((item, idx) => {
-          const revItem = revenueChartData[idx] || { val: 0 };
-          return `
+    const revItem = revenueChartData[idx] || { val: 0 };
+    return `
             <tr style="height: 24px;">
               <td class="text-center">${idx + 1}</td>
               <td>${item.labelFull || item.label}</td>
@@ -413,7 +413,7 @@ export const handleExportExcel = ({
               <td class="text-right" style="font-weight: bold; color: #1d4ed8;">${formatVND(revItem.val)}</td>
             </tr>
           `;
-        }).join('')}
+  }).join('')}
       </table>
       <br/>
 
@@ -490,7 +490,7 @@ export const handleExportExcel = ({
         </tr>
         <tr style="height: 25px;">
           <th class="text-center">STT</th>
-          <th>Biển số / Mã vé</th>
+          <th>Biển số / Mã thẻ</th>
           <th>Loại sự cố</th>
           <th>Trạng thái xử lý</th>
         </tr>
@@ -509,13 +509,13 @@ export const handleExportExcel = ({
     </html>
     `;
 
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `PBMS_Bao_Cao_Tong_Quan_${dashboardPeriod}_${todayVN()}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `PBMS_Bao_Cao_Tong_Quan_${dashboardPeriod}_${todayVN()}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };

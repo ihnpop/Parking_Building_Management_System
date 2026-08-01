@@ -1,6 +1,6 @@
 /**
  * renewalRepository.js
- * Lớp truy xuất cơ sở dữ liệu (Repository) cho nghiệp vụ Gia hạn Vé tháng.
+ * Lớp truy xuất cơ sở dữ liệu (Repository) cho nghiệp vụ Gia hạn thẻ tháng.
  * Tập trung toàn bộ Supabase queries, để renewalService chỉ chứa business logic.
  */
 
@@ -124,7 +124,7 @@ export async function findActiveVehiclePackage(vehicleId) {
         .order('end_date', { ascending: false })
         .limit(1)
         .maybeSingle();
-    if (error) throw new Error('Lỗi truy vấn gói vé tháng: ' + error.message);
+    if (error) throw new Error('Lỗi truy vấn gói thẻ tháng: ' + error.message);
     return data;
 }
 
@@ -189,7 +189,7 @@ export async function expireVehiclePackagesBatch(vpIds) {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Lấy thông tin gói vé tháng theo ID (snapshot giá tại thời điểm gia hạn — BR-14).
+ * Lấy thông tin gói thẻ tháng theo ID (snapshot giá tại thời điểm gia hạn — BR-14).
  * @param {string} packageId
  * @returns {Promise<object|null>}
  */
@@ -204,7 +204,7 @@ export async function findPackageById(packageId) {
 }
 
 /**
- * Lấy danh sách gói vé tháng đang hoạt động theo loại xe.
+ * Lấy danh sách gói thẻ tháng đang hoạt động theo loại xe.
  * Dùng để hiển thị dropdown chọn gói trong dialog gia hạn.
  * @param {string} vehicleTypeId
  * @param {string} [userId]
@@ -277,7 +277,7 @@ export async function findPendingRenewalPayment(vehiclePackageId, timeoutThresho
         .select('payment_id, order_code, payment_time')
         .eq('vehicle_package_id', vehiclePackageId)
         .eq('status', 'Chờ thanh toán')
-        .eq('payment_type', 'Gia hạn vé tháng')
+        .eq('payment_type', 'Gia hạn thẻ tháng')
         .gte('payment_time', timeoutThreshold)
         .maybeSingle();
     if (error) throw new Error('Lỗi kiểm tra payment pending: ' + error.message);
@@ -297,7 +297,7 @@ export async function findPendingRenewalPaymentDetail(vehiclePackageId, timeoutT
         .select('payment_id, order_code, amount, payment_method, note, payment_time')
         .eq('vehicle_package_id', vehiclePackageId)
         .eq('status', 'Chờ thanh toán')
-        .eq('payment_type', 'Gia hạn vé tháng')
+        .eq('payment_type', 'Gia hạn thẻ tháng')
         .gte('payment_time', timeoutThreshold)
         .maybeSingle();
     if (error) throw new Error('Lỗi truy vấn payment pending detail: ' + error.message);
@@ -323,7 +323,7 @@ export async function linkPaymentToNewVehiclePackage(orderCode, newVpId) {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Ghi nhật ký hoạt động gia hạn vé tháng vào bảng card_activity_logs.
+ * Ghi nhật ký hoạt động gia hạn thẻ tháng vào bảng card_activity_logs.
  * @param {object} logData
  * @param {string} logData.card_id
  * @param {string} logData.registration_id
