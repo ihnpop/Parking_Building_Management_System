@@ -74,21 +74,32 @@ export default function ContractSignPage() {
   }
 
   const { cardDetails } = contractData || {};
-  const priceDisplay = cardDetails?.package?.price
-    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cardDetails.package.price)
+  const rawReg = Array.isArray(cardDetails?.raw?.card_registrations)
+    ? cardDetails.raw.card_registrations[0]
+    : cardDetails?.raw?.card_registrations;
+  const rawVehicle = rawReg?.vehicle;
+  const rawCustomer = rawVehicle?.customer;
+
+  const rawPrice = cardDetails?.package?.price || rawVehicle?.vehicle_package?.[0]?.package?.price;
+  const priceDisplay = rawPrice
+    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(rawPrice)
     : '---';
 
   const docData = {
     contractNo: contractData?.contract_no || '---',
-    customerName: cardDetails?.customer?.full_name || '---',
-    phone: cardDetails?.customer?.phone || '---',
-    email: cardDetails?.customer?.email || '---',
+    customerName: cardDetails?.customer?.full_name || rawCustomer?.full_name || '---',
+    phone: cardDetails?.customer?.phone || rawCustomer?.phone || '---',
+    email: cardDetails?.customer?.email || rawCustomer?.email || '---',
     cccdNumber: cardDetails?.customer?.cccd_number || '---',
-    cardCode: cardDetails?.card_code || '---',
-    plateNumber: cardDetails?.vehicle?.plate_number || '---',
-    vehicleType: cardDetails?.vehicle?.type_name || '---',
-    startDate: cardDetails?.package?.start_date ? new Date(cardDetails.package.start_date).toLocaleDateString('vi-VN') : '---',
-    endDate: cardDetails?.package?.end_date ? new Date(cardDetails.package.end_date).toLocaleDateString('vi-VN') : '---',
+    cardCode: cardDetails?.card_code || cardDetails?.code || cardDetails?.raw?.code || '---',
+    plateNumber: cardDetails?.vehicle?.plate_number || rawVehicle?.plate_number || '---',
+    vehicleType: cardDetails?.vehicle?.type_name || cardDetails?.type || rawVehicle?.vehicle_type?.name || '---',
+    startDate: cardDetails?.package?.start_date
+      ? new Date(cardDetails.package.start_date).toLocaleDateString('vi-VN')
+      : '---',
+    endDate: cardDetails?.package?.end_date
+      ? new Date(cardDetails.package.end_date).toLocaleDateString('vi-VN')
+      : '---',
     priceDisplay,
     paymentStatus: cardDetails?.payment?.status || 'Đã thanh toán',
     signedIp: contractData?.signed_ip || '---',
