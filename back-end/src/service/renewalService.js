@@ -174,7 +174,7 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
     // để khớp với ràng buộc CHECK của DB (payment_method_check)
     await paymentRepository.create({
         vehicle_package_id: vehiclePackage.vehicle_package_id,
-        payment_type: 'Gia hạn thẻ tháng',
+        payment_type: 'Gia hạn vé tháng',
         amount,
         order_code: orderCode,
         status: 'Chờ thanh toán',
@@ -218,8 +218,8 @@ export async function confirmRenewalCash(orderCode) {
     if (payment.status !== 'Chờ thanh toán') {
         throw new Error('Giao dịch đã được xử lý trước đó.');
     }
-    if (payment.payment_type !== 'Gia hạn thẻ tháng') {
-        throw new Error('Giao dịch này không phải gia hạn thẻ tháng.');
+    if (payment.payment_type !== 'Gia hạn vé tháng' && payment.payment_type !== 'Gia hạn thẻ tháng') {
+        throw new Error('Giao dịch này không phải gia hạn vé tháng.');
     }
 
     // Cập nhật trạng thái payment

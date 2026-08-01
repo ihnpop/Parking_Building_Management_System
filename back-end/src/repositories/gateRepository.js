@@ -150,12 +150,12 @@ export const insertEntryExitLog = async (logData) => {
  * @param {string} sessionId
  * @param {string} paymentType
  */
-export const checkExistingPayment = async (sessionId, paymentType = 'thẻ lượt') => {
+export const checkExistingPayment = async (sessionId, paymentType = 'Vé lượt') => {
   const { data } = await supabase
     .from('payment')
     .select('payment_id')
     .eq('session_id', sessionId)
-    .eq('payment_type', paymentType)
+    .in('payment_type', ['Vé lượt', 'thẻ lượt', 'vé lượt'])
     .maybeSingle();
   return data;
 };

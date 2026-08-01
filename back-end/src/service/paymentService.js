@@ -25,7 +25,7 @@ export async function createCheckoutPayment(sessionId, amount, ipAddr, origin) {
     const orderCode = `PO${Date.now()}`;
     const payment = await paymentRepository.create({
         session_id: sessionId,
-        payment_type: "thẻ lượt",
+        payment_type: "Vé lượt",
         amount,
         order_code: orderCode,
         status: "Chờ thanh toán",
@@ -53,7 +53,7 @@ export async function createPackagePayment(vehiclePackageId, amount, isRenewal, 
     const orderCode = `PK${Date.now()}`;
     const payment = await paymentRepository.create({
         vehicle_package_id: vehiclePackageId,
-        payment_type: isRenewal ? "Gia hạn thẻ tháng" : "Đăng ký thẻ tháng",
+        payment_type: isRenewal ? "Gia hạn vé tháng" : "Đăng ký vé tháng",
         amount,
         order_code: orderCode,
         status: "Chờ thanh toán",
@@ -122,11 +122,11 @@ export async function handleIpn(query) {
     // 6. Thực thi nghiệp vụ phụ trợ sau khi thanh toán thành công
     if (success) {
         // --- TRƯỜNG HỢP 1: Thanh toán thẻ lượt (Tự động mở cổng/cho xe ra bãi) ---
-        if (payment.payment_type === "thẻ lượt" && payment.session_id) {
+        if ((payment.payment_type === "Vé lượt" || payment.payment_type === "thẻ lượt" || payment.payment_type === "vé lượt") && payment.session_id) {
             await _processVnpayCheckout(payment);
         }
         // --- TRƯỜNG HỢP 2: Gia hạn thẻ tháng (Nhánh A — cộng kỳ mới nối tiếp) ---
-        else if (payment.payment_type === "Gia hạn thẻ tháng") {
+        else if (payment.payment_type === "Gia hạn vé tháng" || payment.payment_type === "Gia hạn thẻ tháng") {
             // Gọi renewalService để xử lý toàn bộ DB operations sau khi payment thành công
             // (tạo vehicle_package mới, cập nhật card.expired_date, ghi log)
             await processRenewalSuccess(orderCode);
@@ -213,7 +213,7 @@ export async function cashPayment(sessionId, staffId) {
     // 3. Insert payment tiền mặt
     const payment = await paymentRepository.create({
         session_id: sessionId,
-        payment_type: "thẻ lượt",
+        payment_type: "Vé lượt",
         payment_method: "Tiền mặt",
         provider: null,
         order_code: null,
@@ -318,7 +318,7 @@ export async function createVnpayPayment(sessionId, staffId, ipAddr, origin) {
     // 4. Insert payment 'Chờ thanh toán'
     const payment = await paymentRepository.create({
         session_id: sessionId,
-        payment_type: "thẻ lượt",
+        payment_type: "Vé lượt",
         payment_method: "VNPay",
         provider: "VNPay",
         order_code: orderCode,

@@ -187,7 +187,7 @@ export const findPendingRegistration = async (userId, fifteenMinutesAgo) => {
     const { data, error } = await supabase
         .from('payment')
         .select('*')
-        .eq('payment_type', 'Đăng ký thẻ tháng')
+        .in('payment_type', ['Đăng ký vé tháng', 'Đăng ký thẻ tháng'])
         .in('status', ['Chờ thanh toán', 'Đã thanh toán'])
         .is('vehicle_package_id', null)
         .eq('created_by', userId)

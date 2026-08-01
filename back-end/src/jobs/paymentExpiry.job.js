@@ -31,8 +31,7 @@ export function startPaymentExpiryJob() {
             for (const payment of expiredPayments) {
                 // Giao dịch thẻ tháng (Đăng ký / Gia hạn) → đánh dấu 'Thất bại'
                 // Giao dịch thẻ lượt → đánh dấu 'Hết hạn' (giữ tương thích hệ thống cũ)
-                const isMonthCard = payment.payment_type === 'Đăng ký thẻ tháng'
-                    || payment.payment_type === 'Gia hạn thẻ tháng';
+                const isMonthCard = ['Đăng ký vé tháng', 'Đăng ký thẻ tháng', 'Gia hạn vé tháng', 'Gia hạn thẻ tháng'].includes(payment.payment_type);
                 const newStatus = isMonthCard ? 'Thất bại' : 'Hết hạn';
 
                 console.log(`[PaymentExpiryJob] Xử lý hết hạn cho đơn: ${payment.order_code} → ${newStatus}`);

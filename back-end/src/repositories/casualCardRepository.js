@@ -86,7 +86,7 @@ export async function getCasualTotalRevenue(buildingId = null) {
             .from('payment')
             .select('amount')
             .eq('status', 'Đã thanh toán')
-            .eq('payment_type', 'thẻ lượt');
+            .in('payment_type', ['Vé lượt', 'thẻ lượt', 'vé lượt']);
 
         if (error) throw error;
         return (data || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
@@ -104,7 +104,7 @@ export async function getCasualTotalRevenue(buildingId = null) {
         .from('payment')
         .select('amount')
         .eq('status', 'Đã thanh toán')
-        .eq('payment_type', 'thẻ lượt')
+        .in('payment_type', ['Vé lượt', 'thẻ lượt', 'vé lượt'])
         .in('session_id', sessionIds);
 
     if (error) throw error;

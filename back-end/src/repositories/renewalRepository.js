@@ -277,7 +277,7 @@ export async function findPendingRenewalPayment(vehiclePackageId, timeoutThresho
         .select('payment_id, order_code, payment_time')
         .eq('vehicle_package_id', vehiclePackageId)
         .eq('status', 'Chờ thanh toán')
-        .eq('payment_type', 'Gia hạn thẻ tháng')
+        .in('payment_type', ['Gia hạn vé tháng', 'Gia hạn thẻ tháng'])
         .gte('payment_time', timeoutThreshold)
         .maybeSingle();
     if (error) throw new Error('Lỗi kiểm tra payment pending: ' + error.message);
@@ -297,7 +297,7 @@ export async function findPendingRenewalPaymentDetail(vehiclePackageId, timeoutT
         .select('payment_id, order_code, amount, payment_method, note, payment_time')
         .eq('vehicle_package_id', vehiclePackageId)
         .eq('status', 'Chờ thanh toán')
-        .eq('payment_type', 'Gia hạn thẻ tháng')
+        .in('payment_type', ['Gia hạn vé tháng', 'Gia hạn thẻ tháng'])
         .gte('payment_time', timeoutThreshold)
         .maybeSingle();
     if (error) throw new Error('Lỗi truy vấn payment pending detail: ' + error.message);

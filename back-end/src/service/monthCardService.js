@@ -168,7 +168,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
       const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
       const dupPayment = await monthCardRepository.findDuplicatePayment({
         vehiclePackageId,
-        paymentType: 'Gia hạn thẻ tháng',
+        paymentType: 'Gia hạn vé tháng',
         amount: pkg.price,
         sinceTime: oneMinuteAgo
       });
@@ -180,7 +180,7 @@ export const renewMonthlyCard = async ({ registrationId, months, note, currentUs
           payment_method: 'Tiền mặt',
           status: 'Đã thanh toán',
           payment_time: new Date().toISOString(),
-          payment_type: 'Gia hạn thẻ tháng',
+          payment_type: 'Gia hạn vé tháng',
           created_by: currentUserId || null
         });
       }
@@ -402,7 +402,7 @@ export const createMonthCard = async ({
       const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
       const dupPayment = await monthCardRepository.findDuplicatePayment({
         vehiclePackageId,
-        paymentType: 'Đăng ký thẻ tháng',
+        paymentType: 'Đăng ký vé tháng',
         sinceTime: oneMinuteAgo
       });
 
@@ -413,7 +413,7 @@ export const createMonthCard = async ({
           payment_method: 'Tiền mặt',
           status: 'Đã thanh toán',
           payment_time: new Date().toISOString(),
-          payment_type: 'Đăng ký thẻ tháng',
+          payment_type: 'Đăng ký vé tháng',
           created_by: currentUserId || null
         });
       }
@@ -851,7 +851,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
       let vehicleId = null;
       let cardId = null;
       let reportId = null;
-      let type = p.payment_type === 'Gia hạn thẻ tháng' ? 'Gia hạn'
+      let type = (p.payment_type === 'Gia hạn thẻ tháng' || p.payment_type === 'Gia hạn vé tháng') ? 'Gia hạn'
         : p.payment_type === 'Phí cấp lại thẻ' ? 'Thẻ đã cấp lại'
           : 'Cấp mới';
 
