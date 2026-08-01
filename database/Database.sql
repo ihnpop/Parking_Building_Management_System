@@ -233,6 +233,7 @@ CREATE TABLE public.card_lost_log (
   description text,
   vehicle_registration_image_url text,
   id_card_image_url text,
+  reissue_fee numeric,
   CONSTRAINT card_lost_log_pkey PRIMARY KEY (lost_report_id),
   CONSTRAINT card_lost_log_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.card(card_id),
   CONSTRAINT card_lost_log_handled_by_fkey FOREIGN KEY (handled_by) REFERENCES public.profiles(id),
