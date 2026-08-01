@@ -132,7 +132,7 @@ export const sendContract = async (registrationId) => {
   }
 
   // 4. Tạo đường link ký hợp đồng
-  const frontendUrl = process.env.FRONTEND_URL;
+  const frontendUrl = process.env.FRONTEND_URL || "https://pbms.id.vn";
   const signLink = `${frontendUrl}/#/sign-contract/${token}`;
 
   // 5. Gửi email qua Resend
