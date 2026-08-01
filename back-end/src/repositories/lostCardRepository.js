@@ -461,7 +461,7 @@ export const getCardReissueFee = async (vehicleId = null, buildingId = null) => 
       query = query.eq('parking_id', parkingId);
     }
 
-    const { data, error } = await query.limit(1).maybeSingle();
+    const { data, error } = await query.limit(1);
 
     if (error || !data || data.card_reissue_fee == null) {
       return 0;

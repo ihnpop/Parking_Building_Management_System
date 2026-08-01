@@ -54,6 +54,20 @@ export default function App() {
         </ProtectedRoute>
       } />
 
+      {/* Route riêng cho F1 - Thống kê hoạt động bãi xe */}
+      <Route path="/login/dashboard/OccupancyChart" element={
+        <ProtectedRoute>
+          <OccupancyChart />
+        </ProtectedRoute>
+      } />
+
+      {/* Route riêng cho F2 - Nhật ký báo mất thẻ */}
+      <Route path="/login/dashboard/lost-card-log" element={
+        <ProtectedRoute>
+          <LostCardLogPage showBackButton={true} />
+        </ProtectedRoute>
+      } />
+
       {/* Catch-all cho các sub-route khác trong Dashboard */}
       <Route path="/login/dashboard/*" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
 

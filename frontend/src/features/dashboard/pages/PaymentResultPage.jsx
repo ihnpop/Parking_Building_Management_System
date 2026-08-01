@@ -60,6 +60,20 @@ const PAYMENT_TYPE_LABEL = {
     "Phí mất thẻ lượt": "Thanh toán phí mất thẻ lượt",
 };
 
+// Tiền tố mã đơn — phải khớp convention backend (lò kiểm tra trước khi dùng payment_type)
+const ORDER_PREFIX = {
+    LOST_CARD: 'LC',
+    RENEWAL: 'RN',
+};
+
+// Route paths tập trung — khi đổi route thì chỉ cần sửa ở đây
+const ROUTES = {
+    DASHBOARD: '/login/dashboard',
+    MONTH_CARD: '/login/dashboard/card-management/month-card',
+    LOST_CARD_LOG: '/login/dashboard/lost-card-log',
+};
+
+
 // Định nghĩa hệ thống CSS trong code (inline styles) vì ứng dụng không sử dụng Tailwind CSS
 const styles = {
     page: {
@@ -267,20 +281,20 @@ export default function PaymentResultPage() {
                         onClick={() => {
                             const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
                                                payment?.payment_type === "Phí mất thẻ lượt" ||
-                                               (orderCode && orderCode.startsWith("LC"));
+                                               (orderCode && orderCode.startsWith(ORDER_PREFIX.LOST_CARD));
                                                
                             const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
                                                 payment?.payment_type === "Đăng ký vé tháng" ||
-                                                (orderCode && (orderCode.startsWith("RN") || orderCode.startsWith("PK")));
+                                                (orderCode && orderCode.startsWith(ORDER_PREFIX.RENEWAL));
 
                             if (isLostCard) {
-                                navigate("/login/dashboard/log-management/lost-card");
+                                navigate(ROUTES.DASHBOARD);
                             } else if (isMonthCard) {
-                                navigate("/login/dashboard/card-management/month-card");
+                                navigate(ROUTES.MONTH_CARD);
                             } else if (orderCode) {
-                                navigate(`/login/dashboard?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=${isSuccess ? 'success' : 'failed'}`);
+                                navigate(`${ROUTES.DASHBOARD}?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=${isSuccess ? 'success' : 'failed'}`);
                             } else {
-                                navigate("/login/dashboard");
+                                navigate(ROUTES.DASHBOARD);
                             }
                         }}
                         onMouseEnter={e => e.target.style.background = "#343849"}
@@ -293,21 +307,19 @@ export default function PaymentResultPage() {
                             style={styles.btnPrimary}
                             onClick={() => {
                                 const isLostCard = payment?.payment_type === "Phí cấp lại thẻ" || 
-                                                   payment?.payment_type === "Phí mất thẻ lượt" ||
-                                                   (orderCode && orderCode.startsWith("LC"));
+                                                   payment?.payment_type === "Phí mất thẻ lượt";
                                                    
                                 const isMonthCard = payment?.payment_type === "Gia hạn vé tháng" || 
-                                                    payment?.payment_type === "Đăng ký vé tháng" ||
-                                                    (orderCode && (orderCode.startsWith("RN") || orderCode.startsWith("PK")));
+                                                    payment?.payment_type === "Đăng ký vé tháng";
 
                                 if (isLostCard) {
-                                    navigate("/login/dashboard/log-management/lost-card");
+                                    navigate(ROUTES.LOST_CARD_LOG);
                                 } else if (isMonthCard) {
-                                    navigate("/login/dashboard/card-management/month-card");
+                                    navigate(ROUTES.MONTH_CARD);
                                 } else if (orderCode) {
-                                    navigate(`/login/dashboard?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=failed`);
+                                    navigate(`${ROUTES.DASHBOARD}?mode=OUT&orderCode=${encodeURIComponent(orderCode)}&vnpayStatus=failed`);
                                 } else {
-                                    navigate("/login/dashboard");
+                                    navigate(ROUTES.DASHBOARD);
                                 }
                             }}
                             onMouseEnter={e => e.target.style.background = "#1d4ed8"}

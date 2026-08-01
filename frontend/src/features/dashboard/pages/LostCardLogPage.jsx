@@ -1345,8 +1345,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 <option value="Đang xử lý">Đang xử lý</option>
                                 <option value="Chờ thanh toán">Chờ thanh toán</option>
                                 <option value="Đã xong">Đã xong</option>
-                                <option value="Đã hủy thẻ">Đã hủy thẻ</option>
-                                <option value="Đã hủy (tạo nhầm)">Đã hủy (tạo nhầm)</option>
                             </select>
                             <span className="material-symbols-outlined icon-right">expand_more</span>
                         </div>
