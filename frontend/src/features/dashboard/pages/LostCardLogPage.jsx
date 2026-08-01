@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import {
     getLostCards,
     checkLostCardPlate,
@@ -14,10 +13,8 @@ import {
     initiateLostTurnCardPayment,
     confirmLostTurnCardCash,
     getLostCardHistory,
-    getCards,
     getMonthCards
 } from "../../../service/cardApi";
-import { getCasualCardSessions } from "../../../service/casualCardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 

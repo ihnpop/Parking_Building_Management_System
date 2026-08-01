@@ -38,18 +38,6 @@ export const getRenewPackages = async () => {
 };
 
 /**
- * Gửi yêu cầu gia hạn thẻ tháng lên API Backend
- * @param {object} payload - { registrationId, months, note }
- * @returns {Promise<object>}
- */
-export const renewMonthCard = async (payload) => {
-    const response = await API.post("/renew", payload, {
-        headers: getAuthHeaders()
-    });
-    return response.data;
-};
-
-/**
  * Cập nhật thông tin thẻ tháng
  * @param {string} id - card_id
  * @param {object} payload

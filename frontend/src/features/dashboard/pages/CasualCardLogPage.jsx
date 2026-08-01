@@ -233,7 +233,6 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
     const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành' || r.status === 'Đã xong').length;
     const distActive = kpiFilteredRows.filter((r) => r.status === 'Đang gửi xe').length;
     const distPending = kpiFilteredRows.filter((r) => r.status === 'Chờ thanh toán').length;
-    const distReissued = kpiFilteredRows.filter((r) => r.status === 'Thẻ đã cấp lại').length;
     const distFailed = kpiFilteredRows.filter((r) => r.status === 'Thất bại').length;
 
     const pct = (count) => distTotal > 0 ? Math.round((count / distTotal) * 100) : 0;

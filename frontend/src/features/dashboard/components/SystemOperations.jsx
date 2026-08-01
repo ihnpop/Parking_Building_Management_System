@@ -274,7 +274,7 @@ export default function SystemOperations() {
             setLoading(true);
             if (mode === 'IN') {
                 const res = await preCheckEntryGate(cleanPlate);
-                
+
                 // Nếu là xe tháng nhưng thẻ/gói cước đã hết hạn (hoặc bị khóa) và chưa ở trong bãi
                 if (res.vehicleType === 'MONTHLY' && res.canOpenGate === false && !res.message?.includes('ở trong bãi')) {
                     showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (vé lượt).`, 'warning');
@@ -323,8 +323,8 @@ export default function SystemOperations() {
                 const res = await preCheckExitGate(plate);
                 setPreCheckResult(res);
                 // Tự động chuyển chọn loại xe (Xe máy / Ô tô) khi xe ra dựa trên thông tin checkin / DB
-                const autoVehicleType = res.vehicle?.vehicle_type?.name 
-                    || res.session?.vehicle?.vehicle_type?.name 
+                const autoVehicleType = res.vehicle?.vehicle_type?.name
+                    || res.session?.vehicle?.vehicle_type?.name
                     || res.vehicleCategory;
                 if (autoVehicleType) {
                     setVehicleType(autoVehicleType);
@@ -741,7 +741,6 @@ export default function SystemOperations() {
                             (mode === 'OUT' && isCameraIn && preCheckResult);
 
                         let bgImage = camera.image;
-                        let isSelected = false;
 
                         if (camera.id === 'vehicleImage') {
                             // Khi check-out: ưu tiên dùng ảnh xe check-in đã lưu riêng
@@ -750,7 +749,6 @@ export default function SystemOperations() {
                             } else {
                                 bgImage = vehiclePreview || camera.image;
                             }
-                            isSelected = !!vehicleImage;
                         } else if (camera.id === 'plateImage') {
                             // Khi check-out: ưu tiên dùng ảnh biển số check-in đã lưu riêng
                             if (mode === 'OUT' && entryPlateImageDisplay) {
@@ -758,13 +756,10 @@ export default function SystemOperations() {
                             } else {
                                 bgImage = platePreview || camera.image;
                             }
-                            isSelected = !!plateImage;
                         } else if (camera.id === 'camera3') {
                             bgImage = exitVehiclePreview || camera.image;
-                            isSelected = !!exitVehicleImage;
                         } else if (camera.id === 'camera4') {
                             bgImage = exitPlatePreview || camera.image;
-                            isSelected = !!exitPlateImage;
                         }
 
                         return (
@@ -931,7 +926,7 @@ export default function SystemOperations() {
                                         <div className="mismatch-text">
                                             <span>Biển số </span>
                                             <strong className="mismatch-plate">{preCheckResult.plateNumber}</strong>
-                                            <span> đã đăng ký là </span>
+                                            <span> đã đăng ký ở thẻ tháng là </span>
                                             <strong className={`mismatch-registered-type ${isMismatch ? 'text-invalid' : 'text-valid'}`}>
                                                 {registeredType}
                                             </strong>

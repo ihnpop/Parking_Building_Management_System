@@ -5,7 +5,6 @@ import supabase from '../../../config/supabaseClient';
 import { 
     todayVN, 
     thisMonthVN, 
-    getVNDateParts, 
     getLocalDateVN, 
     formatLabel, 
     getHourVN, 
@@ -54,7 +53,6 @@ import RevenueMonthModal from '../components/RevenueMonthModal';
 import {
     fetchAllDashboardData,
     formatVND,
-    dashboardFallbackData,
 } from '../../../service/dashboardApi';
 
 
