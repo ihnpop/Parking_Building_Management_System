@@ -6,6 +6,7 @@ import { inviteUser } from '../../../service/cardApi';
 import supabase from '../../../config/supabaseClient';
 import EditUserDialog from '../components/EditUserDialog';
 import InviteUserDialog from '../components/InviteUserDialog';
+import "./UserManagementPage.css";
 
 export default function UserManagementPage() {
     const { userRole } = useAuth();

@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import SystemOperations from '../../features/dashboard/components/SystemOperations';
 import { useAuth } from '../../context/AuthContext';
+import "./DashboardShell.css";
 
 export default function DashboardShell({ children, currentTab, onTabSelect }) {
     const { user, userRole } = useAuth();

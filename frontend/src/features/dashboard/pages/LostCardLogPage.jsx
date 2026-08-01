@@ -17,6 +17,7 @@ import {
 } from "../../../service/cardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
+import "./LostCardLogPage.css";
 
 const renderFormattedTime = (dateInput) => {
     if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;

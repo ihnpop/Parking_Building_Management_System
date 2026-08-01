@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '../../../context/NotificationContext';
 import { EditSessionPriceModal, EditMonthlyPriceModal, EditReissueFeeModal } from '../components/EditPricesDialog';
 import { getPrices, updateSessionPrices, updateMonthlyPrices, updateCardReissueFee } from '../../../service/priceApi';
+import "./AdjustPricesPage.css";
 
 const formatVND = (value) => {
     if (!value && value !== 0) return '0 ₫';

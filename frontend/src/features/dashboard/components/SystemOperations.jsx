@@ -16,6 +16,7 @@ import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
 import ExitPaymentPanel from './ExitPaymentPanel';
 import { normalizePlate, validatePlateNumber } from '../../../utils/plateValidation';
+import "./SystemOperations.css";
 
 const normalizeVehicleTypeName = (name) => {
     if (!name) return '';

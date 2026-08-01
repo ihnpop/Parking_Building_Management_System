@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
 import CreateCardPageDialog from '../components/CreateCardPageDialog';
 import EditCardPageDialog from '../components/EditCardPageDialog';
+import "./CardPage.css";
 
 
 const ITEMS_PER_PAGE = 10;

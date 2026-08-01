@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getParkingSessions } from '../../service/parkingApi';
+import "./Topbar.css";
 
 export default function Topbar({ title, showExtras = false, currentTab }) {
     const { user, userRole, logout } = useAuth();

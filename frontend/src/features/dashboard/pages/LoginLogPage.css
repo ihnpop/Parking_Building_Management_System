@@ -1,0 +1,94 @@
+.login-log-page {
+  width: 100%;
+  max-width: 100%;
+  font-family: 'Inter', sans-serif;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  padding: clamp(16px, 2vw, 28px) clamp(16px, 2.5vw, 32px) !important;
+  min-height: auto !important;
+}
+
+.log-table-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.log-table th {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+  padding: 18px 24px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.log-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.log-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username-text {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.log-table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background-color: #eff6ff;
+}
+
+.log-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-badge {
+  display: inline-block !important;
+  padding: 4px 12px !important;
+  border-radius: 9999px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  white-space: nowrap !important;
+}
+
+.role-badge.admin {
+  background: #2563eb !important;
+}
+
+.role-badge.staff {
+  background: #16a34a !important;
+}
+
+.role-badge.manager {
+  background: #2563eb !important;
+}
+
+.icon-red {
+  background: #fee2e2;
+  color: #ef4444;
+}

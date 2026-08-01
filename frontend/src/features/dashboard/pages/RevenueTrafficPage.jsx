@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import "./RevenueTrafficPage.css";
 
 // ─── Mock Data Giữ Nguyên Từ Bạn Của Bạn ───────────────────────────
 const barChartData = [

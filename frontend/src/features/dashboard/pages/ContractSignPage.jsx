@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getContractByToken, signContract } from '../../../service/contractApi';
 import { Loader2, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import ContractDocument from '../components/ContractDocument';
+import "./ContractSignPage.css";
 
 export default function ContractSignPage() {
   const { token } = useParams();

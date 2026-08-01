@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import "./Sidebar.css";
 
 export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsCollapsed }) {
     const { user, userRole, logout } = useAuth();

@@ -3,6 +3,7 @@ import {
     getCasualCardSessions,
     mapSessionToRow,
 } from '../../../service/casualCardApi';
+import "./CasualCardLogPage.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

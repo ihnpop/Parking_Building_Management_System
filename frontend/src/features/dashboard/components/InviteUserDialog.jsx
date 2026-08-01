@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import "./InviteUserDialog.css";
 
 export default function InviteUserDialog({
     isOpen,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import supabase from '../../../config/supabaseClient';
+import "./CreateMonthCardDialog.css";
 
 const API = import.meta.env.VITE_API_URL;
 

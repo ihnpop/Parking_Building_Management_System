@@ -1,0 +1,169 @@
+.revenue-modal--month {
+  width: min(960px, calc(100vw - 48px));
+}
+
+.revenue-modal-icon--month {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.rmm-loading-container {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+}
+
+.rmm-loading-spin {
+  animation: spin 1s linear infinite;
+  font-size: 32px !important;
+  padding: 0 !important;
+}
+
+.rmm-loading-text {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.rmm-empty-container {
+  padding: 40px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.rmm-empty-icon {
+  font-size: 48px !important;
+  color: #cbd5e1;
+  padding: 0 !important;
+}
+
+.rmm-empty-text {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.rmm-weeks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rmm-accordion-icon {
+  font-size: 20px !important;
+  padding: 0 !important;
+}
+
+.rmm-accordion-icon--active {
+  color: #2563eb;
+}
+
+.rmm-accordion-icon--inactive {
+  color: #64748b;
+}
+
+.rmm-category-block {
+  background-color: #f8fafc;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.rmm-category-header {
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f172a;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rmm-category-icon {
+  font-size: 18px !important;
+  padding: 0 !important;
+}
+
+.rmm-category-icon--casual {
+  color: #0284c7;
+}
+
+.rmm-category-icon--monthly {
+  color: #16a34a;
+}
+
+.rmm-category-icon--renewal {
+  color: #d97706;
+}
+
+.rmm-casual-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.rmm-casual-chip {
+  background-color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.rmm-casual-label {
+  color: #64748b;
+}
+
+.rmm-casual-val {
+  color: #0f172a;
+}
+
+.rmm-items-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rmm-row-item {
+  padding: 8px 12px;
+}
+
+.rmm-row-item--renewal {
+  padding: 8px 12px;
+  background-color: #fffbe6 !important;
+  border-color: #fef08a !important;
+}
+
+.rmm-item-text {
+  font-size: 13px;
+}
+
+.rmm-item-pkg--monthly {
+  color: #0f172a;
+}
+
+.rmm-item-pkg--renewal {
+  color: #92400e;
+}
+
+.rmm-item-sub--monthly {
+  color: #64748b;
+  margin-left: 6px;
+}
+
+.rmm-item-sub--renewal {
+  color: #b45309;
+  margin-left: 6px;
+}
+
+.rmm-item-rev--monthly {
+  font-weight: 700;
+  color: #16a34a;
+  font-size: 14px;
+}
+
+.rmm-item-rev--renewal {
+  font-weight: 700;
+  color: #b45309;
+  font-size: 14px;
+}

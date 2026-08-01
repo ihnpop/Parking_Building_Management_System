@@ -8,6 +8,7 @@ import { getLostCards, confirmLostTurnCardCash } from "../../../service/cardApi"
 import { useNotification } from "../../../context/NotificationContext";
 import supabase from "../../../config/supabaseClient";
 import { normalizePlate, validatePlateNumber } from "../../../utils/plateValidation";
+import "./ExitPaymentPanel.css";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "exit_pending_vnpay";
