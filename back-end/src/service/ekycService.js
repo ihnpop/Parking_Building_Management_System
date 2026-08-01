@@ -5,7 +5,7 @@ import { config } from '../config/config.js';
 
 // ─── Cấu hình VNPT eKYC ──────────────────────────────────────────────────────
 const getVnptDomain = () => {
-  const domain = config.vnptDomain || process.env.VNPT_DOMAIN || 'https://api.idg.vnpt.vn';
+  const domain = config.vnptDomain || process.env.VNPT_DOMAIN;
   return domain.trim().replace(/\/+$/, '');
 };
 
