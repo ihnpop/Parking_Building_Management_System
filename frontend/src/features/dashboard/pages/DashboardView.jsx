@@ -66,11 +66,8 @@ export default function DashboardView() {
     const userEmail = user?.email || '';
     const email = userEmail.toLowerCase().trim();
 
-    // Xác định vai trò chuẩn của người dùng
+    // Xác định vai trò chuẩn của người dùng — dùng trực tiếp từ AuthContext (đã load từ DB)
     let computedRole = userRole ? userRole.toUpperCase() : 'STAFF';
-    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
-    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
-    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
 
     // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();

@@ -55,8 +55,8 @@ export function AuthProvider({ children }) {
             } else if (storedToken) {
                 // Nếu có token trong localStorage, duy trì vĩnh viễn phiên người dùng
                 const savedRole = localStorage.getItem("userRole") || "STAFF";
-                const savedEmail = localStorage.getItem("userEmail") || "user@parkflow.com";
-                const savedUserId = localStorage.getItem("userId") || "00000000-0000-0000-0000-000000000000";
+                const savedEmail = localStorage.getItem("userEmail") || null;
+                const savedUserId = localStorage.getItem("userId") || null;
                 setUserRole(savedRole);
                 setUser({ id: savedUserId, email: savedEmail });
             }
@@ -84,8 +84,8 @@ export function AuthProvider({ children }) {
                 const storedToken = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
                 if (storedToken) {
                     const savedRole = localStorage.getItem("userRole") || "STAFF";
-                    const savedEmail = localStorage.getItem("userEmail") || "user@parkflow.com";
-                    const savedUserId = localStorage.getItem("userId") || "00000000-0000-0000-0000-000000000000";
+                    const savedEmail = localStorage.getItem("userEmail") || null;
+                    const savedUserId = localStorage.getItem("userId") || null;
                     setUserRole(savedRole);
                     setUser({ id: savedUserId, email: savedEmail });
                 }
