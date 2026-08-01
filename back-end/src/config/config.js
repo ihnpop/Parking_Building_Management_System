@@ -5,20 +5,16 @@
  */
 
 export const config = {
-  // Frontend URL
+  // ─── Kết nối dịch vụ ngoài (đọc từ .env) ────────────────────────────────
   frontendUrl: process.env.FRONTEND_URL,
-
-  // VNPT eKYC
   vnptDomain: process.env.VNPT_DOMAIN,
-
-  // VNPAY
   vnpayHost: process.env.VNPAY_HOST,
 
-  // Giới hạn nghiệp vụ
-  maxMonthCards: Number(process.env.MAX_MONTH_CARDS),
-  maxLoginFailures: Number(process.env.MAX_LOGIN_FAILURES),
-  paymentTimeoutMinutes: Number(process.env.PAYMENT_TIMEOUT_MINUTES),
-  contractExpireDays: Number(process.env.CONTRACT_EXPIRE_DAYS),
+  // ─── Giới hạn nghiệp vụ (có thể override bằng .env nếu cần) ────────────
+  maxMonthCards:         Number(process.env.MAX_MONTH_CARDS)         || 100,
+  maxLoginFailures:      Number(process.env.MAX_LOGIN_FAILURES)      || 3,
+  paymentTimeoutMinutes: Number(process.env.PAYMENT_TIMEOUT_MINUTES) || 15,
+  contractExpireDays:    Number(process.env.CONTRACT_EXPIRE_DAYS)    || 7,
 };
 
 export default config;
