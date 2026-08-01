@@ -991,7 +991,7 @@ export const getPendingAndExpiredMonthCardPayments = async () => {
   const { data, error } = await supabase
     .from('payment')
     .select('payment_id, order_code, payment_time, amount, payment_method, payment_type, note, status')
-    .in('payment_type', ['Đăng ký vé tháng', 'Gia hạn vé tháng'])
+    .in('payment_type', ['Đăng ký vé tháng', 'Đăng ký thẻ tháng', 'Gia hạn vé tháng', 'Gia hạn thẻ tháng'])
     .in('status', ['Chờ thanh toán', 'Hết hạn', 'Thất bại'])
     .order('payment_time', { ascending: false })
     .limit(100);

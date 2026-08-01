@@ -3,6 +3,7 @@ import {
     getCasualCardSessions,
     mapSessionToRow,
 } from '../../../service/casualCardApi';
+import "./CasualCardLogPage.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -233,7 +234,6 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
     const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành' || r.status === 'Đã xong').length;
     const distActive = kpiFilteredRows.filter((r) => r.status === 'Đang gửi xe').length;
     const distPending = kpiFilteredRows.filter((r) => r.status === 'Chờ thanh toán').length;
-    const distReissued = kpiFilteredRows.filter((r) => r.status === 'Thẻ đã cấp lại').length;
     const distFailed = kpiFilteredRows.filter((r) => r.status === 'Thất bại').length;
 
     const pct = (count) => distTotal > 0 ? Math.round((count / distTotal) * 100) : 0;
@@ -332,7 +332,7 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                             <div className="lost-kpi-value val-orange" style={{ fontSize: '1.1rem' }}>
                                 {loading ? '...' : formatVND(kpiRevenue)}
                             </div>
-                            <div className="lost-kpi-footer txt-orange">Vé lượt đã thanh toán</div>
+                            <div className="lost-kpi-footer txt-orange">thẻ lượt đã thanh toán</div>
                         </div>
                     </div>
 

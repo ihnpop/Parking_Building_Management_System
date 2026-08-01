@@ -13,7 +13,7 @@ import { processRenewalSuccess } from "./renewalService.js";
 import { calculateExitFee } from "./feeCalculationService.js";
 
 /**
- * Khởi tạo giao dịch thanh toán cho Vé lượt (xe chuẩn bị rời bãi)
+ * Khởi tạo giao dịch thanh toán cho thẻ lượt (xe chuẩn bị rời bãi)
  * 1. Tạo bản ghi hóa đơn tạm trong DB với trạng thái 'Chờ thanh toán'
  * 2. Tạo đường link thanh toán chuyển tiếp VNPAY
  */
@@ -44,7 +44,7 @@ export async function createCheckoutPayment(sessionId, amount, ipAddr, origin) {
 }
 
 /**
- * Khởi tạo giao dịch thanh toán cho Vé tháng (Đăng ký mới hoặc Gia hạn)
+ * Khởi tạo giao dịch thanh toán cho thẻ tháng (Đăng ký mới hoặc Gia hạn)
  * 1. Tạo bản ghi hóa đơn tạm trong DB với trạng thái 'Chờ thanh toán'
  * 2. Tạo đường link thanh toán chuyển tiếp VNPAY
  */
@@ -121,12 +121,12 @@ export async function handleIpn(query) {
 
     // 6. Thực thi nghiệp vụ phụ trợ sau khi thanh toán thành công
     if (success) {
-        // --- TRƯỜNG HỢP 1: Thanh toán Vé lượt (Tự động mở cổng/cho xe ra bãi) ---
-        if (payment.payment_type === "Vé lượt" && payment.session_id) {
+        // --- TRƯỜNG HỢP 1: Thanh toán thẻ lượt (Tự động mở cổng/cho xe ra bãi) ---
+        if ((payment.payment_type === "Vé lượt" || payment.payment_type === "thẻ lượt" || payment.payment_type === "vé lượt") && payment.session_id) {
             await _processVnpayCheckout(payment);
         }
-        // --- TRƯỜNG HỢP 2: Gia hạn vé tháng (Nhánh A — cộng kỳ mới nối tiếp) ---
-        else if (payment.payment_type === "Gia hạn vé tháng") {
+        // --- TRƯỜNG HỢP 2: Gia hạn thẻ tháng (Nhánh A — cộng kỳ mới nối tiếp) ---
+        else if (payment.payment_type === "Gia hạn vé tháng" || payment.payment_type === "Gia hạn thẻ tháng") {
             // Gọi renewalService để xử lý toàn bộ DB operations sau khi payment thành công
             // (tạo vehicle_package mới, cập nhật card.expired_date, ghi log)
             await processRenewalSuccess(orderCode);
@@ -147,7 +147,7 @@ export async function handleIpn(query) {
                 console.error("[handleIpn] Lỗi xử lý nghiệp vụ mất thẻ lượt (payment đã thành công):", lostTurnErr.message);
                 await import("./repositories/paymentRepository.js").then(repo => repo.updateStatus(orderCode, {
                     note: payment.note + " | ERROR: " + lostTurnErr.message + " | STACK: " + lostTurnErr.stack
-                })).catch(() => {});
+                })).catch(() => { });
             }
         }
     }
@@ -174,7 +174,7 @@ export async function getPaymentStatus(orderCode) {
 }
 
 /**
- * Thanh toán tiền mặt cho vé lượt (BR-TT-10 → BR-TT-12, BR-TT-24 → BR-TT-25)
+ * Thanh toán tiền mặt cho thẻ lượt (BR-TT-10 → BR-TT-12, BR-TT-24 → BR-TT-25)
  *
  * - Tính lại estimated_fee từ DB (KHÔNG tin số tiền client gửi lên)
  * - Insert payment (Tiền mặt, Đã thanh toán)
@@ -271,7 +271,7 @@ export async function cashPayment(sessionId, staffId) {
 }
 
 /**
- * Tạo giao dịch VNPay an toàn cho vé lượt
+ * Tạo giao dịch VNPay an toàn cho thẻ lượt
  * - Tính lại fee từ DB, KHÔNG tin amount từ client
  * - Sinh order_code duy nhất (PK + timestamp + random), retry nếu trùng
  * - Insert payment 'Chờ thanh toán', update session status, tạo URL VNPay
@@ -358,7 +358,7 @@ export async function createVnpayPayment(sessionId, staffId, ipAddr, origin) {
 // ─────────────────────────────────────────────
 
 /**
- * Xử lý checkout tự động sau khi VNPay xác nhận thanh toán vé lượt thành công.
+ * Xử lý checkout tự động sau khi VNPay xác nhận thanh toán thẻ lượt thành công.
  * Bao gồm: cập nhật session, giải phóng thẻ, ghi log xe ra.
  * @private
  */

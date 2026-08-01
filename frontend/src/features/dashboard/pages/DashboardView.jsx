@@ -1,20 +1,41 @@
+/**
+ * DashboardView.jsx
+ * Component trung tam dieu phoi toan bo giao dien Dashboard.
+ *
+ * Chuc nang chinh:
+ *  - Quan ly currentView (tab dang hien thi) phu thuoc vao role.
+ *  - Role ADMIN: user-management | dashboard | revenue-traffic | log-management
+ *  - Role MANAGER: manager-dashboard | card-management | adjust-prices | log-management
+ *  - Role STAFF: chi co giao dien van hanh cong xe (xu ly trong DashboardShell)
+ *
+ * State quan trong:
+ *  - currentView: view dang hien thi, luu vao localStorage de giu qua reload.
+ *  - stats: cac KPI tong quan (luot xe, cho trong, doanh thu, su co).
+ *  - trafficChartData / revenueChartData: du lieu bieu do theo gio/ngay.
+ *  - floorData: ti le lap day theo tang.
+ *  - vehicleTypes: phan loai phuong tien dang do.
+ *  - recentIn / recentOut: xe vao/ra gan day.
+ *  - dashboardPeriod: khoang thoi gian loc ('day' | 'week' | 'month').
+ *
+ * Data source: Supabase (parking_sessions, payment, entry_exit_log, card_lost_log)
+ *              + Backend REST API (fetchAllDashboardData).
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import supabase from '../../../config/supabaseClient';
 
-import { 
-    todayVN, 
-    thisMonthVN, 
-    getVNDateParts, 
-    getLocalDateVN, 
-    formatLabel, 
-    getHourVN, 
-    formatVNDCompact, 
-    getVNPeriodRange, 
+import {
+    todayVN,
+    thisMonthVN,
+    getLocalDateVN,
+    formatLabel,
+    getHourVN,
+    formatVNDCompact,
+    getVNPeriodRange,
     formatDateFormatted,
     formatWeekLabel,
     formatMonthLabel,
-    handleExportExcel as handleExportExcelUtil 
+    handleExportExcel as handleExportExcelUtil
 } from '../../../utils/dashboardUtils';
 
 import DashboardShell from '../../../components/layout/DashboardShell';
@@ -27,7 +48,7 @@ const formatSlotLocation = (slotData) => {
         ? parkingName.split(' - ').pop()
         : parkingName;
     const floorName = (slotData.area?.floor?.name || `Tầng ${slotData.area?.floor?.floor_number || 1}`).replace(/Floor/g, 'Tầng');
-    
+
     if (shortParking) {
         return `${shortParking} / ${floorName}`;
     }
@@ -54,8 +75,8 @@ import RevenueMonthModal from '../components/RevenueMonthModal';
 import {
     fetchAllDashboardData,
     formatVND,
-    dashboardFallbackData,
 } from '../../../service/dashboardApi';
+import "./DashboardView.css";
 
 
 
@@ -135,7 +156,7 @@ export default function DashboardView() {
             setActiveLogTab('Thẻ lượt');
         } else if (path.includes('/log-management/month-card')) {
             setCurrentView('log-management');
-            setActiveLogTab('Vé tháng');
+            setActiveLogTab('thẻ tháng');
         } else if (path.includes('/log-management/login-log')) {
             setCurrentView('log-management');
             setActiveLogTab('Đăng nhập');
@@ -165,7 +186,7 @@ export default function DashboardView() {
         let path = '';
         if (tabName === 'Quẹt thẻ') path = '/login/dashboard/log-management/lost-card';
         if (tabName === 'Thẻ lượt') path = '/login/dashboard/log-management/casual-card';
-        if (tabName === 'Vé tháng') path = '/login/dashboard/log-management/month-card';
+        if (tabName === 'thẻ tháng') path = '/login/dashboard/log-management/month-card';
         if (tabName === 'Đăng nhập') path = '/login/dashboard/log-management/login-log';
         navigate(path);
     };
@@ -297,8 +318,8 @@ export default function DashboardView() {
 
             // Compute second revenue metric (doanh thu tháng or average)
             let periodRevenue2 = 0;
-            const selMonthStr = dashboardPeriod === 'month' 
-                ? (selectedCustomMonth || thisMonthVN()) 
+            const selMonthStr = dashboardPeriod === 'month'
+                ? (selectedCustomMonth || thisMonthVN())
                 : (selectedCustomDate || todayVN()).slice(0, 7);
 
             if (dashboardPeriod === 'day') {
@@ -457,7 +478,7 @@ export default function DashboardView() {
                             )
                         `)
                         .in('log_id', entryLogIds);
-                    
+
                     (entryLogs || []).forEach(log => {
                         const slotObj = log.session?.slot;
                         if (slotObj) {
@@ -519,7 +540,7 @@ export default function DashboardView() {
                             )
                         `)
                         .in('log_id', exitLogIds);
-                    
+
                     (exitLogs || []).forEach(log => {
                         const slotObj = log.session?.slot;
                         if (slotObj) {
@@ -644,6 +665,7 @@ export default function DashboardView() {
 
     return (
         <DashboardShell currentTab={currentView} onTabSelect={(tab) => {
+            setCurrentView(tab);
             if (tab === 'card-management') {
                 navigate('/login/dashboard/month-card');
             } else if (tab === 'adjust-prices') {
@@ -652,8 +674,8 @@ export default function DashboardView() {
                 navigate('/login/dashboard');
             } else if (tab === 'log-management') {
                 navigate('/login/dashboard/log-management/lost-card');
-            } else {
-                setCurrentView(tab);
+            } else if (tab === 'user-management' || tab === 'dashboard') {
+                navigate('/login/dashboard');
             }
         }}>
 
@@ -685,7 +707,7 @@ export default function DashboardView() {
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', flexShrink: 0 }}>
                             {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => handleLogTabClick('Quẹt thẻ'))}
                             {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => handleLogTabClick('Thẻ lượt'))}
-                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'Vé tháng', () => handleLogTabClick('Vé tháng'))}
+                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'thẻ tháng', () => handleLogTabClick('thẻ tháng'))}
                             {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => handleLogTabClick('Đăng nhập'))}
                         </div>
                         {/* KPI Time Filter – Áp dụng cho tất cả các tab */}
@@ -730,7 +752,7 @@ export default function DashboardView() {
                     <div style={{ marginTop: '5px' }}>
                         {activeLogTab === 'Quẹt thẻ' && <LostCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} />}
                         {activeLogTab === 'Thẻ lượt' && <CasualCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} />}
-                        {activeLogTab === 'Vé tháng' && <MonthCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} refreshTrigger={refreshTrigger} />}
+                        {activeLogTab === 'thẻ tháng' && <MonthCardLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} refreshTrigger={refreshTrigger} />}
                         {activeLogTab === 'Đăng nhập' && <LoginLogPage kpiTimeFilter={kpiTimeFilter} kpiDate={kpiDate} kpiMonth={kpiMonth} />}
                     </div>
                 </div>
@@ -996,9 +1018,9 @@ export default function DashboardView() {
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>
-                                    {dashboardPeriod === 'day' ? `LƯỢT XE RA/VÀO NGÀY ${dateFormatted}` : 
-                                     dashboardPeriod === 'week' ? `LƯỢT XE VÀO TUẦN ${weekLabel}` : 
-                                     `LƯỢT XE VÀO THÁNG ${monthFormatted}`}
+                                    {dashboardPeriod === 'day' ? `LƯỢT XE RA/VÀO NGÀY ${dateFormatted}` :
+                                        dashboardPeriod === 'week' ? `LƯỢT XE VÀO TUẦN ${weekLabel}` :
+                                            `LƯỢT XE VÀO THÁNG ${monthFormatted}`}
                                 </span>
                                 <span className="db-kpi-icon" style={{ color: '#3B82F6' }}>
                                     <span className="material-symbols-outlined">swap_vert</span>
@@ -1006,9 +1028,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{stats.todayTraffic} lượt</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? 'Tổng lượt xe ra/vào trong ngày' : 
-                                 dashboardPeriod === 'week' ? `Tổng lượt xe vào trong tuần ${weekLabel}` : 
-                                 `Tổng lượt xe vào trong tháng ${monthFormatted}`}
+                                {dashboardPeriod === 'day' ? 'Tổng lượt xe ra/vào trong ngày' :
+                                    dashboardPeriod === 'week' ? `Tổng lượt xe vào trong tuần ${weekLabel}` :
+                                        `Tổng lượt xe vào trong tháng ${monthFormatted}`}
                             </div>
                             <div className="db-kpi-status-cue" style={{ color: '#3b82f6' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>sync</span>
@@ -1054,9 +1076,9 @@ export default function DashboardView() {
                         <div className="db-kpi">
                             <div className="db-kpi-head">
                                 <span>
-                                    {dashboardPeriod === 'day' ? `SỰ CỐ NGÀY ${dateFormatted}` : 
-                                     dashboardPeriod === 'week' ? `SỰ CỐ TUẦN ${weekLabel}` : 
-                                     `SỰ CỐ THÁNG ${monthFormatted}`}
+                                    {dashboardPeriod === 'day' ? `SỰ CỐ NGÀY ${dateFormatted}` :
+                                        dashboardPeriod === 'week' ? `SỰ CỐ TUẦN ${weekLabel}` :
+                                            `SỰ CỐ THÁNG ${monthFormatted}`}
                                 </span>
                                 <span className="db-kpi-icon" style={{ color: '#ef4444' }}>
                                     <span className="material-symbols-outlined">warning</span>
@@ -1064,9 +1086,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{stats.incidents} sự cố</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? `Các sự cố ghi nhận ngày ${dateFormatted}` : 
-                                 dashboardPeriod === 'week' ? `Các sự cố ghi nhận trong tuần ${weekLabel}` : 
-                                 `Các sự cố ghi nhận trong tháng ${monthFormatted}`}
+                                {dashboardPeriod === 'day' ? `Các sự cố ghi nhận ngày ${dateFormatted}` :
+                                    dashboardPeriod === 'week' ? `Các sự cố ghi nhận trong tuần ${weekLabel}` :
+                                        `Các sự cố ghi nhận trong tháng ${monthFormatted}`}
                             </div>
                             <div className="db-kpi-status-cue" style={{ color: stats.incidents > 0 ? '#ef4444' : '#10b981' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>{stats.incidents > 0 ? 'warning' : 'verified'}</span>
@@ -1078,9 +1100,9 @@ export default function DashboardView() {
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsTodayModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>
-                                    {dashboardPeriod === 'day' ? `DOANH THU NGÀY ${dateFormatted}` : 
-                                     dashboardPeriod === 'week' ? `DOANH THU TUẦN ${weekLabel}` : 
-                                     `DOANH THU THÁNG ${monthFormatted}`}
+                                    {dashboardPeriod === 'day' ? `DOANH THU NGÀY ${dateFormatted}` :
+                                        dashboardPeriod === 'week' ? `DOANH THU TUẦN ${weekLabel}` :
+                                            `DOANH THU THÁNG ${monthFormatted}`}
                                 </span>
                                 <span className="db-kpi-icon" style={{ color: '#059669' }}>
                                     <span className="material-symbols-outlined">payments</span>
@@ -1088,9 +1110,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueToday)}</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' : 
-                                 dashboardPeriod === 'week' ? `Tổng doanh thu trong tuần ${weekLabel}` : 
-                                 `Tổng doanh thu trong tháng ${monthFormatted}`}
+                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' :
+                                    dashboardPeriod === 'week' ? `Tổng doanh thu trong tuần ${weekLabel}` :
+                                        `Tổng doanh thu trong tháng ${monthFormatted}`}
                             </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
@@ -1110,9 +1132,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueMonth)}</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? `Tổng doanh thu tháng ${monthFormatted}` : 
-                                 dashboardPeriod === 'week' ? 'Doanh thu trung bình mỗi ngày trong tuần' : 
-                                 'Doanh thu trung bình mỗi ngày trong tháng'}
+                                {dashboardPeriod === 'day' ? `Tổng doanh thu tháng ${monthFormatted}` :
+                                    dashboardPeriod === 'week' ? 'Doanh thu trung bình mỗi ngày trong tuần' :
+                                        'Doanh thu trung bình mỗi ngày trong tháng'}
                             </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
@@ -1372,7 +1394,7 @@ export default function DashboardView() {
                                 <div className="db-card-head-row">
                                     <div>
                                         <p className="db-card-title">Sự cố gần đây</p>
-                                        <p className="db-card-desc">Các vé xử lý đặc biệt và nhật ký sự cố mới nhất</p>
+                                        <p className="db-card-desc">Các thẻ xử lý đặc biệt và nhật ký sự cố mới nhất</p>
                                     </div>
                                 </div>
                             </div>

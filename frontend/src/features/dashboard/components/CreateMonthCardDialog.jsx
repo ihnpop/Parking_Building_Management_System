@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import supabase from '../../../config/supabaseClient';
+import "./CreateMonthCardDialog.css";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -53,7 +54,11 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
     // ── Reset khi đóng/mở dialog & Tải danh mục loại xe, gói cước ─────
     useEffect(() => {
         if (isOpen) {
-            resetAll();
+            // Kiểm tra xem có state VNPay cần khôi phục không (sau khi redirect về từ VNPay)
+            const hasVNPayReturn = sessionStorage.getItem('vnpay_monthcard_pending');
+            if (!hasVNPayReturn) {
+                resetAll();
+            }
             const fetchMetadataAndCheckPending = async () => {
                 try {
                     const token = localStorage.getItem('token');
@@ -113,12 +118,12 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                     }
                     setPackages(pkgs);
 
-                    // 3. Đã tắt tự động khôi phục giao dịch chờ thanh toán khi mở Modal.
-                    // Giúp người dùng có thể tạo đăng ký thẻ tháng mới ngay lập tức từ Bước 1
-                    // mà không bị chặn bởi các giao dịch cũ chọn "Để sau".
-                    // Các giao dịch "Chờ thanh toán" sẽ được xử lý riêng tại tab "Nhật ký thẻ tháng".
+                    // 3. Khôi phục state nếu đang quay lại từ VNPay redirect
+                    if (hasVNPayReturn) {
+                        await restoreStateAfterVNPayReturn();
+                    }
                 } catch (err) {
-                    console.error('Lỗi tải danh mục đăng ký vé tháng:', err);
+                    console.error('Lỗi tải danh mục đăng ký thẻ tháng:', err);
                 }
             };
             fetchMetadataAndCheckPending();
@@ -165,6 +170,71 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             card_code: '',
             cccd_number: '' // Reset thông tin CCCD
         });
+    };
+
+    // ── Lưu state trước khi redirect sang VNPay ────────────────────
+    const saveStateBeforeVNPayRedirect = (data) => {
+        const stateToSave = {
+            formData,
+            vehiclePackageId: data.vehiclePackageId,
+            paymentOrderCode: data.orderCode,
+            payUrl: data.payUrl,
+            paymentMethod: 'vnpay',
+            contractAccepted: true,
+            timestamp: Date.now()
+        };
+        sessionStorage.setItem('vnpay_monthcard_pending', JSON.stringify(stateToSave));
+    };
+
+    // ── Khôi phục state sau khi VNPay redirect về ──────────────────
+    const restoreStateAfterVNPayReturn = async () => {
+        try {
+            const saved = sessionStorage.getItem('vnpay_monthcard_pending');
+            if (!saved) return false;
+            const state = JSON.parse(saved);
+            // Chỉ khôi phục nếu dữ liệu không quá 30 phút
+            if (Date.now() - state.timestamp > 30 * 60 * 1000) {
+                sessionStorage.removeItem('vnpay_monthcard_pending');
+                return false;
+            }
+            setFormData(state.formData);
+            setVehiclePackageId(state.vehiclePackageId);
+            setPaymentOrderCode(state.paymentOrderCode);
+            setPayUrl(state.payUrl);
+            setPaymentMethod('vnpay');
+            setContractAccepted(true);
+            setVerifyResult({ isReal: true, liveness_msg: 'Đã xác thực trước đó' });
+
+            // Kiểm tra trạng thái thực tế từ backend API
+            try {
+                const res = await axios.get(`${API}/month-card/payment-status/${state.paymentOrderCode}`, {
+                    headers: authHeaders()
+                });
+                if (res.data?.status === 'Đã thanh toán') {
+                    setPaymentStatus('paid');
+                    setStep(4);
+                } else if (res.data?.status === 'Thất bại') {
+                    setPaymentStatus('failed');
+                    setError('Giao dịch VNPay đã bị hủy hoặc không thành công.');
+                    setStep(4);
+                } else {
+                    setPaymentStatus('pending');
+                    setError('Giao dịch VNPay chưa được xác nhận thanh toán.');
+                    setStep(4);
+                }
+            } catch (err) {
+                setPaymentStatus('pending');
+                setStep(4);
+            }
+
+            // Xóa state sau khi đã khôi phục
+            sessionStorage.removeItem('vnpay_monthcard_pending');
+            return true;
+        } catch (e) {
+            console.error('Lỗi khôi phục state VNPay:', e);
+            sessionStorage.removeItem('vnpay_monthcard_pending');
+            return false;
+        }
     };
 
     // ── Kiểm tra và khôi phục giao dịch chờ thanh toán ─────────────
@@ -338,8 +408,10 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             setPayUrl(data.payUrl);
 
             if (paymentMethod === 'vnpay') {
-                // Mở trang VNPay trong tab mới
-                window.open(data.payUrl, '_blank');
+                // Lưu state trước khi redirect sang VNPay
+                saveStateBeforeVNPayRedirect(data);
+                // Mở trang VNPay trong tab hiện tại
+                window.location.href = data.payUrl;
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Lỗi khởi tạo thanh toán. Vui lòng thử lại.');
@@ -421,7 +493,9 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
             if (paymentOrderCode) {
                 sessionStorage.setItem(`finalized_order_${paymentOrderCode}`, '1');
             }
-            setSuccessMessage('Đăng ký vé tháng thành công!');
+            // Xóa state VNPay pending nếu còn sót
+            sessionStorage.removeItem('vnpay_monthcard_pending');
+            setSuccessMessage('Đăng ký thẻ tháng thành công!');
             setTimeout(() => { onSuccess?.(); onClose(); }, 1500);
         } catch (err) {
             setError(err.response?.data?.error || 'Không thể hoàn tất đăng ký.');
@@ -449,7 +523,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
 
                 {/* Header */}
                 <div className="renew-modal-header">
-                    <h2>Đăng Ký Vé Tháng</h2>
+                    <h2>Đăng Ký thẻ Tháng</h2>
                     <button type="button" className="renew-modal-close" onClick={onClose} disabled={loading || initiating}>
                         <span className="material-symbols-outlined">close</span>
                     </button>
@@ -667,7 +741,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                     <p style={{ fontSize: 13, color: '#555', marginTop: 12 }}>
                                         Bên cung cấp dịch vụ nhận giữ xe theo tháng cho khách hàng tại khu vực bãi xe được chỉ định.
                                         Khách hàng cam kết cung cấp thông tin chính xác và tuân thủ toàn bộ nội quy gửi xe.
-                                        Vé tháng có hiệu lực theo thời hạn của gói đã đăng ký.
+                                        thẻ tháng có hiệu lực theo thời hạn của gói đã đăng ký.
                                     </p>
                                 </div>
 
@@ -714,7 +788,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                                 style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}
                                                 onClick={() => {
                                                     if (payUrl) {
-                                                        window.open(payUrl, '_blank');
+                                                        window.location.href = payUrl;
                                                     } else {
                                                         handleInitiatePayment();
                                                     }
@@ -745,7 +819,7 @@ export default function CreateMonthCardDialog({ isOpen, onClose, onSuccess }) {
                                 )}
 
                                 {/* Nút khởi tạo thanh toán */}
-                                {!paymentStatus && (
+                                {(!paymentStatus || paymentStatus === 'failed') && (
                                     <button type="button" onClick={handleInitiatePayment} disabled={!contractAccepted || initiating}
                                         style={{ padding: '12px 20px', borderRadius: 8, border: 'none', background: (!contractAccepted || initiating) ? '#e0e0e0' : paymentMethod === 'vnpay' ? 'linear-gradient(135deg,#004bca,#002d80)' : 'linear-gradient(135deg,#059669,#065f46)', color: (!contractAccepted || initiating) ? '#888' : '#fff', fontWeight: 700, cursor: (!contractAccepted || initiating) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 15 }}>
                                         {initiating ? <><span className="material-symbols-outlined animate-spin" style={{ fontSize: 20 }}>sync</span>Đang xử lý...</> :

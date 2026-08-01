@@ -605,7 +605,7 @@ export const deleteMonthCard = async (cardId, performedBy) => {
   // Kiểm tra thẻ có tồn tại và chưa bị xóa trước đó
   const card = await monthCardRepository.findById(cardId);
   if (!card) {
-    const e = new Error('Không tìm thấy vé tháng hoặc đã bị xóa');
+    const e = new Error('Không tìm thấy thẻ tháng hoặc đã bị xóa');
     e.statusCode = 404; // Trả về HTTP 404 để frontend xử lý đúng
     throw e;
   }
@@ -851,9 +851,9 @@ export const getMonthCardLogs = async (buildingId = null) => {
       let vehicleId = null;
       let cardId = null;
       let reportId = null;
-      let type = p.payment_type === 'Gia hạn vé tháng' ? 'Gia hạn'
-               : p.payment_type === 'Phí cấp lại thẻ' ? 'Thẻ đã cấp lại'
-               : 'Cấp mới';
+      let type = (p.payment_type === 'Gia hạn thẻ tháng' || p.payment_type === 'Gia hạn vé tháng') ? 'Gia hạn'
+        : p.payment_type === 'Phí cấp lại thẻ' ? 'Thẻ đã cấp lại'
+          : 'Cấp mới';
 
       const noteStr = typeof p.note === 'string' ? p.note : (p.note ? JSON.stringify(p.note) : '');
 
@@ -874,7 +874,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
       }
 
       if (noteObj) {
-        if (p.payment_type === 'Gia hạn vé tháng') {
+        if (p.payment_type === 'Gia hạn thẻ tháng' || p.payment_type === 'Gia hạn vé tháng') {
           cardNo = noteObj.cardCode || '---';
           vehicleId = noteObj.vehicleId || null;
         } else if (p.payment_type === 'Phí cấp lại thẻ') {

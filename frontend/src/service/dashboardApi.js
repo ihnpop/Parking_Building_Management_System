@@ -1,30 +1,15 @@
-import axios from "axios";
-import supabase from "../config/supabaseClient";
+import API from "./apiClient";
+import { formatVND } from "../utils/formatters";
+import { dashboardFallbackData } from "../utils/dashboardConstants";
 
-const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL
-});
-
-// Tự động lấy token Supabase mới nhất hoặc fallback từ localStorage trước mỗi request
-API.interceptors.request.use(async (config) => {
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-            config.headers.Authorization = `Bearer ${session.access_token}`;
-            return config;
-        }
-    } catch (err) {
-        // ignore
-    }
-    const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// Re-export utility formatters & fallback constants for backward compatibility
+export { formatVND, dashboardFallbackData };
 
 /**
  * Gọi API lấy dữ liệu thống kê tổng quan và các biểu đồ
+ * @param {string} filterType - 'day' | 'week' | 'month'
+ * @param {string} date - Ngày cụ thể (YYYY-MM-DD)
+ * @param {string} month - Tháng cụ thể (YYYY-MM)
  */
 export const fetchAllDashboardData = async (filterType = 'day', date = '', month = '') => {
     const response = await API.get("/dashboard/stats", {
@@ -47,27 +32,4 @@ export const fetchTodayRevenueDetails = async () => {
 export const fetchMonthlyRevenueDetails = async () => {
     const response = await API.get("/dashboard/revenue/month");
     return response.data;
-};
-
-/** Format số tiền VND: 14000 → "14.000 ₫" */
-export function formatVND(amount) {
-    if (amount === null || amount === undefined || isNaN(Number(amount))) return '0 ₫';
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-        maximumFractionDigits: 0,
-    }).format(Number(amount));
-}
-
-export const dashboardFallbackData = {
-    revenueTrendBars: [
-        { label: 'T2', h: 120, peak: false },
-        { label: 'T3', h: 170, peak: false },
-        { label: 'T4', h: 95, peak: false },
-        { label: 'T5', h: 140, peak: false },
-        { label: 'T6', h: 210, peak: false },
-        { label: 'T7', h: 230, peak: true },
-        { label: 'CN', h: 150, peak: false },
-    ],
-    revenueTrendMaxBar: 230,
 };

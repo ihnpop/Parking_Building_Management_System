@@ -1,9 +1,9 @@
 /**
  * renewalService.js
- * Service xử lý nghiệp vụ Gia hạn Vé tháng (Nhánh A — Gia hạn nối tiếp).
+ * Service xử lý nghiệp vụ Gia hạn thẻ tháng (Nhánh A — Gia hạn nối tiếp).
  *
  * Chỉ hỗ trợ gia hạn khi thẻ CÒN HẠN (status='Hoạt động', end_date >= TODAY).
- * Nếu thẻ đã hết hạn → trả lỗi, hướng dẫn dùng chức năng Đăng ký vé tháng mới.
+ * Nếu thẻ đã hết hạn → trả lỗi, hướng dẫn dùng chức năng Đăng ký thẻ tháng mới.
  *
  * Luồng:
  *   1. checkRenewalEligibility(cardId) — kiểm tra điều kiện đầu vào
@@ -84,7 +84,7 @@ export async function checkRenewalEligibility(cardId) {
 
     if (!expiryDate || expiryDate < today) {
         throw new Error(
-            `Vé tháng ${card.code} đã hết hạn. Vui lòng sử dụng chức năng "Đăng ký vé tháng mới" để tiếp tục sử dụng dịch vụ.`
+            `thẻ tháng ${card.code} đã hết hạn. Vui lòng sử dụng chức năng "Đăng ký thẻ tháng mới" để tiếp tục sử dụng dịch vụ.`
         );
     }
 
@@ -97,7 +97,7 @@ export async function checkRenewalEligibility(cardId) {
     // 4. Lấy vehicle_package đang hoạt động của xe
     const vehiclePackage = await renewalRepository.findActiveVehiclePackage(registration.vehicle_id);
     if (!vehiclePackage) {
-        throw new Error('Không tìm thấy gói vé tháng đang hoạt động.');
+        throw new Error('Không tìm thấy gói thẻ tháng đang hoạt động.');
     }
 
     // 5. Kiểm tra không có pending payment đang chờ xử lý (BR-06)
@@ -140,8 +140,8 @@ export async function initiateRenewal({ cardId, packageId, paymentMethod, ipAddr
 
     // Lấy thông tin gói đã chọn (snapshot giá - BR-14)
     const pkg = await renewalRepository.findPackageById(packageId);
-    if (!pkg) throw new Error('Không tìm thấy gói vé tháng đã chọn.');
-    if (pkg.status !== 'Hoạt động') throw new Error('Gói vé tháng đã chọn không còn khả dụng.');
+    if (!pkg) throw new Error('Không tìm thấy gói thẻ tháng đã chọn.');
+    if (pkg.status !== 'Hoạt động') throw new Error('Gói thẻ tháng đã chọn không còn khả dụng.');
 
     const amount = Number(pkg.price);
     const durationMonth = Number(pkg.duration_month);
@@ -218,7 +218,7 @@ export async function confirmRenewalCash(orderCode) {
     if (payment.status !== 'Chờ thanh toán') {
         throw new Error('Giao dịch đã được xử lý trước đó.');
     }
-    if (payment.payment_type !== 'Gia hạn vé tháng') {
+    if (payment.payment_type !== 'Gia hạn vé tháng' && payment.payment_type !== 'Gia hạn thẻ tháng') {
         throw new Error('Giao dịch này không phải gia hạn vé tháng.');
     }
 
@@ -310,7 +310,7 @@ export async function processRenewalSuccess(orderCode) {
             vehicle_package_id: vehiclePackageId,
             end_date: currentExpiry,
         },
-        note: `Gia hạn vé tháng ${cardCode} qua ${payment.payment_method === 'vnpay' ? 'VNPay' : 'tiền mặt'} - Đơn: ${orderCode}`,
+        note: `Gia hạn thẻ tháng ${cardCode} qua ${payment.payment_method === 'vnpay' ? 'VNPay' : 'tiền mặt'} - Đơn: ${orderCode}`,
         performed_by: payment.created_by || null,
         performed_at: new Date().toISOString(),
     });
@@ -332,7 +332,7 @@ export async function processRenewalSuccess(orderCode) {
  * Trả về thông tin cần thiết để hiển thị dialog gia hạn:
  * - Thông tin thẻ + thông tin xe + khách hàng
  * - Trạng thái (còn hạn / hết hạn)
- * - Danh sách gói vé tháng có thể chọn (theo loại xe)
+ * - Danh sách gói thẻ tháng có thể chọn (theo loại xe)
  * @param {string} cardId
  * @param {string} [userId]
  */
@@ -455,6 +455,6 @@ export async function runExpiryJob() {
     // 3. Xóa liên kết active_vehicle_package_id trên các thẻ tương ứng
     await renewalRepository.clearActiveVehiclePackage(vpIds);
 
-    console.log(`[ExpiryJob] Đã expire ${expiredVps.length} gói vé tháng.`);
+    console.log(`[ExpiryJob] Đã expire ${expiredVps.length} gói thẻ tháng.`);
     return { expired: expiredVps.length };
 }

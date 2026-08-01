@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getMonthCardLogs } from '../../../service/monthCardApi';
 import axios from 'axios';
+import "./MonthCardLogPage.css";
 
 function formatVND(amount) {
     const num = Number(amount);
@@ -234,7 +235,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
             setError(null);
         } catch (err) {
             console.error("Error loading month card logs:", err);
-            setError("Không thể tải nhật ký giao dịch vé tháng. Vui lòng thử lại sau!");
+            setError("Không thể tải nhật ký giao dịch thẻ tháng. Vui lòng thử lại sau!");
         } finally {
             setLoading(false);
         }
@@ -329,29 +330,29 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
             d = dateInput;
         }
 
-    if (d) {
-        const timePart = new Intl.DateTimeFormat('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-            timeZone: 'Asia/Ho_Chi_Minh',
-        }).format(d);
-        const datePart = new Intl.DateTimeFormat('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            timeZone: 'Asia/Ho_Chi_Minh',
-        }).format(d);
-        return (
-            <div className="log-time-column">
-                <span className="log-time-clock">{timePart}</span>
-                <span className="log-time-date">{datePart}</span>
-            </div>
-        );
-    }
+        if (d) {
+            const timePart = new Intl.DateTimeFormat('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Ho_Chi_Minh',
+            }).format(d);
+            const datePart = new Intl.DateTimeFormat('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'Asia/Ho_Chi_Minh',
+            }).format(d);
+            return (
+                <div className="log-time-column">
+                    <span className="log-time-clock">{timePart}</span>
+                    <span className="log-time-date">{datePart}</span>
+                </div>
+            );
+        }
 
-    return <span className="log-time-clock">{String(dateInput)}</span>;
+        return <span className="log-time-clock">{String(dateInput)}</span>;
     };
 
     const getStatusClass = (status) => {
@@ -458,13 +459,13 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         </div>
                     </div>
 
-                    {/* Ô 4: Doanh thu vé tháng */}
+                    {/* Ô 4: Doanh thu thẻ tháng */}
                     <div className="lost-kpi-card">
                         <div className="lost-kpi-header">
                             <div className="lost-kpi-icon-box icon-orange">
                                 <span className="material-symbols-outlined">payments</span>
                             </div>
-                            <span className="lost-kpi-title">Doanh thu vé tháng</span>
+                            <span className="lost-kpi-title">Doanh thu thẻ tháng</span>
                         </div>
                         <div className="lost-kpi-body">
                             <div className="lost-kpi-value val-orange" style={{ fontSize: '1.1rem' }}>
@@ -600,7 +601,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 {error && <div style={{ color: '#ff4d4d', padding: '20px', textAlign: 'center', fontWeight: 'bold' }}>{error}</div>}
 
                 {loading ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký vé tháng...</div>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Đang tải nhật ký thẻ tháng...</div>
                 ) : (
                     <>
                         <div style={{ width: '100%', overflowX: 'auto' }}>

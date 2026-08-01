@@ -155,7 +155,7 @@ export const checkExistingPayment = async (sessionId, paymentType = 'Vé lượt
     .from('payment')
     .select('payment_id')
     .eq('session_id', sessionId)
-    .eq('payment_type', paymentType)
+    .in('payment_type', ['Vé lượt', 'thẻ lượt', 'vé lượt'])
     .maybeSingle();
   return data;
 };

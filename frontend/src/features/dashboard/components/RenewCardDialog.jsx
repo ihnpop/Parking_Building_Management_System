@@ -1,11 +1,11 @@
 /**
  * RenewCardDialog.jsx
- * Dialog gia hạn vé tháng — hỗ trợ VNPay và tiền mặt.
+ * Dialog gia hạn thẻ tháng — hỗ trợ VNPay và tiền mặt.
  *
  * Luồng:
  *  - Bước 1 (Load): Gọi getRenewalInfo → kiểm tra thẻ còn hạn không
  *    • Còn hạn  → hiển thị wizard chọn gói + phương thức
- *    • Hết hạn  → hiển thị thông báo "Không thể gia hạn", hướng dẫn dùng "Đăng ký vé tháng mới"
+ *    • Hết hạn  → hiển thị thông báo "Không thể gia hạn", hướng dẫn dùng "Đăng ký thẻ tháng mới"
  *  - Bước 2 (Chọn gói + phương thức): Dropdown gói + radio VNPay/Tiền mặt
  *  - Bước 3 (Xác nhận): Preview thời hạn mới, tổng tiền
  *    • VNPay → redirect sang cổng thanh toán
@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getRenewalInfo, initiateRenewal, confirmRenewalCash } from '../../../service/monthCardApi';
+import "./RenewCardDialog.css";
 
 // ─── Helpers ──────────────────────────────────────────────────
 // Delay (ms) trước khi đóng dialog sau khi gia hạn thành công
@@ -46,18 +47,18 @@ function ExpiredWarning({ cardCode, onClose }) {
                 </span>
             </div>
             <h3 className="rcd-expired-title">
-                Vé tháng đã hết hạn
+                thẻ tháng đã hết hạn
             </h3>
             <p className="rcd-expired-desc">
                 Thẻ <strong>{cardCode}</strong> đã quá ngày hiệu lực. Không thể gia hạn nối tiếp.
                 <br />
-                Vui lòng sử dụng chức năng <strong>"Đăng ký vé tháng"</strong> để đăng ký kỳ mới.
+                Vui lòng sử dụng chức năng <strong>"Đăng ký thẻ tháng"</strong> để đăng ký kỳ mới.
             </p>
             <div className="rcd-expired-note">
                 <span className="material-symbols-outlined">
                     info
                 </span>
-                Ngày hiệu lực của vé mới sẽ tính từ ngày đăng ký mới, không cộng nối vào ngày hết hạn cũ.
+                Ngày hiệu lực của thẻ mới sẽ tính từ ngày đăng ký mới, không cộng nối vào ngày hết hạn cũ.
             </div>
             <button
                 type="button"
@@ -369,7 +370,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
                             ? 'Xác nhận thu tiền mặt'
                             : step === 'vnpay-pending'
                                 ? 'Thanh toán VNPay đang chờ'
-                                : 'Gia hạn Vé tháng'
+                                : 'Gia hạn thẻ tháng'
                         }
                     </h2>
                     <button

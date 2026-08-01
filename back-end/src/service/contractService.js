@@ -1,58 +1,23 @@
-import supabase from "../config/supabaseClient.js";
 import * as contractRepository from "../repositories/contractRepository.js";
 import axios from "axios";
 import crypto from "crypto";
-
-/**
- * Lấy chi tiết thông tin đăng ký để phục vụ tạo hợp đồng
- */
-const getRegistrationDetails = async (registrationId) => {
-  const { data, error } = await supabase
-    .from('card_registrations')
-    .select(`
-      registration_id,
-      status,
-      created_at,
-      card_id,
-      vehicle_id,
-      vehicle (
-        plate_number,
-        vehicle_type (
-          name
-        ),
-        customer (
-          customer_id,
-          full_name,
-          phone,
-          email
-        )
-      ),
-      card (
-        code,
-        type,
-        expired_date
-      )
-    `)
-    .eq('registration_id', registrationId)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Không tìm thấy thông tin đăng ký thẻ.");
-  return data;
-};
 
 /**
  * Gửi email hợp đồng qua Resend API
  */
 const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) => {
   const apiKey = process.env.RESEND_API_KEY;
+  // const apiUrl = process.env.RESEND_API_URL;
+  // const fromEmail = process.env.MAIL_FROM;
+
+  const apiUrl = process.env.RESEND_API_URL || "https://api.resend.com/emails";
   const fromEmail = process.env.MAIL_FROM || "onboarding@resend.dev";
 
   if (!apiKey) {
     throw new Error("Chưa cấu hình RESEND_API_KEY trong file .env");
   }
 
-  const subject = `[PBMS] Yêu cầu ký hợp đồng đăng ký vé tháng gửi xe - Số ${contractNo}`;
+  const subject = `[PBMS] Yêu cầu ký hợp đồng đăng ký thẻ tháng gửi xe - Số ${contractNo}`;
   const htmlContent = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #fffaf7;">
       <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #ff8c00;">
@@ -63,7 +28,7 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
       <div style="padding: 24px 0; color: #2d3748; line-height: 1.6;">
         <p style="font-size: 16px; font-weight: bold;">Kính chào Quý khách ${customerName},</p>
         
-        <p>Yêu cầu đăng ký vé tháng gửi xe của quý khách đã được duyệt thành công trên hệ thống PBMS.</p>
+        <p>Yêu cầu đăng ký thẻ tháng gửi xe của quý khách đã được duyệt thành công trên hệ thống PBMS.</p>
         <p>Để hoàn tất thủ tục và kích hoạt thẻ tháng, quý khách vui lòng xem qua điều khoản và xác nhận ký hợp đồng điện tử bằng cách click vào nút bên dưới:</p>
         
         <div style="text-align: center; margin: 30px 0;">
@@ -100,7 +65,7 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
 
   try {
     const response = await axios.post(
-      "https://api.resend.com/emails",
+      apiUrl,
       {
         from: `BQL Bãi Xe PBMS <${fromEmail}>`,
         to: [toEmail],
@@ -125,8 +90,8 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
  * Tạo & Gửi Email ký hợp đồng cho khách hàng
  */
 export const sendContract = async (registrationId) => {
-  // 1. Lấy chi tiết thông tin đăng ký
-  const reg = await getRegistrationDetails(registrationId);
+  // 1. Lấy chi tiết thông tin đăng ký từ Repository
+  const reg = await contractRepository.getRegistrationDetails(registrationId);
   const customer = reg.vehicle?.customer;
 
   if (!customer || !customer.email) {
@@ -167,7 +132,7 @@ export const sendContract = async (registrationId) => {
   }
 
   // 4. Tạo đường link ký hợp đồng
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  const frontendUrl = process.env.FRONTEND_URL || "https://pbms.id.vn";
   const signLink = `${frontendUrl}/#/sign-contract/${token}`;
 
   // 5. Gửi email qua Resend
@@ -191,15 +156,80 @@ export const getContractByToken = async (token) => {
     throw new Error("Mã xác thực hợp đồng không tồn tại.");
   }
 
-  // Lấy chi tiết thẻ từ monthCardService
-  const cardId = contract.card_registrations?.card_id;
+  const reg = Array.isArray(contract.card_registrations)
+    ? contract.card_registrations[0]
+    : contract.card_registrations;
+
+  const cardId = reg?.card_id;
   if (!cardId) {
     throw new Error("Không tìm thấy thông tin thẻ liên kết với hợp đồng.");
   }
 
-  // Import động để tránh vòng lặp phụ thuộc (circular dependency)
-  const monthCardService = await import("./monthCardService.js");
-  const cardDetails = await monthCardService.getCardDetailsForContract(cardId);
+  // Lấy chi tiết thẻ trực tiếp từ contractRepository
+  const rawCard = await contractRepository.getCardDetailsForContract(cardId);
+  if (!rawCard) {
+    throw new Error("Không tìm thấy dữ liệu chi tiết thẻ.");
+  }
+
+  const activeReg = Array.isArray(rawCard.card_registrations)
+    ? (rawCard.card_registrations.find(r => r.status === 'Hoạt động') || rawCard.card_registrations[0])
+    : rawCard.card_registrations;
+
+  const vehicle = activeReg?.vehicle;
+  const customer = vehicle?.customer;
+  const vehicleType = vehicle?.vehicle_type;
+
+  // Lấy số CCCD từ customer_kyc
+  let cccdNumber = '';
+  const kycList = customer?.customer_kyc;
+  if (Array.isArray(kycList) && kycList.length > 0) {
+    const validKyc = kycList
+      .filter(k => k.cccd_number)
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (validKyc.length > 0) {
+      cccdNumber = validKyc[0].cccd_number;
+    }
+  }
+
+  // Lấy gói dịch vụ
+  const vpList = vehicle?.vehicle_package;
+  const activeVp = Array.isArray(vpList)
+    ? (vpList.find(vp => vp.status === 'Hoạt động') || vpList[0])
+    : vpList;
+
+  let price = activeVp?.package?.price || 0;
+  if (!price && vehicleType?.name) {
+    price = vehicleType.name === 'Ô tô' ? 850000 : 300000;
+  }
+
+  const cardDetails = {
+    card_id: rawCard.card_id,
+    card_code: rawCard.code,
+    code: rawCard.code,
+    type: vehicleType?.name || rawCard.type || '',
+    customer: {
+      customer_id: customer?.customer_id,
+      full_name: customer?.full_name || '',
+      phone: customer?.phone || '',
+      email: customer?.email || '',
+      cccd_number: cccdNumber
+    },
+    vehicle: {
+      vehicle_id: vehicle?.vehicle_id,
+      plate_number: vehicle?.plate_number || '',
+      type_name: vehicleType?.name || '',
+      vehicle_type: vehicleType
+    },
+    package: {
+      start_date: activeVp?.start_date || rawCard.created_at,
+      end_date: activeVp?.end_date || rawCard.expired_date,
+      price: price
+    },
+    payment: {
+      status: 'Đã thanh toán'
+    },
+    raw: rawCard
+  };
 
   return {
     contract_id: contract.contract_id,
@@ -207,6 +237,7 @@ export const getContractByToken = async (token) => {
     status: contract.status,
     token_expires_at: contract.token_expires_at,
     signed_at: contract.signed_at,
+    signed_ip: contract.signed_ip,
     cardDetails
   };
 };

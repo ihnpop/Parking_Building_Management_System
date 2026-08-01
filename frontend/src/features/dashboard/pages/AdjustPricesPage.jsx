@@ -1,30 +1,52 @@
+// Import hooks React: useState (quản lý state) và useEffect (lắng nghe side-effect)
 import React, { useState, useEffect } from 'react';
+// Import hook useNotification để hiển thị toast thông báo kết quả cập nhật giá
 import { useNotification } from '../../../context/NotificationContext';
+// Import các Dialog Modal chỉnh sửa biểu giá (giá lượt, giá tháng, phí cấp lại thẻ)
 import { EditSessionPriceModal, EditMonthlyPriceModal, EditReissueFeeModal } from '../components/EditPricesDialog';
+// Import các API service gọi backend cấu hình lại giá dịch vụ gửi xe
 import { getPrices, updateSessionPrices, updateMonthlyPrices, updateCardReissueFee } from '../../../service/priceApi';
+// Import CSS riêng của trang điều chỉnh biểu giá
+import "./AdjustPricesPage.css";
 
+// Hàm tiện ích format giá tiền VND (ví dụ: 15000 -> 15.000 ₫)
 const formatVND = (value) => {
     if (!value && value !== 0) return '0 ₫';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page Component: Trang Điều Chỉnh Biểu Giá (Chỉ dành cho Manager) ────────────────────────────────
 export default function AdjustPricesPage() {
+    // Lấy hàm showToast từ NotificationContext để hiển thị thông báo
     const { showToast } = useNotification();
+    
+    // State lưu tab hiện tại ('session': Giá lượt, 'monthly': Giá tháng)
     const [activeTab, setActiveTab] = useState('session');
+    // State lưu tên tòa nhà/bãi xe hiện tại
     const [buildingName, setBuildingName] = useState('');
+    // State lưu danh sách cấu hình bảng giá lượt theo loại phương tiện
     const [sessionPrices, setSessionPrices] = useState([]);
+    // State lưu danh sách cấu hình bảng giá tháng (gói 1, 3, 6, 12 tháng)
     const [monthlyPrices, setMonthlyPrices] = useState([]);
+    // State kiểm soát hiệu ứng loading màn hình khi đang fetch dữ liệu
     const [loading, setLoading] = useState(true);
+    // State lưu thông báo lỗi nếu không lấy được bảng giá từ server
     const [error, setError] = useState(null);
+    // State kiểm soát trạng thái disable nút bấm khi đang gửi request lưu thay đổi
     const [saving, setSaving] = useState(false);
 
+    // State lưu đối tượng thông tin giá lượt đang được chọn để chỉnh sửa (mở modal edit session)
     const [editingSession, setEditingSession] = useState(null);
+    // State lưu đối tượng thông tin giá tháng đang được chọn để chỉnh sửa (mở modal edit monthly)
     const [editingMonthly, setEditingMonthly] = useState(null);
+    // State lưu mức phí cấp lại thẻ khi người dùng làm mất thẻ
     const [cardReissueFee, setCardReissueFee] = useState(50000);
+    // State kiểm soát đóng/mở modal sửa phí cấp lại thẻ
     const [isEditingReissueFee, setIsEditingReissueFee] = useState(false);
+    // State tạm thời phục vụ ô input chỉnh sửa phí cấp lại thẻ
     const [tempReissueFee, setTempReissueFee] = useState('');
 
+    // Hàm fetch dữ liệu toàn bộ bảng giá của tòa nhà từ API backend
     const fetchPrices = async () => {
         try {
             setLoading(true);
@@ -45,10 +67,12 @@ export default function AdjustPricesPage() {
         }
     };
 
+    // Tự động fetch dữ liệu biểu giá khi component mount
     useEffect(() => {
         fetchPrices();
     }, []);
 
+    // Hàm xử lý lưu biểu giá gửi xe lượt sau khi chỉnh sửa qua Modal
     const handleSaveSession = async (updated) => {
         try {
             setSaving(true);
@@ -64,7 +88,7 @@ export default function AdjustPricesPage() {
                 setSessionPrices(data.sessionPrices || []);
                 setMonthlyPrices(data.monthlyPrices || []);
             }
-            setEditingSession(null);
+            setEditingSession(null); // Đóng modal edit
             showToast(`Đã cập nhật biểu giá lượt thành công cho ${updated.vehicleType}!`, 'success');
         } catch (err) {
             console.error("Lỗi cập nhật giá lượt:", err);
@@ -75,6 +99,7 @@ export default function AdjustPricesPage() {
         }
     };
 
+    // Hàm xử lý lưu biểu giá thẻ xe tháng sau khi chỉnh sửa qua Modal
     const handleSaveMonthly = async (updated) => {
         try {
             setSaving(true);
@@ -90,7 +115,7 @@ export default function AdjustPricesPage() {
                 setSessionPrices(data.sessionPrices || []);
                 setMonthlyPrices(data.monthlyPrices || []);
             }
-            setEditingMonthly(null);
+            setEditingMonthly(null); // Đóng modal edit
             showToast(`Đã cập nhật biểu giá tháng thành công cho ${updated.vehicleType}!`, 'success');
         } catch (err) {
             console.error("Lỗi cập nhật giá tháng:", err);
@@ -101,6 +126,7 @@ export default function AdjustPricesPage() {
         }
     };
 
+    // Hàm xử lý lưu mức phí dịch vụ cấp lại thẻ (sau khi làm mất thẻ)
     const handleSaveReissueFee = async (newFee) => {
         const fee = Number(newFee !== undefined ? newFee : tempReissueFee);
         if (isNaN(fee) || fee < 0) {
@@ -112,7 +138,7 @@ export default function AdjustPricesPage() {
             await updateCardReissueFee({ cardReissueFee: fee });
             setCardReissueFee(fee);
             setTempReissueFee(fee); // Cập nhật lại state nội bộ
-            setIsEditingReissueFee(false);
+            setIsEditingReissueFee(false); // Đóng modal
             showToast('Đã cập nhật phí dịch vụ thành công!', 'success');
         } catch (err) {
             console.error("Lỗi cập nhật phí cấp lại thẻ:", err);
@@ -123,7 +149,7 @@ export default function AdjustPricesPage() {
         }
     };
 
-
+    // Giao diện Spinner hiển thị trong lúc tải bảng giá
     if (loading) {
         return (
             <div className="ap-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
@@ -135,6 +161,7 @@ export default function AdjustPricesPage() {
         );
     }
 
+    // Giao diện cảnh báo lỗi nếu không tải được biểu giá từ server
     if (error) {
         return (
             <div className="ap-page" style={{ padding: '40px 20px', textAlign: 'center' }}>
@@ -155,7 +182,7 @@ export default function AdjustPricesPage() {
 
     return (
         <div className="mc-page">
-            {/* ── Action Bar (tab switcher + info) ── */}
+            {/* ── Action Bar: Nút chuyển đổi Tab giữa "Giá theo lượt" và "Giá theo tháng" ── */}
             <div className="mc-action-bar">
                 <div className="mc-filters" style={{ gap: '8px' }}>
                     <button
@@ -175,14 +202,16 @@ export default function AdjustPricesPage() {
                 </div>
             </div>
 
-            {/* ── SESSION PRICES TAB ── */}
+            {/* ── TAB BIỂU GIÁ THEO LƯỢT (SESSION PRICES) ── */}
             {activeTab === 'session' && (
                 <div className="mc-table-card" style={{ padding: '20px' }}>
+                    {/* Thanh thông tin hướng dẫn */}
                     <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
                         <span>Giá lượt tính theo giờ. Khách gửi xe trả tiền theo thời gian thực tế trong tòa nhà.</span>
                     </div>
 
+                    {/* Lưới hiển thị từng card loại xe (Ô tô, Xe máy, Xe điện, ...) */}
                     <div className="ap-cards-grid">
                         {sessionPrices.map(item => (
                             <div key={item.id} className="ap-price-card" style={{ '--card-accent': item.color }}>
@@ -194,6 +223,7 @@ export default function AdjustPricesPage() {
                                         <h3 className="ap-card-name">{item.vehicleType}</h3>
                                         <span className="ap-card-type-badge">Giá lượt</span>
                                     </div>
+                                    {/* Nút mở modal chỉnh sửa giá lượt cho loại xe này */}
                                     <button
                                         className="mc-btn mc-btn-outline"
                                         style={{ padding: '8px 12px', fontSize: '13px' }}
@@ -206,6 +236,7 @@ export default function AdjustPricesPage() {
                                 </div>
 
                                 <div className="ap-card-body">
+                                    {/* Hiển thị danh sách khung giờ lũy tiến nếu có */}
                                     {item.timeSlots && item.timeSlots.length > 0 ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px dashed #e2e8f0' }}>
                                             {item.timeSlots.map((s, sIdx) => (
@@ -216,6 +247,7 @@ export default function AdjustPricesPage() {
                                             ))}
                                         </div>
                                     ) : (
+                                        /* Hiển thị giờ đầu & giờ tiếp theo */
                                         <div className="ap-price-row">
                                             <div className="ap-price-item">
                                                 <span className="ap-price-label">Giờ đầu</span>
@@ -229,13 +261,13 @@ export default function AdjustPricesPage() {
                                         </div>
                                     )}
 
+                                    {/* Hiển thị mức trần tối đa trong ngày (Day Max) */}
                                     <div className="ap-day-max-row">
                                         <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#94a3b8' }}>today</span>
                                         <span className="ap-day-max-label">Tối đa / ngày:</span>
                                         <span className="ap-day-max-value" style={{ color: item.color }}>{formatVND(item.dayMax)}</span>
                                     </div>
                                 </div>
-
 
                                 <div className="ap-card-accent-bar" style={{ background: item.color }} />
                             </div>
@@ -244,12 +276,12 @@ export default function AdjustPricesPage() {
                 </div>
             )}
 
-            {/* ── MONTHLY PRICES TAB ── */}
+            {/* ── TAB BIỂU GIÁ thẻ THÁNG (MONTHLY PRICES) ── */}
             {activeTab === 'monthly' && (
                 <div className="mc-table-card" style={{ padding: '20px' }}>
                     <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                         <span className="material-symbols-outlined">info</span>
-                        <span>Giá tháng áp dụng khi khách đăng ký gói vé tháng tại tòa nhà.</span>
+                        <span>Giá tháng áp dụng khi khách đăng ký gói thẻ tháng tại tòa nhà.</span>
                     </div>
 
                     <div className="ap-monthly-grid">
@@ -263,6 +295,7 @@ export default function AdjustPricesPage() {
                                         <h3 className="ap-card-name">{item.vehicleType}</h3>
                                         <span className="ap-card-type-badge ap-card-type-badge--monthly">Giá tháng</span>
                                     </div>
+                                    {/* Nút mở modal sửa bảng giá thẻ tháng */}
                                     <button
                                         className="mc-btn mc-btn-outline"
                                         style={{ padding: '8px 12px', fontSize: '13px' }}
@@ -274,6 +307,7 @@ export default function AdjustPricesPage() {
                                     </button>
                                 </div>
 
+                                {/* Khung hiển thị chi tiết các gói 1, 3, 6, 12 tháng */}
                                 <div className="ap-monthly-packages">
                                     <div className="ap-pkg-row">
                                         <div className="ap-pkg-cell">
@@ -307,7 +341,7 @@ export default function AdjustPricesPage() {
                 </div>
             )}
 
-            {/* ── PHÍ DỊCH VỤ KHÁC ── */}
+            {/* ── SECTION KHỐI PHÍ DỊCH VỤ KHÁC (CẤP LẠI THẺ / MẤT THẺ) ── */}
             <div className="mc-table-card" style={{ padding: '20px', marginTop: '20px' }}>
                 <div className="ap-section-info" style={{ marginBottom: '20px' }}>
                     <span className="material-symbols-outlined">info</span>
@@ -344,7 +378,7 @@ export default function AdjustPricesPage() {
                 </div>
             </div>
 
-            {/* ── Modals ── */}
+            {/* ── CÁC MODAL HỘP THOẠI POPUP CHỈNH SỬA BIỂU GIÁ ── */}
             {editingSession && (
                 <EditSessionPriceModal
                     item={editingSession}

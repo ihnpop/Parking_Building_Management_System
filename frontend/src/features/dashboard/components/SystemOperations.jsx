@@ -16,6 +16,19 @@ import supabase from '../../../config/supabaseClient';
 import { useNotification } from '../../../context/NotificationContext';
 import ExitPaymentPanel from './ExitPaymentPanel';
 import { normalizePlate, validatePlateNumber } from '../../../utils/plateValidation';
+import "./SystemOperations.css";
+
+const normalizeVehicleTypeName = (name) => {
+    if (!name) return '';
+    const clean = name.trim().toLowerCase().normalize('NFC');
+    if (clean.includes('ô tô') || clean.includes('oto') || clean.includes('car') || clean.includes('ôtô')) {
+        return 'Ô tô';
+    }
+    if (clean.includes('xe máy') || clean.includes('xe may') || clean.includes('motor') || clean.includes('bike')) {
+        return 'Xe máy';
+    }
+    return name.trim();
+};
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 // Số session gần nhất hiển thị trong bảng lịch sử
@@ -230,6 +243,28 @@ export default function SystemOperations() {
         }
     };
 
+    // Helper định dạng ngày giờ hiển thị an toàn, tránh Invalid Date
+    const formatSessionDate = (dateVal) => {
+        if (!dateVal) return '--';
+        try {
+            let str = dateVal;
+            if (typeof str === 'string') {
+                str = str.trim();
+                if (str.includes(' ') && !str.includes('T')) {
+                    str = str.replace(' ', 'T');
+                }
+                if (!str.endsWith('Z') && !str.match(/[+-]\d{2}(:\d{2})?$/) && str.includes('T')) {
+                    str += 'Z';
+                }
+            }
+            const d = new Date(str);
+            if (isNaN(d.getTime())) return '--';
+            return d.toLocaleString('vi-VN');
+        } catch {
+            return '--';
+        }
+    };
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     const resetInForm = () => {
@@ -274,10 +309,10 @@ export default function SystemOperations() {
             setLoading(true);
             if (mode === 'IN') {
                 const res = await preCheckEntryGate(cleanPlate);
-                
+
                 // Nếu là xe tháng nhưng thẻ/gói cước đã hết hạn (hoặc bị khóa) và chưa ở trong bãi
                 if (res.vehicleType === 'MONTHLY' && res.canOpenGate === false && !res.message?.includes('ở trong bãi')) {
-                    showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (vé lượt).`, 'warning');
+                    showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (thẻ lượt).`, 'warning');
 
                     // Lấy danh sách thẻ lượt vãng lai khả dụng từ hệ thống
                     let visitorCards = [];
@@ -315,7 +350,7 @@ export default function SystemOperations() {
                         setSelectedCard('');
                         // Tự động đặt loại xe khớp với dữ liệu đã đăng ký trong DB
                         if (res.vehicleCategory) {
-                            setVehicleType(res.vehicleCategory);
+                            setVehicleType(normalizeVehicleTypeName(res.vehicleCategory));
                         }
                     }
                 }
@@ -323,8 +358,8 @@ export default function SystemOperations() {
                 const res = await preCheckExitGate(plate);
                 setPreCheckResult(res);
                 // Tự động chuyển chọn loại xe (Xe máy / Ô tô) khi xe ra dựa trên thông tin checkin / DB
-                const autoVehicleType = res.vehicle?.vehicle_type?.name 
-                    || res.session?.vehicle?.vehicle_type?.name 
+                const autoVehicleType = res.vehicle?.vehicle_type?.name
+                    || res.session?.vehicle?.vehicle_type?.name
                     || res.vehicleCategory;
                 if (autoVehicleType) {
                     setVehicleType(autoVehicleType);
@@ -467,7 +502,7 @@ export default function SystemOperations() {
                     ...result.session,
                     fee: preCheckResult.fee,
                     plate_number: cleanPlate,
-                    entry_time: result.session?.entry_time || new Date().toISOString(),
+                    entry_time: result.session?.entry_time || preCheckResult?.session?.entry_time || preCheckResult?.entryTime || new Date().toISOString(),
                     exit_time: result.session?.exit_time || new Date().toISOString(),
                     type: 'OUT',
                     status: 'Hoàn thành',
@@ -741,7 +776,6 @@ export default function SystemOperations() {
                             (mode === 'OUT' && isCameraIn && preCheckResult);
 
                         let bgImage = camera.image;
-                        let isSelected = false;
 
                         if (camera.id === 'vehicleImage') {
                             // Khi check-out: ưu tiên dùng ảnh xe check-in đã lưu riêng
@@ -750,7 +784,6 @@ export default function SystemOperations() {
                             } else {
                                 bgImage = vehiclePreview || camera.image;
                             }
-                            isSelected = !!vehicleImage;
                         } else if (camera.id === 'plateImage') {
                             // Khi check-out: ưu tiên dùng ảnh biển số check-in đã lưu riêng
                             if (mode === 'OUT' && entryPlateImageDisplay) {
@@ -758,13 +791,10 @@ export default function SystemOperations() {
                             } else {
                                 bgImage = platePreview || camera.image;
                             }
-                            isSelected = !!plateImage;
                         } else if (camera.id === 'camera3') {
                             bgImage = exitVehiclePreview || camera.image;
-                            isSelected = !!exitVehicleImage;
                         } else if (camera.id === 'camera4') {
                             bgImage = exitPlatePreview || camera.image;
-                            isSelected = !!exitPlateImage;
                         }
 
                         return (
@@ -922,7 +952,7 @@ export default function SystemOperations() {
                             {/* Cảnh báo loại xe không khớp - Chỉ hiện khi là xe tháng và staff đã chọn loại xe sai */}
                             {mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && (() => {
                                 const registeredType = preCheckResult.vehicleCategory;
-                                const isMismatch = registeredType !== vehicleType;
+                                const isMismatch = normalizeVehicleTypeName(registeredType) !== normalizeVehicleTypeName(vehicleType);
                                 return (
                                     <div className={`vehicle-mismatch-banner ${isMismatch ? 'mismatch' : ''}`}>
                                         <span className="material-symbols-outlined mismatch-icon">
@@ -931,7 +961,7 @@ export default function SystemOperations() {
                                         <div className="mismatch-text">
                                             <span>Biển số </span>
                                             <strong className="mismatch-plate">{preCheckResult.plateNumber}</strong>
-                                            <span> đã đăng ký là </span>
+                                            <span> đã đăng ký ở thẻ tháng là </span>
                                             <strong className={`mismatch-registered-type ${isMismatch ? 'text-invalid' : 'text-valid'}`}>
                                                 {registeredType}
                                             </strong>
@@ -963,7 +993,7 @@ export default function SystemOperations() {
                                             <div>
                                                 <div>⚠️ {preCheckResult.expiredMessage}</div>
                                                 <div style={{ fontSize: '12px', fontWeight: '400', color: '#8c4e03', marginTop: '2px' }}>
-                                                    Hệ thống tự động chuyển sang lượt xe vãng lai (vé lượt). Vui lòng chọn thẻ lượt bên dưới để cấp cho xe vào.
+                                                    Hệ thống tự động chuyển sang lượt xe vãng lai (thẻ lượt). Vui lòng chọn thẻ lượt bên dưới để cấp cho xe vào.
                                                 </div>
                                             </div>
                                         </div>
@@ -1000,8 +1030,13 @@ export default function SystemOperations() {
                                 disabled={
                                     loading ||
                                     (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.canOpenGate === false) ||
-                                    (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && preCheckResult.vehicleCategory !== vehicleType)
+                                    (mode === 'IN' && preCheckResult?.vehicleType === 'MONTHLY' && preCheckResult?.vehicleCategory && normalizeVehicleTypeName(preCheckResult.vehicleCategory) !== normalizeVehicleTypeName(vehicleType))
                                 }
+                                onClick={(e) => {
+                                    if (!e.defaultPrevented) {
+                                        handleFormSubmit(e);
+                                    }
+                                }}
                             >
                                 {loading ? (
                                     <>
@@ -1069,7 +1104,7 @@ export default function SystemOperations() {
                                         <div className="last-session-item">
                                             <span className="last-session-label">Loại thẻ:</span>
                                             <strong className="last-session-value">
-                                                {preCheckResult.vehicleType === 'MONTHLY' ? 'Vé tháng' : 'Vé lượt'}
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? 'thẻ tháng' : 'thẻ lượt'}
                                             </strong>
                                         </div>
                                         <div className="last-session-item">
@@ -1081,7 +1116,7 @@ export default function SystemOperations() {
                                         <div className="last-session-item">
                                             <span className="last-session-label">Biển số đăng ký:</span>
                                             <strong className="last-session-value">
-                                                {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'Vé lượt'}
+                                                {preCheckResult.vehicleType === 'MONTHLY' ? preCheckResult.plateNumber : 'thẻ lượt'}
                                             </strong>
                                         </div>
                                         {preCheckResult.vehicleType === 'MONTHLY' && (
@@ -1124,7 +1159,7 @@ export default function SystemOperations() {
                                         </div>
                                         <div className="last-session-item full-width">
                                             <span className="last-session-label">Giờ vào:</span>
-                                            <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                            <strong className="last-session-value">{formatSessionDate(lastSession.entry_time)}</strong>
                                         </div>
                                     </div>
                                 </div>
@@ -1182,13 +1217,13 @@ export default function SystemOperations() {
                                         </div>
                                         <div className="last-session-item full-width">
                                             <span className="last-session-label">Giờ vào:</span>
-                                            <strong className="last-session-value">{new Date(lastSession.entry_time).toLocaleString('vi-VN')}</strong>
+                                            <strong className="last-session-value">{formatSessionDate(lastSession.entry_time)}</strong>
                                         </div>
                                         {lastSession.type === 'OUT' && (
                                             <>
                                                 <div className="last-session-item full-width">
                                                     <span className="last-session-label">Giờ ra:</span>
-                                                    <strong className="last-session-value">{new Date(lastSession.exit_time).toLocaleString('vi-VN')}</strong>
+                                                    <strong className="last-session-value">{formatSessionDate(lastSession.exit_time)}</strong>
                                                 </div>
                                                 <div className="last-session-item full-width highlight-row">
                                                     <span className="last-session-label">Giá tiền:</span>

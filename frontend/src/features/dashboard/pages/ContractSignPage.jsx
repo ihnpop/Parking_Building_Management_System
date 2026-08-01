@@ -1,53 +1,78 @@
+// Import hooks useState và useEffect từ React để quản lý state và side effect
 import { useEffect, useState } from 'react';
+// Import useParams từ react-router-dom để lấy token hợp đồng từ URL params
 import { useParams } from 'react-router-dom';
+// Import API service xử lý lấy thông tin hợp đồng qua token và gọi API ký hợp đồng
 import { getContractByToken, signContract } from '../../../service/contractApi';
-import { Loader2, CheckCircle2, AlertCircle, ShieldCheck, FileText } from 'lucide-react';
+// Import các icon từ thư viện lucide-react để dựng UI
+import { Loader2, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+// Import component xem văn bản hợp đồng mẫu A4
+import ContractDocument from '../components/ContractDocument';
+// Import CSS tùy chỉnh giao diện trang ký hợp đồng
+import "./ContractSignPage.css";
 
+// Component Trang Ký Hợp Đồng Điện Tử (dành cho khách hàng mở link gửi qua Email)
 export default function ContractSignPage() {
+  // Lấy parameter `token` từ URL (ví dụ: /contract/sign/:token)
   const { token } = useParams();
+
+  // State quản lý trạng thái đang tải dữ liệu hợp đồng ban đầu
   const [loading, setLoading] = useState(true);
+  // State quản lý trạng thái đang xử lý gọi API ký hợp đồng
   const [signing, setSigning] = useState(false);
+  // State lưu thông báo lỗi (nếu link hết hạn, không tồn tại hoặc lỗi ký)
   const [error, setError] = useState(null);
+  // State lưu toàn bộ đối tượng dữ liệu hợp đồng fetch từ server
   const [contractData, setContractData] = useState(null);
+  // State đánh dấu hợp đồng đã ký thành công hay chưa
   const [signedSuccess, setSignedSuccess] = useState(false);
 
+  // Hook useEffect fetch thông tin chi tiết hợp đồng khi component mount hoặc token thay đổi
   useEffect(() => {
     const fetchContract = async () => {
       try {
-        setLoading(true);
+        setLoading(true); // Bật trạng thái loading
+        // Gọi service lấy dữ liệu hợp đồng theo token
         const data = await getContractByToken(token);
         setContractData(data);
+        // Nếu hợp đồng đã ký trước đó, cập nhật ngay trạng thái signedSuccess = true
         if (data.status === 'Đã ký') {
           setSignedSuccess(true);
         }
       } catch (err) {
         console.error('Error fetching contract:', err);
+        // Lưu thông báo lỗi hiển thị cho người dùng
         setError(err.response?.data?.error || err.message || 'Không thể tải thông tin hợp đồng. Vui lòng kiểm tra lại đường dẫn.');
       } finally {
-        setLoading(false);
+        setLoading(false); // Tắt spinner loading
       }
     };
 
+    // Chỉ kích hoạt fetch nếu token hợp lệ
     if (token) {
       fetchContract();
     }
   }, [token]);
 
+  // Hàm xử lý sự kiện khi người dùng nhấp nút "Tôi đồng ý ký hợp đồng"
   const handleSign = async () => {
     try {
-      setSigning(true);
-      setError(null);
+      setSigning(true); // Bật hiệu ứng spinner trên nút ký
+      setError(null);   // Xóa lỗi cũ nếu có
+      // Gọi API ký hợp đồng điện tử
       await signContract(token);
-      setSignedSuccess(true);
+      setSignedSuccess(true); // Đánh dấu ký thành công
+      // Cập nhật local state contractData để giao diện phản hồi tức thì
       setContractData(prev => ({ ...prev, status: 'Đã ký' }));
     } catch (err) {
       console.error('Error signing contract:', err);
       setError(err.response?.data?.error || err.message || 'Có lỗi xảy ra khi ký hợp đồng.');
     } finally {
-      setSigning(false);
+      setSigning(false); // Tắt hiệu ứng spinner trên nút ký
     }
   };
 
+  // Màn hình loading khi đang tải dữ liệu hợp đồng
   if (loading) {
     return (
       <div className="sign-page-loading">
@@ -57,6 +82,7 @@ export default function ContractSignPage() {
     );
   }
 
+  // Màn hình báo lỗi nếu không tải được hợp đồng (link không hợp lệ hoặc lỗi mạng)
   if (error && !contractData) {
     return (
       <div className="sign-page-error-container">
@@ -72,14 +98,45 @@ export default function ContractSignPage() {
     );
   }
 
+  // Bóc tách thông tin chi tiết từ response API để điền vào tờ hợp đồng
   const { cardDetails } = contractData || {};
-  const priceDisplay = cardDetails?.package?.price
-    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cardDetails.package.price)
+  const rawReg = Array.isArray(cardDetails?.raw?.card_registrations)
+    ? cardDetails.raw.card_registrations[0]
+    : cardDetails?.raw?.card_registrations;
+  const rawVehicle = rawReg?.vehicle;
+  const rawCustomer = rawVehicle?.customer;
+
+  // Định dạng hiển thị số tiền gói cước thẻ tháng theo chuẩn VND (Ví dụ: 500.000 ₫)
+  const rawPrice = cardDetails?.package?.price || rawVehicle?.vehicle_package?.[0]?.package?.price;
+  const priceDisplay = rawPrice
+    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(rawPrice)
     : '---';
+
+  // Tổng hợp dữ liệu hiển thị cho tờ hợp đồng mẫu A4 (ContractDocument)
+  const docData = {
+    contractNo: contractData?.contract_no || '---',
+    customerName: cardDetails?.customer?.full_name || rawCustomer?.full_name || '---',
+    phone: cardDetails?.customer?.phone || rawCustomer?.phone || '---',
+    email: cardDetails?.customer?.email || rawCustomer?.email || '---',
+    cccdNumber: cardDetails?.customer?.cccd_number || '---',
+    cardCode: cardDetails?.card_code || cardDetails?.code || cardDetails?.raw?.code || '---',
+    plateNumber: cardDetails?.vehicle?.plate_number || rawVehicle?.plate_number || '---',
+    vehicleType: cardDetails?.vehicle?.type_name || cardDetails?.type || rawVehicle?.vehicle_type?.name || '---',
+    startDate: cardDetails?.package?.start_date
+      ? new Date(cardDetails.package.start_date).toLocaleDateString('vi-VN')
+      : '---',
+    endDate: cardDetails?.package?.end_date
+      ? new Date(cardDetails.package.end_date).toLocaleDateString('vi-VN')
+      : '---',
+    priceDisplay,
+    paymentStatus: cardDetails?.payment?.status || 'Đã thanh toán',
+    signedIp: contractData?.signed_ip || '---',
+    signedAt: contractData?.signed_at || null
+  };
 
   return (
     <div className="sign-page-layout">
-      {/* Top Banner */}
+      {/* Top Banner Tiêu đề Cổng ký hợp đồng */}
       <div className="sign-page-header">
         <div className="sign-header-content">
           <div className="sign-brand-title">
@@ -93,7 +150,7 @@ export default function ContractSignPage() {
       </div>
 
       <div className="sign-page-main">
-        {/* Success message or signing panel */}
+        {/* Panel phản hồi trạng thái: hiển thị thông báo thành công HOẶC form xác nhận ký */}
         {signedSuccess ? (
           <div className="sign-success-panel">
             <div className="success-icon-wrapper">
@@ -101,7 +158,7 @@ export default function ContractSignPage() {
             </div>
             <div className="success-text-wrapper">
               <h3>Hợp đồng đã ký thành công</h3>
-              <p>Cảm ơn quý khách đã hoàn thành ký hợp đồng điện tử đăng ký vé xe tháng.</p>
+              <p>Cảm ơn quý khách đã hoàn thành ký hợp đồng điện tử đăng ký thẻ xe tháng.</p>
               <p style={{ fontSize: '13px', color: '#718096', marginTop: '4px' }}>
                 Mã hợp đồng: <strong>{contractData?.contract_no}</strong>
               </p>
@@ -113,6 +170,7 @@ export default function ContractSignPage() {
               <h3>Xác nhận ký hợp đồng điện tử</h3>
               <p>Quý khách vui lòng kiểm tra kỹ thông tin bên dưới. Nhấp nút <strong>"Tôi đồng ý ký hợp đồng"</strong> để hoàn tất.</p>
             </div>
+            {/* Nút hành động ký hợp đồng */}
             <button
               onClick={handleSign}
               disabled={signing}
@@ -130,137 +188,16 @@ export default function ContractSignPage() {
           </div>
         )}
 
-        {/* Contract visual document (A4 Paper) */}
+        {/* Khung hiển thị giao diện văn bản hợp đồng mẫu A4 */}
         <div className="contract-paper-wrapper">
-          <div className="contract-paper">
-            {/* Quốc hiệu */}
-            <div className="contract-national-title">
-              <p>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-              <p>Độc lập - Tự do - Hạnh phúc</p>
-              <div className="line-separator"></div>
-            </div>
-
-            {/* Tên hợp đồng */}
-            <div className="contract-title">
-              <h2>HỢP ĐỒNG ĐĂNG KÝ VÉ THÁNG GỬI XE</h2>
-              <p>Số: {contractData?.contract_no}</p>
-            </div>
-
-            {/* Lời mở đầu */}
-            <div className="contract-intro">
-              Căn cứ các nội quy, quy định vận hành của hệ thống bãi xe và nhu cầu đăng ký gửi phương tiện của khách hàng, hôm nay hai bên thống nhất ký kết hợp đồng gửi xe tháng với các điều khoản dưới đây:
-            </div>
-
-            {/* Thông tin Bên A */}
-            <div className="contract-section-title">Bên A: Ban quản lý tòa nhà &amp; bãi xe PBMS (Bên cho thuê)</div>
-            <div className="contract-party-info">
-              <p><strong>- Người đại diện:</strong> Ban Quản lý Bãi xe PBMS</p>
-              <p><strong>- Địa chỉ:</strong> Số 1 Đại Cồ Việt, Bách Khoa, Hai Bà Trưng, Hà Nội</p>
-              <p><strong>- Số điện thoại liên hệ:</strong> 1900 1234</p>
-            </div>
-
-            {/* Thông tin Bên B */}
-            <div className="contract-section-title">Bên B: Khách hàng đăng ký thẻ tháng (Bên gửi xe)</div>
-            <div className="contract-party-info">
-              <p><strong>- Họ và tên khách hàng:</strong> {cardDetails?.customer?.full_name || '---'}</p>
-              <p><strong>- Số điện thoại:</strong> {cardDetails?.customer?.phone || '---'}</p>
-              <p><strong>- Địa chỉ email:</strong> {cardDetails?.customer?.email || '---'}</p>
-              <p><strong>- Số CCCD/Định danh:</strong> {cardDetails?.customer?.cccd_number || '---'}</p>
-            </div>
-
-            {/* Bảng chi tiết dịch vụ */}
-            <div className="contract-section-title">Thông tin vé tháng và phương tiện đăng ký:</div>
-            <table className="contract-table">
-              <thead>
-                <tr>
-                  <th>Danh mục thông tin</th>
-                  <th>Nội dung chi tiết</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Số thẻ RFID (Mã thẻ tháng)</td>
-                  <td>{cardDetails?.card_code || '---'}</td>
-                </tr>
-                <tr>
-                  <td>Biển số xe đăng ký</td>
-                  <td>{cardDetails?.vehicle?.plate_number || '---'}</td>
-                </tr>
-                <tr>
-                  <td>Loại phương tiện</td>
-                  <td>{cardDetails?.vehicle?.type_name || '---'}</td>
-                </tr>
-                <tr>
-                  <td>Ngày bắt đầu hiệu lực</td>
-                  <td>{cardDetails?.package?.start_date ? new Date(cardDetails.package.start_date).toLocaleDateString('vi-VN') : '---'}</td>
-                </tr>
-                <tr>
-                  <td>Ngày hết hạn hiệu lực</td>
-                  <td>{cardDetails?.package?.end_date ? new Date(cardDetails.package.end_date).toLocaleDateString('vi-VN') : '---'}</td>
-                </tr>
-                <tr>
-                  <td>Đơn giá cước dịch vụ</td>
-                  <td>{priceDisplay}</td>
-                </tr>
-                <tr>
-                  <td>Trạng thái thanh toán</td>
-                  <td>{cardDetails?.payment?.status || 'Đã thanh toán'}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Điều khoản sử dụng */}
-            <div className="contract-section-title">Điều khoản và trách nhiệm:</div>
-            <div className="contract-terms">
-              <p>1. Bên B có trách nhiệm tự bảo quản thẻ gửi xe RFID được cấp, không cho người khác mượn thẻ. Mất thẻ phải thông báo ngay cho Bên A để khóa thẻ kịp thời. Phí làm lại thẻ là 50.000 VNĐ.</p>
-              <p>2. Bên B phải đỗ xe đúng vị trí phân làn quy định của từng loại xe, tuân thủ hướng dẫn điều phối của nhân viên bãi xe và tuân thủ các quy tắc an toàn phòng cháy chữa cháy.</p>
-              <p>3. Bên A chịu trách nhiệm vận hành hệ thống kiểm soát xe vào/ra bằng thẻ và camera giám sát, không chịu trách nhiệm bảo quản tài sản riêng tư cá nhân để bên trong xe.</p>
-              <p>4. Hợp đồng có giá trị hiệu lực trong khoảng thời gian hiệu lực ghi nhận phía trên. Bên B cần hoàn thành gia hạn tối thiểu 3 ngày trước khi hết hạn gửi xe để duy trì thẻ hoạt động.</p>
-            </div>
-
-            {/* Chữ ký hai bên */}
-            <div className="contract-signatures">
-              <div className="contract-sign-block">
-                <p>ĐẠI DIỆN BÊN A</p>
-                <p>(Ký và đóng dấu)</p>
-                <div className="contract-stamp-wrapper">
-                  <img
-                    src="/assets/stamp.jpg"
-                    alt="Con dấu BQL Bãi Xe PBMS"
-                    className="contract-stamp-img"
-                  />
-                </div>
-                <p className="signed-name">BQL Bãi Xe PBMS</p>
-              </div>
-              <div className="contract-sign-block">
-                <p>ĐẠI DIỆN BÊN B</p>
-                <p>(Đồng ý ký điện tử)</p>
-                <div className="contract-stamp-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '130px' }}>
-                  {signedSuccess ? (
-                    <div style={{ textAlign: 'center', color: '#10b981' }}>
-                      <CheckCircle2 size={36} />
-                      <p style={{ margin: '4px 0 0 0', fontSize: '11px', fontWeight: 600 }}>ĐÃ KÝ ĐIỆN TỬ</p>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '9px', color: '#718096' }}>
-                        IP: {contractData?.signed_ip || '---'}
-                      </p>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '9px', color: '#718096' }}>
-                        {contractData?.signed_at ? new Date(contractData.signed_at).toLocaleString('vi-VN') : ''}
-                      </p>
-                    </div>
-                  ) : (
-                    <div style={{ fontStyle: 'italic', fontSize: '13px', color: '#a0aec0' }}>
-                      Chưa ký
-                    </div>
-                  )}
-                </div>
-                <p className="signed-name">{cardDetails?.customer?.full_name || '---'}</p>
-              </div>
-            </div>
-          </div>
+          <ContractDocument
+            data={docData}
+            signedSuccess={signedSuccess}
+          />
         </div>
       </div>
-      
-      {/* Toast Error if sign fails */}
+
+      {/* Thông báo lỗi Toast nảy ra ở góc nếu việc ký bị thất bại */}
       {error && signedSuccess && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '16px 24px', borderRadius: '8px', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
           <AlertCircle size={20} />

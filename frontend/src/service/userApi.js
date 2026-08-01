@@ -1,30 +1,13 @@
-import axios from "axios";
-import supabase from "../config/supabaseClient";
+import API from "./apiClient";
 
-const API = axios.create({
-    // baseURL: "http://localhost:3636/api"     //sửa chỗ này
-    baseURL: import.meta.env.VITE_API_URL
-});
-
-// Tự động lấy token Supabase mới nhất trước mỗi request
-API.interceptors.request.use(async (config) => {
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-            config.headers.Authorization = `Bearer ${session.access_token}`;
-        } else {
-            const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-        }
-    } catch (err) {
-        console.warn('[userApi] Could not get session token:', err.message);
-    }
-    return config;
-});
-
-const getAuthHeaders = () => ({});
+/**
+ * Mời người dùng mới vào hệ thống bằng email
+ * @param {object} payload - { email, username, full_name, phone, role_id, building_id }
+ */
+export const inviteUser = async (payload) => {
+    const response = await API.post(`/users/invite`, payload);
+    return response.data.data || response.data;
+};
 
 /**
  * Lấy danh sách tất cả người dùng kèm thông tin role
@@ -36,8 +19,8 @@ export const getUsers = async () => {
 
 /**
  * Cập nhật role của một người dùng
- * @param {string} userId - UUID của người dùng
- * @param {string} roleName - "ADMIN" | "MANAGER" | "STAFF"
+ * @param {string} userId - UUID của người dùng cần cập nhật role
+ * @param {string} roleName - Role mới: "ADMIN" | "MANAGER" | "STAFF"
  */
 export const updateUserRole = async (userId, roleName) => {
     const response = await API.patch(`/users/${userId}/role`, {
@@ -47,8 +30,8 @@ export const updateUserRole = async (userId, roleName) => {
 };
 
 /**
- * Cập nhật thông tin cơ bản của người dùng (phone, full_name, status)
- * @param {string} userId - UUID của người dùng
+ * Cập nhật thông tin cơ bản của người dùng
+ * @param {string} userId - UUID của người dùng cần cập nhật
  * @param {object} profileData - { phone, full_name, status }
  */
 export const updateUserProfile = async (userId, profileData) => {
@@ -57,12 +40,9 @@ export const updateUserProfile = async (userId, profileData) => {
 };
 
 /**
- * Lấy danh sách nhật ký đăng nhập
+ * Lấy danh sách nhật ký đăng nhập hệ thống
  */
 export const getLoginLogs = async () => {
-    const response = await API.get("/users/login-logs", {
-        headers: getAuthHeaders()
-    });
+    const response = await API.get("/users/login-logs");
     return response.data;
 };
-

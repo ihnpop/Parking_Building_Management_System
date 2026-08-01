@@ -1,27 +1,4 @@
-import axios from "axios";
-import supabase from "../config/supabaseClient";
-
-const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL
-});
-
-// Tự động gắn token Supabase mới nhất trước mỗi request
-API.interceptors.request.use(async (config) => {
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-            config.headers.Authorization = `Bearer ${session.access_token}`;
-        } else {
-            const token = localStorage.getItem("token") || localStorage.getItem("accessToken") || localStorage.getItem("access_token");
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
-        }
-    } catch (err) {
-        console.warn("[priceApi] Could not get session token:", err.message);
-    }
-    return config;
-});
+import API from "./apiClient";
 
 /**
  * Lấy toàn bộ biểu giá theo tòa nhà của Manager
@@ -32,7 +9,7 @@ export const getPrices = async () => {
 };
 
 /**
- * Cập nhật giá lượt
+ * Cập nhật giá lượt (giá gửi xe theo giờ cho từng loại xe)
  * @param {object} payload - { vehicleTypeId, firstHour, extraHour, dayMax }
  */
 export const updateSessionPrices = async (payload) => {
@@ -41,20 +18,19 @@ export const updateSessionPrices = async (payload) => {
 };
 
 /**
- * Cập nhật giá tháng
+ * Cập nhật giá tháng (gói đăng ký thẻ tháng theo loại xe)
  * @param {object} payload - { vehicleTypeId, vehicleType, price1Month, price3Month, price6Month, price12Month }
  */
 export const updateMonthlyPrices = async (payload) => {
     const response = await API.put("/prices/monthly", payload);
     return response.data.data;
 };
+
 /**
  * Cập nhật phí cấp lại thẻ
  * @param {object} payload - { cardReissueFee }
  */
 export const updateCardReissueFee = async (payload) => {
-    // Assuming there is an endpoint like this. If not, it will return 404
-    // We add this to support the requirement "Thêm hàm cập nhật card_reissue_fee"
     const response = await API.put("/prices/reissue-fee", payload);
     return response.data.data;
 };

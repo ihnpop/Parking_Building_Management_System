@@ -83,7 +83,7 @@ async function checkLostCard(card, vehicle, session) {
 }
 
 /**
- * Kiểm tra trạng thái hiệu lực của vé tháng
+ * Kiểm tra trạng thái hiệu lực của thẻ tháng
  * @param {object|null} card
  * @returns {{isMonthlyValid: boolean, isMonthlyExpired: boolean}}
  */
@@ -367,17 +367,20 @@ async function calculateHourlyFee(session, vehicle) {
  *   warning: string|null
  * }>}
  */
-export async function calculateExitFee({ plate_number, skipLostCheck = false }) {
-    if (!plate_number || !plate_number.trim()) {
-        const err = new Error("Biển số xe là bắt buộc.");
-        err.statusCode = 400;
-        throw err;
-    }
-
-    const cleanPlate = plate_number.trim().toUpperCase();
-
+export async function calculateExitFee({ plate_number, skipLostCheck = false, session: preloadedSession = null }) {
     // ─── 1. Tìm phiên gửi xe đang mở ─────────────────────────────────────────
-    const session = await findActiveSession(cleanPlate);
+    // Nếu caller đã có session sẵn (ví dụ: từ lostCardService), dùng luôn
+    // để tránh lỗi khi tìm lại qua plate_number không khớp
+    let session = preloadedSession;
+    if (!session) {
+        if (!plate_number || !plate_number.trim()) {
+            const err = new Error("Biển số xe là bắt buộc.");
+            err.statusCode = 400;
+            throw err;
+        }
+        const cleanPlate = plate_number.trim().toUpperCase();
+        session = await findActiveSession(cleanPlate);
+    }
 
     // ─── 2 & 3. Tìm thông tin xe & thẻ ────────────────────────────────────────
     const { vehicle, card } = await getVehicleAndCard(session);
@@ -433,7 +436,7 @@ export async function calculateExitFee({ plate_number, skipLostCheck = false }) 
     }
 
     const warning = isMonthlyExpired
-        ? "Vé tháng đã hết hạn — vui lòng nhắc khách gia hạn"
+        ? "thẻ tháng đã hết hạn — vui lòng nhắc khách gia hạn"
         : null;
 
     return {

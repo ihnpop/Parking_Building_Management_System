@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import "./EditPricesDialog.css";
 
 const formatVND = (value) => {
     if (!value && value !== 0) return '0 đ';

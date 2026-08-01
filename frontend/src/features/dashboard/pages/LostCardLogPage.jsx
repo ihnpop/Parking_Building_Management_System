@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import {
     getLostCards,
     checkLostCardPlate,
@@ -14,12 +13,11 @@ import {
     initiateLostTurnCardPayment,
     confirmLostTurnCardCash,
     getLostCardHistory,
-    getCards,
     getMonthCards
 } from "../../../service/cardApi";
-import { getCasualCardSessions } from "../../../service/casualCardApi";
 import { useNotification } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
+import "./LostCardLogPage.css";
 
 const renderFormattedTime = (dateInput) => {
     if (!dateInput) return <span style={{ color: '#ccc' }}>---</span>;
@@ -411,19 +409,18 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
     // ── Nút "Xử lý sau": Lưu toàn bộ thông tin đã nhập & trạng thái hiện tại xuống Backend ──
     const handleProcessLater = async () => {
+        // Nếu đang ở Bước 1 hoặc chưa có bản ghi báo mất nháp (chưa qua bước kiểm tra biển số thành công)
+        // -> Cho thoát ngay (coi như chưa thao tác gì, không lưu gì cả)
+        if (wizardStep === 1 || !currentDraftId) {
+            setShowCreateModal(false);
+            resetCreateModalState();
+            return;
+        }
+
         const plate = checkPlateInput.trim() || newLostCard.plate_number.trim();
         try {
             setActionLoading(true);
             let reportIdToUse = currentDraftId;
-
-            if (!reportIdToUse && plate) {
-                const createRes = await createLostCard({
-                    plate_number: plate,
-                    description: createLostReason || 'Báo mất thẻ'
-                });
-                reportIdToUse = createRes.lost_report_id || createRes.data?.lost_report_id || createRes.id;
-                setCurrentDraftId(reportIdToUse);
-            }
 
             if (reportIdToUse) {
                 // Cập nhật thông tin lý do và ảnh hiện có xuống Backend CSDL nếu có
@@ -510,7 +507,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 cardType: row.card_type || (cat === 'month' ? 'Thẻ tháng' : 'Thẻ lượt'),
                 vehicleType: row.vehicle_type || '---',
                 ownerName: row.customer_name || row.owner || (cat === 'month' ? 'Chủ thẻ tháng' : 'Khách vãng lai'),
-                package: cat === 'month' ? 'Gói vé tháng' : 'Vé gửi theo lượt/ca',
+                package: cat === 'month' ? 'Gói thẻ tháng' : 'thẻ gửi theo lượt/ca',
                 parkingFee: cat === 'casual' ? actualParkingFee : 0,
                 lostFee: row.reissue_fee || 0,
                 totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee || 0) : (row.reissue_fee || 0)
@@ -2028,7 +2025,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                                 {createCardCategory !== 'casual' && (
                                                     <>
                                                         <div><span style={{ color: '#64748b' }}>Chủ xe:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.ownerName || '---'}</strong></div>
-                                                        <div><span style={{ color: '#64748b' }}>Gói tháng:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.package || 'Vé tháng'}</strong></div>
+                                                        <div><span style={{ color: '#64748b' }}>Gói tháng:</span> <strong style={{ color: '#0f172a' }}>{cardCheckData.package || 'thẻ tháng'}</strong></div>
                                                     </>
                                                 )}
                                             </div>

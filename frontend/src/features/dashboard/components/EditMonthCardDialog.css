@@ -1,0 +1,64 @@
+.emc-modal {
+  max-width: 600px;
+}
+
+.emc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emc-alert-error {
+  color: #ef4444;
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.emc-alert-success {
+  color: #10b981;
+  background-color: #ecfdf5;
+  border: 1px solid #d1fae5;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.emc-info-grid {
+  margin-bottom: 0;
+}
+
+.emc-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.emc-form-group-0 {
+  margin-bottom: 0;
+}
+
+.emc-required-star {
+  color: #ef4444;
+}
+
+.emc-input-error {
+  border-color: #ef4444;
+}
+
+.emc-field-error-msg {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.emc-hint-no-plate {
+  color: #004BCA;
+  font-size: 13px;
+  margin: 0;
+}

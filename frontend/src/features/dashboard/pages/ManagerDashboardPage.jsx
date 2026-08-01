@@ -15,6 +15,7 @@ import {
     formatMonthLabel,
     handleExportExcel as handleExportExcelUtil
 } from '../../../utils/dashboardUtils';
+import "./ManagerDashboardPage.css";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

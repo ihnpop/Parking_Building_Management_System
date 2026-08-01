@@ -18,6 +18,7 @@ export const getLostCardLogs = async (buildingId = null) => {
       handled_by,
       vehicle_registration_image_url,
       id_card_image_url,
+      reissue_fee,
       card ( code, type ),
       vehicle (
         plate_number,
@@ -188,7 +189,7 @@ export const findLostReport = async (reportId) => {
 
   const { data, error } = await supabase
     .from('card_lost_log')
-    .select('lost_report_id, card_id, vehicle_id, status, handled_by')
+    .select('lost_report_id, card_id, vehicle_id, status, handled_by, reissue_fee')
     .eq('lost_report_id', realId)
     .maybeSingle();
 
@@ -307,7 +308,7 @@ export const findLostReportByIdWithVehicle = async (reportId) => {
 
   const { data, error } = await supabase
     .from('card_lost_log')
-    .select('lost_report_id, status, vehicle_id, card_id, vehicle ( plate_number )')
+    .select('lost_report_id, status, vehicle_id, card_id, reissue_fee, vehicle ( plate_number )')
     .eq('lost_report_id', realId)
     .maybeSingle();
 
@@ -463,15 +464,145 @@ export const getCardReissueFee = async (vehicleId = null, buildingId = null) => 
 
     const { data, error } = await query.limit(1);
 
-    if (error || !data || data.card_reissue_fee == null) {
+    // query.limit(1) trả về mảng, không phải object đơn
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row || row.card_reissue_fee == null) {
       return 0;
     }
 
-    return Number(data.card_reissue_fee) || 0;
+    return Number(row.card_reissue_fee) || 0;
   } catch (err) {
     console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback 0:', err.message);
     return 0;
   }
 };
+
+/**
+ * Tìm giao dịch đang chờ thanh toán có giới hạn thời gian (timeout)
+ */
+export const findPendingPaymentWithTimeout = async ({ paymentTypeToCheck, timeoutThreshold, reportId }) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .select('*')
+    .eq('payment_type', paymentTypeToCheck)
+    .eq('status', 'Chờ thanh toán')
+    .gt('payment_time', timeoutThreshold)
+    .filter('note->>reportId', 'eq', reportId)
+    .order('payment_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy phiên gửi xe mới nhất theo vehicle_id
+ */
+export const findLatestSessionByVehicle = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('parking_sessions')
+    .select('*')
+    .eq('vehicle_id', vehicleId)
+    .order('entry_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Tìm giao dịch đã thanh toán thành công theo reportId
+ */
+export const findCompletedPaymentByReportId = async (reportId) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .select('amount, note')
+    .in('payment_type', ['Phí cấp lại thẻ', 'Phí mất thẻ lượt'])
+    .eq('status', 'Đã thanh toán')
+    .filter('note->>reportId', 'eq', reportId)
+    .order('payment_time', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Lấy thông tin chi tiết xe kèm customer và vehicle_type
+ */
+export const findVehicleDetailsWithCustomerAndType = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('vehicle')
+    .select('*, customer(full_name), vehicle_type(name)')
+    .eq('vehicle_id', vehicleId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Thêm mới bản ghi thanh toán (payment)
+ */
+export const insertPayment = async (payload) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .insert(payload)
+    .select('payment_id')
+    .single();
+
+  if (error) throw new Error(`Không thể tạo phiếu thu: ${error.message}`);
+  return data;
+};
+
+/**
+ * Tìm thông tin thanh toán theo mã giao dịch order_code
+ */
+export const findPaymentByOrderCode = async (orderCode) => {
+  const { data, error } = await supabase
+    .from('payment')
+    .select('*')
+    .eq('order_code', orderCode)
+    .single();
+
+  if (error) throw new Error("Không tìm thấy giao dịch: " + orderCode);
+  return data;
+};
+
+/**
+ * Lấy thông tin biển số xe và tên khách hàng từ vehicle_id
+ */
+export const findVehiclePlateAndCustomer = async (vehicleId) => {
+  const { data, error } = await supabase
+    .from('vehicle')
+    .select(`
+      plate_number,
+      customer ( full_name )
+    `)
+    .eq('vehicle_id', vehicleId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};
+
+/**
+ * Cập nhật trạng thái giao dịch thanh toán theo order_code
+ */
+export const updatePaymentStatus = async (orderCode, status, paidAt = null) => {
+  const payload = { status };
+  if (paidAt) payload.paid_at = paidAt;
+
+  const { error } = await supabase
+    .from('payment')
+    .update(payload)
+    .eq('order_code', orderCode);
+
+  if (error) throw new Error("Không thể cập nhật trạng thái thanh toán: " + error.message);
+};
+
 
 

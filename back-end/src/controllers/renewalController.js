@@ -66,7 +66,7 @@ export const confirmRenewalCash = async (req, res) => {
     const { orderCode } = req.params;
     if (!orderCode) return res.status(400).json({ error: 'Thiếu orderCode.' });
     const result = await renewalService.confirmRenewalCash(orderCode);
-    return res.status(200).json({ success: true, message: 'Gia hạn vé tháng thành công!', data: result });
+    return res.status(200).json({ success: true, message: 'Gia hạn thẻ tháng thành công!', data: result });
   } catch (err) {
     console.error('confirmRenewalCash error:', err);
     return res.status(400).json({ success: false, error: err.message });

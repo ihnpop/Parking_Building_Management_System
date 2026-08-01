@@ -9,19 +9,19 @@ import { verifyToken, checkActiveStaff } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// 1. Tạo hóa đơn thanh toán cho vé lượt tiền mặt (Yêu cầu staff hoạt động)
+// 1. Tạo hóa đơn thanh toán cho thẻ lượt tiền mặt (Yêu cầu staff hoạt động)
 router.post("/cash", verifyToken, checkActiveStaff, paymentController.payCash);
 
-// 2. Tạo hóa đơn thanh toán VNPay an toàn cho vé lượt (Yêu cầu staff hoạt động)
+// 2. Tạo hóa đơn thanh toán VNPay an toàn cho thẻ lượt (Yêu cầu staff hoạt động)
 router.post("/vnpay/create", verifyToken, checkActiveStaff, paymentController.createVnpayCheckout);
 
 // 3. Trạng thái thanh toán phục vụ polling từ Client
 router.get("/status", paymentController.getPaymentStatus);
 
-// 4. Tạo hóa đơn thanh toán cho vé lượt (Old/Backward compatible) (Yêu cầu đăng nhập verifyToken)
+// 4. Tạo hóa đơn thanh toán cho thẻ lượt (Old/Backward compatible) (Yêu cầu đăng nhập verifyToken)
 router.post("/checkout", verifyToken, paymentController.checkout);
 
-// 2. Tạo hóa đơn thanh toán cho vé tháng (Đăng ký mới/Gia hạn) (Yêu cầu đăng nhập verifyToken)
+// 2. Tạo hóa đơn thanh toán cho thẻ tháng (Đăng ký mới/Gia hạn) (Yêu cầu đăng nhập verifyToken)
 router.post("/package", verifyToken, paymentController.packagePayment);
 
 // 3. Đường dẫn tiếp nhận kết quả phản hồi hiển thị trên Client khi VNPay điều hướng về (Công khai)

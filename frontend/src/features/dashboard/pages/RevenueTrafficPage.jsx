@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../../context/AuthContext';
+// Import hook useState từ React để quản lý UI state
+import { useState } from 'react';
+// Import CSS tùy chỉnh giao diện trang báo cáo doanh thu & lưu lượng
+import "./RevenueTrafficPage.css";
 
-// ─── Mock Data Giữ Nguyên Từ Bạn Của Bạn ───────────────────────────
+// ─── Dữ Liệu Mẫu (Mock Data) Cho Biểu Đồ Thanh Doanh Thu & Lưu Lượng ───
 const barChartData = [
     { label: '00-04', revenue: 20, traffic: 15 },
     { label: '04-08', revenue: 35, traffic: 45 },
@@ -11,6 +13,7 @@ const barChartData = [
     { label: '20-23', revenue: 40, traffic: 50 },
 ];
 
+// ─── Dữ Liệu Mẫu (Mock Data) Danh Sách Giao Dịch Gần Nhất ───────────
 const transactions = [
     {
         id: '#KP-88219',
@@ -54,24 +57,31 @@ const transactions = [
     },
 ];
 
+// ─── Component Chính Trang Báo Cáo Doanh Thu & Lưu Lượng ───────────────
 export default function RevenueTrafficPage() {
+    // State chọn khoảng thời gian xem báo cáo ('Hôm nay', 'Tuần này', 'Tháng này')
     const [selectedPeriod, setSelectedPeriod] = useState('Hôm nay');
+    // State chọn lọc loại phương tiện xe ('Tất cả phương tiện', 'Ô tô 4 chỗ', ...)
     const [selectedVehicleType, setSelectedVehicleType] = useState('Tất cả phương tiện');
+    // State lưu dòng giao dịch đang được nhấp chọn trong bảng
     const [selectedRow, setSelectedRow] = useState(null);
+    // State kiểm soát hiệu ứng loading mờ nhẹ khi bấm nút Lọc dữ liệu
     const [isFiltering, setIsFiltering] = useState(false);
 
+    // Hàm giả lập xử lý sự kiện bấm nút Lọc dữ liệu
     const handleFilter = () => {
         setIsFiltering(true);
-        setTimeout(() => setIsFiltering(false), 800);
+        setTimeout(() => setIsFiltering(false), 800); // Tắt hiệu ứng sau 800ms
     };
 
     return (
         <section className="stats-dashboard-page" style={{ width: '100%' }}>
-            {/* ĐÃ XOÁ: Bỏ hoàn toàn <header className="stats-top-bar"> lặp lại để nhúng khít vào Tab */}
-
+            {/* Khung chứa các phần tử giao diện báo cáo */}
             <div className={`stats-container ${isFiltering ? 'rtp-content--fading' : ''}`} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {/* Time Range Filter Card */}
+                
+                {/* 1. Khối Thẻ Bộ Lọc Thời Gian & Phương Tiện */}
                 <div className="filter-card">
+                    {/* Lọc theo khoảng thời gian */}
                     <div className="filter-group">
                         <label className="filter-label">Khoảng thời gian</label>
                         <div className="select-input-wrapper">
@@ -88,6 +98,7 @@ export default function RevenueTrafficPage() {
                         </div>
                     </div>
 
+                    {/* Lọc theo loại phương tiện */}
                     <div className="filter-group">
                         <label className="filter-label">Loại xe</label>
                         <div className="select-input-wrapper">
@@ -106,6 +117,7 @@ export default function RevenueTrafficPage() {
                         </div>
                     </div>
 
+                    {/* Nút hành động Lọc dữ liệu */}
                     <button
                         className={`filter-btn ${isFiltering ? 'rtp-filter-btn--loading' : ''}`}
                         onClick={handleFilter}
@@ -119,9 +131,9 @@ export default function RevenueTrafficPage() {
                     </button>
                 </div>
 
-                {/* 2 Stats Cards Grid */}
+                {/* 2. Lưới 2 Card Thống Kê Tổng Quan (Xe 4 Bánh & Xe 2 Bánh) */}
                 <div className="stats-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                    {/* Xe 4 bánh */}
+                    {/* Card Thống kê Xe 4 bánh */}
                     <div className="stat-overview-card">
                         <div className="stat-card-main">
                             <div>
@@ -141,7 +153,7 @@ export default function RevenueTrafficPage() {
                         </div>
                     </div>
 
-                    {/* Xe 2 bánh */}
+                    {/* Card Thống kê Xe 2 bánh */}
                     <div className="stat-overview-card">
                         <div className="stat-card-main">
                             <div>
@@ -162,7 +174,7 @@ export default function RevenueTrafficPage() {
                     </div>
                 </div>
 
-                {/* Biểu đồ Doanh thu & Lưu lượng */}
+                {/* 3. Panel Biểu Đồ Cột Doanh Thu & Lưu Lượng Phân Theo Giờ */}
                 <div className="chart-panel-card">
                     <div className="chart-panel-header">
                         <div>
@@ -171,7 +183,9 @@ export default function RevenueTrafficPage() {
                         </div>
                     </div>
 
+                    {/* Vùng dựng biểu đồ cột bằng HTML/CSS */}
                     <div className="rtp-chart-area">
+                        {/* Trục tung Y-Axis */}
                         <div className="rtp-chart-yaxis">
                             <span>100M</span>
                             <span>75M</span>
@@ -180,15 +194,18 @@ export default function RevenueTrafficPage() {
                             <span>0</span>
                         </div>
 
+                        {/* Các cột biểu đồ ghép cặp (Doanh thu + Lưu lượng) */}
                         <div className="rtp-chart-bars">
                             {barChartData.map((d) => (
                                 <div key={d.label} className="rtp-bar-group">
                                     <div className="rtp-bar-pair">
+                                        {/* Thanh Doanh thu (Màu cam) */}
                                         <div
                                             className="rtp-bar rtp-bar--revenue"
                                             style={{ height: `${d.revenue}%` }}
                                             title={`Doanh thu: ${d.revenue}%`}
                                         />
+                                        {/* Thanh Lưu lượng xe (Màu xám) */}
                                         <div
                                             className="rtp-bar rtp-bar--traffic"
                                             style={{ height: `${d.traffic}%` }}
@@ -201,6 +218,7 @@ export default function RevenueTrafficPage() {
                         </div>
                     </div>
 
+                    {/* Ghi chú Legend màu sắc biểu đồ */}
                     <div className="chart-legend-box" style={{ borderTop: 'none', marginTop: '16px', paddingTop: 0 }}>
                         <div className="legend-item">
                             <span className="legend-dot orange-dot"></span>
@@ -213,7 +231,7 @@ export default function RevenueTrafficPage() {
                     </div>
                 </div>
 
-                {/* Giao dịch gần nhất */}
+                {/* 4. Panel Bảng Danh Sách Các Giao Dịch Gần Nhất */}
                 <div className="table-panel-card">
                     <div className="table-panel-header">
                         <h3>Giao dịch gần nhất</h3>
@@ -257,6 +275,7 @@ export default function RevenueTrafficPage() {
                         </table>
                     </div>
 
+                    {/* Chân trang thông tin phân trang */}
                     <div className="table-panel-footer" style={{ padding: '16px 24px', backgroundColor: '#fafbfb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9' }}>
                         <span style={{ fontSize: '13px', color: '#64748b' }}>Hiển thị 1 - 4 của 1,240 giao dịch</span>
                         <div className="rtp-pagination" style={{ display: 'flex', gap: '8px' }}>

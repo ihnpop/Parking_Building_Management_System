@@ -1,0 +1,1680 @@
+.lost-card-log-page {
+  max-width: 100%;
+  font-family: 'Inter', sans-serif;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  min-height: auto !important;
+  border-radius: 16px !important;
+  padding: 8px 20px 24px 20px !important;
+  background-color: #f8fafc !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lost-stats-grid {
+  display: grid;
+  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: clamp(12px, 2vw, 24px) !important;
+}
+
+.lost-stat-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.lost-stat-content {
+  flex: 1;
+}
+
+.lost-stat-label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.lost-stat-value {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+  line-height: 1;
+  font-size: clamp(22px, 3vw, 32px) !important;
+}
+
+.lost-stat-note {
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lost-stat-note.positive {
+  color: #2563eb !important;
+}
+
+.lost-stat-note span {
+  font-size: 16px;
+}
+
+.lost-stat-note.warning-note {
+  color: #1d4ed8;
+}
+
+.lost-stat-progress-bar {
+  width: 140px;
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.lost-stat-progress-bar .progress-fill {
+  height: 100%;
+  background-color: #0284c7;
+  border-radius: 9999px;
+}
+
+.lost-stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lost-stat-icon.pending {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.lost-stat-icon span {
+  font-size: 28px;
+}
+
+.lost-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: clamp(12px, 2vw, 20px) !important;
+}
+
+.lost-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lost-filter-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.lost-filter-group.search-group {
+  flex: 2;
+  min-width: 280px;
+}
+
+.lost-filter-group.dropdown-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.lost-filter-group.date-group {
+  flex: 1.5;
+  min-width: 220px;
+}
+
+.lost-filter-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 46px;
+  background-color: #2563eb !important;
+}
+
+.lost-filter-button:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.lost-filter-button span {
+  font-size: 20px;
+}
+
+.lost-table-card {
+  border: 1px solid #f0f0f0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.lost-table {
+  text-align: left;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lost-table th {
+  background-color: #eff6ff;
+  color: #1e3a8a;
+  padding: 18px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.lost-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.lost-id-cell {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.lost-plate-box {
+  background-color: #f3f4f6;
+  width: 76px;
+  text-align: center;
+  line-height: 1.2;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+.lost-plate-top {
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 2px;
+  color: #374151;
+  line-height: 1.2;
+}
+
+.lost-plate-bottom {
+  padding-top: 2px;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.status-badge-lost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge-lost .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-badge-lost.status-pending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-badge-lost.status-pending .dot {
+  background-color: #2563eb;
+}
+
+.status-badge-lost.status-cancelled {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge-lost.status-cancelled .dot {
+  background-color: #dc2626;
+}
+
+.status-badge-lost.status-recovered {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.status-badge-lost.status-recovered .dot {
+  background-color: #2563eb;
+}
+
+.lost-action-btn {
+  background-color: #f3f4f6;
+  transition: background-color 0.2s;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.lost-action-btn:hover {
+  background-color: #e5e7eb;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.lost-action-btn span {
+  font-size: 18px;
+}
+
+.lost-table-footer {
+  background-color: #eff6ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.footer-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lost-create-button {
+  background-color: #2563eb !important;
+  transition: background 0.2s;
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, .25) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lost-create-button:hover {
+  transform: translateY(-1px);
+  background-color: #1d4ed8 !important;
+  background: #334155;
+}
+
+.lost-create-button span {
+  font-size: 20px;
+}
+
+.status-badge-lost.status-processing .dot {
+  background-color: #1e88e5;
+}
+
+.lost-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.lost-modal {
+  padding: 0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  animation: modalSlideIn 0.3s ease;
+  background: #fff;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lost-form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lost-form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.lost-form-group input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.lost-modal-actions {
+  background: #f8fafc;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.lost-kpi-value.val-green {
+  color: #10b981;
+}
+
+.lost-kpi-value.val-orange {
+  color: #f59e0b;
+}
+
+.lost-card-log-wrapper {
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+.lost-kpi-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+.lost-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.lost-kpi-card {
+  border: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100px;
+  position: relative;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.lost-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.lost-kpi-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.lost-kpi-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lost-kpi-title {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.lost-kpi-body {
+  justify-content: space-between;
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lost-kpi-value {
+  line-height: 1;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.lost-kpi-value.val-red {
+  color: #ef4444;
+}
+
+.lost-kpi-value.val-blue {
+  color: #0052cc;
+}
+
+.lost-kpi-footer {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  font-weight: 500;
+  line-height: 1;
+  padding-bottom: 2px;
+  font-size: 12px;
+}
+
+.lost-kpi-footer.txt-gray {
+  color: #94a3b8;
+}
+
+.lost-kpi-footer.txt-orange {
+  color: #f59e0b;
+}
+
+.lost-kpi-footer.txt-blue {
+  color: #64748b;
+}
+
+.lost-kpi-footer.txt-green {
+  color: #10b981;
+}
+
+.lost-kpi-footer.txt-red {
+  color: #ef4444;
+}
+
+.lost-filter-card {
+  border: 1px solid #f0f0f0;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  flex-wrap: wrap;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 16px 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.lost-header,
+.lost-stats-grid,
+.lost-toolbar {
+  display: none;
+}
+
+.lost-modal-header {
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lost-modal-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.lost-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lost-form-group input,
+.lost-form-group select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.lost-form-group input:focus,
+.lost-form-group select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.lost-modal-actions .btn-cancel {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #4b5563;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.lost-modal-actions .btn-cancel:hover {
+  background: #f3f4f6;
+}
+
+.lost-modal-actions .btn-save {
+  padding: 8px 16px;
+  border: none;
+  background: #3b82f6;
+  color: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.lost-modal-actions .btn-save:hover {
+  background: #2563eb;
+}
+
+.lost-modal>h2 {
+  display: none;
+}
+
+.lost-card-log-page .lost-toolbar-modern {
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+  display: block !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+}
+
+.lost-card-log-page .lost-filters-horizontal-bar {
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 16px !important;
+  align-items: flex-end !important;
+  width: 100% !important;
+}
+
+.lost-card-log-page .lost-filter-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.lost-card-log-page .filter-field-label {
+  white-space: nowrap !important;
+  color: var(--db-primary, #2563eb) !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 6px !important;
+}
+
+.lost-card-log-page .search-premium-wrapper {
+  flex: 2 !important;
+  min-width: 300px !important;
+}
+
+.lost-card-log-page .premium-input-box-styled {
+  position: relative !important;
+  background: #ffffff !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 42px !important;
+}
+
+.lost-card-log-page .premium-input-box-styled:focus-within {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px #EFF6FF !important;
+}
+
+.lost-card-log-page .premium-input-box-styled input {
+  height: 100% !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  width: 100% !important;
+  font-size: 0.9rem !important;
+  color: #1f2937 !important;
+}
+
+.lost-card-log-page .search-brand-icon-premium {
+  font-size: 20px !important;
+  margin-right: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  color: #2563eb !important;
+  opacity: 0.8 !important;
+}
+
+.lost-card-log-page .select-premium-wrapper {
+  flex: 1 !important;
+  min-width: 180px !important;
+}
+
+.lost-card-log-page .premium-select-box-styled {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.lost-card-log-page .premium-select-box-styled select {
+  width: 100% !important;
+  height: 42px !important;
+  background: #ffffff !important;
+  outline: none !important;
+  appearance: none !important;
+  box-sizing: border-box !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 0 36px 0 14px !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: var(--db-text-dark, #1f2937) !important;
+  cursor: pointer !important;
+}
+
+.lost-card-log-page .premium-select-box-styled select:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px #EFF6FF !important;
+}
+
+.lost-card-log-page .select-arrow-icon-premium {
+  position: absolute !important;
+  pointer-events: none !important;
+  font-size: 20px !important;
+  right: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  color: #2563eb !important;
+  opacity: 0.8 !important;
+}
+
+.lost-card-log-page .date-premium-wrapper {
+  flex: 1.5 !important;
+  min-width: 260px !important;
+}
+
+.lost-card-log-page .premium-date-inputs-styled {
+  background: #ffffff !important;
+  height: 42px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  border-radius: 10px !important;
+  padding: 0 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.lost-card-log-page .premium-date-inputs-styled:focus-within {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px #EFF6FF !important;
+}
+
+.lost-card-log-page .date-field-node-premium {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.lost-card-log-page .date-field-node-premium input[type="date"] {
+  width: 100% !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: 0.85rem !important;
+  color: #1f2937 !important;
+}
+
+.lost-card-log-page .date-range-split-dash-premium {
+  color: #94a3b8 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: lowercase !important;
+}
+
+.lost-card-log-page .pending-icon {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+}
+
+.lost-card-log-page .pending-border {
+  border-left: 5px solid #ef4444 !important;
+}
+
+.lost-card-log-page .text-pending {
+  color: #dc2626 !important;
+}
+
+.lost-card-log-page .warning-alert {
+  color: #ef4444 !important;
+  font-weight: 600 !important;
+}
+
+.lost-card-log-page .pending-fill {
+  background: linear-gradient(90deg, #ef4444, #f87171) !important;
+}
+
+.lost-card-log-page .status-badge-lost-premium.status-pending-wait {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+}
+
+.lost-card-log-page .lost-table-card-premium {
+  clear: both !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  margin-top: 24px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.04), 0 2px 6px -2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.lost-card-log-page .lost-dashboard-analytics-container {
+  display: flex !important;
+  gap: 20px !important;
+  margin-bottom: 24px !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+.lost-card-log-page .lost-stats-grid-layout {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 16px !important;
+  flex-grow: 1 !important;
+}
+
+.lost-card-log-page .lost-stat-box-item {
+  border-radius: 12px !important;
+  padding: 18px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  min-height: 115px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.lost-card-log-page .lost-stat-box-item:hover {
+  transform: translateY(-3px) !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.08), 0 4px 6px -2px rgba(37, 99, 235, 0.03) !important;
+}
+
+.lost-card-log-page .lost-box-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.lost-card-log-page .lost-box-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.lost-card-log-page .lost-box-icon span {
+  font-size: 20px !important;
+}
+
+.lost-card-log-page .total-icon {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+.lost-card-log-page .total-border {
+  border-left: 5px solid #475569 !important;
+}
+
+.lost-card-log-page .success-icon {
+  background: #ecfdf5 !important;
+  color: #10b981 !important;
+}
+
+.lost-card-log-page .success-border {
+  border-left: 5px solid #10b981 !important;
+}
+
+.lost-card-log-page .lost-box-label {
+  font-size: 0.9rem !important;
+  color: #4b5563 !important;
+  font-weight: 600 !important;
+}
+
+.lost-card-log-page .lost-box-body {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  margin-top: 12px !important;
+}
+
+.lost-card-log-page .lost-box-number {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+.lost-card-log-page .text-total {
+  color: #1f2937 !important;
+}
+
+.lost-card-log-page .text-success {
+  color: #065f46 !important;
+}
+
+.lost-card-log-page .lost-box-subtext {
+  font-size: 0.8rem !important;
+  color: #9ca3af !important;
+}
+
+.lost-card-log-page .success-alert {
+  color: #10b981 !important;
+  font-weight: 600 !important;
+}
+
+.lost-card-log-page .lost-chart-visualization-card.compressed-width {
+  width: 35% !important;
+  min-width: 300px !important;
+  flex-shrink: 0 !important;
+  border-radius: 12px !important;
+  padding: 18px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02) !important;
+  transition: box-shadow 0.25s ease !important;
+}
+
+.lost-card-log-page .chart-header-zone {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding-bottom: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+.lost-card-log-page .chart-header-zone h4 {
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  margin: 0 !important;
+}
+
+.lost-card-log-page .chart-bars-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  justify-content: center !important;
+  flex-grow: 1 !important;
+}
+
+.lost-card-log-page .chart-bar-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.lost-card-log-page .bar-meta-desc {
+  display: flex !important;
+  justify-content: space-between !important;
+  font-size: 0.8rem !important;
+  color: #6b7280 !important;
+}
+
+.lost-card-log-page .bar-name-label {
+  font-weight: 500;
+}
+
+.lost-card-log-page .bar-data-counter b {
+  color: #111827;
+}
+
+.lost-card-log-page .bar-track-background {
+  width: 100% !important;
+  height: 8px !important;
+  background: #f3f4f6 !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+
+.lost-card-log-page .bar-fill-color {
+  height: 100% !important;
+  border-radius: 4px !important;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.lost-card-log-page .total-fill {
+  background: #475569 !important;
+}
+
+.lost-card-log-page .success-fill {
+  background: linear-gradient(90deg, #10b981, #34d399) !important;
+}
+
+.lost-card-log-page .clear-btn-premium {
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+}
+
+.lost-card-log-page .lost-create-button-premium {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 0 20px !important;
+  height: 40px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+.lost-card-log-page .lost-create-button-premium:hover {
+  background: #1d4ed8 !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25) !important;
+}
+
+.lost-card-log-page .processing-icon {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.lost-card-log-page .processing-border {
+  border-left: 5px solid #0284c7 !important;
+}
+
+.lost-card-log-page .text-processing {
+  color: #0369a1 !important;
+}
+
+.lost-card-log-page .processing-fill {
+  background: linear-gradient(90deg, #0284c7, #38bdf8) !important;
+}
+
+.lost-card-log-page .status-badge-lost-premium.status-pending {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.lost-card-log-page .lost-table-modernized {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  text-align: left !important;
+}
+
+.lost-card-log-page .lost-table-modernized th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  padding: 16px 18px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.lost-card-log-page .lost-table-modernized td {
+  padding: 16px 18px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #334155 !important;
+  font-size: 13.5px !important;
+  vertical-align: middle !important;
+}
+
+.lost-card-log-page .lost-table-modernized tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.lost-card-log-page .lost-id-cell-premium {
+  font-weight: 700 !important;
+  color: #2563eb !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+.lost-card-log-page .status-badge-lost-premium {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.lost-card-log-page .status-badge-lost-premium.status-recovered {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+.lost-card-log-page .status-badge-lost-premium::before {
+  content: "" !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  margin-right: 8px !important;
+  background-color: currentColor !important;
+}
+
+.lost-card-log-page .lost-action-btn-premium {
+  background: transparent !important;
+  border: none !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.lost-card-log-page .lost-action-btn-premium:hover {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+.lost-card-log-page .lost-action-btn-premium span {
+  font-size: 18px !important;
+}
+
+.lost-card-log-page .lost-table-footer-premium {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 24px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+.lost-card-log-page .footer-info-premium {
+  font-size: 13.5px !important;
+  color: #64748b !important;
+}
+
+.lost-card-log-page .footer-info-premium b {
+  color: #0f172a !important;
+}
+
+.lost-card-log-page .footer-right-actions-premium {
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+}
+
+.lost-card-log-page .lost-pagination-premium {
+  display: flex !important;
+  gap: 6px !important;
+}
+
+.lost-card-log-page .page-btn-premium {
+  min-width: 34px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.lost-card-log-page .page-btn-premium:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.lost-card-log-page .page-btn-premium:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+.lost-card-log-page .page-btn-premium span {
+  font-size: 18px !important;
+}
+
+.lost-card-log-page .lost-chart-visualization-card.compressed-width:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02) !important;
+}
+
+.lost-card-log-page .premium-input-box-styled:focus-within,
+.lost-card-log-page .premium-select-box-styled select:focus,
+.lost-card-log-page .premium-date-inputs-styled:focus-within {
+  border-color: var(--db-primary, #2563eb) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  background-color: #ffffff !important;
+}
+
+.lost-card-log-page .lost-pagination .page-btn {
+  min-width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 0 6px !important;
+}
+
+.lost-card-log-page .lost-pagination .page-btn:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: var(--db-primary, #2563eb) !important;
+  color: var(--db-primary, #2563eb) !important;
+}
+
+.lost-card-log-page .lost-pagination .page-btn:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.lost-card-log-page .lost-pagination .page-btn span {
+  font-size: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.lost-card-log-page .lost-toolbar-modern .lost-filter-item div,
+.lost-card-log-page .lost-toolbar-modern .lost-filter-item label,
+.lost-card-log-page .lost-toolbar div,
+.lost-card-log-page .lost-toolbar label {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+.lost-card-log-page .premium-input-box-styled input,
+.lost-card-log-page .premium-select-box-styled select,
+.lost-card-log-page .premium-date-inputs-styled input {
+  color: #1f2937 !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+}
+
+.lost-card-log-page .lost-toolbar-modern .filter-field-label,
+.lost-card-log-page .lost-toolbar-modern div,
+.lost-card-log-page .lost-filter-item div,
+.lost-card-log-page .lost-toolbar div {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+.lost-card-log-page .premium-input-box-styled input,
+.lost-card-log-page .premium-select-box-styled select {
+  color: #1f2937 !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
+}
+
+.lost-table thead th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 14px 18px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.lost-table tbody td {
+  padding: 14px 18px;
+  font-size: 14px;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.lost-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.lost-form-group input:disabled {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.btn-save,
+.btn-cancel {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-save {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+}
+
+.btn-save:hover {
+  background: #2563eb;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background: #fff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-cancel:hover {
+  background: #f8fafc;
+}
+
+.lost-action-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.lost-action-note-input {
+  margin-bottom: 8px;
+}
+
+.lost-action-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-cancel-mistake {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.btn-cancel-danger {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.history-pagination {
+  justify-content: flex-end;
+  margin-top: 16px;
+  display: flex !important;
+  gap: 6px !important;
+  align-items: center !important;
+}
+
+.history-page-btn {
+  height: 32px !important;
+  min-width: 32px !important;
+  padding: 0 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 8px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.history-page-btn:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+.history-modal-wide {
+  width: 780px !important;
+  max-width: 92vw !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border: 1px solid #e2e8f0 !important;
+  animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.history-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 16px 24px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  gap: 16px !important;
+}
+
+.history-modal-header h2 {
+  font-size: 16px !important;
+}
+
+.history-search-input {
+  height: 36px !important;
+  padding: 0 12px 0 34px !important;
+  font-size: 13.5px !important;
+  color: #1e293b !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  width: 260px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.filter-block:has(.date-range-wrapper),
+.lost-filter-card .filter-block:has(.date-range-wrapper) {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.lost-filter-card > div[style*="marginLeft"],
+.lost-filter-card > div[style*="margin-left"],
+.lost-filter-card > div:has(.lost-create-button) {
+  margin-left: auto !important;
+  gap: 10px !important;
+  flex: 0 0 auto !important;
+}
+
+.lost-create-button,
+button.lost-create-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  height: 38px !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+  transition: all 0.2s ease-in-out !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+}
+
+.lost-create-button:hover,
+button.lost-create-button:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.lost-create-button:active,
+button.lost-create-button:active {
+  transform: scale(0.97);
+}
+
+.lost-modal-overlay:has(.history-modal-wide) {
+  background-color: rgba(15, 23, 42, 0.55) !important;
+  backdrop-filter: blur(4px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 1050 !important;
+  animation: fadeInModal 0.2s ease-out;
+}
+
+.history-modal-header-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.history-modal-header-left h2 {
+  font-size: 16.5px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin: 0 !important;
+}
+
+.history-modal-header-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.history-search-container {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.history-search-input:focus {
+  background: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+.history-close-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #f1f5f9 !important;
+  border: none !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.history-close-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.history-modal-body {
+  max-height: 68vh !important;
+  min-height: 400px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  background-color: #f8fafc !important;
+}
+
+.history-list-scroll {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 20px 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+}
+
+.history-empty-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 60px 20px !important;
+  color: #94a3b8 !important;
+  gap: 8px !important;
+  margin: auto !important;
+}
+
+.history-empty-container p {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  margin: 0 !important;
+}
+
+.history-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-left-width: 4px !important;
+  border-radius: 10px !important;
+  padding: 14px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  flex-shrink: 0 !important;
+  min-height: min-content !important;
+}
+
+.history-card:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.history-card-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.history-action-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+}
+
+.history-card-time {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+.history-card-note {
+  background: #f8fafc !important;
+  border: 1px solid #f1f5f9 !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  color: #334155 !important;
+  line-height: 1.5 !important;
+  white-space: pre-line !important;
+  word-break: break-word !important;
+}
+
+.history-modal-footer {
+  padding: 14px 24px !important;
+  background-color: #ffffff !important;
+  border-top: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+}
+
+.history-page-btn:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #94a3b8 !important;
+}

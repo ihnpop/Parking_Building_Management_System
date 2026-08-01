@@ -3,25 +3,25 @@ import * as paymentRepository from '../repositories/paymentRepository.js';
 import { getUserIdFromReq } from '../helpers/authHelper.js';
 
 /**
- * [Legacy] Xử lý toàn bộ luồng đăng ký vé tháng trong một bước
+ * [Legacy] Xử lý toàn bộ luồng đăng ký thẻ tháng trong một bước
  */
 class ParkingRegistrationController {
-    async registerMonthlyTicket(req, res) {
-        try {
-            const result = await registrationService.processFullMonthlyRegistration(req.body);
-            return res.status(200).json({
-                success: true,
-                message: "Quy trình đăng ký xe tháng hoàn tất thành công!",
-                data: result
-            });
-        } catch (error) {
-            console.error("Lỗi đăng ký vé tháng:", error);
-            return res.status(500).json({
-                success: false,
-                message: error.message || "Luồng đăng ký vé tháng gặp sự cố."
-            });
-        }
+  async registerMonthlyTicket(req, res) {
+    try {
+      const result = await registrationService.processFullMonthlyRegistration(req.body);
+      return res.status(200).json({
+        success: true,
+        message: "Quy trình đăng ký xe tháng hoàn tất thành công!",
+        data: result
+      });
+    } catch (error) {
+      console.error("Lỗi đăng ký thẻ tháng:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Luồng đăng ký thẻ tháng gặp sự cố."
+      });
     }
+  }
 }
 
 export default new ParkingRegistrationController();
@@ -58,7 +58,7 @@ export const initiatePayment = async (req, res) => {
 };
 
 /**
- * BƯỚC 4 & 5: Kiểm tra và lấy giao dịch đăng ký vé tháng đang chờ thanh toán
+ * BƯỚC 4 & 5: Kiểm tra và lấy giao dịch đăng ký thẻ tháng đang chờ thanh toán
  * hoặc đã thanh toán nhưng chưa hoàn tất đăng ký
  * GET /api/month-card/pending-registration
  */

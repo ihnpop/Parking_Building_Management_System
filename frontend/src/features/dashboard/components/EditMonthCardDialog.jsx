@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { updateMonthCard } from '../../../service/monthCardApi';
 import supabase from '../../../config/supabaseClient';
+import "./EditMonthCardDialog.css";
 
 // Helper: Convert UTC / ISO timestamp to local 'YYYY-MM-DDTHH:mm' for datetime-local input
 const toLocalISOString = (dateInput) => {
