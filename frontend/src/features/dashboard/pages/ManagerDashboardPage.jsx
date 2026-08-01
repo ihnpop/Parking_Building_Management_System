@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
 import { formatVND } from '../../../service/dashboardApi';
 import {
@@ -9,6 +10,9 @@ import {
     formatLabel,
     getHourVN,
     getVNPeriodRange,
+    formatDateFormatted,
+    formatWeekLabel,
+    formatMonthLabel,
     handleExportExcel as handleExportExcelUtil
 } from '../../../utils/dashboardUtils';
 
@@ -57,6 +61,7 @@ const VEHICLE_COLOR_DEFAULT = '#FBBF24';
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function ManagerDashboardPage() {
+    const { user: authUser } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(null);
@@ -72,6 +77,9 @@ export default function ManagerDashboardPage() {
         todayTraffic: 0,
         revenueToday: 0,
         revenueMonth: 0,
+        emptySlots: 0,
+        usedSlots: 0,
+        incidents: 0,
     });
 
     const [dashboardPeriod, setDashboardPeriod] = useState('day');
@@ -88,42 +96,48 @@ export default function ManagerDashboardPage() {
     const [recentExits, setRecentExits] = useState([]);
 
     // Compute formatted labels for Excel export and titles
-    const dateFormatted = selectedCustomDate.split('-').reverse().join('/');
-    
-    let weekLabel = '';
-    if (selectedCustomDate) {
-        const [y, m, d] = selectedCustomDate.split('-').map(Number);
-        const selectedDateObj = new Date(y, m - 1, d);
-        const currentDay = selectedDateObj.getDay();
-        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-        const monday = new Date(selectedDateObj);
-        monday.setDate(selectedDateObj.getDate() + diffToMonday);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-
-        const formatShort = (dateObj) => {
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            return `${dd}/${mm}`;
-        };
-        weekLabel = `${formatShort(monday)} - ${formatShort(sunday)}`;
-    }
-
-    const monthFormatted = selectedCustomMonth.split('-').reverse().join('/');
+    const dateFormatted = formatDateFormatted(selectedCustomDate);
+    const weekLabel = formatWeekLabel(selectedCustomDate);
+    const monthFormatted = formatMonthLabel(selectedCustomMonth);
 
     // ── Step 1: Lấy building_id của Manager đang đăng nhập từ profiles ──
     const fetchBuildingId = useCallback(async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return null;
+            // Thử lấy user từ Supabase session trước
+            let userId = null;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user?.id) userId = user.id;
+            } catch (_) { /* ignore */ }
+
+            // Fallback: dùng AuthContext user hoặc localStorage khi token hết hạn
+            if (!userId) {
+                const ctxId = authUser?.id;
+                const lsId = localStorage.getItem('userId');
+                userId = ctxId || lsId || null;
+            }
+
+            if (!userId || userId === '00000000-0000-0000-0000-000000000000') {
+                // Thử lại bằng session
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.id) {
+                    userId = session.user.id;
+                } else {
+                    console.warn('[ManagerDashboard] Không tìm thấy user ID hợp lệ');
+                    return null;
+                }
+            }
 
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('building_id, building:building_id(name)')
-                .eq('id', user.id)
+                .eq('id', userId)
                 .single();
 
-            if (error || !profile) return null;
+            if (error || !profile) {
+                console.warn('[ManagerDashboard] Không tìm thấy profile:', error?.message);
+                return null;
+            }
 
             if (!profile.building_id) {
                 setNoBuildingAssigned(true);
@@ -137,7 +151,7 @@ export default function ManagerDashboardPage() {
             console.error('[ManagerDashboard] fetchBuildingId error:', err);
             return null;
         }
-    }, []);
+    }, [authUser]);
 
     // ── Step 2: Load dashboard data theo building_id ──
     const loadData = useCallback(async (bldId) => {
@@ -242,52 +256,78 @@ export default function ManagerDashboardPage() {
 
             const periodTraffic = (periodLogs || []).length;
 
-            // 7. Query payments in the period
+            // 7. Query payments in the period for the building
             let periodPayments = [];
-            const periodSessionIds = [...new Set((periodLogs || []).map(l => l.session_id).filter(Boolean))];
-            if (periodSessionIds.length > 0) {
+            if (buildingSessionIds.length > 0) {
                 const { data: payments } = await supabase
                     .from('payment')
                     .select('amount, payment_time, session_id')
                     .eq('status', 'Đã thanh toán')
                     .gte('payment_time', startDate)
                     .lte('payment_time', endDate)
-                    .in('session_id', periodSessionIds);
+                    .in('session_id', buildingSessionIds);
+                periodPayments = payments || [];
+            } else {
+                const { data: payments } = await supabase
+                    .from('payment')
+                    .select('amount, payment_time, session_id')
+                    .eq('status', 'Đã thanh toán')
+                    .gte('payment_time', startDate)
+                    .lte('payment_time', endDate);
                 periodPayments = payments || [];
             }
 
+            // Tính tổng doanh thu trong kỳ từ periodPayments
             const periodRevenue = periodPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-            // Fetch monthly revenue for building (as default/fallback)
-            let monthRevenue = 0;
-            const { data: monthLogs } = await supabase
-                .from('entry_exit_log')
-                .select('session_id')
-                .eq('building_id', bldId)
-                .gte('event_time', startMonth)
-                .lte('event_time', endMonth);
-            const monthSessionIds = [...new Set((monthLogs || []).map(l => l.session_id).filter(Boolean))];
-            if (monthSessionIds.length > 0) {
-                const { data: mPayments } = await supabase
-                    .from('payment')
-                    .select('amount')
-                    .eq('status', 'Đã thanh toán')
-                    .gte('payment_time', startMonth)
-                    .lte('payment_time', endMonth)
-                    .in('session_id', monthSessionIds);
-                monthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-            }
-
             // Compute second revenue metric (monthly or average)
-            let periodRevenue2 = monthRevenue;
+            const selMonthStr = dashboardPeriod === 'month' 
+                ? (selectedCustomMonth || thisMonthVN()) 
+                : (selectedCustomDate || todayVN()).slice(0, 7);
+
+            let periodRevenue2 = 0;
             if (dashboardPeriod === 'day') {
-                periodRevenue2 = monthRevenue;
+                const monthRange = getVNPeriodRange('month', null, selMonthStr);
+                let targetMonthRevenue = 0;
+                if (buildingSessionIds.length > 0) {
+                    const { data: mPayments } = await supabase
+                        .from('payment')
+                        .select('amount')
+                        .eq('status', 'Đã thanh toán')
+                        .gte('payment_time', monthRange.startDate)
+                        .lte('payment_time', monthRange.endDate)
+                        .in('session_id', buildingSessionIds);
+                    targetMonthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                } else {
+                    const { data: mPayments } = await supabase
+                        .from('payment')
+                        .select('amount')
+                        .eq('status', 'Đã thanh toán')
+                        .gte('payment_time', monthRange.startDate)
+                        .lte('payment_time', monthRange.endDate);
+                    targetMonthRevenue = (mPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                }
+                periodRevenue2 = targetMonthRevenue;
             } else if (dashboardPeriod === 'week') {
                 periodRevenue2 = Math.round(periodRevenue / 7);
             } else if (dashboardPeriod === 'month') {
-                const [y, m] = selectedCustomMonth.split('-').map(Number);
+                const [y, m] = selMonthStr.split('-').map(Number);
                 const daysInMonth = new Date(y, m, 0).getDate();
-                periodRevenue2 = Math.round(periodRevenue / daysInMonth);
+                periodRevenue2 = Math.round(periodRevenue / (daysInMonth || 30));
+            }
+
+            // Query incidents count for the period
+            let incidentCount = 0;
+            try {
+                const { count } = await supabase
+                    .from('card_lost_log')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('building_id', bldId)
+                    .gte('reported_at', startDate)
+                    .lte('reported_at', endDate);
+                incidentCount = count || 0;
+            } catch (e) {
+                console.error('[ManagerDashboard] Error counting incidents:', e);
             }
 
             setStats({
@@ -298,6 +338,9 @@ export default function ManagerDashboardPage() {
                 todayTraffic: periodTraffic,
                 revenueToday: periodRevenue,
                 revenueMonth: periodRevenue2,
+                emptySlots: availableSlots,
+                usedSlots: occupiedSlots,
+                incidents: incidentCount,
             });
 
             // 8. Generate traffic and revenue charts
@@ -317,23 +360,37 @@ export default function ManagerDashboardPage() {
                     const h = getHourVN(p.payment_time);
                     if (h >= 0 && h <= 23) hourlyRevenue[h] += (Number(p.amount) || 0);
                 });
+                const maxRev = Math.max(...hourlyRevenue, 1);
                 setRevenueChartData(hourlyRevenue.map((val, idx) => ({
                     label: `${String(idx).padStart(2, '0')}h`,
-                    val
+                    val,
+                    peak: val === maxRev && val > 0
                 })));
             } else {
                 const datesList = [];
-                const startMs = new Date(startDate).getTime() + 7 * 60 * 60 * 1000;
-                const endMs = new Date(endDate).getTime() + 7 * 60 * 60 * 1000;
-
-                let walkMs = startMs;
-                while (walkMs <= endMs) {
-                    const walkDate = new Date(walkMs);
-                    const y = walkDate.getUTCFullYear();
-                    const m = String(walkDate.getUTCMonth() + 1).padStart(2, '0');
-                    const d = String(walkDate.getUTCDate()).padStart(2, '0');
-                    datesList.push(`${y}-${m}-${d}`);
-                    walkMs += 24 * 60 * 60 * 1000;
+                if (dashboardPeriod === 'week') {
+                    const parts = (selectedCustomDate || todayVN()).split('-').map(Number);
+                    const [y, m, d] = (parts.length === 3 && !parts.some(isNaN)) ? parts : [2026, 7, 27];
+                    const dt = new Date(y, m - 1, d);
+                    const currentDay = dt.getDay();
+                    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+                    for (let i = 0; i < 7; i++) {
+                        const dayMs = Date.UTC(y, m - 1, d + diffToMonday + i, 12, 0, 0);
+                        const dayObj = new Date(dayMs);
+                        const dy = dayObj.getUTCFullYear();
+                        const dm = String(dayObj.getUTCMonth() + 1).padStart(2, '0');
+                        const dd = String(dayObj.getUTCDate()).padStart(2, '0');
+                        datesList.push(`${dy}-${dm}-${dd}`);
+                    }
+                } else if (dashboardPeriod === 'month') {
+                    const parts = (selectedCustomMonth || thisMonthVN()).split('-').map(Number);
+                    const [y, m] = (parts.length === 2 && !parts.some(isNaN)) ? parts : [2026, 7];
+                    const daysInMonth = new Date(y, m, 0).getDate();
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dm = String(m).padStart(2, '0');
+                        const dd = String(day).padStart(2, '0');
+                        datesList.push(`${y}-${dm}-${dd}`);
+                    }
                 }
 
                 // Daily traffic
@@ -356,10 +413,12 @@ export default function ManagerDashboardPage() {
                     const dateStr = getLocalDateVN(p.payment_time);
                     if (dailyRevenue[dateStr] !== undefined) dailyRevenue[dateStr] += (Number(p.amount) || 0);
                 });
+                const maxRev = Math.max(...Object.values(dailyRevenue), 1);
                 setRevenueChartData(datesList.map(d => ({
                     label: formatLabel(d),
                     labelFull: d,
-                    val: dailyRevenue[d]
+                    val: dailyRevenue[d],
+                    peak: dailyRevenue[d] === maxRev && dailyRevenue[d] > 0
                 })));
             }
 
@@ -732,8 +791,8 @@ export default function ManagerDashboardPage() {
         <div className="mgr-page">
 
             {/* ── Header ── */}
-            <div className="mgr-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-                <div className="mgr-header-left">
+            <div className="mgr-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
+                <div className="mgr-header-left" style={{ flexShrink: 0 }}>
                     <h1 className="mgr-h1" style={{ margin: 0 }}>
                         {buildingName && (
                             <span className="mgr-building-tag">
@@ -744,7 +803,7 @@ export default function ManagerDashboardPage() {
                     </h1>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', flexShrink: 0 }}>
                     {/* Bộ lọc thời gian giống Admin */}
                     <div style={{
                         display: 'flex',
@@ -754,7 +813,8 @@ export default function ManagerDashboardPage() {
                         borderRadius: '10px',
                         border: '1px solid #e2e8f0',
                         height: '42px',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        flexShrink: 0
                     }}>
                         {/* Theo ngày */}
                         <button
@@ -763,8 +823,8 @@ export default function ManagerDashboardPage() {
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                padding: '0 16px',
+                                gap: '6px',
+                                padding: '0 14px',
                                 height: '100%',
                                 borderRadius: '8px',
                                 border: 'none',
@@ -789,8 +849,8 @@ export default function ManagerDashboardPage() {
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                padding: '0 16px',
+                                gap: '6px',
+                                padding: '0 14px',
                                 height: '100%',
                                 borderRadius: '8px',
                                 border: 'none',
@@ -815,8 +875,8 @@ export default function ManagerDashboardPage() {
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
-                                padding: '0 16px',
+                                gap: '6px',
+                                padding: '0 14px',
                                 height: '100%',
                                 borderRadius: '8px',
                                 border: 'none',
@@ -835,14 +895,17 @@ export default function ManagerDashboardPage() {
                         </button>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                         {dashboardPeriod === 'day' && (
                             <input
                                 type="date"
                                 value={selectedCustomDate}
                                 onChange={(e) => setSelectedCustomDate(e.target.value)}
                                 style={{
-                                    padding: '0 16px',
+                                    padding: '0 10px',
+                                    width: '150px',
+                                    minWidth: '150px',
+                                    maxWidth: '150px',
                                     borderRadius: '10px',
                                     border: '1.5px solid #cbd5e1',
                                     backgroundColor: '#ffffff',
@@ -853,7 +916,8 @@ export default function ManagerDashboardPage() {
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                     cursor: 'pointer',
                                     height: '42px',
-                                    boxSizing: 'border-box'
+                                    boxSizing: 'border-box',
+                                    flexShrink: 0
                                 }}
                             />
                         )}
@@ -864,7 +928,10 @@ export default function ManagerDashboardPage() {
                                 value={selectedCustomDate}
                                 onChange={(e) => setSelectedCustomDate(e.target.value)}
                                 style={{
-                                    padding: '0 16px',
+                                    padding: '0 10px',
+                                    width: '150px',
+                                    minWidth: '150px',
+                                    maxWidth: '150px',
                                     borderRadius: '10px',
                                     border: '1.5px solid #cbd5e1',
                                     backgroundColor: '#ffffff',
@@ -875,7 +942,8 @@ export default function ManagerDashboardPage() {
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                     cursor: 'pointer',
                                     height: '42px',
-                                    boxSizing: 'border-box'
+                                    boxSizing: 'border-box',
+                                    flexShrink: 0
                                 }}
                             />
                         )}
@@ -886,7 +954,10 @@ export default function ManagerDashboardPage() {
                                 value={selectedCustomMonth}
                                 onChange={(e) => setSelectedCustomMonth(e.target.value)}
                                 style={{
-                                    padding: '0 16px',
+                                    padding: '0 10px',
+                                    width: '150px',
+                                    minWidth: '150px',
+                                    maxWidth: '150px',
                                     borderRadius: '10px',
                                     border: '1.5px solid #cbd5e1',
                                     backgroundColor: '#ffffff',
@@ -897,7 +968,8 @@ export default function ManagerDashboardPage() {
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                     cursor: 'pointer',
                                     height: '42px',
-                                    boxSizing: 'border-box'
+                                    boxSizing: 'border-box',
+                                    flexShrink: 0
                                 }}
                             />
                         )}
@@ -1023,7 +1095,9 @@ export default function ManagerDashboardPage() {
                     </div>
                     <div className="mgr-kpi-body">
                         <div className="mgr-kpi-label">
-                            {dashboardPeriod === 'day' ? 'LƯỢT XE HÔM NAY' : dashboardPeriod === 'week' ? 'LƯỢT XE TUẦN NÀY' : 'LƯỢT XE THÁNG NÀY'}
+                            {dashboardPeriod === 'day' ? `LƯỢT XE NGÀY ${dateFormatted}` : 
+                             dashboardPeriod === 'week' ? `LƯỢT XE TUẦN ${weekLabel}` : 
+                             `LƯỢT XE THÁNG ${monthFormatted}`}
                         </div>
                         <div className="mgr-kpi-value">{stats.todayTraffic.toLocaleString('vi-VN')}</div>
                         <div className="mgr-kpi-unit">lượt ra/vào trong khoảng thời gian</div>
@@ -1036,7 +1110,9 @@ export default function ManagerDashboardPage() {
                     </div>
                     <div className="mgr-kpi-body">
                         <div className="mgr-kpi-label">
-                            {dashboardPeriod === 'day' ? 'DOANH THU HÔM NAY' : 'DOANH THU KHOẢNG THỜI GIAN'}
+                            {dashboardPeriod === 'day' ? `DOANH THU NGÀY ${dateFormatted}` : 
+                             dashboardPeriod === 'week' ? `DOANH THU TUẦN ${weekLabel}` : 
+                             `DOANH THU THÁNG ${monthFormatted}`}
                         </div>
                         <div className="mgr-kpi-value mgr-kpi-value--sm">{formatVND(stats.revenueToday)}</div>
                         <div className="mgr-kpi-unit">tiền mặt &amp; QR đã thu</div>
@@ -1049,11 +1125,13 @@ export default function ManagerDashboardPage() {
                     </div>
                     <div className="mgr-kpi-body">
                         <div className="mgr-kpi-label">
-                            {dashboardPeriod === 'day' ? 'DOANH THU THÁNG' : 'DOANH THU TRUNG BÌNH HÀNG NGÀY'}
+                            {dashboardPeriod === 'day' ? `DOANH THU THÁNG ${monthFormatted}` : 'DOANH THU TRUNG BÌNH HÀNG NGÀY'}
                         </div>
                         <div className="mgr-kpi-value mgr-kpi-value--sm">{formatVND(stats.revenueMonth)}</div>
                         <div className="mgr-kpi-unit">
-                            {dashboardPeriod === 'day' ? 'tổng thu tháng hiện tại' : 'trung bình thực tế mỗi ngày'}
+                            {dashboardPeriod === 'day' ? `tổng thu tháng ${monthFormatted}` : 
+                             dashboardPeriod === 'week' ? 'trung bình thực tế mỗi ngày trong tuần' : 
+                             'trung bình thực tế mỗi ngày trong tháng'}
                         </div>
                     </div>
                 </div>

@@ -1,13 +1,24 @@
 import * as monthCardRepository from "../repositories/monthCardRepository.js";
+import { getCardReissueFee } from "../repositories/lostCardRepository.js";
+import { config } from "../config/config.js";
 
-// Bảng giá gói gia hạn cố định
-export const RENEW_PACKAGES = [
-  { months: 1, price: 300000 },
-  { months: 3, price: 850000 },
-  { months: 6, price: 1650000 },
-  { months: 9, price: 2400000 },
-  { months: 12, price: 3000000 }
-];
+// Bảng giá gói gia hạn (Tra cứu động từ DB)
+export const getRenewPackages = async (userId = null) => {
+  const packages = await getPackages(userId);
+  if (packages && packages.length > 0) {
+    return packages.map((p) => ({
+      package_id: p.package_id,
+      name: p.name,
+      months: p.duration_month,
+      price: Number(p.price),
+      vehicle_type_id: p.vehicle_type_id,
+    }));
+  }
+  return [];
+};
+
+// Fallback tương thích ngược (deprecated)
+export const RENEW_PACKAGES = [];
 
 /**
  * Kiểm tra định dạng số điện thoại Việt Nam
@@ -52,16 +63,35 @@ const addMonthsSafely = (date, months) => {
  * @returns {Promise<object>}
  */
 export const renewMonthlyCard = async ({ registrationId, months, note, currentUserId }) => {
-  // 1. Validate package
-  const pkg = RENEW_PACKAGES.find(p => p.months === Number(months));
-  if (!pkg) {
-    throw new Error("Gói gia hạn không hợp lệ.");
+  const numMonths = Number(months);
+  if (isNaN(numMonths) || numMonths <= 0) {
+    throw new Error("Số tháng gia hạn không hợp lệ.");
   }
 
-  // 2. Kiểm tra đăng ký tồn tại
+  // 1. Kiểm tra đăng ký tồn tại
   const registration = await monthCardRepository.findRegistrationWithCard(registrationId);
   if (!registration) {
     throw new Error("Không tìm thấy thông tin đăng ký thẻ.");
+  }
+
+  // Tra cứu gói cước động từ DB
+  let pkg = null;
+  const vehicleTypeId = registration.vehicle?.vehicle_type_id;
+  if (vehicleTypeId) {
+    const matchedPkg = await monthCardRepository.findActivePackage(vehicleTypeId, numMonths);
+    if (matchedPkg) {
+      pkg = { months: numMonths, price: Number(matchedPkg.price) };
+    }
+  }
+
+  if (!pkg) {
+    const allPkgs = await monthCardRepository.getActivePackages();
+    const matched = allPkgs?.find(p => Number(p.duration_month) === numMonths);
+    if (matched) {
+      pkg = { months: numMonths, price: Number(matched.price) };
+    } else {
+      pkg = { months: numMonths, price: 0 };
+    }
   }
 
   const card = registration.card;
@@ -309,8 +339,8 @@ export const createMonthCard = async ({
     // Trường hợp 2: Không còn thẻ đang chờ -> đếm và sinh mã mới
     const count = await monthCardRepository.countActiveMonthCards();
 
-    if (count >= 50) {
-      throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký).");
+    if (count >= config.maxMonthCards) {
+      throw new Error(`Hệ thống đã đạt giới hạn tối đa ${config.maxMonthCards} thẻ tháng (full slot đăng ký).`);
     }
 
     code = await monthCardRepository.generateNextMonthCode();
@@ -343,13 +373,13 @@ export const createMonthCard = async ({
       price = Number(matchedPkg.price) || 0;
     } else {
       const fallbackPkg = RENEW_PACKAGES.find(p => p.months === duration);
-      price = fallbackPkg ? fallbackPkg.price : (duration * 300000);
+      price = fallbackPkg ? fallbackPkg.price : 0;
     }
   } catch (pkgErr) {
     console.error("Error finding package for new card:", pkgErr);
     const duration = Number(durationMonths) || 1;
     const fallbackPkg = RENEW_PACKAGES.find(p => p.months === duration);
-    price = fallbackPkg ? fallbackPkg.price : (duration * 300000);
+    price = fallbackPkg ? fallbackPkg.price : 0;
   }
 
   let vehiclePackageId = null;
@@ -785,7 +815,8 @@ export const getMonthCardLogs = async (buildingId = null) => {
     }
     // Fallback: parse từ note (cấp mới ghi "Đơn: PK...")
     if (!orderCode && item.note) {
-      const match = item.note.match(/Đơn:\s*(\S+)/);
+      const noteStr = typeof item.note === 'string' ? item.note : JSON.stringify(item.note);
+      const match = noteStr.match(/Đơn:\s*(\S+)/);
       if (match) orderCode = match[1];
     }
     if (orderCode) {
@@ -824,15 +855,25 @@ export const getMonthCardLogs = async (buildingId = null) => {
                : p.payment_type === 'Phí cấp lại thẻ' ? 'Thẻ đã cấp lại'
                : 'Cấp mới';
 
+      const noteStr = typeof p.note === 'string' ? p.note : (p.note ? JSON.stringify(p.note) : '');
+
       // 1. Regex match UUID to find reportId in note (works for both JSON and plain text)
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-      const uuidMatch = (p.note || '').match(uuidRegex);
+      const uuidMatch = noteStr.match(uuidRegex);
       if (uuidMatch) {
         reportId = uuidMatch[0];
       }
 
-      try {
-        const noteObj = JSON.parse(p.note || '{}');
+      let noteObj = null;
+      if (p.note && typeof p.note === 'object') {
+        noteObj = p.note;
+      } else if (typeof p.note === 'string') {
+        try {
+          noteObj = JSON.parse(p.note);
+        } catch (e) { /* bỏ qua lỗi parse note dạng plain text */ }
+      }
+
+      if (noteObj) {
         if (p.payment_type === 'Gia hạn vé tháng') {
           cardNo = noteObj.cardCode || '---';
           vehicleId = noteObj.vehicleId || null;
@@ -847,7 +888,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
           plate = noteObj.vehicle_info?.plate_number || 'Chưa có';
           owner = noteObj.customer_info?.full_name || 'Khách vãng lai';
         }
-      } catch (e) { /* bỏ qua lỗi parse note dạng plain text */ }
+      }
 
       const displayStatus = (p.status === 'Hết hạn' || p.status === 'Thất bại') ? 'Thất bại' : 'Chờ thanh toán';
       const amountNum = Number(p.amount) || 0;
@@ -963,7 +1004,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
 
     let amountVal = item.amount ? Number(item.amount) : 0;
     if (amountVal === 0 && item.action === 'Thẻ đã cấp lại') {
-      amountVal = 50000;
+      amountVal = 0;
     }
     const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal).replace('₫', 'đ');
     const status = "Thành công";
@@ -1062,8 +1103,8 @@ export const getNextMonthCode = async () => {
   // Trường hợp 2: không còn thẻ đang chờ -> đếm số lượng thẻ hiện tại để kiểm tra giới hạn 50
   const count = await monthCardRepository.countActiveMonthCards();
 
-  if (count >= 50) {
-    throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.");
+  if (count >= config.maxMonthCards) {
+    throw new Error(`Hệ thống đã đạt giới hạn tối đa ${config.maxMonthCards} thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.`);
   }
 
   // Tự sinh mã mới
@@ -1145,4 +1186,31 @@ export const getCardDetailsForContract = async (cardId) => {
       payment_time: paymentInfo.payment_time
     } : null
   };
+};
+
+// ─────────────────────────────────────────────────────────────
+// VEHICLE TYPES & PACKAGES
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Lấy danh sách loại xe
+ * @returns {Promise<object[]>}
+ */
+export const getVehicleTypes = async () => {
+  return await monthCardRepository.getAllVehicleTypes();
+};
+
+/**
+ * Lấy danh sách gói cước đang hoạt động, lọc theo building của user nếu có
+ * @param {string|null} userId - UUID user từ JWT token
+ * @returns {Promise<object[]>}
+ */
+export const getPackages = async (userId) => {
+  let priceTableIds = null;
+
+  if (userId) {
+    priceTableIds = await monthCardRepository.getPriceTableIdsByUserId(userId);
+  }
+
+  return await monthCardRepository.getActivePackages(priceTableIds);
 };

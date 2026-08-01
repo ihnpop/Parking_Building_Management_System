@@ -769,7 +769,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
       new_data,
       performed_by
     `)
-    .in('action', ['Cấp mới', 'Gia hạn', 'Gia hạn nối tiếp', 'Tạo thẻ tháng mới', 'Đã gia hạn', 'Thẻ đã cấp lại'])
+    .in('action', ['Cấp mới', 'Gia hạn', 'Gia hạn nối tiếp', 'Tạo thẻ tháng mới', 'Đã gia hạn'])
     .order('performed_at', { ascending: false })
     .limit(100);
 
@@ -781,7 +781,9 @@ export const getMonthCardLogs = async (buildingId = null) => {
 
     const staffIds = (staffProfiles || []).map(p => p.id);
     if (staffIds.length > 0) {
-      query = query.in('performed_by', staffIds);
+      query = query.or(`performed_by.in.(${staffIds.join(',')}),performed_by.is.null`);
+    } else {
+      query = query.is('performed_by', null);
     }
   }
 
@@ -989,7 +991,7 @@ export const getPendingAndExpiredMonthCardPayments = async () => {
   const { data, error } = await supabase
     .from('payment')
     .select('payment_id, order_code, payment_time, amount, payment_method, payment_type, note, status')
-    .in('payment_type', ['Đăng ký vé tháng', 'Gia hạn vé tháng', 'Phí cấp lại thẻ'])
+    .in('payment_type', ['Đăng ký vé tháng', 'Gia hạn vé tháng'])
     .in('status', ['Chờ thanh toán', 'Hết hạn', 'Thất bại'])
     .order('payment_time', { ascending: false })
     .limit(100);
@@ -1058,3 +1060,81 @@ export const insertCustomerKyc = async (customerId, cccdNumber) => {
   if (error) throw new Error(error.message);
 };
 
+// ─────────────────────────────────────────────────────────────
+// VEHICLE TYPE & PACKAGE QUERIES
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Lấy toàn bộ danh sách loại xe, sắp xếp theo tên
+ * @returns {Promise<object[]>}
+ */
+export const getAllVehicleTypes = async () => {
+  const { data, error } = await supabase
+    .from('vehicle_type')
+    .select('vehicle_type_id, name')
+    .order('name', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+};
+
+/**
+ * Lấy danh sách price_table_id theo building của user
+ * Join: profiles → parking → price_table
+ * @param {string} userId - UUID của user (từ Supabase Auth)
+ * @returns {Promise<string[]|null>} mảng price_table_id, hoặc null nếu không tìm thấy
+ */
+export const getPriceTableIdsByUserId = async (userId) => {
+  // 1. Lấy building_id từ profiles
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('building_id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!profile?.building_id) return null;
+
+  // 2. Tìm tất cả parking thuộc building này
+  const { data: parkings } = await supabase
+    .from('parking')
+    .select('parking_id')
+    .eq('building_id', profile.building_id);
+
+  const parkingIds = parkings?.map(p => p.parking_id) || [];
+  if (parkingIds.length === 0) return null;
+
+  // 3. Tìm tất cả price_table thuộc các parking_id trên
+  const { data: priceTables } = await supabase
+    .from('price_table')
+    .select('price_table_id')
+    .in('parking_id', parkingIds);
+
+  const priceTableIds = priceTables?.map(pt => pt.price_table_id) || [];
+  return priceTableIds.length > 0 ? priceTableIds : null;
+};
+
+/**
+ * Lấy danh sách package đang hoạt động
+ * - Nếu có priceTableIds: lọc price_table_id IN (...) OR IS NULL
+ * - Nếu không: chỉ lấy package global (price_table_id IS NULL)
+ * @param {string[]|null} priceTableIds
+ * @returns {Promise<object[]>}
+ */
+export const getActivePackages = async (priceTableIds = null) => {
+  let query = supabase
+    .from('package')
+    .select('*')
+    .eq('status', 'Hoạt động');
+
+  if (priceTableIds && priceTableIds.length > 0) {
+    query = query.or(
+      `price_table_id.is.null,price_table_id.in.(${priceTableIds.map(id => `"${id}"`).join(',')})`
+    );
+  } else {
+    query = query.is('price_table_id', null);
+  }
+
+  const { data, error } = await query.order('vehicle_type_id');
+  if (error) throw new Error(error.message);
+  return data || [];
+};

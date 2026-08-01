@@ -1,11 +1,7 @@
 import * as monthCardService from "../service/monthCardService.js";
-import supabase from "../config/supabaseClient.js";
 import { resolveBuildingIdFromReq } from "../middlewares/auth.js";
-import { generateNextMonthCode } from "../repositories/monthCardRepository.js";
 import { uploadImageToVNPT, checkDocumentLiveness, ocrIdentityCard } from "../service/ekycService.js";
-import registrationService from '../service/parkingRegistrationService.js';
-import * as paymentRepository from '../repositories/paymentRepository.js';
-import * as renewalService from '../service/renewalService.js';
+import { getUserIdFromReq } from "../helpers/authHelper.js";
 import PDFDocument from "pdfkit";
 import fs from "fs";
 
@@ -38,87 +34,26 @@ export const checkPlateStatus = async (req, res) => {
 };
 
 /**
- * Lấy danh sách loại xe từ Supabase (vehicle_type)
+ * Lấy danh sách loại xe (vehicle_type)
+ * GET /api/month-card/vehicle-types
  */
 export const getVehicleTypes = async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('vehicle_type')
-      .select('vehicle_type_id, name')
-      .order('name', { ascending: true });
-
-    if (error) throw new Error(error.message);
-    return res.status(200).json(data || []);
+    const data = await monthCardService.getVehicleTypes();
+    return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 };
 
+/**
+ * Lấy danh sách gói cước tháng (lọc theo building của user nếu có)
+ * GET /api/month-card/packages
+ */
 export const getPackages = async (req, res) => {
   try {
-    // Lấy userId từ token JWT
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user } } = await supabase.auth.getUser(token);
-        userId = user?.id || null;
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-
-    let query = supabase
-      .from('package')
-      .select('*')
-      .eq('status', 'Hoạt động');
-
-    if (userId) {
-      // 1. Lấy building_id từ profiles của user
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('building_id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (profile?.building_id) {
-        // 2. Tìm tất cả parking thuộc building này
-        const { data: parkings } = await supabase
-          .from('parking')
-          .select('parking_id')
-          .eq('building_id', profile.building_id);
-
-        const parkingIds = parkings?.map(p => p.parking_id) || [];
-        if (parkingIds.length > 0) {
-          // 3. Tìm tất cả price_table thuộc các parking_id trên
-          const { data: priceTables } = await supabase
-            .from('price_table')
-            .select('price_table_id')
-            .in('parking_id', parkingIds);
-
-          const priceTableIds = priceTables?.map(pt => pt.price_table_id) || [];
-          if (priceTableIds.length > 0) {
-            // Lọc theo price_table_id hoặc price_table_id is null (để không mất các package cũ)
-            query = query.or(`price_table_id.is.null,price_table_id.in.(${priceTableIds.map(id => `"${id}"`).join(',')})`);
-          } else {
-            // Nếu có bãi đỗ xe nhưng không có price table, chỉ hiển thị package global
-            query = query.is('price_table_id', null);
-          }
-        } else {
-          query = query.is('price_table_id', null);
-        }
-      } else {
-        query = query.is('price_table_id', null);
-      }
-    }
-
-    const { data, error } = await query.order('vehicle_type_id');
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
+    const userId = await getUserIdFromReq(req);
+    const data = await monthCardService.getPackages(userId);
     return res.status(200).json(data);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -126,19 +61,24 @@ export const getPackages = async (req, res) => {
 };
 
 
+
 /**
  * Lấy danh sách gói gia hạn thẻ tháng
+ * GET /api/month-card/renew-packages
  */
 export const getRenewPackages = async (req, res) => {
   try {
-    return res.status(200).json(monthCardService.RENEW_PACKAGES);
+    const userId = await getUserIdFromReq(req);
+    const packages = await monthCardService.getRenewPackages(userId);
+    return res.status(200).json(packages);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 };
 
 /**
- * Thực hiện gia hạn thẻ tháng
+ * Thực hiện gia hạn thẻ tháng (legacy - staff thực hiện thủ công)
+ * POST /api/month-card/renew
  */
 export const renewMonthlyCard = async (req, res) => {
   try {
@@ -151,30 +91,7 @@ export const renewMonthlyCard = async (req, res) => {
       return res.status(400).json({ error: "Thiếu thông tin số tháng gia hạn." });
     }
 
-    // Xác thực người thực hiện (performed_by) từ token JWT
-    let currentUserId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) {
-          currentUserId = user.id;
-        }
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-
-    // Fallback: nếu không lấy được userId từ token (ví dụ chạy dev/postman chưa gửi header)
-    // thì lấy profile ID đầu tiên từ bảng profiles để tránh lỗi khóa ngoại (foreign key constraint)
-    if (!currentUserId) {
-      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
-      if (profiles && profiles.length > 0) {
-        currentUserId = profiles[0].id;
-      }
-    }
-
+    let currentUserId = await getUserIdFromReq(req);
     if (!currentUserId) {
       currentUserId = '00000000-0000-0000-0000-000000000000';
     }
@@ -197,6 +114,7 @@ export const renewMonthlyCard = async (req, res) => {
 
 /**
  * Tạo mới thẻ tháng (đăng ký mới)
+ * POST /api/month-card/create
  */
 export const createMonthCard = async (req, res) => {
   try {
@@ -224,28 +142,7 @@ export const createMonthCard = async (req, res) => {
       return res.status(400).json({ error: "Thiếu thời hạn đăng ký (durationMonths)." });
     }
 
-    // Xác thực người thực hiện (performed_by) từ token JWT
-    let currentUserId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) {
-          currentUserId = user.id;
-        }
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-
-    if (!currentUserId) {
-      const { data: profiles } = await supabase.from("profiles").select("id").limit(1);
-      if (profiles && profiles.length > 0) {
-        currentUserId = profiles[0].id;
-      }
-    }
-
+    let currentUserId = await getUserIdFromReq(req);
     if (!currentUserId) {
       currentUserId = '00000000-0000-0000-0000-000000000000';
     }
@@ -274,6 +171,7 @@ export const createMonthCard = async (req, res) => {
 
 /**
  * Cập nhật thông tin thẻ tháng
+ * PUT /api/month-card/:id
  */
 export const updateMonthCard = async (req, res) => {
   try {
@@ -307,6 +205,7 @@ export const deleteMonthCard = async (req, res) => {
 
 /**
  * Lấy danh sách thẻ tháng
+ * GET /api/month-card
  */
 export const getMonthCards = async (req, res) => {
   try {
@@ -320,6 +219,7 @@ export const getMonthCards = async (req, res) => {
 
 /**
  * Lấy lịch sử giao dịch thẻ tháng
+ * GET /api/month-card/logs
  */
 export const getMonthCardLogs = async (req, res) => {
   try {
@@ -398,204 +298,6 @@ export const verifyDocument = async (req, res) => {
   } catch (err) {
     console.error("Lỗi xác thực giấy tờ:", err);
     return res.status(500).json({ error: err.message || "Lỗi xác thực giấy tờ từ VNPT eKYC" });
-  }
-};
-
-/**
- * BƯỚC 4: Khởi tạo đăng ký + Tạo giao dịch VNPay (hoặc ghi nhận tiền mặt)
- * POST /api/month-card/initiate-payment
- * Body: { customer_info, vehicle_info, package_id, payment_method }
- */
-export const initiatePayment = async (req, res) => {
-  try {
-    const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-    const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
-    const origin = req.headers['origin'] || req.headers['referer'];
-
-    // Lấy userId từ token JWT
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) {
-          userId = user.id;
-        }
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-
-    if (!userId) {
-      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
-      if (profiles && profiles.length > 0) {
-        userId = profiles[0].id;
-      }
-    }
-
-    const result = await registrationService.initiateRegistration({
-      ...req.body,
-      ip_addr: ipAddrClean,
-      created_by: userId,
-      origin
-    });
-
-    return res.status(200).json({ success: true, data: result });
-  } catch (err) {
-    console.error("Lỗi initiatePayment:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-/**
- * BƯỚC 4 & 5: Kiểm tra và lấy giao dịch đăng ký vé tháng đang chờ thanh toán hoặc đã thanh toán nhưng chưa hoàn tất đăng ký
- * GET /api/month-card/pending-registration
- */
-export const getPendingRegistration = async (req, res) => {
-  try {
-    // 1. Lấy userId từ token JWT
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && user) {
-          userId = user.id;
-        }
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-
-    if (!userId) {
-      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
-      if (profiles && profiles.length > 0) {
-        userId = profiles[0].id;
-      }
-    }
-
-    if (!userId) {
-      return res.status(201).json({ success: true, pending: null });
-    }
-
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-
-    // Tìm giao dịch Đăng ký vé tháng trong vòng 15 phút, thuộc về user hiện tại, chưa liên kết với package nào
-    const { data: pm, error } = await supabase
-      .from('payment')
-      .select('*')
-      .eq('payment_type', 'Đăng ký vé tháng')
-      .in('status', ['Chờ thanh toán', 'Đã thanh toán'])
-      .is('vehicle_package_id', null)
-      .eq('created_by', userId)
-      .gt('payment_time', fifteenMinutesAgo)
-      .order('payment_time', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error("Lỗi truy vấn payment chờ thanh toán: " + error.message);
-    }
-
-    if (!pm) {
-      return res.status(200).json({ success: true, pending: null });
-    }
-
-    // Parse note
-    let noteObj = null;
-    try {
-      noteObj = JSON.parse(pm.note);
-    } catch (e) {
-      console.error("Lỗi parse note của pending payment:", e);
-    }
-
-    if (!noteObj) {
-      return res.status(200).json({ success: true, pending: null });
-    }
-
-    // Sinh lại payUrl nếu là VNPay và status là Chờ thanh toán
-    let payUrl = null;
-    const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-    const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
-    
-    const methodLower = pm.payment_method === 'VNPay' ? 'vnpay' : 'cash';
-
-    if (methodLower === 'vnpay' && pm.status === 'Chờ thanh toán') {
-      const vnpayService = await import('../service/vnpayService.js');
-      const rawPlate = noteObj.vehicle_info?.plate_number || 'xe';
-      const origin = req.headers['origin'] || req.headers['referer'];
-      payUrl = vnpayService.createPaymentUrl({
-        orderCode: pm.order_code,
-        amount: pm.amount,
-        orderInfo: `Dang ky ve thang ${rawPlate}`,
-        ipAddr: ipAddrClean,
-        origin
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      pending: {
-        orderCode: pm.order_code,
-        amount: pm.amount,
-        status: pm.status === 'Đã thanh toán' ? 'paid' : 'pending',
-        paymentMethod: methodLower,
-        payUrl,
-        registrationData: noteObj,
-        paymentTime: pm.payment_time
-      }
-    });
-
-  } catch (err) {
-    console.error("Lỗi getPendingRegistration:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-/**
- * BƯỚC 4: Kiểm tra trạng thái thanh toán VNPay theo orderCode
- * GET /api/month-card/payment-status/:orderCode
- */
-export const getPaymentStatus = async (req, res) => {
-  try {
-    const { orderCode } = req.params;
-    const payment = await paymentRepository.findByOrderCode(orderCode);
-    if (!payment) return res.status(404).json({ error: 'Không tìm thấy giao dịch.' });
-    return res.status(200).json({ status: payment.status, orderCode });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * BƯỚC 4: Xác nhận thu tiền mặt cho thẻ tháng
- * POST /api/month-card/confirm-cash-payment/:orderCode
- */
-export const confirmCashPayment = async (req, res) => {
-  try {
-    const { orderCode } = req.params;
-    const result = await registrationService.confirmCashPayment(orderCode);
-    return res.status(200).json({ success: true, message: 'Xác nhận thu tiền mặt thành công!', data: result });
-  } catch (err) {
-    console.error("Lỗi confirmCashPayment:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-/**
- * BƯỚC 5: Cấp thẻ RFID + Kích hoạt gói tháng + Hoàn tất đăng ký
- * POST /api/month-card/finalize-registration
- * Body: { vehiclePackageId, card_code, payment_method, orderCode }
- */
-export const finalizeRegistration = async (req, res) => {
-  try {
-    const result = await registrationService.finalizeRegistration(req.body);
-    return res.status(200).json({ success: true, message: 'Đăng ký thẻ tháng hoàn tất!', data: result });
-  } catch (err) {
-    console.error("Lỗi finalizeRegistration:", err);
-    return res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -725,131 +427,5 @@ export const getContractPdf = async (req, res) => {
   } catch (err) {
     console.error("Lỗi tạo PDF hợp đồng:", err);
     return res.status(500).json({ error: err.message || "Lỗi tạo PDF hợp đồng từ server" });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────
-// RENEWAL CONTROLLERS (Gia hạn vé tháng qua VNPay / tiền mặt)
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Lấy thông tin gia hạn: trạng thái thẻ, thời hạn hiện tại, danh sách gói khả dụng.
- * GET /api/month-card/:cardId/renewal-info
- */
-export const getRenewalInfo = async (req, res) => {
-  try {
-    const { cardId } = req.params;
-    if (!cardId) return res.status(400).json({ error: 'Thiếu cardId.' });
-
-    // Lấy userId từ token JWT
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      try {
-        const { data: { user } } = await supabase.auth.getUser(token);
-        userId = user?.id || null;
-      } catch (authErr) {
-        console.error("Lỗi giải mã Supabase token:", authErr);
-      }
-    }
-    if (!userId) {
-      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
-      userId = profiles?.[0]?.id || null;
-    }
-
-    const origin = req.headers['origin'] || req.headers['referer'];
-    const info = await renewalService.getRenewalInfo(cardId, userId, origin);
-    return res.status(200).json({ success: true, data: info });
-  } catch (err) {
-    console.error('getRenewalInfo error:', err);
-    return res.status(400).json({ success: false, error: err.message });
-  }
-};
-
-
-/**
- * Khởi tạo giao dịch gia hạn: tạo payment record + VNPay URL (hoặc cash orderCode).
- * POST /api/month-card/initiate-renewal
- * Body: { cardId, packageId, paymentMethod: 'vnpay'|'cash' }
- */
-export const initiateRenewal = async (req, res) => {
-  try {
-    const { cardId, packageId, paymentMethod } = req.body;
-    if (!cardId) return res.status(400).json({ error: 'Thiếu cardId.' });
-    if (!packageId) return res.status(400).json({ error: 'Thiếu packageId.' });
-    if (!paymentMethod || !['vnpay', 'cash'].includes(paymentMethod)) {
-      return res.status(400).json({ error: "Phương thức thanh toán không hợp lệ ('vnpay' hoặc 'cash')." });
-    }
-
-    // Lấy IP của client
-    const ipAddr = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1';
-    const ipAddrClean = (ipAddr === '::1' || ipAddr.includes('::ffff:')) ? '127.0.0.1' : ipAddr;
-
-    // Lấy userId từ token JWT
-    let userId = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser(authHeader.substring(7));
-        userId = user?.id || null;
-      } catch { /* bỏ qua lỗi auth */ }
-    }
-    if (!userId) {
-      const { data: profiles } = await supabase.from('profiles').select('id').limit(1);
-      userId = profiles?.[0]?.id || null;
-    }
-
-    const result = await renewalService.initiateRenewal({
-      cardId,
-      packageId,
-      paymentMethod,
-      ipAddr: ipAddrClean,
-      userId,
-    });
-
-    return res.status(200).json({ success: true, data: result });
-  } catch (err) {
-    console.error('initiateRenewal error:', err);
-    return res.status(400).json({ success: false, error: err.message });
-  }
-};
-
-/**
- * Xác nhận thu tiền mặt gia hạn (dành cho cashier).
- * POST /api/month-card/confirm-renewal-cash/:orderCode
- */
-export const confirmRenewalCash = async (req, res) => {
-  try {
-    const { orderCode } = req.params;
-    if (!orderCode) return res.status(400).json({ error: 'Thiếu orderCode.' });
-    const result = await renewalService.confirmRenewalCash(orderCode);
-    return res.status(200).json({ success: true, message: 'Gia hạn vé tháng thành công!', data: result });
-  } catch (err) {
-    console.error('confirmRenewalCash error:', err);
-    return res.status(400).json({ success: false, error: err.message });
-  }
-};
-
-/**
- * Kiểm tra trạng thái giao dịch gia hạn theo orderCode.
- * GET /api/month-card/renewal-status/:orderCode
- */
-export const getRenewalStatus = async (req, res) => {
-  try {
-    const { orderCode } = req.params;
-    const payment = await paymentRepository.findByOrderCode(orderCode);
-    if (!payment) return res.status(404).json({ error: 'Không tìm thấy giao dịch.' });
-    return res.status(200).json({
-      success: true,
-      data: {
-        orderCode: payment.order_code,
-        status: payment.status,
-        amount: payment.amount,
-        paidAt: payment.paid_at,
-      }
-    });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
   }
 };

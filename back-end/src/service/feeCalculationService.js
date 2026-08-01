@@ -52,8 +52,8 @@ async function getVehicleAndCard(session) {
         }
     }
 
-    // Nếu có thẻ mà card.vehicle_package chưa có, tìm vehicle_package qua vehicle_id
-    if (card && !card.vehicle_package && vehicle?.vehicle_id) {
+    // Nếu có thẻ mà card.vehicle_package chưa có, tìm vehicle_package qua vehicle_id (chỉ khi là Thẻ tháng)
+    if (card && card.type === "Thẻ tháng" && !card.vehicle_package && vehicle?.vehicle_id) {
         const vp = await feeCalculationRepository.findActiveVehiclePackageByVehicleId(vehicle.vehicle_id);
         if (vp) {
             card.vehicle_package = vp;
@@ -89,6 +89,10 @@ async function checkLostCard(card, vehicle, session) {
  */
 function checkMonthlyValidity(card) {
     const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+    if (card?.type === "Thẻ lượt") {
+        return { isMonthlyValid: false, isMonthlyExpired: false };
+    }
 
     const isMonthCard =
         card?.type === "Thẻ tháng" ||
@@ -197,8 +201,7 @@ export const getMatchingPriceItem = (priceItems, totalHours) => {
  */
 export function calculateFeeFromPriceItems(totalHours, priceItems) {
     if (!priceItems || priceItems.length === 0) {
-        const billableHours = Math.max(1, Math.ceil(totalHours));
-        return { fee: billableHours * 10000, itemUsed: null };
+        return { fee: 0, itemUsed: null };
     }
 
     // Sắp xếp các mốc giá theo min_hour tăng dần
@@ -252,7 +255,7 @@ export function calculateFeeFromPriceItems(totalHours, priceItems) {
         }
 
         const totalFee = (fullDays * dayMaxPrice) + remFee;
-        return { fee: totalFee, itemUsed: maxTierItem, remItemUsed, fullDays, remHours };
+        return { fee: totalFee, itemUsed: maxTierItem, remItemUsed, fullDays, remHours, dailyCeilingPrice: dayMaxPrice, remainingFee: remFee };
     }
 }
 
@@ -285,11 +288,10 @@ async function calculateHourlyFee(session, vehicle) {
     const nowTime = new Date();
     const diffMs = nowTime.getTime() - entryTime.getTime();
     const totalHours = diffMs / (1000 * 60 * 60);
-    const billableHours = Math.max(1, Math.ceil(totalHours));
 
-    let estimated_fee = totalHours < 0.5 ? 0 : billableHours * 10000; // fallback mặc định
+    let estimated_fee = 0;
     let price_item_used = null;
-    let rate = totalHours < 0.5 ? 0 : 10000;
+    let rate = 0;
 
 
     let fullDays = 0;
@@ -330,6 +332,8 @@ async function calculateHourlyFee(session, vehicle) {
                 rate = calculated.fee;
                 fullDays = calculated.fullDays || 0;
                 remainingHours = calculated.remHours || 0;
+                dailyCeilingPrice = calculated.dailyCeilingPrice || 0;
+                remainingFee = calculated.remainingFee || 0;
             }
         } catch (dbErr) {
             console.error("[feeCalculation] Lỗi tra cứu bảng phí, dùng fallback:", dbErr.message);
@@ -363,7 +367,7 @@ async function calculateHourlyFee(session, vehicle) {
  *   warning: string|null
  * }>}
  */
-export async function calculateExitFee({ plate_number }) {
+export async function calculateExitFee({ plate_number, skipLostCheck = false }) {
     if (!plate_number || !plate_number.trim()) {
         const err = new Error("Biển số xe là bắt buộc.");
         err.statusCode = 400;
@@ -379,24 +383,27 @@ export async function calculateExitFee({ plate_number }) {
     const { vehicle, card } = await getVehicleAndCard(session);
 
     // ─── 4. Kiểm tra thẻ mất ─────────────────────────────────────────────────
-    const isLostCard = await checkLostCard(card, vehicle, session);
-    if (isLostCard) {
-        return {
-            session,
-            vehicle,
-            card,
-            is_monthly_valid: false,
-            estimated_fee: 0, // Fee sẽ được tính riêng theo quy trình mất thẻ
-            fee_breakdown: null,
-            ticket_type: "Mất thẻ",
-            warning: null,
-        };
+    if (!skipLostCheck) {
+        const isLostCard = await checkLostCard(card, vehicle, session);
+        if (isLostCard) {
+            return {
+                session,
+                vehicle,
+                card,
+                is_monthly_valid: false,
+                estimated_fee: 0, // Fee sẽ được tính riêng theo quy trình mất thẻ
+                fee_breakdown: null,
+                ticket_type: "Mất thẻ",
+                warning: null,
+            };
+        }
     }
 
-    const isMonthCard =
+    const isMonthCard = card?.type === "Thẻ lượt" ? false : (
         card?.type === "Thẻ tháng" ||
         (typeof card?.code === "string" && card.code.toUpperCase().startsWith("MONTH")) ||
-        card?.vehicle_package != null;
+        card?.vehicle_package != null
+    );
 
     // ─── 5. Kiểm tra vehicle_package còn hạn ─────────────────────────────────
     const { isMonthlyValid, isMonthlyExpired } = checkMonthlyValidity(card);
@@ -445,7 +452,7 @@ export async function calculateExitFee({ plate_number }) {
             dailyCeilingPrice: dailyCeilingPrice ?? 0,
             remainingFee: remainingFee ?? 0,
         },
-        ticket_type: isMonthCard ? "Thẻ tháng" : "Thẻ lượt",
+        ticket_type: (isMonthCard && card?.type !== "Thẻ lượt") ? "Thẻ tháng" : "Thẻ lượt",
         warning,
     };
 }

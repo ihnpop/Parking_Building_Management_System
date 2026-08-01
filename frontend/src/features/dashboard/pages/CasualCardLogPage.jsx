@@ -18,6 +18,7 @@ function formatVND(amount) {
 
 function getStatusClass(status) {
     switch (status) {
+        case 'Đã xong':
         case 'Hoàn thành': return 'success';
         case 'Đang gửi xe': return 'info';
         case 'Chờ thanh toán': return 'pending';
@@ -48,7 +49,17 @@ function filterRowsByTime(rows, mode, dateStr) {
     if (!dateStr) return rows;
     return rows.filter((r) => {
         if (!r.entryTime) return false;
-        const entry = new Date(r.entryTime);
+        // Normalize: thêm 'T' và 'Z' giống renderFormattedTime để tránh lệch ngày khi lọc
+        let strForParse = String(r.entryTime).trim();
+        if (strForParse.includes(' ') && !strForParse.includes('T')) {
+            strForParse = strForParse.replace(' ', 'T');
+        }
+        const hasTimezone = strForParse.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strForParse);
+        if (!hasTimezone) {
+            strForParse = strForParse + 'Z';
+        }
+        let entry = new Date(strForParse);
+        if (isNaN(entry.getTime())) entry = new Date(r.entryTime); // fallback
         if (isNaN(entry.getTime())) return false;
         // Chuyển sang ngày VN
         const entryDateVN = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(entry);
@@ -212,14 +223,14 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
     const kpiActiveSessions = allRows.filter((r) => r.status === 'Đang gửi xe').length;
     // Ô 3: Thất bại (theo bộ lọc thời gian)
     const kpiFailedSessions = kpiFilteredRows.filter((r) => r.status === 'Thất bại').length;
-    // Ô 4: Tổng doanh thu (tính từ các phiên Hoàn thành trong khoảng thời gian)
+    // Ô 4: Tổng doanh thu (tính từ các phiên Hoàn thành/Đã xong trong khoảng thời gian)
     const kpiRevenue = kpiFilteredRows
-        .filter((r) => r.status === 'Hoàn thành')
+        .filter((r) => r.status === 'Hoàn thành' || r.status === 'Đã xong')
         .reduce((sum, r) => sum + (Number(r.fee) || 0), 0);
 
     // ── Phân phối trạng thái (5 statuses, dùng kpiFilteredRows) ──────────────
     const distTotal = kpiFilteredRows.length;
-    const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành').length;
+    const distCompleted = kpiFilteredRows.filter((r) => r.status === 'Hoàn thành' || r.status === 'Đã xong').length;
     const distActive = kpiFilteredRows.filter((r) => r.status === 'Đang gửi xe').length;
     const distPending = kpiFilteredRows.filter((r) => r.status === 'Chờ thanh toán').length;
     const distReissued = kpiFilteredRows.filter((r) => r.status === 'Thẻ đã cấp lại').length;
@@ -335,10 +346,10 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                     </div>
                     <hr className="lost-dist-divider" />
 
-                    {/* Hoàn thành */}
+                    {/* Đã xong */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Hoàn thành</span>
+                            <span>Đã xong</span>
                             <span>
                                 <span className="lost-dist-val">{distCompleted}</span>{' '}
                                 <span className="lost-dist-pct">({pct(distCompleted)}%)</span>
@@ -425,6 +436,7 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                             <option value="Tất cả">Tất cả</option>
                             <option value="Đang gửi xe">Đang gửi xe</option>
                             <option value="Chờ thanh toán">Chờ thanh toán</option>
+                            <option value="Đã xong">Đã xong</option>
                             <option value="Hoàn thành">Hoàn thành</option>
                             <option value="Thất bại">Thất bại</option>
                         </select>
@@ -631,8 +643,8 @@ export default function CasualCardLogPage({ kpiTimeFilter = 'day', kpiDate: kpiD
                                 {/* Mã giao dịch */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #f1f5f9' }}>
                                     <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Mã giao dịch</span>
-                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.session_id || ''}>
-                                        {selectedBill.paymentInfo?.transaction_no || selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.session_id || '---'}
+                                    <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600', fontFamily: 'monospace', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.paymentInfo?.transaction_no || selectedBill.session_id || ''}>
+                                        {selectedBill.paymentInfo?.order_code || selectedBill.orderCode || selectedBill.paymentInfo?.transaction_no || selectedBill.session_id || '---'}
                                     </span>
                                 </div>
                                 {/* Loại giao dịch */}

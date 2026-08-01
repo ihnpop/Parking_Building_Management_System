@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import supabase from '../../../config/supabaseClient';
 
 import { 
@@ -10,6 +11,9 @@ import {
     getHourVN, 
     formatVNDCompact, 
     getVNPeriodRange, 
+    formatDateFormatted,
+    formatWeekLabel,
+    formatMonthLabel,
     handleExportExcel as handleExportExcelUtil 
 } from '../../../utils/dashboardUtils';
 
@@ -62,17 +66,14 @@ export default function DashboardView() {
     const userEmail = user?.email || '';
     const email = userEmail.toLowerCase().trim();
 
-    // Xác định vai trò chuẩn của người dùng
+    // Xác định vai trò chuẩn của người dùng — dùng trực tiếp từ AuthContext (đã load từ DB)
     let computedRole = userRole ? userRole.toUpperCase() : 'STAFF';
-    if (email === 'admin@gmail.com') computedRole = 'ADMIN';
-    else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
-    else if (email === 'staff@gmail.com') computedRole = 'STAFF';
 
     // eslint-disable-next-line no-unused-vars
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
     const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management'];
-    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic', 'log-management'];
 
     // Trả về tab đầu tiên trên Sidebar của từng vai trò
     const getDefaultViewForRole = (r) => {
@@ -120,10 +121,67 @@ export default function DashboardView() {
     const [activeCardTab, setActiveCardTab] = useState('Thẻ lượt');
     const [activeLogTab, setActiveLogTab] = useState('Quẹt thẻ');
 
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // ── Sync URL to state ──
+    useEffect(() => {
+        const path = location.pathname;
+        if (path.includes('/log-management/lost-card')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Quẹt thẻ');
+        } else if (path.includes('/log-management/casual-card')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Thẻ lượt');
+        } else if (path.includes('/log-management/month-card')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Vé tháng');
+        } else if (path.includes('/log-management/login-log')) {
+            setCurrentView('log-management');
+            setActiveLogTab('Đăng nhập');
+        } else if (path.includes('/card-management/month-card') || path.endsWith('/month-card')) {
+            setCurrentView('card-management');
+            setActiveCardTab('Thẻ tháng');
+        } else if (path.includes('/card-management/casual-card') || path.endsWith('/card')) {
+            setCurrentView('card-management');
+            setActiveCardTab('Thẻ lượt');
+        } else if (path.includes('/adjust-prices')) {
+            setCurrentView('adjust-prices');
+        } else if (path === '/login/dashboard' || path === '/login/dashboard/') {
+            if (computedRole === 'MANAGER') {
+                setCurrentView('manager-dashboard');
+            } else {
+                const savedView = localStorage.getItem('dashboard_current_view');
+                if (savedView && ADMIN_ALLOWED_VIEWS.includes(savedView)) {
+                    setCurrentView(savedView);
+                } else {
+                    setCurrentView(getDefaultViewForRole(computedRole));
+                }
+            }
+        }
+    }, [location.pathname, computedRole]);
+
+    const handleLogTabClick = (tabName) => {
+        let path = '';
+        if (tabName === 'Quẹt thẻ') path = '/login/dashboard/log-management/lost-card';
+        if (tabName === 'Thẻ lượt') path = '/login/dashboard/log-management/casual-card';
+        if (tabName === 'Vé tháng') path = '/login/dashboard/log-management/month-card';
+        if (tabName === 'Đăng nhập') path = '/login/dashboard/log-management/login-log';
+        navigate(path);
+    };
+
+    const handleCardTabClick = (tabName) => {
+        let path = '';
+        if (tabName === 'Thẻ lượt') path = '/login/dashboard/card-management/casual-card';
+        if (tabName === 'Thẻ tháng') path = '/login/dashboard/card-management/month-card';
+        navigate(path);
+    };
+
+
     // ── KPI Time Filter (lifted from CasualCardLogPage) ───────────────────
     const [kpiTimeFilter, setKpiTimeFilter] = useState('day');
-    const [kpiDate, setKpiDate] = useState(todayVN);
-    const [kpiMonth, setKpiMonth] = useState(thisMonthVN);
+    const [kpiDate, setKpiDate] = useState(todayVN());
+    const [kpiMonth, setKpiMonth] = useState(thisMonthVN());
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -238,15 +296,40 @@ export default function DashboardView() {
             const periodRevenue = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
             // Compute second revenue metric (doanh thu tháng or average)
-            let periodRevenue2 = data.monthRevenue; // fallback
+            let periodRevenue2 = 0;
+            const selMonthStr = dashboardPeriod === 'month' 
+                ? (selectedCustomMonth || thisMonthVN()) 
+                : (selectedCustomDate || todayVN()).slice(0, 7);
+
             if (dashboardPeriod === 'day') {
-                periodRevenue2 = data.monthRevenue;
+                const monthRange = getVNPeriodRange('month', null, selMonthStr);
+                let monthPaymentsQuery = supabase
+                    .from('payment')
+                    .select('amount')
+                    .eq('status', 'Đã thanh toán')
+                    .gte('payment_time', monthRange.startDate)
+                    .lte('payment_time', monthRange.endDate);
+
+                if (targetBuildingId) {
+                    const { data: logs } = await supabase
+                        .from('entry_exit_log')
+                        .select('session_id')
+                        .eq('building_id', targetBuildingId);
+                    const sessionIds = [...new Set((logs || []).map(l => l.session_id).filter(Boolean))];
+                    if (sessionIds.length > 0) {
+                        monthPaymentsQuery = monthPaymentsQuery.in('session_id', sessionIds);
+                    } else {
+                        monthPaymentsQuery = monthPaymentsQuery.in('session_id', ['none']);
+                    }
+                }
+                const { data: monthPayments } = await monthPaymentsQuery;
+                periodRevenue2 = (monthPayments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
             } else if (dashboardPeriod === 'week') {
                 periodRevenue2 = Math.round(periodRevenue / 7);
             } else if (dashboardPeriod === 'month') {
-                const [y, m] = selectedCustomMonth.split('-').map(Number);
+                const [y, m] = selMonthStr.split('-').map(Number);
                 const daysInMonth = new Date(y, m, 0).getDate();
-                periodRevenue2 = Math.round(periodRevenue / daysInMonth);
+                periodRevenue2 = Math.round(periodRevenue / (daysInMonth || 30));
             }
 
             setStats({
@@ -285,19 +368,31 @@ export default function DashboardView() {
                     peak: val === maxRev && val > 0
                 })));
             } else {
-                // Daily traffic & revenue
+                // Daily traffic & revenue for Week or Month
                 const datesList = [];
-                const startMs = new Date(startDate).getTime() + 7 * 60 * 60 * 1000;
-                const endMs = new Date(endDate).getTime() + 7 * 60 * 60 * 1000;
-
-                let walkMs = startMs;
-                while (walkMs <= endMs) {
-                    const walkDate = new Date(walkMs);
-                    const y = walkDate.getUTCFullYear();
-                    const m = String(walkDate.getUTCMonth() + 1).padStart(2, '0');
-                    const d = String(walkDate.getUTCDate()).padStart(2, '0');
-                    datesList.push(`${y}-${m}-${d}`);
-                    walkMs += 24 * 60 * 60 * 1000;
+                if (dashboardPeriod === 'week') {
+                    const parts = (selectedCustomDate || todayVN()).split('-').map(Number);
+                    const [y, m, d] = (parts.length === 3 && !parts.some(isNaN)) ? parts : [2026, 7, 27];
+                    const dt = new Date(y, m - 1, d);
+                    const currentDay = dt.getDay();
+                    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+                    for (let i = 0; i < 7; i++) {
+                        const dayMs = Date.UTC(y, m - 1, d + diffToMonday + i, 12, 0, 0);
+                        const dayObj = new Date(dayMs);
+                        const dy = dayObj.getUTCFullYear();
+                        const dm = String(dayObj.getUTCMonth() + 1).padStart(2, '0');
+                        const dd = String(dayObj.getUTCDate()).padStart(2, '0');
+                        datesList.push(`${dy}-${dm}-${dd}`);
+                    }
+                } else if (dashboardPeriod === 'month') {
+                    const parts = (selectedCustomMonth || thisMonthVN()).split('-').map(Number);
+                    const [y, m] = (parts.length === 2 && !parts.some(isNaN)) ? parts : [2026, 7];
+                    const daysInMonth = new Date(y, m, 0).getDate();
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dm = String(m).padStart(2, '0');
+                        const dd = String(day).padStart(2, '0');
+                        datesList.push(`${y}-${dm}-${dd}`);
+                    }
                 }
 
                 // Daily traffic
@@ -543,32 +638,24 @@ export default function DashboardView() {
     const maxRevenueVal = Math.max(...revenueChartData.map(d => d.val), 1);
 
     // Compute date ranges labels for cards & descriptions
-    const dateFormatted = selectedCustomDate.split('-').reverse().join('/');
-    
-    // For week label, calculate the Monday and Sunday dates
-    let weekLabel = '';
-    if (selectedCustomDate) {
-        const [y, m, d] = selectedCustomDate.split('-').map(Number);
-        const selectedDateObj = new Date(y, m - 1, d);
-        const currentDay = selectedDateObj.getDay();
-        const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-        const monday = new Date(selectedDateObj);
-        monday.setDate(selectedDateObj.getDate() + diffToMonday);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-
-        const formatShort = (dateObj) => {
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            return `${dd}/${mm}`;
-        };
-        weekLabel = `${formatShort(monday)} - ${formatShort(sunday)}`;
-    }
-
-    const monthFormatted = selectedCustomMonth.split('-').reverse().join('/');
+    const dateFormatted = formatDateFormatted(selectedCustomDate);
+    const weekLabel = formatWeekLabel(selectedCustomDate);
+    const monthFormatted = formatMonthLabel(selectedCustomMonth);
 
     return (
-        <DashboardShell currentTab={currentView} onTabSelect={(tab) => setCurrentView(tab)}>
+        <DashboardShell currentTab={currentView} onTabSelect={(tab) => {
+            if (tab === 'card-management') {
+                navigate('/login/dashboard/month-card');
+            } else if (tab === 'adjust-prices') {
+                navigate('/login/dashboard/adjust-prices');
+            } else if (tab === 'manager-dashboard') {
+                navigate('/login/dashboard');
+            } else if (tab === 'log-management') {
+                navigate('/login/dashboard/log-management/lost-card');
+            } else {
+                setCurrentView(tab);
+            }
+        }}>
 
             {/* 0. VIEW BẢNG ĐIỀU KHIỂN MANAGER */}
             {currentView === 'manager-dashboard' && (
@@ -581,8 +668,8 @@ export default function DashboardView() {
             {currentView === 'card-management' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 24px 24px 24px' }}>
                     <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #f0f0f0', marginTop: '0' }}>
-                        {renderTabButton('Thẻ lượt', activeCardTab === 'Thẻ lượt', () => setActiveCardTab('Thẻ lượt'))}
-                        {renderTabButton('Thẻ tháng', activeCardTab === 'Thẻ tháng', () => setActiveCardTab('Thẻ tháng'))}
+                        {renderTabButton('Thẻ lượt', activeCardTab === 'Thẻ lượt', () => handleCardTabClick('Thẻ lượt'))}
+                        {renderTabButton('Thẻ tháng', activeCardTab === 'Thẻ tháng', () => handleCardTabClick('Thẻ tháng'))}
                     </div>
                     <div style={{ marginTop: '5px' }}>
                         {activeCardTab === 'Thẻ lượt' ? <CardPage defaultType="Thẻ lượt" /> : <MonthCardPage />}
@@ -596,10 +683,10 @@ export default function DashboardView() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #f0f0f0', marginTop: '0', flexWrap: 'nowrap' }}>
                         {/* Tab Menu - Không cho phép xuống dòng */}
                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => setActiveLogTab('Quẹt thẻ'))}
-                            {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => setActiveLogTab('Thẻ lượt'))}
-                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'Vé tháng', () => setActiveLogTab('Vé tháng'))}
-                            {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => setActiveLogTab('Đăng nhập'))}
+                            {renderTabButton('Nhật ký mất thẻ', activeLogTab === 'Quẹt thẻ', () => handleLogTabClick('Quẹt thẻ'))}
+                            {renderTabButton('Nhật ký thẻ lượt', activeLogTab === 'Thẻ lượt', () => handleLogTabClick('Thẻ lượt'))}
+                            {renderTabButton('Nhật ký thẻ tháng', activeLogTab === 'Vé tháng', () => handleLogTabClick('Vé tháng'))}
+                            {renderTabButton('Nhật ký đăng nhập', activeLogTab === 'Đăng nhập', () => handleLogTabClick('Đăng nhập'))}
                         </div>
                         {/* KPI Time Filter – Áp dụng cho tất cả các tab */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '4px', flexShrink: 0 }}>
@@ -776,7 +863,10 @@ export default function DashboardView() {
                                     value={selectedCustomDate}
                                     onChange={(e) => setSelectedCustomDate(e.target.value)}
                                     style={{
-                                        padding: '0 16px',
+                                        padding: '0 10px',
+                                        width: '150px',
+                                        minWidth: '150px',
+                                        maxWidth: '150px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
@@ -787,7 +877,8 @@ export default function DashboardView() {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                         cursor: 'pointer',
                                         height: '42px',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0
                                     }}
                                 />
                             )}
@@ -798,7 +889,10 @@ export default function DashboardView() {
                                     value={selectedCustomDate}
                                     onChange={(e) => setSelectedCustomDate(e.target.value)}
                                     style={{
-                                        padding: '0 16px',
+                                        padding: '0 10px',
+                                        width: '150px',
+                                        minWidth: '150px',
+                                        maxWidth: '150px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
@@ -809,7 +903,8 @@ export default function DashboardView() {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                         cursor: 'pointer',
                                         height: '42px',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0
                                     }}
                                 />
                             )}
@@ -820,7 +915,10 @@ export default function DashboardView() {
                                     value={selectedCustomMonth}
                                     onChange={(e) => setSelectedCustomMonth(e.target.value)}
                                     style={{
-                                        padding: '0 16px',
+                                        padding: '0 10px',
+                                        width: '150px',
+                                        minWidth: '150px',
+                                        maxWidth: '150px',
                                         borderRadius: '10px',
                                         border: '1.5px solid #cbd5e1',
                                         backgroundColor: '#ffffff',
@@ -831,7 +929,8 @@ export default function DashboardView() {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                         cursor: 'pointer',
                                         height: '42px',
-                                        boxSizing: 'border-box'
+                                        boxSizing: 'border-box',
+                                        flexShrink: 0
                                     }}
                                 />
                             )}
@@ -989,7 +1088,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueToday)}</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' : 'Doanh thu trong khoảng thời gian'}
+                                {dashboardPeriod === 'day' ? 'Tiền mặt & QR ngân hàng đã thu' : 
+                                 dashboardPeriod === 'week' ? `Tổng doanh thu trong tuần ${weekLabel}` : 
+                                 `Tổng doanh thu trong tháng ${monthFormatted}`}
                             </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
@@ -1001,7 +1102,7 @@ export default function DashboardView() {
                         <div className="db-kpi db-kpi--clickable" onClick={() => setIsMonthModalOpen(true)}>
                             <div className="db-kpi-head">
                                 <span>
-                                    {dashboardPeriod === 'day' ? 'DOANH THU THÁNG' : 'DOANH THU TB NGÀY'}
+                                    {dashboardPeriod === 'day' ? `DOANH THU THÁNG ${monthFormatted}` : 'DOANH THU TB NGÀY'}
                                 </span>
                                 <span className="db-kpi-icon" style={{ color: '#1D4ED8' }}>
                                     <span className="material-symbols-outlined">trending_up</span>
@@ -1009,7 +1110,9 @@ export default function DashboardView() {
                             </div>
                             <div className="db-kpi-value">{formatVND(stats.revenueMonth)}</div>
                             <div className="db-kpi-note">
-                                {dashboardPeriod === 'day' ? 'Tổng doanh thu 30 ngày gần nhất' : 'Doanh thu trung bình mỗi ngày'}
+                                {dashboardPeriod === 'day' ? `Tổng doanh thu tháng ${monthFormatted}` : 
+                                 dashboardPeriod === 'week' ? 'Doanh thu trung bình mỗi ngày trong tuần' : 
+                                 'Doanh thu trung bình mỗi ngày trong tháng'}
                             </div>
                             <div className="db-kpi-clickable-cue">
                                 <span>Nhấn để xem chi tiết</span>
@@ -1301,7 +1404,7 @@ export default function DashboardView() {
                                 <button
                                     type="button"
                                     className="db-view-all-btn"
-                                    onClick={() => setCurrentView('log-management')}
+                                    onClick={() => handleLogTabClick('Quẹt thẻ')}
                                 >
                                     Xem tất cả nhật ký
                                 </button>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '../../../context/NotificationContext';
-import { EditSessionPriceModal, EditMonthlyPriceModal } from '../components/EditPricesDialog';
-import { getPrices, updateSessionPrices, updateMonthlyPrices } from '../../../service/priceApi';
+import { EditSessionPriceModal, EditMonthlyPriceModal, EditReissueFeeModal } from '../components/EditPricesDialog';
+import { getPrices, updateSessionPrices, updateMonthlyPrices, updateCardReissueFee } from '../../../service/priceApi';
 
 const formatVND = (value) => {
     if (!value && value !== 0) return '0 ₫';
@@ -21,6 +21,9 @@ export default function AdjustPricesPage() {
 
     const [editingSession, setEditingSession] = useState(null);
     const [editingMonthly, setEditingMonthly] = useState(null);
+    const [cardReissueFee, setCardReissueFee] = useState(50000);
+    const [isEditingReissueFee, setIsEditingReissueFee] = useState(false);
+    const [tempReissueFee, setTempReissueFee] = useState('');
 
     const fetchPrices = async () => {
         try {
@@ -30,6 +33,8 @@ export default function AdjustPricesPage() {
             setBuildingName(data.buildingName || '');
             setSessionPrices(data.sessionPrices || []);
             setMonthlyPrices(data.monthlyPrices || []);
+            setCardReissueFee(data.cardReissueFee ?? 50000);
+            setTempReissueFee(data.cardReissueFee ?? 50000);
         } catch (err) {
             console.error("Lỗi tải thông tin biểu giá:", err);
             const msg = err.response?.data?.message || err.message || "Không thể tải bảng giá từ máy chủ.";
@@ -95,6 +100,29 @@ export default function AdjustPricesPage() {
             setSaving(false);
         }
     };
+
+    const handleSaveReissueFee = async (newFee) => {
+        const fee = Number(newFee !== undefined ? newFee : tempReissueFee);
+        if (isNaN(fee) || fee < 0) {
+            showToast('Phí cấp lại thẻ không hợp lệ', 'error');
+            return;
+        }
+        try {
+            setSaving(true);
+            await updateCardReissueFee({ cardReissueFee: fee });
+            setCardReissueFee(fee);
+            setTempReissueFee(fee); // Cập nhật lại state nội bộ
+            setIsEditingReissueFee(false);
+            showToast('Đã cập nhật phí dịch vụ thành công!', 'success');
+        } catch (err) {
+            console.error("Lỗi cập nhật phí cấp lại thẻ:", err);
+            const msg = err.response?.data?.message || err.message || "Lỗi cập nhật phí dịch vụ";
+            showToast(msg, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -279,6 +307,43 @@ export default function AdjustPricesPage() {
                 </div>
             )}
 
+            {/* ── PHÍ DỊCH VỤ KHÁC ── */}
+            <div className="mc-table-card" style={{ padding: '20px', marginTop: '20px' }}>
+                <div className="ap-section-info" style={{ marginBottom: '20px' }}>
+                    <span className="material-symbols-outlined">info</span>
+                    <span>Phí dịch vụ khác áp dụng cho các trường hợp như làm mất thẻ, cấp lại thẻ mới.</span>
+                </div>
+                <div className="ap-cards-grid">
+                    <div className="ap-price-card" style={{ '--card-accent': '#3b82f6' }}>
+                        <div className="ap-card-header">
+                            <div className="ap-card-icon" style={{ background: '#3b82f618', color: '#3b82f6' }}>
+                                <span className="material-symbols-outlined">credit_card</span>
+                            </div>
+                            <div className="ap-card-title-block">
+                                <h3 className="ap-card-name" style={{ whiteSpace: 'nowrap' }}>Phí dịch vụ</h3>
+                                <span className="ap-card-type-badge" style={{ background: '#3b82f618', color: '#3b82f6' }}>Dịch vụ</span>
+                            </div>
+                            <button
+                                className="mc-btn mc-btn-outline"
+                                style={{ padding: '8px 12px', fontSize: '13px' }}
+                                onClick={() => setIsEditingReissueFee(true)}
+                                title="Chỉnh sửa phí"
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                Sửa
+                            </button>
+                        </div>
+
+                        <div className="ap-card-body">
+                            <div className="ap-day-max-row" style={{ marginTop: '12px', justifyContent: 'center', background: 'transparent', border: 'none' }}>
+                                <span className="ap-day-max-value" style={{ color: '#3b82f6', fontSize: '24px' }}>{formatVND(cardReissueFee)}</span>
+                            </div>
+                        </div>
+                        <div className="ap-card-accent-bar" style={{ background: '#3b82f6' }} />
+                    </div>
+                </div>
+            </div>
+
             {/* ── Modals ── */}
             {editingSession && (
                 <EditSessionPriceModal
@@ -294,6 +359,14 @@ export default function AdjustPricesPage() {
                     saving={saving}
                     onClose={() => setEditingMonthly(null)}
                     onSave={handleSaveMonthly}
+                />
+            )}
+            {isEditingReissueFee && (
+                <EditReissueFeeModal
+                    fee={cardReissueFee}
+                    saving={saving}
+                    onClose={() => setIsEditingReissueFee(false)}
+                    onSave={handleSaveReissueFee}
                 />
             )}
         </div>

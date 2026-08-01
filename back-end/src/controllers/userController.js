@@ -152,6 +152,7 @@ export const getLoginLogs = async (req, res) => {
         try {
             logs = await userRepository.getLoginLogs();
         } catch (error) {
+            console.error("Error fetching login_logs from DB:", error);
             return res.status(400).json({ message: error.message });
         }
 

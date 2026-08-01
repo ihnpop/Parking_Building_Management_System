@@ -36,71 +36,40 @@ export default function App() {
       {/* 2. Các trang thuộc Bảng điều khiển — được bảo vệ, yêu cầu đăng nhập và phân quyền */}
       <Route path="/login/dashboard" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
 
+      {/* Route riêng cho Quản lý Thẻ lượt */}
       <Route path="/login/dashboard/card" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
-            <CardPage />
+            <DashboardView initialView="card-management" initialCardTab="Thẻ lượt" />
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
 
+      {/* Route riêng cho Quản lý Thẻ tháng */}
       <Route path="/login/dashboard/month-card" element={
         <ProtectedRoute>
           <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
-            <MonthCardPage />
+            <DashboardView initialView="card-management" initialCardTab="Thẻ tháng" />
           </RoleProtectedRoute>
         </ProtectedRoute>
       } />
 
-      <Route path="/login/dashboard/lost-card-log" element={
-        <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
-            <LostCardLogPage showBackButton={true} />
-          </RoleProtectedRoute>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/login/dashboard/login-log" element={
-        <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
-            <LoginLogPage />
-          </RoleProtectedRoute>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/login/dashboard/month-card-log" element={
-        <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
-            <MonthCardLogPage />
-          </RoleProtectedRoute>
-        </ProtectedRoute>
-      } />
-
-
-
+      {/* Route riêng cho F1 - Thống kê hoạt động bãi xe */}
       <Route path="/login/dashboard/OccupancyChart" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']}>
-            <OccupancyChart />
-          </RoleProtectedRoute>
+          <OccupancyChart />
         </ProtectedRoute>
       } />
 
-      <Route path="/login/dashboard/user-management" element={
+      {/* Route riêng cho F2 - Nhật ký báo mất thẻ */}
+      <Route path="/login/dashboard/lost-card-log" element={
         <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['ADMIN']}>
-            <UserManagementPage />
-          </RoleProtectedRoute>
+          <LostCardLogPage showBackButton={true} />
         </ProtectedRoute>
       } />
 
-      <Route path="/login/dashboard/adjust-prices" element={
-        <ProtectedRoute>
-          <RoleProtectedRoute allowedRoles={['MANAGER']}>
-            <AdjustPricesPage />
-          </RoleProtectedRoute>
-        </ProtectedRoute>
-      } />
+      {/* Catch-all cho các sub-route khác trong Dashboard */}
+      <Route path="/login/dashboard/*" element={<ProtectedRoute><DashboardView /></ProtectedRoute>} />
 
       <Route path="/set-password" element={<SetPasswordPage />} />
 

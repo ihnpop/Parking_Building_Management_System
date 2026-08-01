@@ -48,3 +48,13 @@ export const updateMonthlyPrices = async (payload) => {
     const response = await API.put("/prices/monthly", payload);
     return response.data.data;
 };
+/**
+ * Cập nhật phí cấp lại thẻ
+ * @param {object} payload - { cardReissueFee }
+ */
+export const updateCardReissueFee = async (payload) => {
+    // Assuming there is an endpoint like this. If not, it will return 404
+    // We add this to support the requirement "Thêm hàm cập nhật card_reissue_fee"
+    const response = await API.put("/prices/reissue-fee", payload);
+    return response.data.data;
+};

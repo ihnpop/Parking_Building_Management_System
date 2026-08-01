@@ -7,6 +7,7 @@ import ContractModal from '../components/ContractModal';
 import { FileText } from 'lucide-react';
 import { useNotification } from '../../../context/NotificationContext';
 
+// Số dòng hiển thị mỗi trang — có thể điều chỉnh nếu cần không cần sửa nhiều chỗ
 const ITEMS_PER_PAGE = 10;
 
 export default function MonthCardPage() {

@@ -47,25 +47,24 @@ const renderFormattedTime = (dateInput) => {
         d = dateInput;
     }
 
-        if (d) {
-            // Đảm bảo hiển thị đúng UTC+7 bất chấp múi giờ của trình duyệt
-            // Bằng cách cộng trực tiếp 7 tiếng vào UTC time và lấy các thành phần UTC
-            const utc7Time = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-            
-            const hours = String(utc7Time.getUTCHours()).padStart(2, '0');
-            const minutes = String(utc7Time.getUTCMinutes()).padStart(2, '0');
-            const seconds = String(utc7Time.getUTCSeconds()).padStart(2, '0');
-            const timePart = `${hours}:${minutes}:${seconds}`;
-
-            const day = String(utc7Time.getUTCDate()).padStart(2, '0');
-            const month = String(utc7Time.getUTCMonth() + 1).padStart(2, '0');
-            const year = utc7Time.getUTCFullYear();
-            const datePart = `${day}/${month}/${year}`;
-
-            return (
-                <div className="log-time-column">
-                    <span className="log-time-clock">{timePart}</span>
-                    <span className="log-time-date">{datePart}</span>
+    if (d) {
+        const timePart = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const datePart = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return (
+            <div className="log-time-column">
+                <span className="log-time-clock">{timePart}</span>
+                <span className="log-time-date">{datePart}</span>
             </div>
         );
     }
@@ -94,7 +93,17 @@ function filterRowsByTime(rows, mode, dateStr) {
                 entry = new Date(t);
             }
         } else {
-            entry = new Date(t);
+            // Normalize: thêm 'T' và 'Z' giống renderFormattedTime để tránh lệch ngày khi lọc
+            let strForParse = strT;
+            if (strForParse.includes(' ') && !strForParse.includes('T')) {
+                strForParse = strForParse.replace(' ', 'T');
+            }
+            const hasTimezone = strForParse.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strForParse);
+            if (!hasTimezone) {
+                strForParse = strForParse + 'Z';
+            }
+            entry = new Date(strForParse);
+            if (isNaN(entry.getTime())) entry = new Date(t); // fallback
         }
 
         if (isNaN(entry.getTime())) return false;
@@ -318,7 +327,7 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                         <input
                             type="text"
                             className="filter-input has-icon-left"
-                            placeholder="Nhập tên, IP hoặc vị trí..."
+                            placeholder="Nhập tên..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
@@ -372,19 +381,17 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                         <div style={{ width: '100%', overflowX: 'auto' }}>
                             <table className="log-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '850px' }}>
                                 <colgroup>
-                                    <col style={{ width: '15%' }} /> {/* THỜI GIAN */}
-                                    <col style={{ width: '25%' }} /> {/* HỌ TÊN */}
-                                    <col style={{ width: '15%' }} /> {/* VAI TRÒ */}
-                                    <col style={{ width: '30%' }} /> {/* THIẾT BỊ/TRÌNH DUYỆT */}
-                                    <col style={{ width: '15%' }} /> {/* TRẠNG THÁI */}
+                                    <col style={{ width: '25%' }} /> {/* THỜI GIAN */}
+                                    <col style={{ width: '30%' }} /> {/* HỌ TÊN */}
+                                    <col style={{ width: '25%' }} /> {/* VAI TRÒ */}
+                                    <col style={{ width: '20%' }} /> {/* TRẠNG THÁI */}
                                 </colgroup>
                                 <thead>
                                     <tr>
                                         <th style={{ whiteSpace: 'nowrap' }}>THỜI GIAN</th>
                                         <th style={{ whiteSpace: 'nowrap' }}>HỌ TÊN</th>
-                                        <th style={{ whiteSpace: 'nowrap' }}>VAI TRÒ</th>
-                                        <th style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>THIẾT BỊ/TRÌNH DUYỆT</th>
-                                        <th style={{ whiteSpace: 'nowrap' }}>TRẠNG THÁI</th>
+                                        <th style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>VAI TRÒ</th>
+                                        <th style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>TRẠNG THÁI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -392,27 +399,19 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                                         currentData.map((log, index) => (
                                             <tr key={index}>
                                                 <td style={{ textAlign: 'left', whiteSpace: 'nowrap' }}>
-                                                    {renderFormattedTime(log.timestamp || log.login_time || log.created_at || log.time)}
+                                                    {renderFormattedTime(log.login_time || log.timestamp || log.created_at || log.time)}
                                                 </td>
                                                 <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     <div className="log-user-cell" style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                         <span className="username-text">{log.username}</span>
                                                     </div>
                                                 </td>
-                                                <td style={{ whiteSpace: 'nowrap' }}>
+                                                <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                                                     <span className={`role-badge ${log.role === 'Admin' ? 'admin' : log.role === 'Quản lý' ? 'manager' : 'staff'}`} style={{ minWidth: '80px', display: 'inline-block', textAlign: 'center' }}>
                                                         {log.role}
                                                     </span>
                                                 </td>
-                                                <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    <div className="log-device-cell" style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-                                                        <span className={`material-symbols-outlined device-icon ${log.status !== 'Thành công' ? 'text-red' : ''}`} style={{ flexShrink: 0 }}>
-                                                            {log.deviceIcon || 'public'}
-                                                        </span>
-                                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.device}</span>
-                                                    </div>
-                                                </td>
-                                                <td style={{ whiteSpace: 'nowrap' }}>
+                                                <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                                                     <span className={`status-badge-log ${getStatusClass(log.status)}`} style={{ minWidth: '90px', display: 'inline-block', textAlign: 'center' }}>
                                                         {log.status === 'Tài khoản bị khóa' ? 'Bị khóa' : log.status}
                                                     </span>
@@ -421,13 +420,8 @@ export default function LoginLogPage({ kpiTimeFilter, kpiDate, kpiMonth }) {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="5" className="table-status-empty">
+                                            <td colSpan="4" className="table-status-empty">
                                                 Không có dữ liệu nhật ký phù hợp
-                                            </td>
-                                            <td>
-                                                <button type="button" className="log-action-btn">
-                                                    <span className="material-symbols-outlined">visibility</span>
-                                                </button>
                                             </td>
                                         </tr>
                                     )}

@@ -389,6 +389,74 @@ export function EditMonthlyPriceModal({ item, saving = false, onClose, onSave })
                         onClick={handleSave}
                         disabled={hasErrors || saving}
                     >
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Edit Reissue Fee Modal ──────────────────────────────────────────────────
+
+export function EditReissueFeeModal({ fee, saving = false, onClose, onSave }) {
+    const [price, setPrice] = useState(fee);
+
+    const error = price < 0 || price % 1000 !== 0;
+
+    const handleSave = () => {
+        if (error) return;
+        onSave(price);
+    };
+
+    return (
+        <div className="ap-modal-overlay" onClick={onClose}>
+            <div
+                className="ap-modal"
+                onClick={e => e.stopPropagation()}
+                style={{ '--modal-accent': '#3b82f6', maxWidth: '400px' }}
+            >
+                <div className="ap-modal-header">
+                    <div className="ap-modal-icon-wrapper">
+                        <span className="material-symbols-outlined">credit_card</span>
+                    </div>
+                    <div>
+                        <h2 className="ap-modal-title">Cập nhật phí dịch vụ</h2>
+                        <span className="ap-modal-subtitle">Phí mất thẻ / Cấp lại</span>
+                    </div>
+                    <button className="ap-modal-close" onClick={onClose}>
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div className="ap-modal-body">
+                    <div className="ap-field-group">
+                        <label className="ap-field-label">
+                            <span className="material-symbols-outlined">payments</span>
+                            Phí dịch vụ mới
+                        </label>
+                        <div className={`ap-input-wrapper ${error ? 'ap-input-wrapper--error' : ''}`}>
+                            <input
+                                type="text"
+                                className="ap-input"
+                                value={price}
+                                onChange={(e) => setPrice(parseNumber(e.target.value))}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSave();
+                                }}
+                            />
+                            <span className="ap-currency-suffix">VND</span>
+                        </div>
+                        {error && <span className="ap-field-error">Vui lòng nhập giá tiền hợp lệ (bội số của 1.000đ).</span>}
+                    </div>
+                </div>
+
+                <div className="ap-modal-footer">
+                    <button className="ap-btn-cancel" onClick={onClose} disabled={saving}>Hủy bỏ</button>
+                    <button
+                        className="ap-btn-save"
+                        onClick={handleSave}
+                        disabled={error || saving}
+                    >
                         <span className="material-symbols-outlined">{saving ? 'progress_activity' : 'save'}</span>
                         {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </button>

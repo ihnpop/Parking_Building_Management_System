@@ -44,7 +44,17 @@ function filterRowsByTime(rows, mode, dateStr) {
                 entry = new Date(t);
             }
         } else {
-            entry = new Date(t);
+            // Normalize: thêm 'T' và 'Z' giống renderFormattedTime để tránh lệch ngày khi lọc
+            let strForParse = strT;
+            if (strForParse.includes(' ') && !strForParse.includes('T')) {
+                strForParse = strForParse.replace(' ', 'T');
+            }
+            const hasTimezone = strForParse.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strForParse);
+            if (!hasTimezone) {
+                strForParse = strForParse + 'Z';
+            }
+            entry = new Date(strForParse);
+            if (isNaN(entry.getTime())) entry = new Date(t); // fallback
         }
 
         if (isNaN(entry.getTime())) return false;
@@ -212,10 +222,9 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 data = data.map(log => {
                     let mappedType = log.type;
                     if (mappedType === 'Gia hạn nối tiếp') mappedType = 'Gia hạn';
-                    if (mappedType === 'Thẻ đã cấp lại' || mappedType === 'Báo mất' || mappedType === 'Báo mất thẻ' || mappedType === 'Cấp lại thẻ RFID') mappedType = 'Cấp lại thẻ';
                     return {
                         ...log,
-                        status: (log.status === 'Thành công' || log.status === 'Đã xong' || log.status === 'Đã thanh toán') ? 'Hoàn thành' : log.status,
+                        status: (log.status === 'Thành công' || log.status === 'Đã xong' || log.status === 'Đã thanh toán' || log.status === 'Hoàn thành') ? 'Đã xong' : log.status,
                         type: mappedType
                     };
                 }).filter(log => !(log.status === 'Chờ thanh toán' && log.type === 'Gia hạn'));
@@ -320,34 +329,34 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
             d = dateInput;
         }
 
-        if (d) {
-            // Đảm bảo hiển thị đúng UTC+7 bất chấp múi giờ của trình duyệt
-            // Bằng cách cộng trực tiếp 7 tiếng vào UTC time và lấy các thành phần UTC
-            const utc7Time = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-            
-            const hours = String(utc7Time.getUTCHours()).padStart(2, '0');
-            const minutes = String(utc7Time.getUTCMinutes()).padStart(2, '0');
-            const seconds = String(utc7Time.getUTCSeconds()).padStart(2, '0');
-            const timePart = `${hours}:${minutes}:${seconds}`;
+    if (d) {
+        const timePart = new Intl.DateTimeFormat('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        const datePart = new Intl.DateTimeFormat('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(d);
+        return (
+            <div className="log-time-column">
+                <span className="log-time-clock">{timePart}</span>
+                <span className="log-time-date">{datePart}</span>
+            </div>
+        );
+    }
 
-            const day = String(utc7Time.getUTCDate()).padStart(2, '0');
-            const month = String(utc7Time.getUTCMonth() + 1).padStart(2, '0');
-            const year = utc7Time.getUTCFullYear();
-            const datePart = `${day}/${month}/${year}`;
-
-            return (
-                <div className="log-time-column">
-                    <span className="log-time-clock">{timePart}</span>
-                    <span className="log-time-date">{datePart}</span>
-                </div>
-            );
-        }
-
-        return <span className="log-time-clock">{String(dateInput)}</span>;
+    return <span className="log-time-clock">{String(dateInput)}</span>;
     };
 
     const getStatusClass = (status) => {
         switch (status) {
+            case 'Đã xong':
             case 'Hoàn thành': return 'success';
             case 'Chờ thanh toán': return 'pending';
             case 'Thất bại': return 'failed';
@@ -364,11 +373,11 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
     const kpiPending = kpiFilteredLogs.filter(log => log.status === 'Chờ thanh toán').length;
     const kpiFailed = kpiFilteredLogs.filter(log => log.status === 'Thất bại').length;
     const kpiRevenue = kpiFilteredLogs
-        .filter(log => log.status === 'Hoàn thành')
+        .filter(log => log.status === 'Hoàn thành' || log.status === 'Đã xong')
         .reduce((sum, log) => sum + parseAmount(log.amount), 0);
 
     const distTotal = kpiFilteredLogs.length;
-    const distCompleted = kpiFilteredLogs.filter(log => log.status === 'Hoàn thành').length;
+    const distCompleted = kpiFilteredLogs.filter(log => log.status === 'Hoàn thành' || log.status === 'Đã xong').length;
     const distPending = kpiFilteredLogs.filter(log => log.status === 'Chờ thanh toán').length;
     const distFailed = kpiFilteredLogs.filter(log => log.status === 'Thất bại').length;
 
@@ -483,10 +492,10 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         </div>
                     </div>
 
-                    {/* Hoàn thành */}
+                    {/* Đã xong */}
                     <div className="lost-dist-item">
                         <div className="lost-dist-label-row">
-                            <span>Hoàn thành</span>
+                            <span>Đã xong</span>
                             <span><span className="lost-dist-val">{distCompleted}</span> <span className="lost-dist-pct">({pct(distCompleted)}%)</span></span>
                         </div>
                         <div className="lost-dist-track">
@@ -545,8 +554,6 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             <option value="Tất cả">Tất cả</option>
                             <option value="Gia hạn">Gia hạn</option>
                             <option value="Cấp mới">Cấp mới</option>
-                            <option value="Cấp lại thẻ">Cấp lại thẻ</option>
-                            <option value="Thẻ đã cấp lại">Thẻ đã cấp lại</option>
                         </select>
                         <span className="material-symbols-outlined icon-right">expand_more</span>
                     </div>
@@ -561,7 +568,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             onChange={(e) => setStatusFilter(e.target.value)}
                         >
                             <option value="Tất cả">Tất cả</option>
-                            <option value="Hoàn thành">Hoàn thành</option>
+                            <option value="Đã xong">Đã xong</option>
                             <option value="Chờ thanh toán">Chờ thanh toán</option>
                             <option value="Thất bại">Thất bại</option>
                         </select>
@@ -599,14 +606,14 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                         <div style={{ width: '100%', overflowX: 'auto' }}>
                             <table className="mc-table" style={{ tableLayout: 'fixed', width: '100%', minWidth: '920px' }}>
                                 <colgroup>
-                                    <col style={{ width: '10%' }} /> {/* THỜI GIAN */}
-                                    <col style={{ width: '17%' }} /> {/* MÃ GIAO DỊCH */}
-                                    <col style={{ width: '9%' }} />  {/* BIỂN SỐ */}
-                                    <col style={{ width: '17%' }} /> {/* CHỦ XE */}
-                                    <col style={{ width: '9%' }} />  {/* LOẠI GIAO DỊCH */}
-                                    <col style={{ width: '15%' }} /> {/* PHÍ */}
-                                    <col style={{ width: '15%' }} /> {/* TRẠNG THÁI */}
-                                    <col style={{ width: '8%' }} />  {/* HÓA ĐƠN */}
+                                    <col style={{ width: '10%' }} />
+                                    <col style={{ width: '17%' }} />
+                                    <col style={{ width: '9%' }} />
+                                    <col style={{ width: '17%' }} />
+                                    <col style={{ width: '9%' }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '8%' }} />
                                 </colgroup>
                                 <thead>
                                     <tr>
@@ -624,7 +631,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                     {currentData.length > 0 ? (
                                         currentData.map((log, index) => (
                                             <tr key={index} className="mc-table-row">
-                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderFormattedTime(log.time)}</td>
+                                                <td style={{ textAlign: 'left', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{renderFormattedTime(log.timestamp || log.time)}</td>
                                                 <td style={{ textAlign: 'left', fontFamily: 'monospace', fontSize: '0.78rem', color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     {log.orderCode
                                                         ? <span title={log.orderCode}>{log.orderCode}</span>
@@ -716,7 +723,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                 <div className="lost-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
                     <div style={{ backgroundColor: '#fff', borderRadius: '16px', width: '420px', maxWidth: '92%', padding: '0', boxShadow: '0 20px 60px rgba(0,0,0,0.15), 0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', animation: 'fadeInScale 0.2s ease-out' }}>
                         {/* Header with status icon */}
-                        <div style={{ background: selectedBill.status === 'Hoàn thành' ? 'linear-gradient(135deg, #10b981, #059669)' : selectedBill.status === 'Thất bại' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #f59e0b, #d97706)', padding: '28px 24px 20px', textAlign: 'center', position: 'relative' }}>
+                        <div style={{ background: (selectedBill.status === 'Hoàn thành' || selectedBill.status === 'Đã xong') ? 'linear-gradient(135deg, #10b981, #059669)' : selectedBill.status === 'Thất bại' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #f59e0b, #d97706)', padding: '28px 24px 20px', textAlign: 'center', position: 'relative' }}>
                             <button
                                 onClick={() => setShowBillModal(false)}
                                 style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
@@ -727,12 +734,12 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                             </button>
                             <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#fff' }}>
-                                    {selectedBill.status === 'Hoàn thành' ? 'check_circle' : selectedBill.status === 'Thất bại' ? 'cancel' : 'schedule'}
+                                    {(selectedBill.status === 'Hoàn thành' || selectedBill.status === 'Đã xong') ? 'check_circle' : selectedBill.status === 'Thất bại' ? 'cancel' : 'schedule'}
                                 </span>
                             </div>
                             <h3 style={{ margin: 0, fontSize: '17px', color: '#fff', fontWeight: '600' }}>Thông tin giao dịch</h3>
                             <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>
-                                {selectedBill.status === 'Hoàn thành' ? 'Giao dịch thành công' : selectedBill.status === 'Thất bại' ? 'Giao dịch thất bại' : 'Giao dịch đang xử lý'}
+                                {(selectedBill.status === 'Hoàn thành' || selectedBill.status === 'Đã xong') ? 'Giao dịch thành công' : selectedBill.status === 'Thất bại' ? 'Giao dịch thất bại' : 'Giao dịch đang xử lý'}
                             </p>
                         </div>
 
@@ -778,7 +785,7 @@ export default function MonthCardLogPage({ kpiTimeFilter, kpiDate, kpiMonth, ref
                                     <span style={{
                                         fontSize: '13px',
                                         fontWeight: '600',
-                                        color: selectedBill.status === 'Hoàn thành' ? '#10b981' : selectedBill.status === 'Thất bại' ? '#ef4444' : '#f59e0b'
+                                        color: (selectedBill.status === 'Hoàn thành' || selectedBill.status === 'Đã xong') ? '#10b981' : selectedBill.status === 'Thất bại' ? '#ef4444' : '#f59e0b'
                                     }}>
                                         {selectedBill.status || '---'}
                                     </span>

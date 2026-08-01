@@ -29,17 +29,6 @@ services:
     depends_on:
       - ai-service
 
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "5173:5173"
-    depends_on:
-      - back-end
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-
   ai-service:
     build: ./ai-services
     ports:

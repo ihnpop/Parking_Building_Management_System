@@ -2,6 +2,12 @@ import { useEffect, useState, useRef } from "react";
 import { getPaymentStatus } from "../service/paymentApi";
 
 /**
+ * Các trạng thái kết thúc của giao dịch — phải khớp với Backend.
+ * Khi polling phát hiện một trong các trạng thái này, polling sẽ dừng lại.
+ */
+const PAYMENT_FINAL_STATUSES = ["Đã thanh toán", "Thất bại", "Hết hạn"];
+
+/**
  * Custom hook thực hiện polling trạng thái thanh toán từ backend.
  * Tự động dừng polling khi đạt trạng thái kết thúc (Đã thanh toán, Thất bại, Hết hạn).
  *
@@ -44,8 +50,7 @@ export function usePaymentPolling(orderCode, intervalMs = 3000, active = true) {
                     setStatus(paymentData.status);
 
                     // Các trạng thái kết thúc của giao dịch
-                    const finalStatuses = ["Đã thanh toán", "Thất bại", "Hết hạn"];
-                    if (finalStatuses.includes(paymentData.status)) {
+                    if (PAYMENT_FINAL_STATUSES.includes(paymentData.status)) {
                         clearInterval(intervalRef.current);
                         setLoading(false);
                     }

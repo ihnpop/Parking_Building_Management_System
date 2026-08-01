@@ -121,18 +121,9 @@ export const updateProfileRole = async (id, roleId) => {
  * @returns {Promise<object[]>}
  */
 export const getLoginLogs = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from("login_logs")
-        .select(`
-            log_id,
-            profiles_id,
-            username,
-            ip_address,
-            device_browser,
-            location,
-            status,
-            login_time
-        `)
+        .select("log_id, profiles_id, username, status, login_time")
         .order("login_time", { ascending: false });
 
     if (error) throw error;
@@ -145,7 +136,7 @@ export const getLoginLogs = async () => {
  * @returns {Promise<object[]>}
  */
 export const getProfilesByIds = async (ids) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from("profiles")
         .select("id, full_name, role_id")
         .in("id", ids);
@@ -160,7 +151,7 @@ export const getProfilesByIds = async (ids) => {
  * @returns {Promise<object[]>}
  */
 export const getRolesByIds = async (ids) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from("role")
         .select("role_id, role_name")
         .in("role_id", ids);

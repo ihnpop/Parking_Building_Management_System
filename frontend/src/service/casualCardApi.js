@@ -170,9 +170,15 @@ export function mapSessionToRow(session) {
 
     const effectivePayment = lostCardPayment || paymentList[0] || null;
     
-    // Tính tổng tiền phiên (nếu là mất thẻ lượt = Phí gửi xe + Phí mất thẻ)
+    // Tính tổng tiền phiên: Nếu là mất thẻ lượt, chỉ lấy phần Phí gửi xe (parkingFee) trong payload note, KHÔNG cộng gộp phí phạt mất thẻ
     let actualFee = 0;
-    if (paymentList.length > 0) {
+    if (lostCardPayment) {
+        let noteObj = lostCardPayment.note;
+        if (typeof noteObj === 'string') {
+            try { noteObj = JSON.parse(noteObj); } catch(e) {}
+        }
+        actualFee = noteObj?.parkingFee ?? session.final_fee ?? session.estimated_fee ?? 0;
+    } else if (paymentList.length > 0) {
         actualFee = paymentList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     } else {
         actualFee = session.final_fee ?? session.fee ?? session.estimated_fee ?? 0;

@@ -1,9 +1,10 @@
 import axios from 'axios';
 import FormData from 'form-data';
 import https from 'https';
+import { config } from '../config/config.js';
 
 // ─── Cấu hình VNPT eKYC ──────────────────────────────────────────────────────
-const VNPT_DOMAIN = 'https://api.idg.vnpt.vn';
+const VNPT_DOMAIN = config.vnptDomain;
 
 // VNPT_ACCESS_TOKEN trong .env có thể chứa prefix "bearer " (lowercase)
 // → cần normalize về "Bearer xxx"

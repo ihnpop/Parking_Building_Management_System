@@ -18,10 +18,9 @@ import { calculateFeeFromPriceItems } from "./feeCalculationService.js";
  * @param {object|null} vehicle – Thông tin xe (cần vehicle_type_id)
  * @returns {Promise<{fee: number, totalHours: number, durationStr: string, formattedEntryTime: string}>}
  */
-export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
+export const calculateParkingFee = async (entryTime, exitTime, vehicle, parkingId = null) => {
   const diffMs = exitTime.getTime() - entryTime.getTime();
   const totalHours = diffMs / (1000 * 60 * 60);
-  const billableHours = Math.max(1, Math.ceil(totalHours));
 
   const totalMinutes = Math.max(0, Math.floor(diffMs / 60000));
   const hours = Math.floor(totalMinutes / 60);
@@ -38,12 +37,11 @@ export const calculateParkingFee = async (entryTime, exitTime, vehicle) => {
 
   const vehicleTypeId = targetVehicle?.vehicle_type_id || (typeof targetVehicle?.vehicle_type === 'object' ? targetVehicle?.vehicle_type?.vehicle_type_id : null);
 
-  // Giá mặc định: 10,000/giờ
-  let fee = billableHours * 10000;
+  let fee = 0;
 
   if (vehicleTypeId) {
     try {
-      const priceItems = await gateRepository.getPriceItems(vehicleTypeId);
+      const priceItems = await gateRepository.getPriceItems(vehicleTypeId, parkingId);
       if (priceItems?.length > 0) {
         const calculated = calculateFeeFromPriceItems(totalHours, priceItems);
         fee = calculated.fee;
@@ -233,7 +231,7 @@ export const preCheckEntry = async (plateNumber) => {
 
   if (!isCardActive) {
     canOpenGate = false;
-    message = "Thẻ tháng đã bị khóa hoặc chưa được kích hoạt.";
+    message = "Thẻ tháng đã hết hạn";
   } else if (!isVehicleActive) {
     canOpenGate = false;
     message = "Phương tiện xe tháng đã bị vô hiệu hóa.";
@@ -487,7 +485,7 @@ export const preCheckExit = async (plateNumber) => {
   let formattedEntryTime = "";
 
   if (!isMonthly) {
-    const feeResult = await calculateParkingFee(entryTime, exitTime, vehicle);
+    const feeResult = await calculateParkingFee(entryTime, exitTime, vehicle, finalParkingId);
     fee = feeResult.fee;
     durationStr = feeResult.durationStr;
     formattedEntryTime = feeResult.formattedEntryTime;
@@ -559,7 +557,7 @@ export const exitTap = async ({ cardCode, plateNumber, exitVehicleImage, exitPla
 
     // Tính phí gửi xe (dùng helper chung — xóa duplication)
     const entryTime = parseEntryTime(activeSession.entry_time);
-    const feeResult = await calculateParkingFee(entryTime, exitTime, vehicle);
+    const feeResult = await calculateParkingFee(entryTime, exitTime, vehicle, gateData.parking_id);
     fee = feeResult.fee;
 
     // Cập nhật phiên gửi xe thành COMPLETED

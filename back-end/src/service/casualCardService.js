@@ -95,6 +95,22 @@ function formatCasualVND(amount) {
 
 /** Map 1 session object → row hiển thị cho bảng */
 function mapSessionToRow(session) {
+    const paymentList = Array.isArray(session.payment) ? session.payment : (session.payment ? [session.payment] : []);
+    const lostCardPayment = paymentList.find(p => p.payment_type === 'Phí mất thẻ lượt' || (p.payment_type && p.payment_type.toLowerCase().includes('mất thẻ')));
+    
+    let actualFee = 0;
+    if (lostCardPayment) {
+        let noteObj = lostCardPayment.note;
+        if (typeof noteObj === 'string') {
+            try { noteObj = JSON.parse(noteObj); } catch(e) {}
+        }
+        actualFee = noteObj?.parkingFee ?? session.final_fee ?? session.estimated_fee ?? 0;
+    } else if (paymentList.length > 0) {
+        actualFee = paymentList.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    } else {
+        actualFee = session.final_fee ?? session.estimated_fee ?? 0;
+    }
+
     return {
         session_id:       session.session_id || '',
         cardCode:         session.card?.code || '---',
@@ -107,10 +123,8 @@ function mapSessionToRow(session) {
         entryTimeSplit:   formatDateTimeVNSplit(session.entry_time),
         exitTimeSplit:    formatDateTimeVNSplit(session.exit_time),
         duration:         computeDuration(session.entry_time, session.exit_time),
-        fee:              session.final_fee ?? session.estimated_fee ?? null,
-        feeDisplay:       session.exit_time
-            ? formatCasualVND(session.final_fee ?? session.estimated_fee)
-            : (session.estimated_fee ? formatCasualVND(session.estimated_fee) + ' (ước tính)' : '---'),
+        fee:              actualFee,
+        feeDisplay:       formatCasualVND(actualFee),
         paymentMethod:    (Array.isArray(session.payment) ? session.payment[0]?.payment_method : session.payment?.payment_method) || '---',
         paymentInfo:      (Array.isArray(session.payment) ? session.payment[0] : session.payment) || null,
         status:     session.status || '---',

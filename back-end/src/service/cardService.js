@@ -68,7 +68,7 @@ export const getMonthCardLogs = async () => {
       time,
       plate,
       owner,
-      type: item.amount > 500000 ? 'Gia hạn' : 'Cấp mới',
+      type: (item.payment_type && item.payment_type.toLowerCase().includes('gia hạn')) ? 'Gia hạn' : (item.payment_type || 'Cấp mới'),
       amount,
       status
     };

@@ -88,10 +88,15 @@ export async function findActiveRegistrationByVehicleId(vehicleId) {
         .select("*, card:card_id(*, vehicle_package:active_vehicle_package_id(*))")
         .eq("vehicle_id", vehicleId)
         .eq("status", "Hoạt động")
-        .maybeSingle();
+        .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return data;
+    if (!data || data.length === 0) return null;
+
+    const monthlyReg = data.find(r => r.card?.type === 'Thẻ tháng');
+    if (monthlyReg) return monthlyReg;
+
+    return data[0];
 }
 
 /**
@@ -124,7 +129,7 @@ export async function findUnresolvedLostCardLog(vehicleId, entryTime = null) {
         .from("card_lost_log")
         .select("lost_report_id")
         .eq("vehicle_id", vehicleId)
-        .neq("status", "Đã xong"); // Trạng thái đúng trong DB là 'Đã xong'
+        .neq("status", "Đã hủy (tạo nhầm)");
 
     // Chỉ tìm log báo mất được tạo TRONG PHIÊN gửi xe hiện tại (sau entry_time)
     if (entryTime) {

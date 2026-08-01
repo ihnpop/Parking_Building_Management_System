@@ -178,6 +178,30 @@ export const createVehiclePackage = async (payload) => {
 // ============================================================
 
 /**
+ * Tìm giao dịch đăng ký vé tháng đang chờ thanh toán hoặc đã thanh toán nhưng chưa hoàn tất
+ * @param {string} userId
+ * @param {string} fifteenMinutesAgo - ISO timestamp
+ * @returns {Promise<object|null>}
+ */
+export const findPendingRegistration = async (userId, fifteenMinutesAgo) => {
+    const { data, error } = await supabase
+        .from('payment')
+        .select('*')
+        .eq('payment_type', 'Đăng ký vé tháng')
+        .in('status', ['Chờ thanh toán', 'Đã thanh toán'])
+        .is('vehicle_package_id', null)
+        .eq('created_by', userId)
+        .gt('payment_time', fifteenMinutesAgo)
+        .order('payment_time', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error) throw new Error("Lỗi truy vấn payment chờ thanh toán: " + error.message);
+    return data;
+};
+
+
+/**
  * Kiểm tra payment trùng lặp trong vòng 1 phút gần nhất
  * @param {{ vehiclePackageId: string, paymentType: string, sinceTime: string }} params
  * @returns {Promise<object|null>}

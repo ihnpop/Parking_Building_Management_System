@@ -16,6 +16,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getRenewalInfo, initiateRenewal, confirmRenewalCash } from '../../../service/monthCardApi';
 
 // ─── Helpers ──────────────────────────────────────────────────
+// Delay (ms) trước khi đóng dialog sau khi gia hạn thành công
+const SUCCESS_CLOSE_DELAY_MS = 1800;
+
 const formatCurrency = (val) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 
@@ -346,7 +349,7 @@ export default function RenewCardDialog({ isOpen, onClose, cardData, onSuccess }
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new Event('monthCardLogsUpdated'));
             }
-            if (onSuccess) setTimeout(onSuccess, 1800);
+            if (onSuccess) setTimeout(onSuccess, SUCCESS_CLOSE_DELAY_MS);
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Lỗi xác nhận tiền mặt.';
             setConfirmError(msg);
