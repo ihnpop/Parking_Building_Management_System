@@ -1,4 +1,5 @@
 import * as monthCardRepository from "../repositories/monthCardRepository.js";
+import { getCardReissueFee } from "../repositories/lostCardRepository.js";
 
 // Bảng giá gói gia hạn cố định
 export const RENEW_PACKAGES = [

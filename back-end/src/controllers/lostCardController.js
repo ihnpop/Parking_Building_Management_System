@@ -142,6 +142,8 @@ export const reissueCard = async (req, res) => {
     }
     const origin = req.headers['origin'] || req.headers['referer'];
 
+    const buildingId = await resolveBuildingIdFromReq(req);
+
     const result = await lostCardService.reissueCard({
       cardId,
       newCode,
@@ -149,7 +151,8 @@ export const reissueCard = async (req, res) => {
       performedBy,
       ipAddr,
       paymentMethod,
-      origin
+      origin,
+      buildingId
     });
 
     return res.status(200).json({ success: true, data: result });
@@ -188,6 +191,8 @@ export const initiateLostTurnCardPayment = async (req, res) => {
     }
     const origin = req.headers['origin'] || req.headers['referer'];
 
+    const buildingId = await resolveBuildingIdFromReq(req);
+
     const result = await lostCardService.initiateLostTurnCardPayment({
       reportId,
       cardId,
@@ -197,7 +202,8 @@ export const initiateLostTurnCardPayment = async (req, res) => {
       paymentMethod,
       ipAddr,
       performedBy,
-      origin
+      origin,
+      buildingId
     });
 
     return res.status(200).json({ success: true, data: result });
@@ -227,7 +233,8 @@ export const confirmLostTurnCardCash = async (req, res) => {
 export const checkLostCardPlate = async (req, res) => {
   try {
     const { plate_number, card_category } = req.body;
-    const result = await lostCardService.checkLostCardPlate({ plate_number, card_category });
+    const buildingId = await resolveBuildingIdFromReq(req);
+    const result = await lostCardService.checkLostCardPlate({ plate_number, card_category, buildingId });
     return res.status(200).json({ success: true, data: result });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });

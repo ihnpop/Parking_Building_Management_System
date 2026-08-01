@@ -100,6 +100,7 @@ CREATE TABLE public.price_table (
   name character varying NOT NULL,
   description text,
   status character varying DEFAULT 'Hoạt động'::character varying,
+  card_reissue_fee numeric DEFAULT 50000,
   CONSTRAINT price_table_pkey PRIMARY KEY (price_table_id),
   CONSTRAINT price_table_parking_id_fkey FOREIGN KEY (parking_id) REFERENCES public.parking(parking_id)
 );

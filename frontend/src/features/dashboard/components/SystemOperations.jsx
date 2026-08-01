@@ -262,19 +262,49 @@ export default function SystemOperations() {
             setLoading(true);
             if (mode === 'IN') {
                 const res = await preCheckEntryGate(cleanPlate);
-                setPreCheckResult(res);
-                if (res.vehicleType === 'VISITOR') {
-                    // Mặc định chọn thẻ đầu tiên nếu có
-                    if (res.availableCards?.length > 0) {
-                        setSelectedCard(res.availableCards[0].code);
+                
+                // Nếu là xe tháng nhưng thẻ/gói cước đã hết hạn (hoặc bị khóa) và chưa ở trong bãi
+                if (res.vehicleType === 'MONTHLY' && res.canOpenGate === false && !res.message?.includes('ở trong bãi')) {
+                    showToast(`⚠️ ${res.message || 'Thẻ tháng đã hết hạn!'} Tự động chuyển sang lượt xe vãng lai (vé lượt).`, 'warning');
+
+                    // Lấy danh sách thẻ lượt vãng lai khả dụng từ hệ thống
+                    let visitorCards = [];
+                    try {
+                        const visitorRes = await preCheckEntryGate('59X199999');
+                        visitorCards = visitorRes?.availableCards || [];
+                    } catch (cardErr) {
+                        console.warn("Lỗi lấy danh sách thẻ lượt vãng lai:", cardErr);
+                    }
+
+                    const modifiedRes = {
+                        ...res,
+                        vehicleType: 'VISITOR',
+                        availableCards: visitorCards,
+                        isExpiredMonthly: true,
+                        expiredMessage: res.message || 'Gói cước / Thẻ đăng ký xe tháng đã hết hạn.'
+                    };
+
+                    setPreCheckResult(modifiedRes);
+                    if (visitorCards.length > 0) {
+                        setSelectedCard(visitorCards[0].code);
                     } else {
                         setSelectedCard('');
                     }
                 } else {
-                    setSelectedCard('');
-                    // Tự động đặt loại xe khớp với dữ liệu đã đăng ký trong DB
-                    if (res.vehicleCategory) {
-                        setVehicleType(res.vehicleCategory);
+                    setPreCheckResult(res);
+                    if (res.vehicleType === 'VISITOR') {
+                        // Mặc định chọn thẻ đầu tiên nếu có
+                        if (res.availableCards?.length > 0) {
+                            setSelectedCard(res.availableCards[0].code);
+                        } else {
+                            setSelectedCard('');
+                        }
+                    } else {
+                        setSelectedCard('');
+                        // Tự động đặt loại xe khớp với dữ liệu đã đăng ký trong DB
+                        if (res.vehicleCategory) {
+                            setVehicleType(res.vehicleCategory);
+                        }
                     }
                 }
             } else {
@@ -905,6 +935,29 @@ export default function SystemOperations() {
 
                             {mode === 'IN' && preCheckResult && preCheckResult.vehicleType === 'VISITOR' && (
                                 <div className="visitor-card-select-container">
+                                    {preCheckResult.isExpiredMonthly && (
+                                        <div style={{
+                                            background: '#fffbe6',
+                                            border: '1px solid #ffe58f',
+                                            borderRadius: '8px',
+                                            padding: '10px 14px',
+                                            marginBottom: '12px',
+                                            color: '#d46b08',
+                                            fontSize: '13px',
+                                            fontWeight: '600',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#fa8c16' }}>warning</span>
+                                            <div>
+                                                <div>⚠️ {preCheckResult.expiredMessage}</div>
+                                                <div style={{ fontSize: '12px', fontWeight: '400', color: '#8c4e03', marginTop: '2px' }}>
+                                                    Hệ thống tự động chuyển sang lượt xe vãng lai (vé lượt). Vui lòng chọn thẻ lượt bên dưới để cấp cho xe vào.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <label className="transaction-label">Chọn thẻ lượt:</label>
                                     <select
                                         value={selectedCard}

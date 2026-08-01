@@ -49,7 +49,17 @@ function filterRowsByTime(rows, mode, dateStr) {
     if (!dateStr) return rows;
     return rows.filter((r) => {
         if (!r.entryTime) return false;
-        const entry = new Date(r.entryTime);
+        // Normalize: thêm 'T' và 'Z' giống renderFormattedTime để tránh lệch ngày khi lọc
+        let strForParse = String(r.entryTime).trim();
+        if (strForParse.includes(' ') && !strForParse.includes('T')) {
+            strForParse = strForParse.replace(' ', 'T');
+        }
+        const hasTimezone = strForParse.endsWith('Z') || /[+-]\d{2}(:\d{2})?$/.test(strForParse);
+        if (!hasTimezone) {
+            strForParse = strForParse + 'Z';
+        }
+        let entry = new Date(strForParse);
+        if (isNaN(entry.getTime())) entry = new Date(r.entryTime); // fallback
         if (isNaN(entry.getTime())) return false;
         // Chuyển sang ngày VN
         const entryDateVN = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).format(entry);

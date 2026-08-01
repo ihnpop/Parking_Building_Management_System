@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import supabase from '../../../config/supabaseClient';
 import { formatVND } from '../../../service/dashboardApi';
 import {
@@ -60,6 +61,7 @@ const VEHICLE_COLOR_DEFAULT = '#FBBF24';
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function ManagerDashboardPage() {
+    const { user: authUser } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(null);
@@ -98,16 +100,41 @@ export default function ManagerDashboardPage() {
     // ── Step 1: Lấy building_id của Manager đang đăng nhập từ profiles ──
     const fetchBuildingId = useCallback(async () => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return null;
+            // Thử lấy user từ Supabase session trước
+            let userId = null;
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user?.id) userId = user.id;
+            } catch (_) { /* ignore */ }
+
+            // Fallback: dùng AuthContext user hoặc localStorage khi token hết hạn
+            if (!userId) {
+                const ctxId = authUser?.id;
+                const lsId = localStorage.getItem('userId');
+                userId = ctxId || lsId || null;
+            }
+
+            if (!userId || userId === '00000000-0000-0000-0000-000000000000') {
+                // Thử lại bằng session
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.id) {
+                    userId = session.user.id;
+                } else {
+                    console.warn('[ManagerDashboard] Không tìm thấy user ID hợp lệ');
+                    return null;
+                }
+            }
 
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('building_id, building:building_id(name)')
-                .eq('id', user.id)
+                .eq('id', userId)
                 .single();
 
-            if (error || !profile) return null;
+            if (error || !profile) {
+                console.warn('[ManagerDashboard] Không tìm thấy profile:', error?.message);
+                return null;
+            }
 
             if (!profile.building_id) {
                 setNoBuildingAssigned(true);
@@ -121,7 +148,7 @@ export default function ManagerDashboardPage() {
             console.error('[ManagerDashboard] fetchBuildingId error:', err);
             return null;
         }
-    }, []);
+    }, [authUser]);
 
     // ── Step 2: Load dashboard data theo building_id ──
     const loadData = useCallback(async (bldId) => {
@@ -246,6 +273,9 @@ export default function ManagerDashboardPage() {
                     .lte('payment_time', endDate);
                 periodPayments = payments || [];
             }
+
+            // Tính tổng doanh thu trong kỳ từ periodPayments
+            const periodRevenue = periodPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
             // Compute second revenue metric (monthly or average)
             const selMonthStr = dashboardPeriod === 'month' 

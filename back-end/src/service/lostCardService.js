@@ -2,7 +2,11 @@ import * as cardRepository from "../repositories/cardRepository.js";
 import * as lostCardRepository from "../repositories/lostCardRepository.js";
 import * as vnpayService from "./vnpayService.js";
 import supabase from "../config/supabaseClient.js";
-import { calculateParkingFee, parseEntryTime } from "./gateService.js";
+import { calculateExitFee } from "./feeCalculationService.js";
+
+// Regex validate mã RFID: chỉ chứa chữ và số, độ dài 4–20 ký tự
+const RFID_CODE_REGEX = /^[A-Za-z0-9]{4,20}$/;
+
 
 export const getLostCards = async (buildingId = null) => {
   // 1. Thực hiện truy vấn kết nối tầng từ bảng card_lost_log thông qua Repository
@@ -97,7 +101,9 @@ export const getLostCards = async (buildingId = null) => {
             newCode: pendingNoteObj.newCode || '',
             paymentTime: pm.payment_time,
             // Trích xuất parking_fee từ note để hiển thị đúng khi resume
-            parkingFee: pendingNoteObj.parkingFee ?? 0
+            parkingFee: pendingNoteObj.parkingFee ?? 0,
+            // Với thẻ lượt: lấy từ note.lostCardFee, với thẻ tháng: amount chính là phí cấp lại
+            reissueFee: cardType === 'Thẻ tháng' ? pm.amount : (pendingNoteObj.lostCardFee ?? 0)
           };
         }
       }
@@ -122,14 +128,18 @@ export const getLostCards = async (buildingId = null) => {
             session = latestSess;
           }
           if (session?.entry_time) {
-            const entryTime = parseEntryTime(session.entry_time);
-            const validPlate = plateNumber === "Chưa có xe" ? null : plateNumber;
-            const feeResult = await calculateParkingFee(entryTime, new Date(), validPlate);
-            parking_fee = feeResult.fee || 0;
+            const feeResult = await calculateExitFee(session);
+            parking_fee = feeResult.estimated_fee || 0;
           }
         } catch (feeErr) {
           console.error('[getLostCards] Lỗi tính parking_fee khi resume:', feeErr.message);
         }
+      }
+
+      // Lấy reissue_fee để hiển thị phí cấp lại thẻ
+      let reissue_fee = pendingPayment?.reissueFee ?? pendingPayment?.lostFee;
+      if (reissue_fee === undefined || reissue_fee === null) {
+        reissue_fee = await lostCardRepository.getCardReissueFee(log.vehicle_id, buildingId);
       }
 
       return {
@@ -155,8 +165,9 @@ export const getLostCards = async (buildingId = null) => {
         vehicle_registration_image_url: log.vehicle_registration_image_url || null,
         id_card_image_url: log.id_card_image_url || null,
 
-        // Phí gửi xe — để frontend hiển thị đúng khi resume report từ danh sách
+        // Phí gửi xe và Phí cấp lại thẻ — để frontend hiển thị đúng khi resume report từ danh sách
         parking_fee,
+        reissue_fee,
 
         status: statusText,
         pendingPayment
@@ -183,6 +194,10 @@ export const createLostCard = async ({
 
   if (!description || !description.trim()) {
     throw new Error("Vui lòng nhập lí do báo mất.");
+  }
+
+  if (description.trim().length > 500) {
+    throw new Error("Lí do báo mất không được vượt quá 500 ký tự.");
   }
 
   if (!performedBy) {
@@ -304,7 +319,7 @@ export const createLostCard = async ({
 /**
  * Kiểm tra thông tin biển số xe và thẻ hoạt động trước khi tạo báo mất (tra cứu DB thực tế)
  */
-export const checkLostCardPlate = async ({ plate_number, card_category }) => {
+export const checkLostCardPlate = async ({ plate_number, card_category, buildingId }) => {
   if (!plate_number || !plate_number.trim()) {
     throw new Error("Vui lòng nhập biển số xe.");
   }
@@ -369,19 +384,17 @@ export const checkLostCardPlate = async ({ plate_number, card_category }) => {
   const fullVehicle = await cardRepository.findVehicleById(vehicle.vehicle_id);
   const { data: vWithCust } = await supabase
     .from('vehicle')
-    .select('*, customer(full_name)')
+    .select('*, customer(full_name), vehicle_type(name)')
     .eq('vehicle_id', vehicle.vehicle_id)
     .maybeSingle();
 
   let parkingFee = 0;
   if (activeSession) {
-    const entryTime = parseEntryTime(activeSession.entry_time);
-    // Dùng vWithCust thay vì fullVehicle: vWithCust có vehicle_type_id để tra bảng giá DB
-    const feeRes = await calculateParkingFee(entryTime, new Date(), vWithCust);
-    parkingFee = feeRes.fee || 0;
+    const feeRes = await calculateExitFee({ ...activeSession, skipLostCheck: true });
+    parkingFee = feeRes.estimated_fee || 0;
   }
 
-  const lostFee = 50000;
+  const lostFee = await lostCardRepository.getCardReissueFee(vehicle?.vehicle_id, buildingId);
   const totalFee = isDailyCard ? parkingFee + lostFee : lostFee;
 
   return {
@@ -397,7 +410,8 @@ export const checkLostCardPlate = async ({ plate_number, card_category }) => {
     parkingFee,
     lostFee,
     totalFee,
-    feeDisplay: isDailyCard ? `${parkingFee.toLocaleString('vi-VN')} đ` : '0 đ (Vé tháng)'
+    feeDisplay: isDailyCard ? `${parkingFee.toLocaleString('vi-VN')} đ` : '0 đ (Vé tháng)',
+    vehicleType: vWithCust?.vehicle_type?.name || '---'
   };
 };
 
@@ -467,6 +481,24 @@ export const cancelLostCardReport = async ({ reportId, performedBy, note }) => {
  */
 export const updateLostCardReport = async (reportId, { description, vehicle_registration_image_url, id_card_image_url }) => {
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ.");
+
+  // Kiểm tra báo cáo tồn tại
+  const report = await lostCardRepository.findLostReport(reportId);
+  if (!report) throw new Error("Không tìm thấy báo cáo mất thẻ.");
+
+  // Chỉ cho phép cập nhật khi báo cáo chưa kết thúc
+  const EDITABLE_STATUSES = ['Đang chờ', 'Chờ xử lý', 'Đang xử lý'];
+  if (!EDITABLE_STATUSES.includes(report.status)) {
+    throw new Error(
+      `Không thể cập nhật báo cáo đã ở trạng thái '${report.status}'. ` +
+      `Chỉ có thể chỉnh sửa khi báo cáo đang ở trạng thái: ${EDITABLE_STATUSES.join(', ')}.`
+    );
+  }
+
+  if (description?.trim() && description.trim().length > 500) {
+    throw new Error("Lí do báo mất không được vượt quá 500 ký tự.");
+  }
+
   return await lostCardRepository.updateLostReport(reportId, {
     description: description?.trim() || undefined,
     vehicle_registration_image_url: vehicle_registration_image_url || undefined,
@@ -525,11 +557,16 @@ export const resolveLostCardReport = async ({ reportId, performedBy, note }) => 
 /**
  * Cấp lại thẻ RFID cho thẻ tháng bị mất (update-in-place).
  */
-export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr, paymentMethod = 'vnpay', origin }) => {
+export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAddr, paymentMethod = 'vnpay', origin, buildingId }) => {
   if (!cardId) throw new Error("Thiếu card_id.");
   if (!newCode?.trim()) throw new Error("Thiếu mã RFID mới (newCode).");
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
+
+  // Validate format mã RFID mới
+  if (!RFID_CODE_REGEX.test(newCode.trim())) {
+    throw new Error("Mã RFID mới không hợp lệ. Chỉ được chứa chữ cái và chữ số, độ dài từ 4 đến 20 ký tự.");
+  }
 
   // Không cho phép ghi nợ nữa
   if (paymentMethod === 'defer') {
@@ -562,6 +599,35 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     );
   }
 
+  // Không cho phép dùng lại chính mã RFID cũ của thẻ
+  if (cardObj.code && newCode.trim().toUpperCase() === cardObj.code.toUpperCase()) {
+    throw new Error(
+      `Mã RFID mới ('${newCode.trim()}') trùng với mã hiện tại của thẻ. Vui lòng nhập mã RFID khác.`
+    );
+  }
+
+  // Ngăn tạo phiếu thu trùng lặp — nếu đã có payment 'Chờ thanh toán' cho report này thì trả về để resume
+  const existingPayment = await lostCardRepository.findPendingPaymentByReportId(report.lost_report_id || reportId, 'Phí cấp lại thẻ');
+  if (existingPayment) {
+    let existingPayUrl = null;
+    if (existingPayment.payment_method === 'VNPay' || paymentMethod === 'vnpay') {
+      try {
+        const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:')) ? ipAddr : '127.0.0.1';
+        existingPayUrl = vnpayService.createPaymentUrl({
+          orderCode: existingPayment.order_code,
+          amount: existingPayment.amount,
+          orderInfo: `Phi cap lai the thang - Report ${reportId.substring(0, 8).toUpperCase()}`,
+          ipAddr: clientIp,
+          origin
+        });
+      } catch (_) { /* ignore */ }
+    }
+    throw Object.assign(
+      new Error(`Đã có phiếu thu phí cấp lại thẻ đang chờ thanh toán (mã: ${existingPayment.order_code}). Vui lòng hoàn tất thanh toán trước khi tạo mới.`),
+      { existingOrderCode: existingPayment.order_code, existingPayUrl, reissue_fee: existingPayment.amount }
+    );
+  }
+
   const codeExists = await cardRepository.checkCodeExists(newCode.trim());
   if (codeExists) {
     const blankCard = await cardRepository.findByCode(newCode.trim());
@@ -572,7 +638,7 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     }
   }
 
-  const REISSUE_FEE = 50000;
+  const REISSUE_FEE = await lostCardRepository.getCardReissueFee(report?.vehicle_id, buildingId);
   const orderCode = `RI${Date.now()}`;
 
   const savedPayload = {
@@ -656,6 +722,7 @@ export const processReissueSuccess = async (orderCode) => {
   const cardObj = await cardRepository.findCardTypeAndStatus(cardId);
   if (!cardObj) throw new Error("Không tìm thấy thẻ.");
 
+  const oldCardFull = await cardRepository.getCardById(cardId);
   const oldCode = cardObj.code;
 
   let updatedCard;
@@ -665,8 +732,12 @@ export const processReissueSuccess = async (orderCode) => {
     // Đánh dấu thẻ cũ là Đã xóa trước để tránh lỗi unique constraint trên vehicle_id
     await cardRepository.cancelCard(cardId, performedBy);
 
-    // Tái sử dụng thẻ đang chờ
-    updatedCard = await cardRepository.reuseWaitingCard(blankCard.card_id, new Date().toISOString());
+    // Tái sử dụng thẻ đang chờ và giữ nguyên ngày bắt đầu/kết thúc của thẻ cũ
+    updatedCard = await cardRepository.reuseWaitingCard(
+      blankCard.card_id, 
+      oldCardFull.created_at, 
+      oldCardFull.expired_date
+    );
     
     // Chuyển đăng ký từ thẻ cũ sang thẻ mới
     if (report.vehicle_id) {
@@ -749,7 +820,7 @@ export const confirmReissueCash = async (orderCode) => {
 /**
  * Khởi tạo thanh toán mất thẻ lượt (Tính tổng tiền = Phí gửi xe + 50.000đ)
  */
-export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'vnpay', ipAddr, performedBy, origin }) => {
+export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'vnpay', ipAddr, performedBy, origin, buildingId }) => {
   if (!reportId) throw new Error("Thiếu mã báo cáo mất thẻ (reportId).");
   if (!performedBy) throw new Error("Thiếu thông tin người thực hiện.");
 
@@ -762,6 +833,27 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
     throw new Error(
       `Báo cáo mất thẻ phải ở trạng thái 'Đang chờ', 'Đang xử lý' hoặc 'Đã hủy thẻ' để thanh toán. ` +
       `Trạng thái hiện tại: '${report.status}'.`
+    );
+  }
+
+  // Ngăn tạo phiếu thu trùng lặp — nếu đã có payment 'Chờ thanh toán' cho report này thì trả về để resume
+  const existingPayment = await lostCardRepository.findPendingPaymentByReportId(report.lost_report_id || reportId, 'Phí mất thẻ lượt');
+  if (existingPayment) {
+    let existingPayUrl = null;
+    if (paymentMethod === 'vnpay') {
+      try {
+        const clientIp = (ipAddr && ipAddr !== '::1' && !ipAddr.includes('::ffff:')) ? ipAddr : '127.0.0.1';
+        existingPayUrl = vnpayService.createPaymentUrl({
+          orderCode: existingPayment.order_code,
+          amount: existingPayment.amount,
+          orderInfo: `Phi mat the luot - Report ${reportId.substring(0, 8).toUpperCase()}`,
+          ipAddr: clientIp
+        });
+      } catch (_) { /* ignore */ }
+    }
+    throw Object.assign(
+      new Error(`Đã có phiếu thu phí mất thẻ lượt đang chờ thanh toán (mã: ${existingPayment.order_code}). Vui lòng hoàn tất thanh toán trước khi tạo mới.`),
+      { existingOrderCode: existingPayment.order_code, existingPayUrl, total_fee: existingPayment.amount }
     );
   }
 
@@ -788,12 +880,9 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
   }
 
   // 2. Tính phí gửi xe dựa trên entry_time và thời điểm hiện tại
-  const vehicle = await cardRepository.findVehicleById(report.vehicle_id);
-  const entryTime = parseEntryTime(session.entry_time);
-  const feeResult = await calculateParkingFee(entryTime, new Date(), vehicle);
-
-  const parkingFee = feeResult.fee || 0;
-  const lostCardFee = 50000;
+  const feeResult = await calculateExitFee({ ...session, skipLostCheck: true });
+  const parkingFee = feeResult.estimated_fee || 0;
+  const lostCardFee = await lostCardRepository.getCardReissueFee(report?.vehicle_id, buildingId);
   const totalAmount = parkingFee + lostCardFee;
 
   const orderCode = `LTC${Date.now()}`;
