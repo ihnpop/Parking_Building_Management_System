@@ -1,7 +1,6 @@
 import * as cardRepository from "../repositories/cardRepository.js";
 import * as lostCardRepository from "../repositories/lostCardRepository.js";
 import * as vnpayService from "./vnpayService.js";
-import supabase from "../config/supabaseClient.js";
 import { calculateExitFee } from "./feeCalculationService.js";
 
 // Regex validate mã RFID: chỉ chứa chữ và số, độ dài 4–20 ký tự
@@ -63,17 +62,11 @@ export const getLostCards = async (buildingId = null) => {
         const timeoutThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         const paymentTypeToCheck = cardType === 'Thẻ tháng' ? 'Phí cấp lại thẻ' : 'Phí mất thẻ lượt';
 
-        const { data: pm } = await supabase
-          .from('payment')
-          .select('*')
-          .eq('payment_type', paymentTypeToCheck)
-          .eq('status', 'Chờ thanh toán')
-          .gt('payment_time', timeoutThreshold)
-          // note là jsonb — dùng .filter() với jsonb operator để tìm theo reportId
-          .filter('note->>reportId', 'eq', log.lost_report_id)
-          .order('payment_time', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const pm = await lostCardRepository.findPendingPaymentWithTimeout({
+          paymentTypeToCheck,
+          timeoutThreshold,
+          reportId: log.lost_report_id
+        });
 
         if (pm) {
           // note là jsonb — Supabase trả về object trực tiếp
@@ -118,13 +111,7 @@ export const getLostCards = async (buildingId = null) => {
           let session = await lostCardRepository.findActiveParkingSession(log.vehicle_id);
           if (!session) {
             // Fallback: lấy phiên gần nhất
-            const { data: latestSess } = await supabase
-              .from('parking_sessions')
-              .select('entry_time')
-              .eq('vehicle_id', log.vehicle_id)
-              .order('entry_time', { ascending: false })
-              .limit(1)
-              .maybeSingle();
+            const latestSess = await lostCardRepository.findLatestSessionByVehicle(log.vehicle_id);
             session = latestSess;
           }
           if (session?.entry_time) {
@@ -137,7 +124,19 @@ export const getLostCards = async (buildingId = null) => {
       }
 
       // Lấy reissue_fee để hiển thị phí cấp lại thẻ
-      let reissue_fee = pendingPayment?.reissueFee ?? pendingPayment?.lostFee;
+      let reissue_fee = log.reissue_fee != null ? Number(log.reissue_fee) : (pendingPayment?.reissueFee ?? pendingPayment?.lostFee);
+      if (reissue_fee === undefined || reissue_fee === null) {
+        try {
+          const completedPm = await lostCardRepository.findCompletedPaymentByReportId(log.lost_report_id);
+
+          if (completedPm) {
+            const noteObj = (completedPm.note && typeof completedPm.note === 'object') ? completedPm.note : {};
+            reissue_fee = cardType === 'Thẻ tháng' ? Number(completedPm.amount) : Number(noteObj.lostCardFee ?? completedPm.amount);
+          }
+        } catch (pmErr) {
+          console.error('[getLostCards] Lỗi tra cứu completed payment for reissue_fee:', pmErr.message);
+        }
+      }
       if (reissue_fee === undefined || reissue_fee === null) {
         reissue_fee = await lostCardRepository.getCardReissueFee(log.vehicle_id, buildingId);
       }
@@ -276,6 +275,8 @@ export const createLostCard = async ({
     await cardRepository.updateVehicleCustomer(vehicle.vehicle_id, null);
   }
 
+  const initialReissueFee = await lostCardRepository.getCardReissueFee(vehicle.vehicle_id, null);
+
   // 3. Thêm mới bản ghi vào bảng nhật ký mất thẻ card_lost_log
   const data = await lostCardRepository.insertLostCardLog({
     card_id: finalCardId,
@@ -285,7 +286,8 @@ export const createLostCard = async ({
     id_card_image_url: !isDailyCard ? (id_card_image_url || null) : null,
     reported_at: new Date().toISOString(),
     status: 'Đang chờ',
-    handled_by: null
+    handled_by: null,
+    reissue_fee: initialReissueFee
   });
 
   // 4. Khóa thẻ ngay lập tức
@@ -382,11 +384,7 @@ export const checkLostCardPlate = async ({ plate_number, card_category, building
 
   // 4. Lấy thông tin khách hàng nếu có
   const fullVehicle = await cardRepository.findVehicleById(vehicle.vehicle_id);
-  const { data: vWithCust } = await supabase
-    .from('vehicle')
-    .select('*, customer(full_name), vehicle_type(name)')
-    .eq('vehicle_id', vehicle.vehicle_id)
-    .maybeSingle();
+  const vWithCust = await lostCardRepository.findVehicleDetailsWithCustomerAndType(vehicle.vehicle_id);
 
   let parkingFee = 0;
   if (activeSession) {
@@ -639,6 +637,11 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
   }
 
   const REISSUE_FEE = await lostCardRepository.getCardReissueFee(report?.vehicle_id, buildingId);
+  try {
+    await lostCardRepository.updateLostReport(reportId, { reissue_fee: REISSUE_FEE });
+  } catch (snapErr) {
+    console.error('[reissueCard] Lỗi cập nhật reissue_fee snapshot:', snapErr.message);
+  }
   const orderCode = `RI${Date.now()}`;
 
   const savedPayload = {
@@ -649,24 +652,16 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
     performedBy
   };
 
-  const { data: paymentData, error: paymentErr } = await supabase
-    .from('payment')
-    .insert({
-      amount: REISSUE_FEE,
-      payment_type: 'Phí cấp lại thẻ',
-      status: 'Chờ thanh toán',
-      order_code: orderCode,
-      payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
-      note: savedPayload,
-      payment_time: new Date().toISOString(),
-      created_by: performedBy
-    })
-    .select('payment_id')
-    .single();
-
-  if (paymentErr) {
-    throw new Error(`Không thể tạo phiếu thu phí cấp lại thẻ: ${paymentErr.message}`);
-  }
+  const paymentData = await lostCardRepository.insertPayment({
+    amount: REISSUE_FEE,
+    payment_type: 'Phí cấp lại thẻ',
+    status: 'Chờ thanh toán',
+    order_code: orderCode,
+    payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
+    note: savedPayload,
+    payment_time: new Date().toISOString(),
+    created_by: performedBy
+  });
 
   let payUrl = null;
   if (paymentMethod === 'vnpay') {
@@ -699,13 +694,7 @@ export const reissueCard = async ({ cardId, newCode, reportId, performedBy, ipAd
  * Xử lý cấp lại thẻ tháng thành công sau khi xác nhận thanh toán
  */
 export const processReissueSuccess = async (orderCode) => {
-  const { data: payment, error: paymentErr } = await supabase
-    .from('payment')
-    .select('*')
-    .eq('order_code', orderCode)
-    .single();
-
-  if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch: " + orderCode);
+  const payment = await lostCardRepository.findPaymentByOrderCode(orderCode);
   if (payment.status !== 'Đã thanh toán') throw new Error("Giao dịch chưa được xác nhận thanh toán.");
 
   // note là jsonb — Supabase trả về object trực tiếp, không cần JSON.parse()
@@ -757,14 +746,7 @@ export const processReissueSuccess = async (orderCode) => {
   let plateForAudit = null;
   let customerNameForAudit = null;
   if (report.vehicle_id) {
-    const { data: vWithCust } = await supabase
-      .from('vehicle')
-      .select(`
-        plate_number,
-        customer ( full_name )
-      `)
-      .eq('vehicle_id', report.vehicle_id)
-      .maybeSingle();
+    const vWithCust = await lostCardRepository.findVehiclePlateAndCustomer(report.vehicle_id);
 
     if (vWithCust) {
       plateForAudit = vWithCust.plate_number;
@@ -785,7 +767,10 @@ export const processReissueSuccess = async (orderCode) => {
     performed_by: performedBy
   });
 
-  await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
+  await lostCardRepository.updateLostReport(reportId, {
+    status: 'Đã xong',
+    reissue_fee: Number(payment.amount)
+  });
 
   return { success: true, updatedCard };
 };
@@ -794,25 +779,11 @@ export const processReissueSuccess = async (orderCode) => {
  * Cashier xác nhận thu tiền mặt cho giao dịch cấp lại thẻ tháng
  */
 export const confirmReissueCash = async (orderCode) => {
-  const { data: payment, error: paymentErr } = await supabase
-    .from('payment')
-    .select('*')
-    .eq('order_code', orderCode)
-    .single();
-
-  if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch.");
+  const payment = await lostCardRepository.findPaymentByOrderCode(orderCode);
   if (payment.payment_type !== 'Phí cấp lại thẻ') throw new Error("Giao dịch không phải phí cấp lại thẻ.");
   if (payment.status !== 'Chờ thanh toán') throw new Error("Giao dịch đã được xử lý trước đó.");
 
-  const { error: updateErr } = await supabase
-    .from('payment')
-    .update({
-      status: 'Đã thanh toán',
-      paid_at: new Date().toISOString()
-    })
-    .eq('order_code', orderCode);
-
-  if (updateErr) throw new Error("Không thể cập nhật trạng thái thanh toán.");
+  await lostCardRepository.updatePaymentStatus(orderCode, 'Đã thanh toán', new Date().toISOString());
 
   return await processReissueSuccess(orderCode);
 };
@@ -865,13 +836,7 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
   // 1. Tìm phiên gửi xe đang gửi xe hoặc gần nhất của xe này
   let session = await lostCardRepository.findActiveParkingSession(report.vehicle_id);
   if (!session) {
-    const { data: latestSession } = await supabase
-      .from('parking_sessions')
-      .select('*')
-      .eq('vehicle_id', report.vehicle_id)
-      .order('entry_time', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const latestSession = await lostCardRepository.findLatestSessionByVehicle(report.vehicle_id);
     session = latestSession;
   }
 
@@ -883,6 +848,11 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
   const feeResult = await calculateExitFee({ session, skipLostCheck: true });
   const parkingFee = feeResult.estimated_fee || 0;
   const lostCardFee = await lostCardRepository.getCardReissueFee(report?.vehicle_id, buildingId);
+  try {
+    await lostCardRepository.updateLostReport(reportId, { reissue_fee: lostCardFee });
+  } catch (snapErr) {
+    console.error('[initiateLostTurnCardPayment] Lỗi cập nhật reissue_fee snapshot:', snapErr.message);
+  }
   const totalAmount = parkingFee + lostCardFee;
 
   const orderCode = `LTC${Date.now()}`;
@@ -896,25 +866,17 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
     performedBy
   };
 
-  const { data: paymentData, error: paymentErr } = await supabase
-    .from('payment')
-    .insert({
-      amount: totalAmount,
-      payment_type: 'Phí mất thẻ lượt',
-      status: 'Chờ thanh toán',
-      order_code: orderCode,
-      payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
-      session_id: session.session_id,
-      note: savedPayload,
-      payment_time: new Date().toISOString(),
-      created_by: performedBy
-    })
-    .select('payment_id')
-    .single();
-
-  if (paymentErr) {
-    throw new Error(`Không thể tạo phiếu thu phí mất thẻ lượt: ${paymentErr.message}`);
-  }
+  const paymentData = await lostCardRepository.insertPayment({
+    amount: totalAmount,
+    payment_type: 'Phí mất thẻ lượt',
+    status: 'Chờ thanh toán',
+    order_code: orderCode,
+    payment_method: paymentMethod === 'cash' ? 'Tiền mặt' : 'VNPay',
+    session_id: session.session_id,
+    note: savedPayload,
+    payment_time: new Date().toISOString(),
+    created_by: performedBy
+  });
 
   let payUrl = null;
   if (paymentMethod === 'vnpay') {
@@ -948,13 +910,7 @@ export const initiateLostTurnCardPayment = async ({ reportId, paymentMethod = 'v
  * Xử lý thành công sau khi xác nhận thanh toán phí mất thẻ lượt
  */
 export const processLostTurnCardPaymentSuccess = async (orderCode) => {
-  const { data: payment, error: paymentErr } = await supabase
-    .from('payment')
-    .select('*')
-    .eq('order_code', orderCode)
-    .single();
-
-  if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch: " + orderCode);
+  const payment = await lostCardRepository.findPaymentByOrderCode(orderCode);
   if (payment.status !== 'Đã thanh toán') throw new Error("Giao dịch chưa được xác nhận thanh toán.");
 
   // note là jsonb — Supabase trả về object trực tiếp, không cần JSON.parse()
@@ -997,8 +953,13 @@ export const processLostTurnCardPaymentSuccess = async (orderCode) => {
     performed_by: performedBy
   });
 
+  const lostCardFee = payload.lostCardFee ?? (payload.totalAmount && payload.parkingFee != null ? payload.totalAmount - payload.parkingFee : null);
+
   // Cập nhật trạng thái report → 'Đã xong'
-  await lostCardRepository.updateLostReport(reportId, { status: 'Đã xong' });
+  await lostCardRepository.updateLostReport(reportId, {
+    status: 'Đã xong',
+    ...(lostCardFee != null ? { reissue_fee: Number(lostCardFee) } : {})
+  });
 
   return { success: true };
 };
@@ -1007,25 +968,11 @@ export const processLostTurnCardPaymentSuccess = async (orderCode) => {
  * Cashier xác nhận thu tiền mặt cho phí mất thẻ lượt
  */
 export const confirmLostTurnCardCash = async (orderCode) => {
-  const { data: payment, error: paymentErr } = await supabase
-    .from('payment')
-    .select('*')
-    .eq('order_code', orderCode)
-    .single();
-
-  if (paymentErr || !payment) throw new Error("Không tìm thấy giao dịch.");
+  const payment = await lostCardRepository.findPaymentByOrderCode(orderCode);
   if (payment.payment_type !== 'Phí mất thẻ lượt') throw new Error("Giao dịch không phải phí mất thẻ lượt.");
   if (payment.status !== 'Chờ thanh toán') throw new Error("Giao dịch đã được xử lý trước đó.");
 
-  const { error: updateErr } = await supabase
-    .from('payment')
-    .update({
-      status: 'Đã thanh toán',
-      paid_at: new Date().toISOString()
-    })
-    .eq('order_code', orderCode);
-
-  if (updateErr) throw new Error("Không thể cập nhật trạng thái thanh toán.");
+  await lostCardRepository.updatePaymentStatus(orderCode, 'Đã thanh toán', new Date().toISOString());
 
   return await processLostTurnCardPaymentSuccess(orderCode);
 };
