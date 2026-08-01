@@ -1,5 +1,4 @@
 import * as priceRepository from "../repositories/priceRepository.js";
-import { config } from "../config/config.js";
 
 const getVehicleIcon = (name) => {
     const lower = (name || "").toLowerCase();
@@ -116,7 +115,7 @@ export const getPricesForManager = async (userId) => {
         buildingId,
         buildingName,
         priceTableId,
-        cardReissueFee: priceTable?.card_reissue_fee != null ? Number(priceTable.card_reissue_fee) : config.defaultCardReissueFee,
+        cardReissueFee: priceTable?.card_reissue_fee != null ? Number(priceTable.card_reissue_fee) : 0,
         sessionPrices,
         monthlyPrices,
     };

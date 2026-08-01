@@ -464,13 +464,13 @@ export const getCardReissueFee = async (vehicleId = null, buildingId = null) => 
     const { data, error } = await query.limit(1).maybeSingle();
 
     if (error || !data || data.card_reissue_fee == null) {
-      return config.defaultCardReissueFee;
+      return 0;
     }
 
-    return Number(data.card_reissue_fee) || config.defaultCardReissueFee;
+    return Number(data.card_reissue_fee) || 0;
   } catch (err) {
-    console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback config:', err.message);
-    return config.defaultCardReissueFee;
+    console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback 0:', err.message);
+    return 0;
   }
 };
 

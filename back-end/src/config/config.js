@@ -6,22 +6,19 @@
 
 export const config = {
   // Frontend URL
-  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+  frontendUrl: process.env.FRONTEND_URL,
 
   // VNPT eKYC
-  vnptDomain: process.env.VNPT_DOMAIN || "https://api.idg.vnpt.vn",
+  vnptDomain: process.env.VNPT_DOMAIN,
 
   // VNPAY
-  vnpayHost: process.env.VNPAY_HOST || "https://sandbox.vnpayment.vn",
-
-  // Phí dịch vụ mặc định
-  defaultCardReissueFee: Number(process.env.DEFAULT_CARD_REISSUE_FEE) || 50000,
+  vnpayHost: process.env.VNPAY_HOST,
 
   // Giới hạn nghiệp vụ
-  maxMonthCards: Number(process.env.MAX_MONTH_CARDS) || 50,
-  maxLoginFailures: Number(process.env.MAX_LOGIN_FAILURES) || 3,
-  paymentTimeoutMinutes: Number(process.env.PAYMENT_TIMEOUT_MINUTES) || 15,
-  contractExpireDays: Number(process.env.CONTRACT_EXPIRE_DAYS) || 7,
+  maxMonthCards: Number(process.env.MAX_MONTH_CARDS),
+  maxLoginFailures: Number(process.env.MAX_LOGIN_FAILURES),
+  paymentTimeoutMinutes: Number(process.env.PAYMENT_TIMEOUT_MINUTES),
+  contractExpireDays: Number(process.env.CONTRACT_EXPIRE_DAYS),
 };
 
 export default config;

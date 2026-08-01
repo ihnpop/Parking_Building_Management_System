@@ -1004,7 +1004,7 @@ export const getMonthCardLogs = async (buildingId = null) => {
 
     let amountVal = item.amount ? Number(item.amount) : 0;
     if (amountVal === 0 && item.action === 'Thẻ đã cấp lại') {
-      amountVal = config.defaultCardReissueFee;
+      amountVal = 0;
     }
     const amount = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountVal).replace('₫', 'đ');
     const status = "Thành công";

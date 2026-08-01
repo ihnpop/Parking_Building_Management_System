@@ -1,5 +1,4 @@
 import supabase from "../config/supabaseClient.js";
-import { config } from "../config/config.js";
 
 /**
  * Lấy thông tin profile kèm tòa nhà của user
@@ -68,7 +67,7 @@ export const getOrCreateActivePriceTable = async (parkingId, buildingName = "") 
             name: tableName,
             description: `Bảng giá áp dụng cho ${buildingName}`,
             status: "Hoạt động",
-            card_reissue_fee: config.defaultCardReissueFee,
+            card_reissue_fee: 0,
         })
         .select()
         .single();
