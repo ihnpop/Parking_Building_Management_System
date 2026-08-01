@@ -73,7 +73,7 @@ export default function DashboardView() {
     const userInitials = (user?.email || 'A').charAt(0).toUpperCase();
 
     const MANAGER_ALLOWED_VIEWS = ['manager-dashboard', 'card-management', 'adjust-prices', 'log-management'];
-    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic'];
+    const ADMIN_ALLOWED_VIEWS = ['user-management', 'dashboard', 'revenue-traffic', 'log-management'];
 
     // Trả về tab đầu tiên trên Sidebar của từng vai trò
     const getDefaultViewForRole = (r) => {
@@ -1402,7 +1402,7 @@ export default function DashboardView() {
                                 <button
                                     type="button"
                                     className="db-view-all-btn"
-                                    onClick={() => setCurrentView('log-management')}
+                                    onClick={() => handleLogTabClick('Quẹt thẻ')}
                                 >
                                     Xem tất cả nhật ký
                                 </button>
