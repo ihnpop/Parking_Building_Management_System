@@ -83,3 +83,94 @@ export const updateContract = async (contractId, updates) => {
   if (!data) throw new Error(`Không tìm thấy hợp đồng với ID: ${contractId}`);
   return data;
 };
+
+/**
+ * Lấy chi tiết thông tin đăng ký để phục vụ tạo hợp đồng
+ * @param {string} registrationId
+ * @returns {Promise<object>}
+ */
+export const getRegistrationDetails = async (registrationId) => {
+  const { data, error } = await supabase
+    .from('card_registrations')
+    .select(`
+      registration_id,
+      status,
+      created_at,
+      card_id,
+      vehicle_id,
+      vehicle (
+        plate_number,
+        vehicle_type (
+          name
+        ),
+        customer (
+          customer_id,
+          full_name,
+          phone,
+          email
+        )
+      ),
+      card (
+        code,
+        type,
+        expired_date
+      )
+    `)
+    .eq('registration_id', registrationId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Không tìm thấy thông tin đăng ký thẻ.");
+  return data;
+};
+
+/**
+ * Lấy chi tiết thẻ phục vụ hiển thị hợp đồng
+ * @param {string} cardId
+ * @returns {Promise<object>}
+ */
+export const getCardDetailsForContract = async (cardId) => {
+  const { data, error } = await supabase
+    .from('card')
+    .select(`
+      card_id,
+      code,
+      type,
+      expired_date,
+      status,
+      created_at,
+      card_registrations (
+        registration_id,
+        status,
+        created_at,
+        vehicle (
+          vehicle_id,
+          plate_number,
+          brand,
+          color,
+          customer (
+            customer_id,
+            full_name,
+            phone,
+            email
+          ),
+          vehicle_type (
+            vehicle_type_id,
+            name
+          ),
+          vehicle_package (
+            vehicle_package_id,
+            start_date,
+            end_date,
+            status,
+            package_id
+          )
+        )
+      )
+    `)
+    .eq('card_id', cardId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data;
+};

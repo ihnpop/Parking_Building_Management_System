@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../../context/AuthContext';
+import { useState } from 'react';
 
 // ─── Mock Data Giữ Nguyên Từ Bạn Của Bạn ───────────────────────────
 const barChartData = [

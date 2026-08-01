@@ -463,11 +463,13 @@ export const getCardReissueFee = async (vehicleId = null, buildingId = null) => 
 
     const { data, error } = await query.limit(1);
 
-    if (error || !data || data.card_reissue_fee == null) {
+    // query.limit(1) trả về mảng, không phải object đơn
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row || row.card_reissue_fee == null) {
       return 0;
     }
 
-    return Number(data.card_reissue_fee) || 0;
+    return Number(row.card_reissue_fee) || 0;
   } catch (err) {
     console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback 0:', err.message);
     return 0;

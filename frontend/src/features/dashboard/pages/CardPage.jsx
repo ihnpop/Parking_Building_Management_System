@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getCards, createCard, deleteCard, updateCard } from '../../../service/cardApi';
+import { getCards, deleteCard } from '../../../service/cardApi';
 import { useAuth } from '../../../context/AuthContext';
 import { useNotification } from '../../../context/NotificationContext';
 import CreateCardPageDialog from '../components/CreateCardPageDialog';
@@ -13,8 +12,7 @@ const ITEMS_PER_PAGE = 10;
 // Main Page
 // ─────────────────────────────────────────────
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
-    const navigate = useNavigate();
-    const { userRole, user } = useAuth();
+    const { user } = useAuth();
     const { showToast, showConfirm } = useNotification();
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
