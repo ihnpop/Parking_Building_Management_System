@@ -142,6 +142,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
     // Dropdown state for profile
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
+    const draftMapRef = useRef({});
 
     // Lấy tên hiển thị: ưu tiên full_name → name → email
     const currentUserName = user?.user_metadata?.full_name
@@ -366,11 +367,12 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             // Khóa thẻ ngay lập tức và tạo bản ghi báo mất trong DB khi chuyển sang Bước 2
             const createRes = await createLostCard({
                 plate_number: checkPlateInput.trim(),
-                description: 'Khởi tạo báo mất thẻ'
+                description: 'Báo mất thẻ'
             });
 
             const rawReportId = createRes.lost_report_id || createRes.data?.lost_report_id || createRes.id;
             setCurrentDraftId(rawReportId);
+            draftMapRef.current[rawReportId] = checkData;
 
             setWizardStep(2); // Chuyển sang Bước 2 khi thành công
             showToast(`Xác minh thành công [${checkData.cardType}] & Đã khóa thẻ trên hệ thống!`, 'success');
@@ -417,7 +419,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             if (!reportIdToUse && plate) {
                 const createRes = await createLostCard({
                     plate_number: plate,
-                    description: createLostReason || 'Khởi tạo báo mất thẻ'
+                    description: createLostReason || 'Báo mất thẻ'
                 });
                 reportIdToUse = createRes.lost_report_id || createRes.data?.lost_report_id || createRes.id;
                 setCurrentDraftId(reportIdToUse);
@@ -431,7 +433,11 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                 if (cccdPreviewUrl) updatePayload.id_card_image_url = cccdPreviewUrl;
 
                 if (Object.keys(updatePayload).length > 0) {
-                    await updateLostCard(reportIdToUse, updatePayload);
+                    try {
+                        await updateLostCard(reportIdToUse, updatePayload);
+                    } catch (updateErr) {
+                        console.warn('Bỏ qua lỗi cập nhật:', updateErr.message);
+                    }
                 }
 
                 if (wizardStep >= 3 && !cardCancelled) {
@@ -444,7 +450,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             }
 
             await fetchLostCards();
-            showToast('Đã lưu toàn bộ thông tin xử lý xuống Backend CSDL.', 'info');
+            if (reportIdToUse || plate) {
+                showToast('Đã đóng và lưu thông tin tạm thời.', 'info');
+            }
             setShowCreateModal(false);
             resetCreateModalState();
         } catch (err) {
@@ -491,19 +499,23 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
         setCavetPreviewUrl(row.vehicle_registration_image_url || null);
         setCurrentDraftId(reportId);
 
-        setCardCheckData({
-            exists: true,
-            active: true,
-            cardId: row.card_id,
-            cardCode: row.card_code || row.cardNo || '---',
-            cardType: row.card_type || (cat === 'month' ? 'Thẻ tháng' : 'Thẻ lượt'),
-            vehicleType: row.vehicle_type || '---',
-            ownerName: row.customer_name || row.owner || (cat === 'month' ? 'Chủ thẻ tháng' : 'Khách vãng lai'),
-            package: cat === 'month' ? 'Gói vé tháng' : 'Vé gửi theo lượt/ca',
-            parkingFee: cat === 'casual' ? actualParkingFee : 0,
-            lostFee: row.reissue_fee || 0,
-            totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee || 0) : (row.reissue_fee || 0)
-        });
+        if (draftMapRef.current[reportId]) {
+            setCardCheckData(draftMapRef.current[reportId]);
+        } else {
+            setCardCheckData({
+                exists: true,
+                active: true,
+                cardId: row.card_id,
+                cardCode: row.card_code || row.cardNo || '---',
+                cardType: row.card_type || (cat === 'month' ? 'Thẻ tháng' : 'Thẻ lượt'),
+                vehicleType: row.vehicle_type || '---',
+                ownerName: row.customer_name || row.owner || (cat === 'month' ? 'Chủ thẻ tháng' : 'Khách vãng lai'),
+                package: cat === 'month' ? 'Gói vé tháng' : 'Vé gửi theo lượt/ca',
+                parkingFee: cat === 'casual' ? actualParkingFee : 0,
+                lostFee: row.reissue_fee || 0,
+                totalFee: cat === 'casual' ? actualParkingFee + (row.reissue_fee || 0) : (row.reissue_fee || 0)
+            });
+        }
 
         // Dùng _backendStatus (status gốc từ Backend) để xác định đúng bước resume
         let stepToResume = 1;
@@ -669,7 +681,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
             }
             try {
                 setActionLoading(true);
-                const createRes = await createLostCard({ plate_number: plate, description: createLostReason || 'Khởi tạo báo mất thẻ' });
+                const createRes = await createLostCard({ plate_number: plate, description: createLostReason || 'Báo mất thẻ' });
                 reportIdToUse = createRes.lost_report_id || createRes.data?.lost_report_id || createRes.id;
                 setCurrentDraftId(reportIdToUse);
             } catch (err) {
@@ -711,17 +723,30 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
 
             // Nếu là thẻ lượt: khởi tạo và xác nhận thu tiền mặt khi bấm nút
             if (createCardCategory === 'casual') {
-                const payRes = await initiateLostTurnCardPayment({
-                    reportId: currentDraftId,
-                    paymentMethod: createPaymentMethod
-                });
+                let orderCodeToConfirm = null;
+                try {
+                    const payRes = await initiateLostTurnCardPayment({
+                        reportId: currentDraftId,
+                        paymentMethod: createPaymentMethod
+                    });
 
-                if (createPaymentMethod === 'cash' && payRes?.order_code) {
-                    // CHỈ KHỞI TẠO PHIẾU THU, KHÔNG GỌI confirmLostTurnCardCash ĐỂ KHÔNG ĐÓNG PHIÊN GỬI XE.
-                    // Phiên gửi xe sẽ được đóng tại cổng ra (ExitPaymentPanel) khi Staff bấm Mở barie.
-                } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.location.href = payRes.payUrl;
-                    return;
+                    if (createPaymentMethod === 'cash' && payRes?.order_code) {
+                        orderCodeToConfirm = payRes.order_code;
+                    } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
+                        window.location.href = payRes.payUrl;
+                        return;
+                    }
+                } catch (payErr) {
+                    const existingOrderCode = payErr.existingOrderCode || payErr.response?.data?.existingOrderCode;
+                    if (createPaymentMethod === 'cash' && existingOrderCode) {
+                        orderCodeToConfirm = existingOrderCode;
+                    } else {
+                        throw payErr;
+                    }
+                }
+
+                if (createPaymentMethod === 'cash' && orderCodeToConfirm) {
+                    await confirmLostTurnCardCash(orderCodeToConfirm);
                 }
             } else if (createCardCategory === 'month') {
                 let targetCode = reissueRfidInput;
@@ -731,18 +756,32 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                     return;
                 }
 
-                const payRes = await reissueCard({
-                    cardId: cardCheckData?.cardId,
-                    newCode: targetCode.trim(),
-                    reportId: currentDraftId,
-                    paymentMethod: createPaymentMethod
-                });
+                let orderCodeToConfirm = null;
+                try {
+                    const payRes = await reissueCard({
+                        cardId: cardCheckData?.cardId,
+                        newCode: targetCode.trim(),
+                        reportId: currentDraftId,
+                        paymentMethod: createPaymentMethod
+                    });
 
-                if (createPaymentMethod === 'cash' && payRes?.order_code) {
-                    await confirmReissueCash(payRes.order_code);
-                } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
-                    window.location.href = payRes.payUrl;
-                    return;
+                    if (createPaymentMethod === 'cash' && payRes?.order_code) {
+                        orderCodeToConfirm = payRes.order_code;
+                    } else if (createPaymentMethod === 'vnpay' && payRes?.payUrl) {
+                        window.location.href = payRes.payUrl;
+                        return;
+                    }
+                } catch (payErr) {
+                    const existingOrderCode = payErr.existingOrderCode || payErr.response?.data?.existingOrderCode;
+                    if (createPaymentMethod === 'cash' && existingOrderCode) {
+                        orderCodeToConfirm = existingOrderCode;
+                    } else {
+                        throw payErr;
+                    }
+                }
+
+                if (createPaymentMethod === 'cash' && orderCodeToConfirm) {
+                    await confirmReissueCash(orderCodeToConfirm);
                 }
             }
 
@@ -1545,9 +1584,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 {editingCard.status === 'Đang chờ' && (
                                     <div className="lost-form-group">
                                         <label>Hành động</label>
-                                        <p className="lost-action-hint">
-                                            Report đang chờ - bấm "Tiếp nhận xử lý" để bắt đầu xác minh, hoặc "Hủy report" nếu tạo nhầm.
-                                        </p>
                                         <input
                                             type="text"
                                             className="lost-action-note-input"
@@ -1580,8 +1616,8 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                     <div className="lost-form-group">
                                         <p style={{ fontSize: '13px', color: '#64748b', margin: 0, padding: '10px 12px', background: '#f1f5f9', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                                             {(editingCard.status || '').includes('nhầm') || (editingCard.status || '').includes('Hủy')
-                                                ? 'Hồ sơ báo mất này đã bị Hủy (tạo nhầm), không thể tiếp tục xử lý hoặc chỉnh sửa.'
-                                                : 'Report này đã được đóng, không thể thao tác thêm.'}
+                                                ? 'Đã hủy (tạo nhầm)'
+                                                : 'Đã đóng'}
                                         </p>
                                     </div>
                                 )}
@@ -1626,7 +1662,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                             !showReissueForm ? (
                                                 <div>
                                                     <p style={{ fontSize: '13px', color: '#334155', marginBottom: '10px' }}>
-                                                        Thẻ tháng này đã bị hủy vĩnh viễn. Bạn có muốn tiến hành cấp lại thẻ mới không?
+                                                        Thẻ đã hủy. Tiến hành cấp lại thẻ mới?
                                                     </p>
                                                     <button
                                                         type="button"
@@ -1912,7 +1948,7 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => { setShowCreateModal(false); resetCreateModalState(); }}
+                                        onClick={handleProcessLater}
                                         style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                     >
                                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
@@ -2054,9 +2090,6 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 {/* ── BƯỚC 3: TIẾP NHẬN ĐƠN & HỦY THẺ BẢO MẬT ── */}
                                 {wizardStep === 3 && (
                                     <div>
-                                        <div style={{ fontSize: '13px', color: '#0f172a', marginBottom: '16px' }}>
-                                            Tiến hành <strong>Hủy thẻ</strong> (đổi trạng thái sang Đã xóa). Bản ghi thẻ và phiên gửi xe vẫn được giữ nguyên.
-                                        </div>
                                         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px', marginBottom: '12px', fontSize: '13px' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                                                 <div><span style={{ color: '#64748b' }}>Biển số xe:</span> <strong>{checkPlateInput.toUpperCase()}</strong></div>
@@ -2170,9 +2203,9 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '24px', textAlign: 'center', fontSize: '14px', color: '#0f172a' }}>
                                             <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#10b981', display: 'block', marginBottom: '8px' }}>check_circle</span>
                                             {createCardCategory === 'casual' ? (
-                                                <div>Đã ghi nhận thanh toán. Phiên gửi xe vẫn đang mở. Xe sẽ xuất bến khi nhập biển số <strong style={{ color: '#0284c7' }}>{checkPlateInput.toUpperCase()}</strong> tại cổng ra.</div>
+                                                <div>Đã thanh toán. Xe sẽ xuất bến khi nhập biển <strong style={{ color: '#0284c7' }}>{checkPlateInput.toUpperCase()}</strong>.</div>
                                             ) : (
-                                                <div>Hoàn tất báo mất và thanh toán. Vui lòng giao thẻ vật lý có mã <strong style={{ color: '#0284c7' }}>{reissueRfidInput}</strong> cho khách hàng.</div>
+                                                <div>Hoàn tất. Vui lòng giao thẻ <strong style={{ color: '#0284c7' }}>{reissueRfidInput}</strong> cho khách.</div>
                                             )}
                                         </div>
                                     </div>
@@ -2184,23 +2217,12 @@ export default function LostCardLogPage({ showBackButton = false, kpiTimeFilter,
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button
                                         type="button"
-                                        onClick={() => { setShowCreateModal(false); resetCreateModalState(); }}
+                                        onClick={handleProcessLater}
                                         style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: '500', cursor: 'pointer', fontSize: '13px' }}
                                         disabled={actionLoading}
                                     >
-                                        Hủy
+                                        Đóng
                                     </button>
-
-                                    {wizardStep >= 1 && wizardStep < 5 && (
-                                        <button
-                                            type="button"
-                                            onClick={handleProcessLater}
-                                            style={{ height: '36px', padding: '0 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontWeight: '500', cursor: 'pointer', fontSize: '13px' }}
-                                            disabled={actionLoading}
-                                        >
-                                            Xử lý sau
-                                        </button>
-                                    )}
                                 </div>
 
                                 <div>
