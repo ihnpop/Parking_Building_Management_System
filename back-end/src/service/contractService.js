@@ -1,45 +1,6 @@
-import supabase from "../config/supabaseClient.js";
 import * as contractRepository from "../repositories/contractRepository.js";
 import axios from "axios";
 import crypto from "crypto";
-
-/**
- * Lấy chi tiết thông tin đăng ký để phục vụ tạo hợp đồng
- */
-const getRegistrationDetails = async (registrationId) => {
-  const { data, error } = await supabase
-    .from('card_registrations')
-    .select(`
-      registration_id,
-      status,
-      created_at,
-      card_id,
-      vehicle_id,
-      vehicle (
-        plate_number,
-        vehicle_type (
-          name
-        ),
-        customer (
-          customer_id,
-          full_name,
-          phone,
-          email
-        )
-      ),
-      card (
-        code,
-        type,
-        expired_date
-      )
-    `)
-    .eq('registration_id', registrationId)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Không tìm thấy thông tin đăng ký thẻ.");
-  return data;
-};
 
 /**
  * Gửi email hợp đồng qua Resend API
@@ -125,8 +86,8 @@ const sendEmailViaResend = async (toEmail, customerName, contractNo, signLink) =
  * Tạo & Gửi Email ký hợp đồng cho khách hàng
  */
 export const sendContract = async (registrationId) => {
-  // 1. Lấy chi tiết thông tin đăng ký
-  const reg = await getRegistrationDetails(registrationId);
+  // 1. Lấy chi tiết thông tin đăng ký từ Repository
+  const reg = await contractRepository.getRegistrationDetails(registrationId);
   const customer = reg.vehicle?.customer;
 
   if (!customer || !customer.email) {
@@ -191,15 +152,13 @@ export const getContractByToken = async (token) => {
     throw new Error("Mã xác thực hợp đồng không tồn tại.");
   }
 
-  // Lấy chi tiết thẻ từ monthCardService
   const cardId = contract.card_registrations?.card_id;
   if (!cardId) {
     throw new Error("Không tìm thấy thông tin thẻ liên kết với hợp đồng.");
   }
 
-  // Import động để tránh vòng lặp phụ thuộc (circular dependency)
-  const monthCardService = await import("./monthCardService.js");
-  const cardDetails = await monthCardService.getCardDetailsForContract(cardId);
+  // Lấy chi tiết thẻ trực tiếp từ contractRepository
+  const cardDetails = await contractRepository.getCardDetailsForContract(cardId);
 
   return {
     contract_id: contract.contract_id,

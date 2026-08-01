@@ -52,6 +52,7 @@ export const uploadImageToVNPT = async (base64String, title = 'cccd_image') => {
         httpsAgent,
         headers: {
           ...form.getHeaders(),
+          'mac-address': 'TEST1',
           'Token-id': process.env.VNPT_TOKEN_ID,
           'Token-key': process.env.VNPT_TOKEN_KEY,
           'Authorization': `Bearer ${getAccessToken()}`
@@ -66,7 +67,7 @@ export const uploadImageToVNPT = async (base64String, title = 'cccd_image') => {
 
     throw new Error(response.data?.message || JSON.stringify(response.data));
   } catch (err) {
-    console.error(`Lỗi upload ảnh lên VNPT (${title}):`, err.message);
+    console.error(`Lỗi upload ảnh lên VNPT (${title}):`, err.response?.data || err.message);
     const vnptData = err.response?.data;
     const errorMsg = vnptData?.message || vnptData?.errors?.[0] || err.message || 'Lỗi upload ảnh lên máy chủ VNPT';
     throw new Error(`VNPT upload thất bại (${title}): ${errorMsg}`);
@@ -114,7 +115,7 @@ export const checkDocumentLiveness = async (imageHash) => {
     };
   } catch (err) {
     // Bắt lỗi HTTP status code ngoài 2xx từ Axios (ví dụ 400 Bad Request của VNPT)
-    console.error("Lỗi gọi VNPT Card Liveness API:", err.message);
+    console.error("Lỗi gọi VNPT Card Liveness API:", err.response?.data || err.message);
     const vnptData = err.response?.data;
     const errorMsg = vnptData?.errors?.[0] || vnptData?.message || err.message || 'Lỗi kết nối máy chủ VNPT';
     return {
@@ -159,7 +160,7 @@ export const ocrIdentityCard = async (frontHash, backHash) => {
       response.data?.message || response.data?.errors?.[0] || 'Unknown'
     );
   } catch (err) {
-    console.error("Lỗi gọi VNPT OCR API:", err.message);
+    console.error("Lỗi gọi VNPT OCR API:", err.response?.data || err.message);
     const vnptData = err.response?.data;
     const errorMsg = vnptData?.message || vnptData?.errors?.[0] || err.message || 'Lỗi bóc tách thông tin CCCD';
     throw new Error(`VNPT OCR thất bại: ${errorMsg}`);
