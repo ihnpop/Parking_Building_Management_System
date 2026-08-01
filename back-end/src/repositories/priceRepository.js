@@ -67,7 +67,7 @@ export const getOrCreateActivePriceTable = async (parkingId, buildingName = "") 
             name: tableName,
             description: `Bảng giá áp dụng cho ${buildingName}`,
             status: "Hoạt động",
-            card_reissue_fee: 50000,
+            card_reissue_fee: 0,
         })
         .select()
         .single();

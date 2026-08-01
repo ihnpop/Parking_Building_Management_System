@@ -68,7 +68,9 @@ export const getPackages = async (req, res) => {
  */
 export const getRenewPackages = async (req, res) => {
   try {
-    return res.status(200).json(monthCardService.RENEW_PACKAGES);
+    const userId = await getUserIdFromReq(req);
+    const packages = await monthCardService.getRenewPackages(userId);
+    return res.status(200).json(packages);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

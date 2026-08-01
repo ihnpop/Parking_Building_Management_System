@@ -2,6 +2,7 @@ import * as ekycService from './ekycService.js';
 import * as paymentRepository from '../repositories/paymentRepository.js';
 import * as vnpayService from './vnpayService.js';
 import * as repo from '../repositories/parkingRegistrationRepository.js';
+import { config } from '../config/config.js';
 
 // Ánh xạ mã nội bộ → nhãn tiếng Việt theo ràng buộc DB (payment_method_check)
 // DB constraint: CHECK (payment_method IN ('Tiền mặt', 'VNPay'))
@@ -20,28 +21,36 @@ async function resolvePackageInfo(package_id) {
         const pIdx = parseInt(parts[2], 10);
         const durations = [1, 3, 6];
         const durationMonth = durations[pIdx] || 1;
-        let price = 0;
-        if (durationMonth === 1) price = 300000;
-        else if (durationMonth === 3) price = 850000;
-        else if (durationMonth === 6) price = 1650000;
-        else price = durationMonth * 300000;
-        return { durationMonth, price };
+        // Thử tìm gói cước từ DB theo duration_month
+        try {
+            const dbPkgs = await repo.findPackageByDuration ? repo.findPackageByDuration(durationMonth) : null;
+            if (dbPkgs && dbPkgs.price) {
+                return { durationMonth, price: Number(dbPkgs.price) };
+            }
+        } catch (e) { /* ignore */ }
+        return { durationMonth, price: 0 };
     }
     const pkg = await repo.findPackageById(package_id);
-    return { durationMonth: pkg.duration_month, price: Number(pkg.price) || 0 };
+    return { durationMonth: pkg?.duration_month || 1, price: Number(pkg?.price) || 0 };
 }
 
-// Lấy thông tin gói cho initiateRegistration (static dùng giá khác)
+// Lấy thông tin gói cho initiateRegistration
 async function resolvePackageInfoForInitiate(package_id) {
     if (String(package_id).startsWith('static-')) {
         const parts = package_id.split('-');
         const pIdx = parseInt(parts[2], 10);
         const durations = [1, 3, 6];
         const durationMonth = durations[pIdx] || 1;
-        return { durationMonth, packagePrice: durationMonth * 100000 };
+        try {
+            const pkgInfo = await resolvePackageInfo(package_id);
+            if (pkgInfo.price > 0) {
+                return { durationMonth, packagePrice: pkgInfo.price };
+            }
+        } catch (e) { /* ignore */ }
+        return { durationMonth, packagePrice: 0 };
     }
     const pkg = await repo.findPackageById(package_id);
-    return { durationMonth: pkg.duration_month, packagePrice: Number(pkg.price) || 0 };
+    return { durationMonth: pkg?.duration_month || 1, packagePrice: Number(pkg?.price) || 0 };
 }
 
 class ParkingRegistrationService {
@@ -176,8 +185,8 @@ class ParkingRegistrationService {
             // Trường hợp 2: sinh mã thẻ tháng mới
             // Kiểm tra xem đã vượt quá 50 thẻ tháng chưa
             const count = await repo.countActiveMonthCards();
-            if (count >= 50) {
-                throw new Error("Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.");
+            if (count >= config.maxMonthCards) {
+                throw new Error(`Hệ thống đã đạt giới hạn tối đa ${config.maxMonthCards} thẻ tháng (full slot đăng ký). Không thể tạo thẻ mới.`);
             }
 
             // Tạo thẻ mới
@@ -359,8 +368,8 @@ class ParkingRegistrationService {
         if (existingCard && existingCard.status === 'Hoạt động') {
             throw new Error(`Mã thẻ RFID ${card_code} đã tồn tại và đang hoạt động trong hệ thống.`);
         }
-        if (!existingCard && count >= 50) {
-            throw new Error('Hệ thống đã đạt giới hạn tối đa 50 thẻ tháng.');
+        if (!existingCard && count >= config.maxMonthCards) {
+            throw new Error(`Hệ thống đã đạt giới hạn tối đa ${config.maxMonthCards} thẻ tháng.`);
         }
 
         // 3. Tính toán thời hạn của gói

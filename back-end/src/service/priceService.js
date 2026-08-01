@@ -53,24 +53,13 @@ export const getPricesForManager = async (userId) => {
     const sessionPrices = vehicleTypes.map((vt) => {
         const itemsForVt = rawPriceItems.filter((item) => item.vehicle_type_id === vt.vehicle_type_id);
 
-        // Map 3 dòng: min_hour 0->1 (firstHour), min_hour 1->8 (extraHour), min_hour >=8 (dayMax)
-        let firstHour = 5000;
-        let extraHour = 3000;
-        let dayMax = 30000;
-
-        if (vt.name.toLowerCase().includes("ô tô")) {
-            firstHour = 15000;
-            extraHour = 10000;
-            dayMax = 100000;
-        }
-
         const itemFirst = itemsForVt.find((i) => Number(i.min_hour) === 0);
         const itemExtra = itemsForVt.find((i) => Number(i.min_hour) > 0 && i.max_hour !== null);
         const itemMax = itemsForVt.find((i) => i.max_hour === null || Number(i.min_hour) >= 8);
 
-        if (itemFirst) firstHour = Number(itemFirst.price);
-        if (itemExtra) extraHour = Number(itemExtra.price);
-        if (itemMax) dayMax = Number(itemMax.price);
+        const firstHour = itemFirst ? Number(itemFirst.price) : 0;
+        const extraHour = itemExtra ? Number(itemExtra.price) : 0;
+        const dayMax = itemMax ? Number(itemMax.price) : 0;
 
         const formattedTimeSlots = itemsForVt.length > 0
             ? itemsForVt
@@ -95,32 +84,19 @@ export const getPricesForManager = async (userId) => {
         };
     });
 
-
     // 7. Format dữ liệu giá tháng (monthlyPrices)
     const monthlyPrices = vehicleTypes.map((vt) => {
         const pkgsForVt = rawMonthlyPackages.filter((pkg) => pkg.vehicle_type_id === vt.vehicle_type_id);
-
-        let price1Month = 200000;
-        let price3Month = 550000;
-        let price6Month = 1000000;
-        let price12Month = 1800000;
-
-        if (vt.name.toLowerCase().includes("ô tô")) {
-            price1Month = 800000;
-            price3Month = 2200000;
-            price6Month = 4000000;
-            price12Month = 7200000;
-        }
 
         const pkg1 = pkgsForVt.find((p) => Number(p.duration_month) === 1);
         const pkg3 = pkgsForVt.find((p) => Number(p.duration_month) === 3);
         const pkg6 = pkgsForVt.find((p) => Number(p.duration_month) === 6);
         const pkg12 = pkgsForVt.find((p) => Number(p.duration_month) === 12);
 
-        if (pkg1) price1Month = Number(pkg1.price);
-        if (pkg3) price3Month = Number(pkg3.price);
-        if (pkg6) price6Month = Number(pkg6.price);
-        if (pkg12) price12Month = Number(pkg12.price);
+        const price1Month = pkg1 ? Number(pkg1.price) : 0;
+        const price3Month = pkg3 ? Number(pkg3.price) : 0;
+        const price6Month = pkg6 ? Number(pkg6.price) : 0;
+        const price12Month = pkg12 ? Number(pkg12.price) : 0;
 
         return {
             id: vt.vehicle_type_id,
@@ -139,7 +115,7 @@ export const getPricesForManager = async (userId) => {
         buildingId,
         buildingName,
         priceTableId,
-        cardReissueFee: priceTable?.card_reissue_fee != null ? Number(priceTable.card_reissue_fee) : 50000,
+        cardReissueFee: priceTable?.card_reissue_fee != null ? Number(priceTable.card_reissue_fee) : 0,
         sessionPrices,
         monthlyPrices,
     };
