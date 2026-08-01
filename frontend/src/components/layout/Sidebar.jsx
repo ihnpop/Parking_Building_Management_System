@@ -1,20 +1,33 @@
+// Import useAuth hook để đọc thông tin đăng nhập (user, userRole, logout) từ AuthContext
 import { useAuth } from '../../context/AuthContext';
+// Import CSS riêng của Sidebar component
 import "./Sidebar.css";
 
+// Sidebar: component thanh menu bên trái, hiển thị các mục điều hướng tùy theo role
+// Props: activeTab (tab đang active), onTabChange (hàm xử lý đổi tab), isCollapsed (đã thu nhỏ chưa), setIsCollapsed (hàm toggle thu/mở)
 export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsCollapsed }) {
+    // Lấy thông tin user, role và hàm logout từ AuthContext
     const { user, userRole, logout } = useAuth();
+    // Chuyển role thành chữ hoa để so sánh nhất quán, null nếu chưa có role
     const role = userRole ? userRole.toUpperCase() : null;
+    // Lấy email user, dùng email demo nếu chưa đăng nhập
     const userEmail = user?.email || 'admin@parkflow.com';
 
+    // Chuẩn hóa email: lowercase và cắt khoảng trắng
     const email = userEmail.toLowerCase().trim();
+    // computedRole: role được xác định từ cả state lẫn email cứng (cho tài khoản test)
     let computedRole = role;
+    // Override role theo email cứng dành cho tài khoản demo/test
     if (email === 'admin@gmail.com') computedRole = 'ADMIN';
     else if (email === 'manager@gmail.com') computedRole = 'MANAGER';
     else if (email === 'staff@gmail.com') computedRole = 'STAFF';
 
+    // Boolean kiểm tra có được xem Bảng điều khiển (ADMIN hoặc MANAGER) không
     const canSeeDashboard = computedRole === 'ADMIN' || computedRole === 'MANAGER';
+    // Boolean kiểm tra có được quản lý người dùng (chỉ ADMIN) không
     const canSeeUserMgmt = computedRole === 'ADMIN';
 
+    // Hàm xử lý đăng xuất, bắt lỗi nếu có
     const handleLogout = async () => {
         try {
             await logout();
@@ -23,23 +36,28 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
         }
     };
 
+    // Hàm chuyển đổi role code sang tiêu đề tiếng Việt để hiển thị trên UI
     const getRoleLabel = (r) => {
         if (!r) return 'Nhân viên';
         switch (r.toUpperCase()) {
             case 'ADMIN': return 'Quản trị viên';
             case 'MANAGER': return 'Quản lý';
             case 'STAFF': return 'Nhân viên';
-            default: return r;
+            default: return r; // Nếu là role không xác định thì trả về nguyên bản
         }
     };
 
+    // Lấy chữ cái đầu của email làm avatar (viết hoa) để hiển thị trong khung tròn
     const userInitials = userEmail.charAt(0).toUpperCase();
 
     return (
+        // aside: element thanh sidebar, thêm class 'collapsed' khi đang thu nhỏ
         <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             {/* Khối Header Sidebar cấu hình theo chuẩn hiển thị Gemini */}
             <div className="brand">
+                {/* Vùng logo và icon xe — click vào khi đang thu nhỏ sẽ mở rộng lại sidebar */}
                 <div className="brand-logo-zone" onClick={() => isCollapsed && setIsCollapsed(false)}>
+                    {/* Icon xe ô tô từ Material Symbols */}
                     <div className="brand-icon">
                         <span className="material-symbols-outlined">directions_car</span>
                     </div>
@@ -50,8 +68,8 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             type="button"
                             className="sidebar-gemini-toggle-collapsed"
                             onClick={(e) => {
-                                e.stopPropagation();
-                                setIsCollapsed(false);
+                                e.stopPropagation(); // Ngăn sự kiện click lan ra brand-logo-zone
+                                setIsCollapsed(false); // Mở rộng sidebar
                             }}
                             title="Mở rộng"
                         >
@@ -60,8 +78,10 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                     )}
                 </div>
 
+                {/* Khi sidebar đang mở rộng: hiển thị tên thương hiệu và nút thu nhỏ */}
                 {!isCollapsed && (
                     <>
+                        {/* Nhóm văn bản tên hệ thống và phụ đề */}
                         <div className="brand-text-group">
                             <div className="brand-title">Quản lý Bãi xe</div>
                             <div className="brand-subtitle">Hệ thống quản trị</div>
@@ -72,8 +92,8 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                             type="button"
                             className="sidebar-gemini-toggle-expanded"
                             onClick={(e) => {
-                                e.stopPropagation();
-                                setIsCollapsed(true);
+                                e.stopPropagation(); // Ngăn sự kiện lan ra ngoài
+                                setIsCollapsed(true); // Thu nhỏ sidebar
                             }}
                             title="Thu nhỏ"
                         >
@@ -83,15 +103,18 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
                 )}
             </div>
 
+            {/* Danh sách menu điều hướng */}
             <nav className="menu">
                 {/* 1. Phân quyền (Chỉ Admin) */}
                 {computedRole === 'ADMIN' && (
                     <button
                         type="button"
+                        // Thêm class 'active' nếu tab 'user-management' đang được chọn
                         className={`menu-item ${activeTab === 'user-management' ? 'active' : ''}`}
-                        onClick={() => onTabChange('user-management')}
+                        onClick={() => onTabChange('user-management')} // Gọi callback đổi tab
                     >
                         <span className="material-symbols-outlined">manage_accounts</span>
+                        {/* Chỉ hiển thị text khi sidebar không thu nhỏ */}
                         {!isCollapsed && <span>Phân quyền</span>}
                     </button>
                 )}
@@ -159,21 +182,29 @@ export default function Sidebar({ activeTab, onTabChange, isCollapsed, setIsColl
 
             </nav>
 
+            {/* Footer sidebar: thông tin tài khoản và nút đăng xuất */}
             <div className="sidebar-footer">
+                {/* Card thông tin tài khoản đang đăng nhập */}
                 <div className="sidebar-account-card">
+                    {/* Avatar dạng vòng tròn hiển thị chữ cái đầu của email */}
                     <div className="account-avatar-circle">
                         {userInitials}
                     </div>
+                    {/* Chỉ hiện chi tiết email và role khi sidebar đang mở rộng */}
                     {!isCollapsed && (
                         <div className="account-info-details">
+                            {/* Email người dùng — title để hover xem đầy đủ khi bị cắt ngắn */}
                             <div className="account-info-email" title={userEmail}>{userEmail}</div>
+                            {/* Tên role tiếng Việt */}
                             <div className="account-info-role">{getRoleLabel(role)}</div>
                         </div>
                     )}
                 </div>
 
+                {/* Nút Đăng xuất */}
                 <button type="button" className="logout" onClick={handleLogout}>
                     <span className="material-symbols-outlined">logout</span>
+                    {/* Chỉ hiện text "Đăng xuất" khi sidebar đang mở rộng */}
                     {!isCollapsed && <span>Đăng xuất</span>}
                 </button>
             </div>

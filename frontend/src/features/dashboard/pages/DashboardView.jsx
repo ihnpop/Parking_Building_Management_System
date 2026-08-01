@@ -1,3 +1,25 @@
+/**
+ * DashboardView.jsx
+ * Component trung tam dieu phoi toan bo giao dien Dashboard.
+ *
+ * Chuc nang chinh:
+ *  - Quan ly currentView (tab dang hien thi) phu thuoc vao role.
+ *  - Role ADMIN: user-management | dashboard | revenue-traffic | log-management
+ *  - Role MANAGER: manager-dashboard | card-management | adjust-prices | log-management
+ *  - Role STAFF: chi co giao dien van hanh cong xe (xu ly trong DashboardShell)
+ *
+ * State quan trong:
+ *  - currentView: view dang hien thi, luu vao localStorage de giu qua reload.
+ *  - stats: cac KPI tong quan (luot xe, cho trong, doanh thu, su co).
+ *  - trafficChartData / revenueChartData: du lieu bieu do theo gio/ngay.
+ *  - floorData: ti le lap day theo tang.
+ *  - vehicleTypes: phan loai phuong tien dang do.
+ *  - recentIn / recentOut: xe vao/ra gan day.
+ *  - dashboardPeriod: khoang thoi gian loc ('day' | 'week' | 'month').
+ *
+ * Data source: Supabase (parking_sessions, payment, entry_exit_log, card_lost_log)
+ *              + Backend REST API (fetchAllDashboardData).
+ */
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import supabase from '../../../config/supabaseClient';
