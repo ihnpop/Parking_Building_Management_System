@@ -1,40 +1,53 @@
+// Import hooks React: useState (quản lý state), useEffect (side effect), useMemo (tối ưu hóa tính toán bộ lọc)
 import { useState, useEffect, useMemo } from 'react';
+// Import API service thao tác thẻ (lấy danh sách thẻ, xóa thẻ)
 import { getCards, deleteCard } from '../../../service/cardApi';
+// Import AuthContext để lấy thông tin user đăng nhập (lưu ID người thực hiện xóa)
 import { useAuth } from '../../../context/AuthContext';
+// Import NotificationContext để gọi thông báo toast và hộp thoại xác nhận
 import { useNotification } from '../../../context/NotificationContext';
+// Import Dialog modal Tạo thẻ mới và Sửa thông tin thẻ
 import CreateCardPageDialog from '../components/CreateCardPageDialog';
 import EditCardPageDialog from '../components/EditCardPageDialog';
+// Import CSS riêng của trang quản lý thẻ
 import "./CardPage.css";
 
-
+// Số lượng bản ghi thẻ hiển thị trên mỗi trang phân trang (Pagination)
 const ITEMS_PER_PAGE = 10;
 
 // ─────────────────────────────────────────────
-// Main Page
+// Component Trang Quản Lý Thẻ (Card Management Page)
 // ─────────────────────────────────────────────
 export default function CardPage({ defaultType = 'Thẻ lượt' }) {
+    // Lấy thông tin người dùng hiện tại từ AuthContext
     const { user } = useAuth();
+    // Lấy hàm showToast và showConfirm từ NotificationContext
     const { showToast, showConfirm } = useNotification();
+
+    // State mảng chứa danh sách thẻ gửi xe
     const [cards, setCards] = useState([]);
+    // State kiểm soát hiệu ứng spinner loading khi fetch dữ liệu thẻ
     const [loading, setLoading] = useState(true);
+    // State lưu thông báo lỗi nếu có sự cố gọi API
     const [error, setError] = useState(null);
 
-    // Modal state — tách biệt create / edit
+    // State đóng/mở các Modal Popup: Tạo thẻ và Chỉnh sửa thông tin thẻ
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
 
-    // Filters
+    // Các state cho bộ lọc: từ khóa tìm kiếm (search), lọc trạng thái (statusFilter), trang hiện tại (currentPage)
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('Tất cả trạng thái');
     const [currentPage, setCurrentPage] = useState(1);
 
+    // Hàm gọi API lấy danh sách toàn bộ thẻ gửi xe từ backend
     const fetchCards = async (pageOverride) => {
         try {
             setLoading(true);
             const data = await getCards();
 
-            // Sort data newest first
+            // Sắp xếp danh sách thẻ mới nhất lên đầu (Newest First)
             const sortedData = [...data].sort((a, b) => {
                 const dateA = a.created_at ? new Date(a.created_at) : 0;
                 const dateB = b.created_at ? new Date(b.created_at) : 0;
@@ -57,19 +70,23 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         }
     };
 
+    // Tự động gọi API fetch thẻ khi component được mount
     useEffect(() => { fetchCards(); }, []);
 
-    // ── Handlers ──────────────────────────────
+    // ── Xử lý các sự kiện click ──────────────────────────────
 
+    // Mở modal tạo thẻ gửi xe mới
     const handleCreateCard = () => {
         setIsCreateOpen(true);
     };
 
+    // Mở modal chỉnh sửa thông tin thẻ
     const handleEdit = (card) => {
         setEditingCard(card);
         setIsEditOpen(true);
     };
 
+    // Xử lý xóa thẻ (chuyển sang trạng thái "Đã khóa") — Chỉ áp dụng cho thẻ ở trạng thái "Đang chờ"
     const handleDelete = async (row) => {
         if (row.status !== 'Đang chờ') return;
         showConfirm({
@@ -83,7 +100,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     const res = await deleteCard(row.card_id, user?.id);
                     if (res.success) {
                         showToast(res.message || "Xóa thẻ thành công", "success");
-                        await fetchCards();
+                        await fetchCards(); // Tải lại danh sách sau khi xóa
                     } else {
                         showToast(res.message || "Xóa thẻ thất bại", "error");
                     }
@@ -95,8 +112,9 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         });
     };
 
-    // ── Filters & pagination (giữ nguyên) ────
+    // ── Xử lý Bộ Lọc & Phân Trang (Filter & Pagination) ────
 
+    // Đặt lại tất cả các bộ lọc về mặc định
     const handleResetFilters = () => {
         setSearch('');
         setStatusFilter('Tất cả trạng thái');
@@ -104,6 +122,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         fetchCards(1);
     };
 
+    // Lọc danh sách thẻ dựa trên từ khóa tìm kiếm (mã thẻ, biển số) và trạng thái thẻ
     const filteredCards = useMemo(() => cards.filter(card => {
         const matchesSearch = search === '' ||
             (card.code || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -112,14 +131,17 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         return matchesSearch && matchesStatus;
     }), [cards, search, statusFilter]);
 
+    // Đưa trang về 1 khi từ khóa tìm kiếm hoặc bộ lọc trạng thái thay đổi
     useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
 
+    // Tính toán tổng số trang và cắt mảng dữ liệu thẻ hiển thị cho trang hiện tại
     const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE);
     const paginatedCards = filteredCards.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     );
 
+    // Tạo danh sách số trang hiển thị thanh phân trang (có dấu '...' cho trang quá dài)
     const getPageNumbers = () => {
         const pages = [];
         if (totalPages <= 5) {
@@ -136,36 +158,39 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
         return pages;
     };
 
-    // ── Stats & donut (giữ nguyên) ────────────
+    // ── Thống kê tỷ lệ thẻ & Vẽ Biểu đồ Donut SVG ────────────
 
     const total = cards.length;
     const active = cards.filter(c => c.status === 'Hoạt động').length;
     const locked = cards.filter(c => c.status === 'Đã khóa').length;
     const inactiveCount = total - active - locked;
 
+    // Tính phần trăm từng loại trạng thái
     const activePercent = total > 0 ? Math.round((active / total) * 100) : 0;
     const lockedPercent = total > 0 ? Math.round((locked / total) * 100) : 0;
     const inactivePercent = total > 0 ? Math.round((inactiveCount / total) * 100) : 0;
 
+    // Đánh bán kính chu vi viền tròn donut SVG
     const circumference = 2 * Math.PI * 15.915;
     const activeStroke = (activePercent / 100) * circumference;
     const lockedStroke = (lockedPercent / 100) * circumference;
     const inactiveStroke = (inactivePercent / 100) * circumference;
 
+    // Hàm trả về CSS badge trạng thái thẻ
     const getStatusBadgeClass = (status) => {
         if (status === 'Hoạt động') return 'mc-status-badge mc-status-active';
         if (status === 'Đã khóa') return 'mc-status-badge mc-status-expired';
         return 'mc-status-badge mc-status-expiring';
     };
 
-    // ── Render ────────────────────────────────
+    // ── Render Giao diện Trang ────────────────────────────────
 
     return (
         <div className="mc-page">
-            {/* Stats Row */}
+            {/* Khối các Card Thống Kê Chỉ Số Tổng Hợp */}
             <div className="mc-stats-row">
                 <div className="mc-stats-grid">
-                    {/* Tổng số thẻ */}
+                    {/* Card Tổng số thẻ */}
                     <div className="mc-stat-card mc-stat-primary">
                         <div className="mc-stat-card-header">
                             <div className="mc-stat-icon">
@@ -178,7 +203,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <p className="mc-stat-label">Tổng số thẻ</p>
                         </div>
                     </div>
-                    {/* Đang hoạt động */}
+                    {/* Card Số thẻ đang hoạt động */}
                     <div className="mc-stat-card mc-stat-success">
                         <div className="mc-stat-card-header">
                             <div className="mc-stat-icon">
@@ -191,7 +216,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <p className="mc-stat-label">Đang hoạt động</p>
                         </div>
                     </div>
-                    {/* Đã khóa */}
+                    {/* Card Số thẻ đã khóa */}
                     <div className="mc-stat-card mc-stat-danger">
                         <div className="mc-stat-card-header">
                             <div className="mc-stat-icon">
@@ -204,7 +229,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             <p className="mc-stat-label">Đã khóa</p>
                         </div>
                     </div>
-                    {/* Đang chờ */}
+                    {/* Card Số thẻ đang chờ */}
                     <div className="mc-stat-card mc-stat-warning">
                         <div className="mc-stat-card-header">
                             <div className="mc-stat-icon">
@@ -219,7 +244,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                     </div>
                 </div>
 
-                {/* Donut Chart */}
+                {/* Biểu Đồ Donut SVG Thống Kê Tỷ Lệ Trạng Thái Thẻ */}
                 <div className="mc-donut-card">
                     <h3 className="mc-donut-title">TỶ LỆ TRẠNG THÁI THẺ</h3>
                     <div className="mc-donut-wrapper">
@@ -258,9 +283,10 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 </div>
             </div>
 
-            {/* Action Bar */}
+            {/* Thanh Công Cụ Bộ Lọc & Nút Đăng Ký Thẻ */}
             <div className="mc-action-bar">
                 <div className="mc-filters">
+                    {/* Ô nhập từ khóa tìm kiếm */}
                     <div className="mc-search-wrapper">
                         <span className="material-symbols-outlined mc-search-icon">search</span>
                         <input
@@ -271,6 +297,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
+                    {/* Dropdown chọn lọc theo trạng thái */}
                     <select
                         className="mc-filter-select"
                         value={statusFilter}
@@ -294,7 +321,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 </div>
             </div>
 
-            {/* Data Table */}
+            {/* Bảng Dữ Liệu Thẻ Gửi Xe */}
             <div className="mc-table-card">
                 {error && <div className="mc-error-message">{error}</div>}
 
@@ -324,6 +351,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                     <span className={getStatusBadgeClass(row.status)}>{row.status}</span>
                                                 </td>
                                                 <td className="mc-td-center" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    {/* Nút Chỉnh sửa thông tin thẻ */}
                                                     <button type="button" className="mc-edit-btn"
                                                         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                                                         onClick={() => handleEdit(row)} title="Chỉnh sửa"
@@ -331,7 +359,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                                                         <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>edit</span>
                                                     </button>
 
-                                                    {/* Nút xóa thẻ - chỉ cho phép xóa khi thẻ ở trạng thái "Đang chờ" */}
+                                                    {/* Nút Xóa thẻ (chỉ vô hiệu hóa/khóa khi thẻ ở trạng thái "Đang chờ") */}
                                                     <button type="button" className="mc-delete-btn"
                                                         style={{
                                                             color: '#ba1a1a',
@@ -360,7 +388,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                             </table>
                         </div>
 
-                        {/* Pagination */}
+                        {/* Thanh Chân Trang Phân Trang (Pagination Controls) */}
                         <div className="mc-pagination-footer">
                             <p className="mc-pagination-info">
                                 Hiển thị {filteredCards.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredCards.length)} của {filteredCards.length} kết quả
@@ -392,7 +420,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 )}
             </div>
 
-            {/* ── Modals ── */}
+            {/* ── Modal Dialog Popup Đăng ký thẻ mới ── */}
             <CreateCardPageDialog
                 isOpen={isCreateOpen}
                 onClose={() => setIsCreateOpen(false)}
@@ -403,6 +431,7 @@ export default function CardPage({ defaultType = 'Thẻ lượt' }) {
                 }}
             />
 
+            {/* ── Modal Dialog Popup Chỉnh sửa thông tin thẻ ── */}
             <EditCardPageDialog
                 isOpen={isEditOpen}
                 onClose={() => {
