@@ -1,4 +1,5 @@
 import supabase from "../config/supabaseClient.js";
+import { config } from "../config/config.js";
 
 /**
  * Lấy toàn bộ nhật ký mất thẻ (kèm thông tin thẻ, xe, khách, nhân viên)
@@ -463,13 +464,13 @@ export const getCardReissueFee = async (vehicleId = null, buildingId = null) => 
     const { data, error } = await query.limit(1).maybeSingle();
 
     if (error || !data || data.card_reissue_fee == null) {
-      return 50000;
+      return config.defaultCardReissueFee;
     }
 
-    return Number(data.card_reissue_fee) || 50000;
+    return Number(data.card_reissue_fee) || config.defaultCardReissueFee;
   } catch (err) {
-    console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback 50000:', err.message);
-    return 50000;
+    console.error('Lỗi khi lấy card_reissue_fee từ DB, fallback config:', err.message);
+    return config.defaultCardReissueFee;
   }
 };
 
