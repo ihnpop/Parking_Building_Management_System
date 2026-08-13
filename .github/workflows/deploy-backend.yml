@@ -4,7 +4,7 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - deploy-backup
+      - main
   workflow_dispatch:
 
 jobs:
